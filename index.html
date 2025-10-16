@@ -8,13 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
             --muted: #9ea0a6;
             --line: #2b2d34;
-            --silver: #cfd2d7;
+            --silver: #dadee1;
             --forest: #1e3a8a; /* deep cobalt */
             --mint: #2563eb;   /* cobalt blue accent */
             --section-gap: 80px; /* increased whitespace */
@@ -91,22 +92,43 @@
 
         .subhead {
             margin-top: 20px;
-            color: rgba(255,255,255,0.82);
-            font-weight: 1;
-            letter-spacing: .02em;
+            color: rgba(255,255,255,0.92); /* visible, normal text */
+            font-family: 'Manrope', 'DM Sans', sans-serif;
+            font-weight: 400;
+            letter-spacing: .03em;
             font-size: var(--lead);
             max-width: 58ch;
+            text-shadow: 0 0 10px rgba(255,255,255,0.1);
         }
-        .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+
+        /* The fading part */
+        .playon {
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-family: inherit;
+            font-weight: inherit;
+            letter-spacing: inherit;
+            font-size: inherit;
+            text-shadow: 0 0 10px rgba(255,255,255,0.1);
+            background-image: linear-gradient(
+                    90deg,
+                    rgba(255,255,255,0.92) 0%,
+                    rgba(255,255,255,0.92) 55%,
+                    rgba(255,255,255,0.00) 100%
+            );
+        }
+
+        .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: .5rem;
-            height: 44px;
+            height: 50px;
             padding: 0 16px;
-            border-radius: 12px;
-            font-weight: 700;
+            border-radius: 5px;
+            font-weight: 600;
             text-decoration: none;
             font-size: 1rem;
             letter-spacing: .01em;
@@ -117,10 +139,10 @@
         .btn-primary {
             color: #071014;
             background: linear-gradient(180deg, var(--silver), #bfc3c8);
-            border: 1px solid #b4bbc2;
+            border: 0 solid #c4cbcf;
             box-shadow: 0 10px 24px rgba(0,0,0,.28);
         }
-        .btn-primary:hover { background: linear-gradient(180deg, #dae0e6, #c7ccd2); }
+        .btn-primary:hover { background: linear-gradient(180deg, #ffffff, #c7ccd2); }
         .btn-secondary {
             color: #ffffff;
             background: transparent;
@@ -452,7 +474,8 @@
             <div class="hero-copy reveal">
                 <h1 class="headline">The capital platform that only <span class="hl">profits from your successes</span>, not your failures.</h1>
                 
-                <p class="subhead">No upfront fees. No misaligned incentives. Grow with a platform that scales your account with your skill.</p>
+                <p class="subhead">We cut the bullshit. You prove yourself to us, we provide you with capital. <span class="playon">We revolve entirely around transparency.</span>
+                </p>
                 <div class="cta-row">
                     <a class="btn btn-primary" href="#">Start Infinity Challenge</a>
                     <a class="btn btn-secondary" href="#flow">Explore Products</a>
