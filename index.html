@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>IPFX | Home</title>
-    <link rel="icon" type="image/png" href="images/favicon-16x16.png">
+    <link rel="icon" type="image/png" href="images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -46,7 +46,7 @@
             background-attachment: fixed;
         }
 
-        .container { width: min(var(--container-w), 92vw); margin: 0 auto; }
+        .container { width: min(var(--container-w), 62vw); margin: auto; }
 
         header {
             position: sticky; top: 0; z-index: 60;
@@ -63,7 +63,7 @@
         nav .menu { display: flex; align-items: center; gap: 2.5rem; position: relative; }
         nav .menu a { color: var(--fg); text-decoration: none; opacity: .92; font-weight: 500; letter-spacing: 0.2px; font-family: 'Space Grotesk','Inter',system-ui; font-size: 1.02rem; }
         nav .menu a:hover { opacity: 1; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-        .sep { width: 1px; height: 18px; background: var(--line); margin: 0 .2rem; }
+        .sep { width: 1px; height: 20px; background: var(--line); margin: 0 .2rem; background-color: rgba(255,255,255, 0.7);}
 
         .dropdown { position: relative; }
         .dropdown-btn { display: inline-flex; align-items: center; gap: .4rem; cursor: default; text-decoration: underline; text-decoration-thickness: 0.5px; text-underline-offset: 3px; font-weight: 500; letter-spacing: 0.3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 1.02rem; }
@@ -74,13 +74,13 @@
         .dropdown li:hover { background: #13151b; }
 
         /* Hero */
-        .hero { padding: 120px 0 96px; }
-        .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 2rem; align-items: center; }
+        .hero { padding: 100px 0 96px; }
+        .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 3rem; align-items: center; }
         @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
 
         .headline {
             font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-weight: 700;
+            font-weight: 600;
             font-size: var(--h1);
             line-height: 1.04;
             letter-spacing: -0.01em;
@@ -90,10 +90,10 @@
         .headline .hl { color: var(--mint); }
 
         .subhead {
-            margin: 0;
+            margin-top: 20px;
             color: rgba(255,255,255,0.82);
-            font-weight: 300;
-            letter-spacing: .01em;
+            font-weight: 1;
+            letter-spacing: .02em;
             font-size: var(--lead);
             max-width: 58ch;
         }
@@ -144,6 +144,7 @@
         .band-side { position: relative; }
         .band-card {
             margin-left: auto;
+            margin-right: auto;
             width: min(560px, 92%);
             background: linear-gradient(180deg, #21284b, #282f55);
             border: 0px solid #ffffff;
@@ -153,10 +154,11 @@
             position: relative; overflow: hidden;
             transform: translateY(-10px);
             z-index: 1;
+            
         }
         .band-card::before {
             content: "";
-            position: absolute; inset: 0;
+            position: relative; inset: 10px;
             background:
                     radial-gradient(700px 260px at 90% -10%, rgba(79,125,240,0.12), transparent 60%),
                     linear-gradient(160deg, rgba(255,255,255,0.04), rgba(255,255,255,0.00) 40%);
@@ -265,13 +267,161 @@
         /* --- NEW: reveal-on-scroll --- */
         .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
         .reveal.is-visible { opacity: 1; transform: none; }
+
+        /* Typewriter effect for "What are we?" box */
+        .typewriter-wrap {
+            display: inline-block;
+            font-family: 'IBM Plex Mono','Space Grotesk','Inter',system-ui,monospace;
+            font-weight: 500;
+            font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+            line-height: 1.6;
+            color: #ffffff;
+            white-space: nowrap;
+        }
+
+        .typewriter {
+            position: relative;
+            background: none;
+            color: #ffffff;
+        }
+
+        /* Blinking caret */
+        .typewriter::after {
+            content: "";
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            vertical-align: -0.15em;
+            margin-left: 4px;
+            background: currentColor;
+            animation: tw-blink 0.9s steps(1, end) infinite;
+        }
+
+        @keyframes tw-blink { 50% { opacity: 0; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .typewriter::after { animation: none; }
+        }
     </style>
 </head>
+<script defer>
+    document.addEventListener('DOMContentLoaded', () => {
+        const nodes = document.querySelectorAll('.typewriter');
+        if (!nodes.length) return;
+
+        // Default phrases for the "What are we?" box
+        const defaultPhrases = [
+            "Something new.",
+            "No entry fees. No barriers.",
+            "Just opportunity.",
+            "A free path to scalable capital.",
+            "We grow your account as your skill compounds."
+        ];
+
+        const TYPE_DELAY = 42;
+        const ERASE_DELAY = 28;
+        const HOLD_AFTER_TYPE = 1200;
+        const HOLD_AFTER_ERASE = 600;
+
+        // Comment this block out to test animation even if the OS requests reduced motion
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            nodes.forEach(el => { el.textContent = defaultPhrases[0]; });
+            return;
+        }
+
+        nodes.forEach(el => {
+            // Optional: per-element phrases via data attribute, e.g. data-phrases="A|B|C"
+            const phrases = (el.dataset.phrases ? el.dataset.phrases.split('|') : defaultPhrases)
+                .map(s => s.trim()).filter(Boolean);
+
+            let i = 0, j = 0, typing = true;
+
+            function tick() {
+                if (typing) {
+                    el.textContent = phrases[i].slice(0, j + 1);
+                    j++;
+                    if (j === phrases[i].length) {
+                        typing = false;
+                        setTimeout(tick, HOLD_AFTER_TYPE);
+                    } else {
+                        setTimeout(tick, TYPE_DELAY);
+                    }
+                } else {
+                    el.textContent = phrases[i].slice(0, j - 1);
+                    j--;
+                    if (j === 0) {
+                        typing = true;
+                        i = (i + 1) % phrases.length;
+                        setTimeout(tick, HOLD_AFTER_ERASE);
+                    } else {
+                        setTimeout(tick, ERASE_DELAY);
+                    }
+                }
+            }
+
+            // Kick it off
+            requestAnimationFrame(tick);
+        });
+    });
+</script>
+<script>
+    (function(){
+        const el = document.querySelector('.typewriter');
+        if(!el) return;
+
+        // Your rotating phrases for the "What are we?" box
+        const phrases = [
+            "Something new.",
+            "No entry fees. No barriers.",
+            "Just opportunity.",
+            "A free path to scalable capital.",
+            "We grow your account as your skill compounds."
+        ];
+
+        const TYPE_DELAY = 42;
+        const ERASE_DELAY = 28;
+        const HOLD_AFTER_TYPE = 1200;
+        const HOLD_AFTER_ERASE = 600;
+
+        // Reduced-motion users see static text
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            el.textContent = phrases[0];
+            return;
+        }
+
+        let i = 0, j = 0, typing = true;
+
+        function cycle() {
+            if (typing) {
+                el.textContent = phrases[i].slice(0, j + 1);
+                j++;
+                if (j === phrases[i].length) {
+                    typing = false;
+                    setTimeout(cycle, HOLD_AFTER_TYPE);
+                } else {
+                    setTimeout(cycle, TYPE_DELAY);
+                }
+            } else {
+                el.textContent = phrases[i].slice(0, j - 1);
+                j--;
+                if (j === 0) {
+                    typing = true;
+                    i = (i + 1) % phrases.length;
+                    setTimeout(cycle, HOLD_AFTER_ERASE);
+                } else {
+                    setTimeout(cycle, ERASE_DELAY);
+                }
+            }
+        }
+
+        requestAnimationFrame(cycle);
+    })();
+</script>
 <body>
 <header>
     <div class="container nav">
         <a class="brand" href="#">
-            <img src="file:///C:/Users/isaac/Downloads/ChatGPT%20Image%20Oct%2013,%202025,%2011_44_25%20PM.png" alt="IPFX logo" />
+            <img src="images/favicon.ico" alt="IPFX logo" />
             <b>IPFX&nbsp;CAPITAL</b>
         </a>
         <nav>
@@ -300,6 +450,7 @@
         <div class="container grid">
             <div class="hero-copy reveal">
                 <h1 class="headline">The capital platform that only <span class="hl">profits from your successes</span>, not your failures.</h1>
+                
                 <p class="subhead">No upfront fees. No misaligned incentives. Grow with a platform that scales your account with your skill.</p>
                 <div class="cta-row">
                     <a class="btn btn-primary" href="#">Start Infinity Challenge</a>
@@ -309,6 +460,9 @@
             <div class="chart-box reveal"><canvas id="candles" aria-hidden="true"></canvas></div>
         </div>
     </section>
+
+    
+
 
     <!-- NEW: STATS / NUMBERS -->
     <section class="stats" aria-labelledby="stats-heading">
@@ -343,14 +497,18 @@
     </section>
 
     <!-- WHAT ARE WE -->
-    <section class="band" id="offer">
-        <div class="container band-side">
-            <div class="band-card reveal" role="region" aria-labelledby="band-title">
-                <h2 id="band-title">What are we?</h2>
-                <p>Something new.<br>No entry fees. No barriers. Just opportunity. IPFX gives every trader a free path to funding, scaling your account as your skill compounds. Trade smart, stay consistent — we’ll handle the capital.</p>
-            </div>
+    <div class="band-card is-visible" role="region" aria-labelledby="band-title">
+        <h2 id="band-title">What are we?</h2>
+        <div class="typewriter-wrap">
+            <!-- optional: custom phrases per element via data-phrases -->
+            <span class="typewriter" data-phrases="Something new.|No entry fees. No barriers.|Just opportunity.|A free path to scalable capital.|We grow your account as your skill compounds.">
+      <!-- initial fallback so it isn’t empty at first paint -->
+      Something new.
+    </span>
         </div>
-    </section>
+    </div>
+
+
 
     <!-- HOW IT WORKS -->
     <section class="flow" id="flow">
@@ -544,105 +702,173 @@
     });
 
     // ===== Candlestick Animation (Canvas) — unchanged =====
-    (function(){
+    
+        (function () {
         const canvas = document.getElementById('candles');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let running = true;
+
+        // ===== Size management (avoid layout in render loop) =====
         let dpr = 1;
+        let cssW = 0, cssH = 0;   // cached CSS pixel size
+        let pxW = 0,  pxH = 0;    // backing store size
 
-        function cssSize(){
-            const rect = canvas.getBoundingClientRect();
-            let w = Math.max(1, rect.width || canvas.clientWidth || canvas.offsetWidth || 600);
-            let h = Math.max(1, rect.height || canvas.clientHeight || canvas.offsetHeight || 300);
-            return { w, h };
-        }
+        function applySize() {
+        // Set DPR once (or when DPR changes)
+        const newDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        if (newDpr !== dpr) dpr = newDpr;
 
-        function resize(){
-            dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-            const { w, h } = cssSize();
-            canvas.width = Math.floor(w * dpr);
-            canvas.height = Math.floor(h * dpr);
-            ctx.setTransform(1,0,0,1,0,0);
-            ctx.scale(dpr, dpr);
-        }
-        resize();
-        window.addEventListener('resize', resize);
+        const needResize = (canvas.width !== Math.floor(cssW * dpr)) || (canvas.height !== Math.floor(cssH * dpr));
+        if (needResize) {
+        canvas.width  = Math.floor(cssW * dpr);
+        canvas.height = Math.floor(cssH * dpr);
+        pxW = canvas.width  / dpr;
+        pxH = canvas.height / dpr;
 
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+
+        // Rebuild any prerendered layers here if you add them later.
+    }
+    }
+
+        // Observe the canvas box size without triggering layout in the render loop
+        const ro = new ResizeObserver(entries => {
+        for (const e of entries) {
+        const cr = e.contentRect;
+        cssW = Math.max(1, cr.width);
+        cssH = Math.max(1, cr.height);
+        applySize();
+    }
+    });
+        ro.observe(canvas);
+
+        // Fallback initial size (just in case RO fires late)
+        queueMicrotask(() => {
+        if (cssW === 0 || cssH === 0) {
+        const rect = canvas.getBoundingClientRect();
+        cssW = Math.max(1, rect.width  || canvas.clientWidth  || canvas.offsetWidth  || 600);
+        cssH = Math.max(1, rect.height || canvas.clientHeight || canvas.offsetHeight || 300);
+        applySize();
+    }
+    });
+
+        // ===== Data & rendering =====
         const series = [];
-        function nextBar(prev){
-            const drift = 0.01, vol = 2.5;
-            let close = prev + (Math.random()-0.5)*vol + drift;
-            close = Math.max(92, Math.min(108, close));
-            const open = prev;
-            const high = Math.max(open, close) + Math.random()*1.2;
-            const low  = Math.min(open, close) - Math.random()*1.2;
-            return {open, high, low, close};
-        }
+        function nextBar(prev) {
+        const drift = 0.01, vol = 2.5;
+        let close = prev + (Math.random() - 0.5) * vol + drift;
+        close = Math.max(92, Math.min(108, close));
+        const open = prev;
+        const high = Math.max(open, close) + Math.random() * 1.2;
+        const low  = Math.min(open, close) - Math.random() * 1.2;
+        return { open, high, low, close };
+    }
         let last = 100;
-        for (let i=0;i<180;i++){ const b = nextBar(last); series.push(b); last = b.close; }
+        for (let i = 0; i < 180; i++) { const b = nextBar(last); series.push(b); last = b.close; }
 
-        let globalMin = 88;
-        let globalMax = 112;
+        const globalMin = 88;
+        const globalMax = 112;
 
         const pad = 10, barW = 6, gap = 3;
         const step = barW + gap;
         const speed = prefersReduced ? 10 : 26;
         let offset = 0;
-        let lastTs = 0;
-        let initialized = false;
 
-        function drawFrame(ts){
-            if (!running) { lastTs = 0; requestAnimationFrame(drawFrame); return; }
-            if (!initialized) { lastTs = ts; initialized = true; }
+        // ----- Fixed timestep accumulator (prevents big first-frame jump) -----
+        const TICK = 1 / 60; // 60 Hz logical update
+        let accumulator = 0;
+        let lastTime = 0;
+        let started = false;
 
-            const { w, h } = cssSize();
-            const dt = lastTs ? (ts - lastTs) / 1000 : 0;
-            lastTs = ts;
-            const cappedDt = Math.min(dt, 0.1);
-            offset += speed * cappedDt;
-            while (offset >= step){
-                offset -= step;
-                const b = nextBar(series[series.length - 1].close);
-                series.push(b);
-                if (series.length > 240) series.shift();
-            }
+        function update(dt) {
+        // Convert scroll speed (px/s) into step accumulation
+        offset += speed * dt;
+        while (offset >= step) {
+        offset -= step;
+        const b = nextBar(series[series.length - 1].close);
+        series.push(b);
+        if (series.length > 240) series.shift();
+    }
+    }
 
-            ctx.clearRect(0,0,w,h);
-            ctx.globalAlpha = 0.22; ctx.strokeStyle = '#2b2d34';
-            for(let gy=0; gy<=4; gy++){ const y = Math.round((h/4)*gy)+0.5; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-            ctx.globalAlpha = 1;
+        function draw() {
+        if (!pxW || !pxH) return; // not sized yet
+        const w = pxW, h = pxH;
 
-            const y = v => h - pad - ((v-globalMin)/(globalMax-globalMin))*(h-2*pad);
+        ctx.clearRect(0, 0, w, h);
 
-            const upFill = '#1f4b99';
-            const downFill = '#ffffff';
-            const wick = '#cfd2d7';
+        // Grid (cheap; can be prerendered to an offscreen canvas if you want)
+        ctx.globalAlpha = 0.22; ctx.strokeStyle = '#2b2d34';
+        for (let gy = 0; gy <= 4; gy++) {
+        const y = Math.round((h / 4) * gy) + 0.5;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+        ctx.globalAlpha = 1;
 
-            let x = pad - offset;
-            for (let i=0; i<series.length; i++){
-                const b = series[i];
-                if (x > w - pad) break;
-                if (x + barW < 0) { x += step; continue; }
+        const y = v => h - pad - ((v - globalMin) / (globalMax - globalMin)) * (h - 2 * pad);
 
-                ctx.strokeStyle = wick; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(x+barW/2, y(b.high)); ctx.lineTo(x+barW/2, y(b.low)); ctx.stroke();
-                const top = y(Math.max(b.open,b.close));
-                const bot = y(Math.min(b.open,b.close));
-                ctx.fillStyle = (b.close >= b.open) ? upFill : downFill;
-                ctx.fillRect(x, top, barW, Math.max(1, bot-top));
-                x += step;
-            }
-            requestAnimationFrame(drawFrame);
-        }
-        requestAnimationFrame(drawFrame);
+        const upFill = '#1f4b99';
+        const downFill = '#ffffff';
+        const wick = '#cfd2d7';
 
+        let x = pad - offset;
+        for (let i = 0; i < series.length; i++) {
+        const b = series[i];
+        if (x > w - pad) break;
+        if (x + barW < 0) { x += step; continue; }
+
+        ctx.strokeStyle = wick; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x + barW / 2, y(b.high)); ctx.lineTo(x + barW / 2, y(b.low)); ctx.stroke();
+
+        const top = y(Math.max(b.open, b.close));
+        const bot = y(Math.min(b.open, b.close));
+        ctx.fillStyle = (b.close >= b.open) ? upFill : downFill;
+        ctx.fillRect(x, top, barW, Math.max(1, bot - top));
+
+        x += step;
+    }
+    }
+
+        function frame(ts) {
+        if (!running) { lastTime = ts; requestAnimationFrame(frame); return; }
+        if (!started) { started = true; lastTime = ts; }
+
+        let dt = (ts - lastTime) / 1000;
+        lastTime = ts;
+
+        // Clamp big spikes (first frames / tab switching)
+        if (dt > 0.25) dt = 0.25;
+
+        accumulator += dt;
+        while (accumulator >= TICK) {
+        update(TICK);
+        accumulator -= TICK;
+    }
+
+        draw();
+        requestAnimationFrame(frame);
+    }
+
+        // ===== Start after layout & fonts settle a bit =====
+        // Kicks off on next paint; idle lets heavy pages finish first work.
+        const start = () => requestAnimationFrame(frame);
+        if ('requestIdleCallback' in window) {
+        requestIdleCallback(start, { timeout: 500 });
+    } else if (document.readyState === 'complete') {
+        start();
+    } else {
+        window.addEventListener('load', start, { once: true });
+    }
+
+        // Pause when hidden (prevents big dt spikes)
         document.addEventListener('visibilitychange', () => {
-            running = document.visibilityState === 'visible';
-            if (running) { lastTs = 0; initialized = false; }
-        });
+        running = document.visibilityState === 'visible';
+        if (running) { lastTime = 0; } // reset timing to avoid jump
+    });
     })();
 </script>
 </body>
