@@ -75,7 +75,7 @@
         .dropdown li:hover { background: #13151b; }
 
         /* Hero */
-        .hero { padding: 100px 0 96px; }
+        .hero { padding: 100px 0 140px; }
         .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 3rem; align-items: center; }
         @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
 
@@ -83,20 +83,21 @@
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-weight: 600;
             font-size: var(--h1);
-            line-height: 1.04;
-            letter-spacing: -0.01em;
+            line-height: 1.12;
+            letter-spacing: -0.02em;
             color: #ffffff;
             margin: 0 0 10px;
         }
         .headline .hl { color: var(--mint); }
 
         .subhead {
-            margin-top: 20px;
+            margin-top: 30px;
             color: rgba(255,255,255,0.92); /* visible, normal text */
             font-family: 'Manrope', 'DM Sans', sans-serif;
             font-weight: 400;
             letter-spacing: .03em;
             font-size: var(--lead);
+            line-height: 1.5;
             max-width: 58ch;
             text-shadow: 0 0 10px rgba(255,255,255,0.1);
         }
@@ -119,7 +120,7 @@
             );
         }
 
-        .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+        .cta-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 28px; }
         .btn {
             display: inline-flex;
             align-items: center;
@@ -241,7 +242,7 @@
         footer { padding: 28px 0; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.03); }
 
         /* --- NEW: Stats section --- */
-        section.stats { padding: var(--section-gap) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02)); }
+        section.stats { padding: 100px 0 var(--section-gap); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02)); }
         .stats h2 { font-family: 'Space Grotesk','Inter'; font-weight: 700; font-size: var(--h2); margin: 0 0 6px; }
         .stats p.lead { margin: 0; color: var(--muted); font-size: var(--lead); }
         .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 22px; }
