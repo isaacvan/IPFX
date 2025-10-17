@@ -408,7 +408,10 @@
             --container-w: 1200px;
         }
 
-        .aboutflow{ padding: clamp(40px, 8vw, 112px) 0; }
+        .aboutflow{
+            padding: clamp(40px, 8vw, 112px) 0;
+            background: transparent;
+        }
 
         /* GRID: [left] [spine] [right] */
         .af-grid{
@@ -418,14 +421,16 @@
             grid-template-columns: 1fr var(--af-spine-w) minmax(360px, .9fr);
             column-gap: clamp(28px, 4vw, 48px);
             align-items: start;
+            position: relative;
         }
 
         .af-head{
-            grid-column: 1;
-            margin: 0 0 10px;
+            grid-column: 1 / -1;
+            margin: 0 0 32px;
             font-family: 'Space Grotesk','Inter',system-ui;
             font-weight: 700;
-            font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+            font-size: clamp(1.4rem, 2.8vw, 2rem);
+            color: #ffffff;
         }
 
         /* LEFT stack (namespaced) */
@@ -434,109 +439,156 @@
             list-style: none;
             margin: 0;
             padding: 0;
-            display: grid;
-            grid-template-columns: 1fr;       /* vertical stack */
-            row-gap: var(--af-gap-v);
+            display: flex;
+            flex-direction: column;
+            gap: var(--af-gap-v);
+            position: relative;
+        }
+
+        /* Vertical connecting line behind boxes */
+        .af-zig::before {
+            content: "";
+            position: absolute;
+            left: -20px;
+            top: 30px;
+            bottom: 30px;
+            width: 2px;
+            background: var(--af-line);
+            z-index: 0;
         }
 
         /* each step = [card][spine gutter] */
         .af-step{
-            display: grid;
-            grid-template-columns: 1fr var(--af-spine-w);
-            column-gap: 16px;
-            align-items: start;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            position: relative;
         }
 
         /* spine node */
         .af-node{
-            grid-column: 2;
-            justify-self: center; align-self: start;
-            width: 14px; height: 14px; border-radius: 999px;
+            position: absolute;
+            left: -26px;
+            top: 24px;
+            width: 14px;
+            height: 14px;
+            border-radius: 999px;
             background: #cfd2d7;
             box-shadow: 0 0 0 6px rgba(207,210,215,0.12);
-            margin-top: 24px;
+            z-index: 1;
         }
 
         /* the card (namespaced to avoid global .card clashes) */
         .af-card{
-            grid-column: 1;
             background: #0f1116;
             border: 1px solid var(--af-line);
             border-radius: var(--af-radius);
-            padding: 18px 20px;
+            padding: 20px 22px;
             box-shadow: var(--af-shadow);
-            overflow-wrap: anywhere; word-break: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
             position: relative;
+            flex: 1;
         }
 
         /* connector arm */
         .af-card::after{
-            content:""; position:absolute; top: 28px;
-            right: -24px; width: 24px; height: 2px; background: var(--af-line);
+            content:"";
+            position:absolute;
+            top: 28px;
+            right: -32px;
+            width: 32px;
+            height: 2px;
+            background: var(--af-line);
         }
 
         /* typography inside card */
         .af-card h3{
-            margin: 0 0 8px;
+            margin: 0 0 10px;
             font-family: 'Space Grotesk','Inter',system-ui;
             font-weight: 700;
-            font-size: clamp(1.0rem, 2vw, 1.15rem);
+            font-size: clamp(1.05rem, 2vw, 1.2rem);
+            color: #ffffff;
         }
         .af-card p{
-            margin: 0; color: var(--af-muted);
-            line-height: 1.6; font-size: .98rem;
+            margin: 0;
+            color: var(--af-muted);
+            line-height: 1.6;
+            font-size: .98rem;
         }
 
-        /* CENTER spine column */
+        /* CENTER spine column (visual separator) */
         .af-spine{
             grid-column: 2;
-            align-self: stretch; justify-self: center;
-            width: 2px; background: var(--af-line);
+            align-self: stretch;
+            justify-self: center;
+            width: 1px;
+            background: var(--af-line);
         }
 
         /* RIGHT sticky typewriter */
-        .af-right{ grid-column: 3; position: sticky; top: var(--af-sticky-top); align-self: start; }
+        .af-right{
+            grid-column: 3;
+            position: sticky;
+            top: var(--af-sticky-top);
+            align-self: start;
+        }
         .af-typebox{
             background: linear-gradient(180deg, #1e3a8a, #274ea8);
             border: 1px solid #2f56a6;
             border-radius: 16px;
-            padding: clamp(22px, 3.4vw, 36px);
+            padding: clamp(24px, 3.4vw, 38px);
             box-shadow: 0 12px 32px rgba(0,0,0,.32);
-            position: relative; overflow: hidden;
+            position: relative;
+            overflow: hidden;
         }
         .af-typebox::before{
-            content:""; position:absolute; inset:0;
+            content:"";
+            position:absolute;
+            inset:0;
             background:
-                    radial-gradient(700px 260px at 90% -10%, rgba(79,125,240,0.12), transparent 60%),
-                    linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.00) 40%);
+                radial-gradient(700px 260px at 90% -10%, rgba(79,125,240,0.12), transparent 60%),
+                linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.00) 40%);
             pointer-events:none;
         }
         .af-typebox h2{
-            margin: 0 0 10px;
+            margin: 0 0 12px;
             font-family:'Space Grotesk','Inter',system-ui;
             font-weight: 700;
             font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+            color: #ffffff;
         }
         .af-typewriter{
-            display:inline-block;
+            display:block;
             font-family: 'IBM Plex Mono','Space Grotesk','Inter',system-ui,monospace;
             font-weight: 500;
             font-size: clamp(.95rem, 1.6vw, 1.05rem);
-            line-height: 1.6; color:#fff; white-space: nowrap;
+            line-height: 1.6;
+            color:#fff;
+            white-space: normal;
+            min-height: 3em;
         }
         .af-typewriter::after{
-            content:""; display:inline-block; width:2px; height:1em; vertical-align:-0.15em;
-            margin-left:4px; background: currentColor; animation: af-blink .9s steps(1,end) infinite;
+            content:"";
+            display:inline-block;
+            width:2px;
+            height:1em;
+            vertical-align:-0.15em;
+            margin-left:4px;
+            background: currentColor;
+            animation: af-blink .9s steps(1,end) infinite;
         }
         @keyframes af-blink { 50% { opacity: 0; } }
 
         /* reveal-on-scroll */
         .af-step .af-card, .af-step .af-node{
-            opacity: 0; transform: translateY(8px);
+            opacity: 0;
+            transform: translateY(12px);
             transition: opacity .6s ease, transform .6s ease;
         }
         .af-step.is-inview .af-card, .af-step.is-inview .af-node{
-            opacity: 1; transform: none;
+            opacity: 1;
+            transform: none;
         }
 
         /* Mobile: hide spine + right panel; keep cards only */
@@ -547,6 +599,7 @@
             .af-step{ grid-template-columns: 1fr; }
             .af-node{ display:none; }
             .af-card::after{ display:none; }
+            .af-zig::before { display:none; }
         }
 
         /* Respect motion prefs */
