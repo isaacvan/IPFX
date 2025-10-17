@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>IPFX | Home</title>
-    <link rel="icon" type="image/png" href="assets/images/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap"
@@ -55,9 +55,10 @@
         }
 
         .container {
-            width: min(var(--container-w), 62vw);
+            width: min(var(--container-w), 92vw);
             margin: auto;
         }
+
 
         header {
             position: sticky;
@@ -274,25 +275,6 @@
             }
         }
 
-
-        /* The fading part */
-        .playon {
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-family: inherit;
-            font-weight: inherit;
-            letter-spacing: inherit;
-            font-size: inherit;
-            -webkit-text-fill-color: transparent;
-            background-image: linear-gradient(
-                    90deg,
-                    rgba(255, 255, 255, 0.92) 0%,
-                    rgba(255, 255, 255, 0.92) 55%,
-                    rgba(255, 255, 255, 0.20) 100%
-            );
-        }
-
         .cta-row {
             display: flex;
             gap: 16px;
@@ -342,20 +324,19 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
+        #tape, #candles {
+            display: block;
+            width: 100%;
+            height: 420px;
+        }
+
         .chart-box {
-            width: calc(100% - 45px);
-            height: clamp(340px, 48vw, 540px);
-            border: 0;
-            border-radius: 0;
-            background: transparent;
-            overflow: hidden;
-            justify-self: end;
+            height: 420px; /* or use aspect-ratio: 16/9; */
         }
 
         .chart-box canvas {
             width: 100%;
-            height: 100%;
-            display: block;
+            height: 100%; /* OK now because parent has a height */
         }
 
         /* Band (What are we) */
@@ -389,7 +370,7 @@
 
         .band-card::before {
             content: "";
-            position: relative;
+            position: absolute;
             inset: 10px;
             background: radial-gradient(700px 260px at 90% -10%, rgba(79, 125, 240, 0.12), transparent 60%),
             linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.00) 40%);
@@ -400,7 +381,7 @@
             margin: 0 0 14px;
             color: #ffffff;
             font-family: 'Space Grotesk', 'Inter';
-            font-weight: 700;
+            font-weight: 200;
             font-size: var(--h2);
             letter-spacing: .01em;
         }
@@ -415,17 +396,167 @@
             max-width: 60ch;
         }
 
-
-        /* isolates layout/paint of the chart box; reduces jank from surrounding paints */
-        .chart-box {
-            contain: layout paint size;
+        /* ====== Layout variables ====== */
+        :root{
+            --af-spine-w: 40px;
+            --af-gap-v: clamp(28px, 6vh, 64px);
+            --af-line: #2b2d34;
+            --af-muted: rgba(255,255,255,.78);
+            --af-radius: 14px;
+            --af-shadow: 0 10px 28px rgba(0,0,0,.24);
+            --af-sticky-top: clamp(56px, 10vh, 96px);
+            --container-w: 1200px;
         }
 
-        #candles {
-            display: block;
-            will-change: transform;
+        .aboutflow{ padding: clamp(40px, 8vw, 112px) 0; }
+
+        /* GRID: [left] [spine] [right] */
+        .af-grid{
+            width: min(var(--container-w), 92vw);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr var(--af-spine-w) minmax(360px, .9fr);
+            column-gap: clamp(28px, 4vw, 48px);
+            align-items: start;
         }
 
+        .af-head{
+            grid-column: 1;
+            margin: 0 0 10px;
+            font-family: 'Space Grotesk','Inter',system-ui;
+            font-weight: 700;
+            font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+        }
+
+        /* LEFT stack (namespaced) */
+        .af-zig{
+            grid-column: 1;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr;       /* vertical stack */
+            row-gap: var(--af-gap-v);
+        }
+
+        /* each step = [card][spine gutter] */
+        .af-step{
+            display: grid;
+            grid-template-columns: 1fr var(--af-spine-w);
+            column-gap: 16px;
+            align-items: start;
+        }
+
+        /* spine node */
+        .af-node{
+            grid-column: 2;
+            justify-self: center; align-self: start;
+            width: 14px; height: 14px; border-radius: 999px;
+            background: #cfd2d7;
+            box-shadow: 0 0 0 6px rgba(207,210,215,0.12);
+            margin-top: 24px;
+        }
+
+        /* the card (namespaced to avoid global .card clashes) */
+        .af-card{
+            grid-column: 1;
+            background: #0f1116;
+            border: 1px solid var(--af-line);
+            border-radius: var(--af-radius);
+            padding: 18px 20px;
+            box-shadow: var(--af-shadow);
+            overflow-wrap: anywhere; word-break: break-word;
+            position: relative;
+        }
+
+        /* connector arm */
+        .af-card::after{
+            content:""; position:absolute; top: 28px;
+            right: -24px; width: 24px; height: 2px; background: var(--af-line);
+        }
+
+        /* typography inside card */
+        .af-card h3{
+            margin: 0 0 8px;
+            font-family: 'Space Grotesk','Inter',system-ui;
+            font-weight: 700;
+            font-size: clamp(1.0rem, 2vw, 1.15rem);
+        }
+        .af-card p{
+            margin: 0; color: var(--af-muted);
+            line-height: 1.6; font-size: .98rem;
+        }
+
+        /* CENTER spine column */
+        .af-spine{
+            grid-column: 2;
+            align-self: stretch; justify-self: center;
+            width: 2px; background: var(--af-line);
+        }
+
+        /* RIGHT sticky typewriter */
+        .af-right{ grid-column: 3; position: sticky; top: var(--af-sticky-top); align-self: start; }
+        .af-typebox{
+            background: linear-gradient(180deg, #1e3a8a, #274ea8);
+            border: 1px solid #2f56a6;
+            border-radius: 16px;
+            padding: clamp(22px, 3.4vw, 36px);
+            box-shadow: 0 12px 32px rgba(0,0,0,.32);
+            position: relative; overflow: hidden;
+        }
+        .af-typebox::before{
+            content:""; position:absolute; inset:0;
+            background:
+                    radial-gradient(700px 260px at 90% -10%, rgba(79,125,240,0.12), transparent 60%),
+                    linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.00) 40%);
+            pointer-events:none;
+        }
+        .af-typebox h2{
+            margin: 0 0 10px;
+            font-family:'Space Grotesk','Inter',system-ui;
+            font-weight: 700;
+            font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+        }
+        .af-typewriter{
+            display:inline-block;
+            font-family: 'IBM Plex Mono','Space Grotesk','Inter',system-ui,monospace;
+            font-weight: 500;
+            font-size: clamp(.95rem, 1.6vw, 1.05rem);
+            line-height: 1.6; color:#fff; white-space: nowrap;
+        }
+        .af-typewriter::after{
+            content:""; display:inline-block; width:2px; height:1em; vertical-align:-0.15em;
+            margin-left:4px; background: currentColor; animation: af-blink .9s steps(1,end) infinite;
+        }
+        @keyframes af-blink { 50% { opacity: 0; } }
+
+        /* reveal-on-scroll */
+        .af-step .af-card, .af-step .af-node{
+            opacity: 0; transform: translateY(8px);
+            transition: opacity .6s ease, transform .6s ease;
+        }
+        .af-step.is-inview .af-card, .af-step.is-inview .af-node{
+            opacity: 1; transform: none;
+        }
+
+        /* Mobile: hide spine + right panel; keep cards only */
+        @media (max-width: 900px){
+            .af-grid{ grid-template-columns: 1fr; }
+            .af-spine{ display:none; }
+            .af-right{ display:none; }
+            .af-step{ grid-template-columns: 1fr; }
+            .af-node{ display:none; }
+            .af-card::after{ display:none; }
+        }
+
+        /* Respect motion prefs */
+        @media (prefers-reduced-motion: reduce){
+            .af-step .af-card, .af-step .af-node{ transition: none; }
+            .af-typewriter::after{ animation: none; }
+        }
+
+        
+        
 
         /* Timeline */
         .flow {
@@ -627,6 +758,10 @@
             color: var(--muted);
             border-top: 1px solid rgba(255, 255, 255, 0.03);
         }
+
+        
+
+
 
         /* --- NEW: Stats section --- */
         section.stats {
@@ -989,7 +1124,52 @@
         });
     });
 </script>
-<script src="assets/js/candles.js"></script>
+<script src="assets/js/candles-main.js" defer></script>
+<script>
+    (() => {
+        // Typewriter
+        const tw = document.querySelector('.af-typewriter');
+        if (tw) {
+            const phrases = (tw.dataset.phrases || tw.textContent || '')
+                .split('|').map(s => s.trim()).filter(Boolean);
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            if (!reduced && phrases.length){
+                const TYPE=42, ERASE=28, HOLD1=1200, HOLD2=600;
+                let i=0, j=0, typing=true;
+                const tick = () => {
+                    if (typing){
+                        tw.textContent = phrases[i].slice(0, ++j);
+                        if (j === phrases[i].length){ typing=false; setTimeout(tick, HOLD1); }
+                        else setTimeout(tick, TYPE);
+                    } else {
+                        tw.textContent = phrases[i].slice(0, --j);
+                        if (j === 0){ typing=true; i=(i+1)%phrases.length; setTimeout(tick, HOLD2); }
+                        else setTimeout(tick, ERASE);
+                    }
+                };
+                requestAnimationFrame(tick);
+            } else if (phrases[0]) {
+                tw.textContent = phrases[0];
+            }
+        }
+
+        // Reveal-on-scroll
+        const steps = document.querySelectorAll('.af-step');
+        if (steps.length){
+            const io = new IntersectionObserver((entries, obs) => {
+                for (const e of entries){
+                    if (e.isIntersecting){
+                        e.target.classList.add('is-inview');
+                        obs.unobserve(e.target);
+                    }
+                }
+            }, { threshold: 0.25 });
+            steps.forEach(s => io.observe(s));
+        }
+    })();
+</script>
+
 <body>
 <header>
     <div class="container nav">
@@ -1069,56 +1249,66 @@
                     <div class="foot">Active A-book mirrors</div>
                 </article>
             </div>
-            <p style="color:#7b7f86; font-size:13px; margin-top:8px">* Replace placeholders with verified data.</p>
         </div>
     </section>
 
-    <!-- WHAT ARE WE -->
-    <div class="band-card is-visible" role="region" aria-labelledby="band-title">
-        <h2 id="band-title">What are we?</h2>
-        <div class="typewriter-wrap">
-            <!-- optional: custom phrases per element via data-phrases -->
-            <span class="typewriter"
-                  data-phrases="Something new.|No entry fees. No barriers.|Just opportunity.|A free path to scalable capital.|We grow your account as your skill compounds.">
-      <!-- initial fallback so it isn’t empty at first paint -->
-      Something new.
-    </span>
-        </div>
-    </div>
+    <!-- ABOUT + HOW WE WORK (left stack + spine + sticky typewriter) -->
+    <section id="about-flow" class="aboutflow" aria-labelledby="af-heading">
+        <div class="af-grid">
+            <!-- LEFT -->
+            <h2 id="af-heading" class="af-head">How IPFX works</h2>
 
+            <ol class="af-zig">
+                <li class="af-step">
+                    <span class="af-node" aria-hidden="true"></span>
+                    <div class="af-card">
+                        <h3>Choose your path</h3>
+                        <p>Infinity (free), PAC (custom), or mirror top traders in the Social Pot.</p>
+                    </div>
+                </li>
+                <li class="af-step">
+                    <span class="af-node" aria-hidden="true"></span>
+                    <div class="af-card">
+                        <h3>Trade & build trust</h3>
+                        <p>Our AI measures consistency, drawdown discipline, and volatility control.</p>
+                    </div>
+                </li>
+                <li class="af-step">
+                    <span class="af-node" aria-hidden="true"></span>
+                    <div class="af-card">
+                        <h3>Unlock A-book capital</h3>
+                        <p>When verified, you switch from simulated to real capital mirroring.</p>
+                    </div>
+                </li>
+                <li class="af-step">
+                    <span class="af-node" aria-hidden="true"></span>
+                    <div class="af-card">
+                        <h3>Scale & retain</h3>
+                        <p>Double every +10%. Use insurance to keep your account after setbacks.</p>
+                    </div>
+                </li>
+            </ol>
 
-    <!-- HOW IT WORKS -->
-    <section class="flow" id="flow">
-        <div class="container">
-            <div class="timeline" role="list" aria-label="How it works">
-                <div class="step reveal" role="listitem">
-                    <span class="node" aria-hidden="true"></span>
-                    <span class="badge">1</span>
-                    <h3>Choose Your Path</h3>
-                    <p>Infinity (free), PAC (custom), or mirror proven traders in the Social Pot.</p>
+            <!-- CENTER spine -->
+            <div class="af-spine" aria-hidden="true"></div>
+
+            <!-- RIGHT sticky typewriter -->
+            <aside class="af-right" aria-labelledby="about-title">
+                <div class="af-typebox">
+                    <h2 id="about-title">About IPFX</h2>
+                    <p class="af-typewriter" data-phrases="
+          We cut the noise. Our incentives are aligned with yours.|
+          No entry fees. No gimmicks. Just scalable capital.|
+          We only profit when you do — by design.|
+          Transparent rules. Predictable scaling. Real trust.
+        ">
+                        We only profit when you do — by design.
+                    </p>
                 </div>
-                <div class="step reveal" role="listitem">
-                    <span class="node" aria-hidden="true"></span>
-                    <span class="badge">2</span>
-                    <h3>Trade & Prove Consistency</h3>
-                    <p>AI tracks drawdown discipline, volatility and behavior to build your trust score.</p>
-                </div>
-                <div class="step reveal" role="listitem">
-                    <span class="node" aria-hidden="true"></span>
-                    <span class="badge">3</span>
-                    <h3>Unlock A-book Funding</h3>
-                    <p>When verified as consistent and low-risk, you switch from B-book (sim) to A-book (real
-                        capital).</p>
-                </div>
-                <div class="step reveal" role="listitem">
-                    <span class="node" aria-hidden="true"></span>
-                    <span class="badge">4</span>
-                    <h3>Scale & Retain</h3>
-                    <p>Double every +10%. Use insurance to keep your account after setbacks. We profit when you do.</p>
-                </div>
-            </div>
+            </aside>
         </div>
     </section>
+
 
     <!-- NEW: PRODUCTS (STATIC GRID) -->
     <section class="products" aria-label="Products">
