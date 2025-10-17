@@ -399,11 +399,11 @@
         /* ====== Layout variables ====== */
         :root{
             --af-spine-w: 40px;
-            --af-gap-v: clamp(28px, 6vh, 64px);
+            --af-gap-v: clamp(48px, 8vh, 80px);
             --af-line: #2b2d34;
-            --af-muted: rgba(255,255,255,.78);
+            --af-muted: rgba(255,255,255,.85);
             --af-radius: 14px;
-            --af-shadow: 0 10px 28px rgba(0,0,0,.24);
+            --af-shadow: 0 12px 40px rgba(0,0,0,.35);
             --af-sticky-top: clamp(56px, 10vh, 96px);
             --container-w: 1200px;
         }
@@ -418,8 +418,8 @@
             width: min(var(--container-w), 92vw);
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr var(--af-spine-w) minmax(360px, .9fr);
-            column-gap: clamp(28px, 4vw, 48px);
+            grid-template-columns: 1.1fr var(--af-spine-w) minmax(380px, 1fr);
+            column-gap: clamp(32px, 5vw, 64px);
             align-items: start;
             position: relative;
         }
@@ -468,53 +468,61 @@
         /* spine node */
         .af-node{
             position: absolute;
-            left: -26px;
-            top: 24px;
-            width: 14px;
-            height: 14px;
+            left: -30px;
+            top: 32px;
+            width: 18px;
+            height: 18px;
             border-radius: 999px;
-            background: #cfd2d7;
-            box-shadow: 0 0 0 6px rgba(207,210,215,0.12);
+            background: linear-gradient(135deg, #e0e3e8, #cfd2d7);
+            box-shadow: 0 0 0 8px rgba(207,210,215,0.08), 0 2px 8px rgba(0,0,0,0.2);
             z-index: 1;
         }
 
         /* the card (namespaced to avoid global .card clashes) */
         .af-card{
-            background: #0f1116;
-            border: 1px solid var(--af-line);
-            border-radius: var(--af-radius);
-            padding: 20px 22px;
-            box-shadow: var(--af-shadow);
+            background: linear-gradient(135deg, #13151c 0%, #0f1116 100%);
+            border: 2px solid #1e232b;
+            border-radius: 16px;
+            padding: 28px 32px;
+            box-shadow: var(--af-shadow), inset 0 1px 0 rgba(255,255,255,0.03);
             overflow-wrap: anywhere;
             word-break: break-word;
             position: relative;
             flex: 1;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .af-card:hover{
+            transform: translateX(4px);
+            box-shadow: 0 16px 48px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,0.03);
         }
 
         /* connector arm */
         .af-card::after{
             content:"";
             position:absolute;
-            top: 28px;
-            right: -32px;
-            width: 32px;
-            height: 2px;
-            background: var(--af-line);
+            top: 38px;
+            right: -40px;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, #2b2d34, rgba(43,45,52,0.3));
         }
 
         /* typography inside card */
         .af-card h3{
-            margin: 0 0 10px;
+            margin: 0 0 12px;
             font-family: 'Space Grotesk','Inter',system-ui;
             font-weight: 700;
-            font-size: clamp(1.05rem, 2vw, 1.2rem);
+            font-size: clamp(1.15rem, 2.2vw, 1.4rem);
             color: #ffffff;
+            letter-spacing: -0.01em;
         }
         .af-card p{
             margin: 0;
             color: var(--af-muted);
-            line-height: 1.6;
-            font-size: .98rem;
+            line-height: 1.65;
+            font-size: clamp(0.98rem, 1.4vw, 1.05rem);
+            font-weight: 400;
         }
 
         /* CENTER spine column (visual separator) */
@@ -522,8 +530,8 @@
             grid-column: 2;
             align-self: stretch;
             justify-self: center;
-            width: 1px;
-            background: var(--af-line);
+            width: 2px;
+            background: linear-gradient(180deg, transparent, var(--af-line) 10%, var(--af-line) 90%, transparent);
         }
 
         /* RIGHT sticky typewriter */
@@ -534,11 +542,17 @@
             align-self: start;
         }
         .af-typebox{
-            background: linear-gradient(180deg, #1e3a8a, #274ea8);
-            border: 1px solid #2f56a6;
-            border-radius: 16px;
-            padding: clamp(24px, 3.4vw, 38px);
-            box-shadow: 0 12px 32px rgba(0,0,0,.32);
+            background: rgba(15, 17, 22, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(43, 45, 52, 0.8);
+            border-left: 3px solid #2563eb;
+            border-radius: 18px;
+            padding: clamp(28px, 3.8vw, 42px);
+            box-shadow:
+                    -4px 0 24px rgba(37, 99, 235, 0.08),
+                    0 12px 40px rgba(0,0,0,.4),
+                    inset 0 1px 0 rgba(255,255,255,0.04);
             position: relative;
             overflow: hidden;
         }
@@ -547,26 +561,45 @@
             position:absolute;
             inset:0;
             background:
-                radial-gradient(700px 260px at 90% -10%, rgba(79,125,240,0.12), transparent 60%),
-                linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.00) 40%);
+                    radial-gradient(600px 400px at 0% 50%, rgba(37, 99, 235, 0.06), transparent 70%),
+                    linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00) 50%);
             pointer-events:none;
         }
+        /* Subtle pointer arrow */
+        .af-typebox::after{
+            content:"";
+            position:absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-right: 10px solid rgba(37, 99, 235, 0.3);
+            filter: blur(1px);
+        }
         .af-typebox h2{
-            margin: 0 0 12px;
+            margin: 0 0 16px;
             font-family:'Space Grotesk','Inter',system-ui;
             font-weight: 700;
-            font-size: clamp(1.2rem, 2.2vw, 1.6rem);
-            color: #ffffff;
+            font-size: clamp(1.1rem, 2vw, 1.35rem);
+            color: #e9ecef;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            font-size: 0.95rem;
+            opacity: 0.7;
         }
         .af-typewriter{
             display:block;
-            font-family: 'IBM Plex Mono','Space Grotesk','Inter',system-ui,monospace;
-            font-weight: 500;
-            font-size: clamp(.95rem, 1.6vw, 1.05rem);
-            line-height: 1.6;
-            color:#fff;
+            font-family: 'Inter','Space Grotesk',system-ui;
+            font-weight: 400;
+            font-size: clamp(1rem, 1.8vw, 1.15rem);
+            line-height: 1.7;
+            color: rgba(255,255,255,0.95);
             white-space: normal;
-            min-height: 3em;
+            min-height: 3.5em;
+            letter-spacing: 0.01em;
         }
         .af-typewriter::after{
             content:"";
@@ -582,8 +615,8 @@
 
         /* reveal-on-scroll */
         .af-step .af-card, .af-step .af-node{
-            opacity: 0;
-            transform: translateY(12px);
+            opacity: 1;
+            transform: none;
             transition: opacity .6s ease, transform .6s ease;
         }
         .af-step.is-inview .af-card, .af-step.is-inview .af-node{
@@ -608,8 +641,8 @@
             .af-typewriter::after{ animation: none; }
         }
 
-        
-        
+
+
 
         /* Timeline */
         .flow {
@@ -812,7 +845,7 @@
             border-top: 1px solid rgba(255, 255, 255, 0.03);
         }
 
-        
+
 
 
 
@@ -1015,6 +1048,213 @@
         }
     </style>
 </head>
+<script defer>
+    document.addEventListener('DOMContentLoaded', () => {
+        const nodes = document.querySelectorAll('.typewriter');
+        if (!nodes.length) return;
+
+        // Default phrases for the "What are we?" box
+        const defaultPhrases = [
+            "Something new.",
+            "No entry fees. No barriers.",
+            "Just opportunity.",
+            "A free path to scalable capital.",
+            "We grow your account as your skill compounds."
+        ];
+
+        const TYPE_DELAY = 42;
+        const ERASE_DELAY = 28;
+        const HOLD_AFTER_TYPE = 1200;
+        const HOLD_AFTER_ERASE = 600;
+
+        // Comment this block out to test animation even if the OS requests reduced motion
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            nodes.forEach(el => {
+                el.textContent = defaultPhrases[0];
+            });
+            return;
+        }
+
+        nodes.forEach(el => {
+            // Optional: per-element phrases via data attribute, e.g. data-phrases="A|B|C"
+            const phrases = (el.dataset.phrases ? el.dataset.phrases.split('|') : defaultPhrases)
+                .map(s => s.trim()).filter(Boolean);
+
+            let i = 0, j = 0, typing = true;
+
+            function tick() {
+                if (typing) {
+                    el.textContent = phrases[i].slice(0, j + 1);
+                    j++;
+                    if (j === phrases[i].length) {
+                        typing = false;
+                        setTimeout(tick, HOLD_AFTER_TYPE);
+                    } else {
+                        setTimeout(tick, TYPE_DELAY);
+                    }
+                } else {
+                    el.textContent = phrases[i].slice(0, j - 1);
+                    j--;
+                    if (j === 0) {
+                        typing = true;
+                        i = (i + 1) % phrases.length;
+                        setTimeout(tick, HOLD_AFTER_ERASE);
+                    } else {
+                        setTimeout(tick, ERASE_DELAY);
+                    }
+                }
+            }
+
+            // Kick it off
+            requestAnimationFrame(tick);
+        });
+    });
+</script>
+<script>
+    (function () {
+        const el = document.querySelector('.typewriter');
+        if (!el) return;
+
+        // Your rotating phrases for the "What are we?" box
+        const phrases = [
+            "Something new.",
+            "No entry fees. No barriers.",
+            "Just opportunity.",
+            "A free path to scalable capital.",
+            "We grow your account as your skill compounds."
+        ];
+
+        const TYPE_DELAY = 42;
+        const ERASE_DELAY = 28;
+        const HOLD_AFTER_TYPE = 1200;
+        const HOLD_AFTER_ERASE = 600;
+
+        // Reduced-motion users see static text
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            el.textContent = phrases[0];
+            return;
+        }
+
+        let i = 0, j = 0, typing = true;
+
+        function cycle() {
+            if (typing) {
+                el.textContent = phrases[i].slice(0, j + 1);
+                j++;
+                if (j === phrases[i].length) {
+                    typing = false;
+                    setTimeout(cycle, HOLD_AFTER_TYPE);
+                } else {
+                    setTimeout(cycle, TYPE_DELAY);
+                }
+            } else {
+                el.textContent = phrases[i].slice(0, j - 1);
+                j--;
+                if (j === 0) {
+                    typing = true;
+                    i = (i + 1) % phrases.length;
+                    setTimeout(cycle, HOLD_AFTER_ERASE);
+                } else {
+                    setTimeout(cycle, ERASE_DELAY);
+                }
+            }
+        }
+
+        requestAnimationFrame(cycle);
+    })();
+</script>
+<script>
+    // underline animation
+    window.addEventListener('load', () => {
+        document.body.classList.add('loaded');
+    });
+
+    // start flicker after DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        const nodes = document.querySelectorAll('.flicker-word');
+        if (!nodes.length) return;
+
+        nodes.forEach(el => {
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const forced = el.dataset.flicker === 'force';
+            if (reduceMotion && !forced) return; // respect OS setting unless forced
+
+            function flickerOnce() {
+                // 1–3 quick dips for an organic feel
+                const bursts = 1 + Math.floor(Math.random() * 3);
+                let i = 0;
+
+                function dip() {
+                    el.classList.add('is-flicker');
+                    setTimeout(() => {
+                        el.classList.remove('is-flicker');
+                        i++;
+                        if (i < bursts) {
+                            setTimeout(dip, 40 + Math.random() * 120);
+                        } else {
+                            scheduleNext();
+                        }
+                    }, 80 + Math.random() * 140);
+                }
+
+                dip();
+            }
+
+            function scheduleNext() {
+                // wait 1.8s–6s between flickers
+                const wait = 1800 + Math.random() * 4200;
+                setTimeout(flickerOnce, wait);
+            }
+
+            scheduleNext();
+        });
+    });
+</script>
+<script src="assets/js/candles-main.js" defer></script>
+<script>
+    (() => {
+        // Typewriter
+        const tw = document.querySelector('.af-typewriter');
+        if (tw) {
+            const phrases = (tw.dataset.phrases || tw.textContent || '')
+                .split('|').map(s => s.trim()).filter(Boolean);
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            if (!reduced && phrases.length){
+                const TYPE=42, ERASE=28, HOLD1=1200, HOLD2=600;
+                let i=0, j=0, typing=true;
+                const tick = () => {
+                    if (typing){
+                        tw.textContent = phrases[i].slice(0, ++j);
+                        if (j === phrases[i].length){ typing=false; setTimeout(tick, HOLD1); }
+                        else setTimeout(tick, TYPE);
+                    } else {
+                        tw.textContent = phrases[i].slice(0, --j);
+                        if (j === 0){ typing=true; i=(i+1)%phrases.length; setTimeout(tick, HOLD2); }
+                        else setTimeout(tick, ERASE);
+                    }
+                };
+                requestAnimationFrame(tick);
+            } else if (phrases[0]) {
+                tw.textContent = phrases[0];
+            }
+        }
+
+        // Reveal-on-scroll
+        const steps = document.querySelectorAll('.af-step');
+        if (steps.length){
+            const io = new IntersectionObserver((entries, obs) => {
+                for (const e of entries){
+                    if (e.isIntersecting){
+                        e.target.classList.add('is-inview');
+                        obs.unobserve(e.target);
+                    }
+                }
+            }, { threshold: 0.25 });
+            steps.forEach(s => io.observe(s));
+        }
+    })();
+</script>
 
 <body>
 <header>
@@ -1331,94 +1571,7 @@
 
         requestAnimationFrame(tick);
     });
-
-    // Typewriter for af-typewriter
-    const tw = document.querySelector('.af-typewriter');
-    if (tw) {
-        const phrases = (tw.dataset.phrases || tw.textContent || '')
-            .split('|').map(s => s.trim()).filter(Boolean);
-        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-        if (!reduced && phrases.length){
-            const TYPE=42, ERASE=28, HOLD1=1200, HOLD2=600;
-            let i=0, j=0, typing=true;
-            const tick = () => {
-                if (typing){
-                    tw.textContent = phrases[i].slice(0, ++j);
-                    if (j === phrases[i].length){ typing=false; setTimeout(tick, HOLD1); }
-                    else setTimeout(tick, TYPE);
-                } else {
-                    tw.textContent = phrases[i].slice(0, --j);
-                    if (j === 0){ typing=true; i=(i+1)%phrases.length; setTimeout(tick, HOLD2); }
-                    else setTimeout(tick, ERASE);
-                }
-            };
-            requestAnimationFrame(tick);
-        } else if (phrases[0]) {
-            tw.textContent = phrases[0];
-        }
-    }
-
-    // Reveal-on-scroll for af-step boxes
-    const steps = document.querySelectorAll('.af-step');
-    if (steps.length){
-        const afObserver = new IntersectionObserver((entries, obs) => {
-            for (const e of entries){
-                if (e.isIntersecting){
-                    e.target.classList.add('is-inview');
-                    obs.unobserve(e.target);
-                }
-            }
-        }, { threshold: 0.1 });
-        steps.forEach(s => afObserver.observe(s));
-    }
-</script>
-<script>
-    // underline animation
-    window.addEventListener('load', () => {
-        document.body.classList.add('loaded');
-    });
-
-    // start flicker after DOM is ready
-    document.addEventListener('DOMContentLoaded', () => {
-        const nodes = document.querySelectorAll('.flicker-word');
-        if (!nodes.length) return;
-
-        nodes.forEach(el => {
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const forced = el.dataset.flicker === 'force';
-            if (reduceMotion && !forced) return;
-
-            function flickerOnce() {
-                const bursts = 1 + Math.floor(Math.random() * 3);
-                let i = 0;
-
-                function dip() {
-                    el.classList.add('is-flicker');
-                    setTimeout(() => {
-                        el.classList.remove('is-flicker');
-                        i++;
-                        if (i < bursts) {
-                            setTimeout(dip, 40 + Math.random() * 120);
-                        } else {
-                            scheduleNext();
-                        }
-                    }, 80 + Math.random() * 140);
-                }
-
-                dip();
-            }
-
-            function scheduleNext() {
-                const wait = 1800 + Math.random() * 4200;
-                setTimeout(flickerOnce, wait);
-            }
-
-            scheduleNext();
-        });
-    });
 </script>
 
 </body>
 </html>
-
