@@ -1,10 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>IPFX | FAQ</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --fg: #ffffff;
+            --muted: #9ea0a6;
+            --line: #2b2d34;
+            --mint: #2563eb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            color: var(--fg);
+            background: radial-gradient(1200px 700px at 80% -10%, rgba(207, 210, 215, 0.14), transparent 62%),
+            radial-gradient(1000px 580px at -12% 18%, rgba(207, 210, 215, 0.12), transparent 68%),
+            conic-gradient(from 200deg at 72% 8%, rgba(37, 99, 235, 0.14), rgba(37, 99, 235, 0.0) 28% 72%, rgba(37, 99, 235, 0.14)),
+            linear-gradient(160deg, rgba(207, 210, 215, 0.08), transparent 30%),
+            var(--bg);
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin: 0 0 16px;
+            color: var(--mint);
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--mint);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-
+    <div class="container">
+        <h1>🚧 Under Construction</h1>
+        <p>This page is currently being built. Check back soon!</p>
+        <p><a href="index.html">← Return to Home</a></p>
+    </div>
 </body>
 </html>
