@@ -1014,36 +1014,15 @@
         .product-card {
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(0px);
-            transition: backdrop-filter 0.3s ease;
             cursor: pointer;
         }
 
-        .product-card:hover {
-            backdrop-filter: blur(6px);
-        }
-
         .product-card > *:not(.hover-reveal) {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.3s ease;
         }
 
         .product-card:hover > *:not(.hover-reveal) {
             opacity: 0;
-        }
-
-        .hover-reveal {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .hover-reveal .typewriter {
-            width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            border-right: 2px solid #fff;
-            animation: typing 2.8s steps(30, end) forwards, blink 0.8s step-end infinite;
         }
 
         .hover-reveal {
@@ -1052,43 +1031,47 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
-            text-align: center;
-            background: rgba(10, 10, 12, 0.6);
-            backdrop-filter: blur(6px);
+            padding: 20px;
+            text-align: left;
+            background: rgba(15, 17, 22, 0.85);
+            backdrop-filter: blur(8px);
             z-index: 2;
             opacity: 0;
-            transition: opacity 0.4s ease;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
         }
 
         .product-card:hover .hover-reveal {
             opacity: 1;
+            pointer-events: auto;
         }
 
-        .hover-reveal .typewriter {
+        .hover-reveal .typewriter-text {
             font-family: 'IBM Plex Mono', monospace;
-            font-size: 0.96rem;
+            font-size: 0.94rem;
             color: #ffffff;
-            line-height: 1.6;
-            white-space: nowrap;
+            line-height: 1.7;
+            white-space: normal;
             overflow: hidden;
-            border-right: 2px solid #ffffff;
-            width: 0;
-            animation: typing 3.5s steps(40, end) 0.3s forwards, blink 0.75s step-end infinite;
         }
 
-        @keyframes typing {
-            from {
-                width: 0
-            }
-            to {
-                width: 100%
-            }
+        .hover-reveal .typewriter-text::after {
+            content: "";
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            vertical-align: -0.1em;
+            margin-left: 3px;
+            background: #ffffff;
+            animation: cursor-blink 0.75s step-end infinite;
         }
 
-        @keyframes blink {
-            50% {
-                border-color: transparent
+        @keyframes cursor-blink {
+            0%, 49% {
+                opacity: 1;
+            }
+            50%, 100% {
+                opacity: 0;
             }
         }
 
@@ -1397,9 +1380,9 @@
                 designed to scale with skill—not fees.</p>
 
             <div class="product-grid">
-                <article class="product-card reveal">
+                <article class="product-card reveal" data-description="Start simulated and double capital every 10% gain. Consistency triggers transition to real capital with active payouts.">
                     <div class="hover-reveal">
-                        <div class="typewriter">Start simulated and double capital every 10% gain. Pass = real capital.</div>
+                        <div class="typewriter-text"></div>
                     </div>
                     <span class="tag">Free entry</span>
                     <h3>Infinity Challenge</h3>
@@ -1408,22 +1391,31 @@
                     <div class="meta">No buy-in • Risk-aware scaling</div>
                 </article>
 
-                <article class="product-card reveal">
+                <article class="product-card reveal" data-description="Choose your target, drawdown, duration, and size. A dynamic failure-only fee keeps our incentives aligned with yours.">
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
                     <span class="tag">You set the rules</span>
                     <h3>Personalized Application Challenge (PAC)</h3>
                     <p>Choose target, drawdown, duration, and size. A dynamic failure-only fee aligns incentives.</p>
                     <div class="meta">Pay only on failure</div>
                 </article>
 
-                <article class="product-card reveal">
+                <article class="product-card reveal" data-description="After a drawdown hit, retain your account by sacrificing a portion of pending payout. Progress isn't reset to zero.">
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
                     <span class="tag">Keep your seat</span>
                     <h3>Insurance / Retention</h3>
-                    <p>After a hit, retain your account by sacrificing a portion of pending payout. Progress isn’t reset
+                    <p>After a hit, retain your account by sacrificing a portion of pending payout. Progress isn't reset
                         to zero.</p>
                     <div class="meta">Removes fear of restarting</div>
                 </article>
 
-                <article class="product-card reveal">
+                <article class="product-card reveal" data-description="Top traders share verified risk scores; you can buy in to mirror their profits. Fees reward the signal-generators.">
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
                     <span class="tag">Transparent</span>
                     <h3>Social Trading — Pot System</h3>
                     <p>Top traders share verified risk scores; you can buy in to mirror their profits. Fees reward the
@@ -1431,14 +1423,20 @@
                     <div class="meta">Accessible to anyone</div>
                 </article>
 
-                <article class="product-card reveal">
+                <article class="product-card reveal" data-description="You still want to buy in for a traditional prop challenge? We've got you. Cheap entry with instant capital deployment.">
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
                     <span class="tag">Classic style</span>
                     <h3>Traditional Challenge</h3>
                     <p>You still want to buy in for a traditional challenge? We've got you.</p>
                     <div class="meta">Cheap entry • Instant capital</div>
                 </article>
 
-                <article class="product-card reveal">
+                <article class="product-card reveal" data-description="Automated consistency checks, volatility control, and manual review for edge cases. We interact with each client personally.">
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
                     <span class="tag">Risk layer</span>
                     <h3>AI & Behavioural Oversight</h3>
                     <p>Automated consistency checks, volatility control, and manual review for edge cases. We interact
@@ -1553,6 +1551,37 @@
         }
 
         requestAnimationFrame(tick);
+    });
+
+    // Product card typewriter effect
+    document.querySelectorAll('.product-card').forEach(card => {
+        const description = card.dataset.description;
+        const typewriterEl = card.querySelector('.typewriter-text');
+        let typewriterTimeout = null;
+        let isTyping = false;
+
+        if (!description || !typewriterEl) return;
+
+        function typeWriter(text, index = 0) {
+            if (index < text.length && isTyping) {
+                typewriterEl.textContent = text.substring(0, index + 1);
+                const delay = Math.random() * 30 + 20;
+                typewriterTimeout = setTimeout(() => typeWriter(text, index + 1), delay);
+            }
+        }
+
+        card.addEventListener('mouseenter', () => {
+            isTyping = true;
+            typewriterEl.textContent = '';
+            if (typewriterTimeout) clearTimeout(typewriterTimeout);
+            typeWriter(description);
+        });
+
+        card.addEventListener('mouseleave', () => {
+            isTyping = false;
+            if (typewriterTimeout) clearTimeout(typewriterTimeout);
+            typewriterEl.textContent = '';
+        });
     });
 </script>
 
