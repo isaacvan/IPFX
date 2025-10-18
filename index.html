@@ -53,6 +53,8 @@
             var(--bg);
             background-attachment: fixed;
         }
+        
+        
 
         .container {
             width: min(var(--container-w), 92vw);
@@ -398,18 +400,18 @@
 
         /* ====== Layout variables ====== */
         :root{
-            --af-spine-w: 40px;
-            --af-gap-v: clamp(48px, 8vh, 80px);
-            --af-line: #2b2d34;
-            --af-muted: rgba(255,255,255,.85);
-            --af-radius: 14px;
-            --af-shadow: 0 12px 40px rgba(0,0,0,.35);
+            --af-spine-w: 1px;
+            --af-gap-v: clamp(56px, 9vh, 96px);
+            --af-line: rgba(255,255,255,0.08);
+            --af-accent: rgba(37, 99, 235, 0.4);
+            --af-muted: rgba(255,255,255,.7);
             --af-sticky-top: clamp(56px, 10vh, 96px);
             --container-w: 1200px;
         }
 
         .aboutflow{
             padding: clamp(40px, 8vw, 112px) 0;
+            margin-top: 35px;
             background: transparent;
         }
 
@@ -418,8 +420,8 @@
             width: min(var(--container-w), 92vw);
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1.1fr var(--af-spine-w) minmax(380px, 1fr);
-            column-gap: clamp(32px, 5vw, 64px);
+            grid-template-columns: 1fr var(--af-spine-w) minmax(400px, 0.95fr);
+            column-gap: clamp(48px, 6vw, 80px);
             align-items: start;
             position: relative;
         }
@@ -449,11 +451,11 @@
         .af-zig::before {
             content: "";
             position: absolute;
-            left: -20px;
-            top: 30px;
-            bottom: 30px;
-            width: 2px;
-            background: var(--af-line);
+            left: -14px;
+            top: 8px;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255,255,255,0.2);
             z-index: 0;
         }
 
@@ -465,64 +467,64 @@
             position: relative;
         }
 
-        /* spine node */
+        /* spine node - minimal dot */
         .af-node{
             position: absolute;
-            left: -30px;
-            top: 32px;
-            width: 18px;
-            height: 18px;
+            left: -3px;
+            top: 3px;
+            width: 8px;
+            height: 8px;
             border-radius: 999px;
-            background: linear-gradient(135deg, #e0e3e8, #cfd2d7);
-            box-shadow: 0 0 0 8px rgba(207,210,215,0.08), 0 2px 8px rgba(0,0,0,0.2);
+            background: rgba(37, 99, 235, 0.6);
             z-index: 1;
         }
 
-        /* the card (namespaced to avoid global .card clashes) */
+        /* the card - minimal, typography-led */
         .af-card{
-            background: linear-gradient(135deg, #13151c 0%, #0f1116 100%);
-            border: 2px solid #1e232b;
-            border-radius: 16px;
-            padding: 28px 32px;
-            box-shadow: var(--af-shadow), inset 0 1px 0 rgba(255,255,255,0.03);
+            background: transparent;
+            border: none;
+            border-left: 2px solid var(--af-line);
+            padding: 0 0 0 24px;
             overflow-wrap: anywhere;
             word-break: break-word;
             position: relative;
             flex: 1;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: border-color 0.3s ease, padding-left 0.3s ease;
         }
 
         .af-card:hover{
-            transform: translateX(4px);
-            box-shadow: 0 16px 48px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,0.03);
+            border-left-color: var(--af-accent);
+            padding-left: 28px;
         }
 
-        /* connector arm */
+        /* connector arm - minimal line to spine */
         .af-card::after{
             content:"";
             position:absolute;
-            top: 38px;
-            right: -40px;
-            width: 40px;
-            height: 3px;
-            background: linear-gradient(90deg, #2b2d34, rgba(43,45,52,0.3));
+            top: 6px;
+            left: -26px;
+            width: 24px;
+            height: 1px;
+            background: var(--af-line);
         }
 
         /* typography inside card */
         .af-card h3{
-            margin: 0 0 12px;
+            margin: 0 0 8px;
             font-family: 'Space Grotesk','Inter',system-ui;
-            font-weight: 700;
-            font-size: clamp(1.15rem, 2.2vw, 1.4rem);
-            color: #ffffff;
-            letter-spacing: -0.01em;
+            font-weight: 600;
+            font-size: clamp(1.25rem, 2.4vw, 1.55rem);
+            color: rgba(255,255,255,0.95);
+            letter-spacing: -0.02em;
+            line-height: 1.3;
         }
         .af-card p{
             margin: 0;
             color: var(--af-muted);
-            line-height: 1.65;
-            font-size: clamp(0.98rem, 1.4vw, 1.05rem);
+            line-height: 1.7;
+            font-size: clamp(0.95rem, 1.4vw, 1.05rem);
             font-weight: 400;
+            letter-spacing: 0.005em;
         }
 
         /* CENTER spine column (visual separator) */
@@ -530,11 +532,11 @@
             grid-column: 2;
             align-self: stretch;
             justify-self: center;
-            width: 2px;
-            background: linear-gradient(180deg, transparent, var(--af-line) 10%, var(--af-line) 90%, transparent);
+            width: 1px;
+            background: linear-gradient(180deg, transparent, var(--af-line) 15%, var(--af-line) 85%, transparent);
         }
 
-        /* RIGHT sticky typewriter */
+        /* RIGHT sticky typewriter - minimal, elegant */
         .af-right{
             grid-column: 3;
             position: sticky;
@@ -542,64 +544,38 @@
             align-self: start;
         }
         .af-typebox{
-            background: rgba(15, 17, 22, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 2px solid rgba(43, 45, 52, 0.8);
-            border-left: 3px solid #2563eb;
-            border-radius: 18px;
-            padding: clamp(28px, 3.8vw, 42px);
-            box-shadow:
-                    -4px 0 24px rgba(37, 99, 235, 0.08),
-                    0 12px 40px rgba(0,0,0,.4),
-                    inset 0 1px 0 rgba(255,255,255,0.04);
+            background: transparent;
+            border: none;
+            border-left: 3px solid var(--af-accent);
+            padding: 0 0 0 32px;
             position: relative;
-            overflow: hidden;
         }
         .af-typebox::before{
-            content:"";
-            position:absolute;
-            inset:0;
-            background:
-                    radial-gradient(600px 400px at 0% 50%, rgba(37, 99, 235, 0.06), transparent 70%),
-                    linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00) 50%);
-            pointer-events:none;
+            display: none;
         }
-        /* Subtle pointer arrow */
         .af-typebox::after{
-            content:"";
-            position:absolute;
-            left: -10px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-top: 10px solid transparent;
-            border-bottom: 10px solid transparent;
-            border-right: 10px solid rgba(37, 99, 235, 0.3);
-            filter: blur(1px);
+            display: none;
         }
         .af-typebox h2{
-            margin: 0 0 16px;
+            margin: 0 0 20px;
             font-family:'Space Grotesk','Inter',system-ui;
-            font-weight: 700;
-            font-size: clamp(1.1rem, 2vw, 1.35rem);
-            color: #e9ecef;
-            letter-spacing: 0.02em;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--af-accent);
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            font-size: 0.95rem;
-            opacity: 0.7;
+            opacity: 1;
         }
         .af-typewriter{
             display:block;
             font-family: 'Inter','Space Grotesk',system-ui;
             font-weight: 400;
-            font-size: clamp(1rem, 1.8vw, 1.15rem);
-            line-height: 1.7;
-            color: rgba(255,255,255,0.95);
+            font-size: clamp(1.05rem, 2vw, 1.25rem);
+            line-height: 1.75;
+            color: rgba(255,255,255,0.9);
             white-space: normal;
             min-height: 3.5em;
-            letter-spacing: 0.01em;
+            letter-spacing: 0.005em;
         }
         .af-typewriter::after{
             content:"";
@@ -1048,121 +1024,6 @@
         }
     </style>
 </head>
-<script defer>
-    document.addEventListener('DOMContentLoaded', () => {
-        const nodes = document.querySelectorAll('.typewriter');
-        if (!nodes.length) return;
-
-        // Default phrases for the "What are we?" box
-        const defaultPhrases = [
-            "Something new.",
-            "No entry fees. No barriers.",
-            "Just opportunity.",
-            "A free path to scalable capital.",
-            "We grow your account as your skill compounds."
-        ];
-
-        const TYPE_DELAY = 42;
-        const ERASE_DELAY = 28;
-        const HOLD_AFTER_TYPE = 1200;
-        const HOLD_AFTER_ERASE = 600;
-
-        // Comment this block out to test animation even if the OS requests reduced motion
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            nodes.forEach(el => {
-                el.textContent = defaultPhrases[0];
-            });
-            return;
-        }
-
-        nodes.forEach(el => {
-            // Optional: per-element phrases via data attribute, e.g. data-phrases="A|B|C"
-            const phrases = (el.dataset.phrases ? el.dataset.phrases.split('|') : defaultPhrases)
-                .map(s => s.trim()).filter(Boolean);
-
-            let i = 0, j = 0, typing = true;
-
-            function tick() {
-                if (typing) {
-                    el.textContent = phrases[i].slice(0, j + 1);
-                    j++;
-                    if (j === phrases[i].length) {
-                        typing = false;
-                        setTimeout(tick, HOLD_AFTER_TYPE);
-                    } else {
-                        setTimeout(tick, TYPE_DELAY);
-                    }
-                } else {
-                    el.textContent = phrases[i].slice(0, j - 1);
-                    j--;
-                    if (j === 0) {
-                        typing = true;
-                        i = (i + 1) % phrases.length;
-                        setTimeout(tick, HOLD_AFTER_ERASE);
-                    } else {
-                        setTimeout(tick, ERASE_DELAY);
-                    }
-                }
-            }
-
-            // Kick it off
-            requestAnimationFrame(tick);
-        });
-    });
-</script>
-<script>
-    (function () {
-        const el = document.querySelector('.typewriter');
-        if (!el) return;
-
-        // Your rotating phrases for the "What are we?" box
-        const phrases = [
-            "Something new.",
-            "No entry fees. No barriers.",
-            "Just opportunity.",
-            "A free path to scalable capital.",
-            "We grow your account as your skill compounds."
-        ];
-
-        const TYPE_DELAY = 42;
-        const ERASE_DELAY = 28;
-        const HOLD_AFTER_TYPE = 1200;
-        const HOLD_AFTER_ERASE = 600;
-
-        // Reduced-motion users see static text
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            el.textContent = phrases[0];
-            return;
-        }
-
-        let i = 0, j = 0, typing = true;
-
-        function cycle() {
-            if (typing) {
-                el.textContent = phrases[i].slice(0, j + 1);
-                j++;
-                if (j === phrases[i].length) {
-                    typing = false;
-                    setTimeout(cycle, HOLD_AFTER_TYPE);
-                } else {
-                    setTimeout(cycle, TYPE_DELAY);
-                }
-            } else {
-                el.textContent = phrases[i].slice(0, j - 1);
-                j--;
-                if (j === 0) {
-                    typing = true;
-                    i = (i + 1) % phrases.length;
-                    setTimeout(cycle, HOLD_AFTER_ERASE);
-                } else {
-                    setTimeout(cycle, ERASE_DELAY);
-                }
-            }
-        }
-
-        requestAnimationFrame(cycle);
-    })();
-</script>
 <script>
     // underline animation
     window.addEventListener('load', () => {
@@ -1210,31 +1071,42 @@
         });
     });
 </script>
-<script src="assets/js/candles-main.js" defer></script>
 <script>
-    (() => {
-        // Typewriter
+    document.addEventListener('DOMContentLoaded', () => {
+        // Typewriter for .af-typewriter
         const tw = document.querySelector('.af-typewriter');
         if (tw) {
-            const phrases = (tw.dataset.phrases || tw.textContent || '')
-                .split('|').map(s => s.trim()).filter(Boolean);
+            const phrasesAttr = tw.dataset.phrases || '';
+            const phrases = phrasesAttr.split('|').map(s => s.trim()).filter(Boolean);
             const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
             if (!reduced && phrases.length){
-                const TYPE=42, ERASE=28, HOLD1=1200, HOLD2=600;
+                const TYPE=22, ERASE=12, HOLD1=1200, HOLD2=600;
                 let i=0, j=0, typing=true;
+
                 const tick = () => {
                     if (typing){
                         tw.textContent = phrases[i].slice(0, ++j);
-                        if (j === phrases[i].length){ typing=false; setTimeout(tick, HOLD1); }
-                        else setTimeout(tick, TYPE);
+                        if (j === phrases[i].length){
+                            typing=false;
+                            setTimeout(tick, HOLD1);
+                        } else {
+                            setTimeout(tick, TYPE);
+                        }
                     } else {
                         tw.textContent = phrases[i].slice(0, --j);
-                        if (j === 0){ typing=true; i=(i+1)%phrases.length; setTimeout(tick, HOLD2); }
-                        else setTimeout(tick, ERASE);
+                        if (j === 0){
+                            typing=true;
+                            i=(i+1)%phrases.length;
+                            setTimeout(tick, HOLD2);
+                        } else {
+                            setTimeout(tick, ERASE);
+                        }
                     }
                 };
-                requestAnimationFrame(tick);
+
+                // Start the animation
+                setTimeout(tick, 500);
             } else if (phrases[0]) {
                 tw.textContent = phrases[0];
             }
@@ -1253,7 +1125,7 @@
             }, { threshold: 0.25 });
             steps.forEach(s => io.observe(s));
         }
-    })();
+    });
 </script>
 
 <body>
@@ -1342,35 +1214,33 @@
     <section id="about-flow" class="aboutflow" aria-labelledby="af-heading">
         <div class="af-grid">
             <!-- LEFT -->
-            <h2 id="af-heading" class="af-head">How IPFX works</h2>
-
             <ol class="af-zig">
                 <li class="af-step">
                     <span class="af-node" aria-hidden="true"></span>
                     <div class="af-card">
-                        <h3>Choose your path</h3>
-                        <p>Infinity (free), PAC (custom), or mirror top traders in the Social Pot.</p>
+                        <h3>Show us your trade history</h3>
+                        <p>Upload trades from MT5 or begin tracking your positions live</p>
                     </div>
                 </li>
                 <li class="af-step">
                     <span class="af-node" aria-hidden="true"></span>
                     <div class="af-card">
-                        <h3>Trade & build trust</h3>
-                        <p>Our AI measures consistency, drawdown discipline, and volatility control.</p>
+                        <h3>Increase your account size</h3>
+                        <p>As you perform, we'll reach out to upgrade your capital. Withdrawals begin here.</p>
                     </div>
                 </li>
                 <li class="af-step">
                     <span class="af-node" aria-hidden="true"></span>
                     <div class="af-card">
-                        <h3>Unlock A-book capital</h3>
-                        <p>When verified, you switch from simulated to real capital mirroring.</p>
+                        <h3>Secure our trust</h3>
+                        <p>When verified, you switch from simulated to real funds you can control</p>
                     </div>
                 </li>
                 <li class="af-step">
                     <span class="af-node" aria-hidden="true"></span>
                     <div class="af-card">
                         <h3>Scale & retain</h3>
-                        <p>Double every +10%. Use insurance to keep your account after setbacks.</p>
+                        <p>Through our account insurance we remove the risk of losing access to your capital</p>
                     </div>
                 </li>
             </ol>
@@ -1382,13 +1252,12 @@
             <aside class="af-right" aria-labelledby="about-title">
                 <div class="af-typebox">
                     <h2 id="about-title">About IPFX</h2>
-                    <p class="af-typewriter" data-phrases="
-          We cut the noise. Our incentives are aligned with yours.|
-          No entry fees. No gimmicks. Just scalable capital.|
-          We only profit when you do — by design.|
-          Transparent rules. Predictable scaling. Real trust.
-        ">
-                        We only profit when you do — by design.
+                    <p class="af-typewriter" data-phrases=
+                            "Show us your trade history, or let us track your positions live.|
+                            You don't pass our requirements? See our other products. We have the right tools for you.|
+                            We start you on a B-book model, allowing you to gain our trust and secure payouts.|
+                            As you solidify yourself as one of our clients, we'll reach out to you personally to assess your next steps.|
+                            Upon verification, we will upgrade your account to an A-book model, granting you access to real funds you can control.">
                     </p>
                 </div>
             </aside>
@@ -1526,6 +1395,8 @@
         </div>
     </footer>
 </section>
+
+
 
 <script>
     // Footer year
