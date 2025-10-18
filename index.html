@@ -42,6 +42,10 @@
             margin: 0;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
             color: var(--fg);
@@ -53,12 +57,18 @@
             var(--bg);
             background-attachment: fixed;
         }
-        
-        
+
 
         .container {
             width: min(var(--container-w), 92vw);
             margin: auto;
+        }
+
+        .full-bg-section {
+            background: linear-gradient(180deg, #0a0a0c, #000000); /* or any color */
+            width: 100%;
+            padding-top: var(--section-gap);
+            padding-bottom: var(--section-gap);
         }
 
 
@@ -399,24 +409,24 @@
         }
 
         /* ====== Layout variables ====== */
-        :root{
+        :root {
             --af-spine-w: 1px;
             --af-gap-v: clamp(56px, 9vh, 96px);
-            --af-line: rgba(255,255,255,0.08);
+            --af-line: rgba(255, 255, 255, 0.08);
             --af-accent: rgba(37, 99, 235, 0.4);
-            --af-muted: rgba(255,255,255,.7);
+            --af-muted: rgba(255, 255, 255, .7);
             --af-sticky-top: clamp(56px, 10vh, 96px);
             --container-w: 1200px;
         }
 
-        .aboutflow{
+        .aboutflow {
             padding: clamp(40px, 8vw, 112px) 0;
             margin-top: 35px;
             background: transparent;
         }
 
         /* GRID: [left] [spine] [right] */
-        .af-grid{
+        .af-grid {
             width: min(var(--container-w), 92vw);
             margin: 0 auto;
             display: grid;
@@ -426,17 +436,17 @@
             position: relative;
         }
 
-        .af-head{
+        .af-head {
             grid-column: 1 / -1;
             margin: 0 0 32px;
-            font-family: 'Space Grotesk','Inter',system-ui;
+            font-family: 'Space Grotesk', 'Inter', system-ui;
             font-weight: 700;
             font-size: clamp(1.4rem, 2.8vw, 2rem);
             color: #ffffff;
         }
 
         /* LEFT stack (namespaced) */
-        .af-zig{
+        .af-zig {
             grid-column: 1;
             list-style: none;
             margin: 0;
@@ -455,12 +465,12 @@
             top: 8px;
             bottom: 0;
             width: 1px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             z-index: 0;
         }
 
         /* each step = [card][spine gutter] */
-        .af-step{
+        .af-step {
             display: flex;
             align-items: flex-start;
             gap: 16px;
@@ -468,7 +478,7 @@
         }
 
         /* spine node - minimal dot */
-        .af-node{
+        .af-node {
             position: absolute;
             left: -3px;
             top: 3px;
@@ -480,7 +490,7 @@
         }
 
         /* the card - minimal, typography-led */
-        .af-card{
+        .af-card {
             background: transparent;
             border: none;
             border-left: 2px solid var(--af-line);
@@ -492,15 +502,15 @@
             transition: border-color 0.3s ease, padding-left 0.3s ease;
         }
 
-        .af-card:hover{
+        .af-card:hover {
             border-left-color: var(--af-accent);
             padding-left: 28px;
         }
 
         /* connector arm - minimal line to spine */
-        .af-card::after{
-            content:"";
-            position:absolute;
+        .af-card::after {
+            content: "";
+            position: absolute;
             top: 6px;
             left: -26px;
             width: 24px;
@@ -509,16 +519,17 @@
         }
 
         /* typography inside card */
-        .af-card h3{
+        .af-card h3 {
             margin: 0 0 8px;
-            font-family: 'Space Grotesk','Inter',system-ui;
+            font-family: 'Space Grotesk', 'Inter', system-ui;
             font-weight: 600;
             font-size: clamp(1.25rem, 2.4vw, 1.55rem);
-            color: rgba(255,255,255,0.95);
+            color: rgba(255, 255, 255, 0.95);
             letter-spacing: -0.02em;
             line-height: 1.3;
         }
-        .af-card p{
+
+        .af-card p {
             margin: 0;
             color: var(--af-muted);
             line-height: 1.7;
@@ -528,7 +539,7 @@
         }
 
         /* CENTER spine column (visual separator) */
-        .af-spine{
+        .af-spine {
             grid-column: 2;
             align-self: stretch;
             justify-self: center;
@@ -537,28 +548,32 @@
         }
 
         /* RIGHT sticky typewriter - minimal, elegant */
-        .af-right{
+        .af-right {
             grid-column: 3;
             position: sticky;
             top: var(--af-sticky-top);
             align-self: start;
         }
-        .af-typebox{
+
+        .af-typebox {
             background: transparent;
             border: none;
             border-left: 3px solid var(--af-accent);
             padding: 0 0 0 32px;
             position: relative;
         }
-        .af-typebox::before{
+
+        .af-typebox::before {
             display: none;
         }
-        .af-typebox::after{
+
+        .af-typebox::after {
             display: none;
         }
-        .af-typebox h2{
+
+        .af-typebox h2 {
             margin: 0 0 20px;
-            font-family:'Space Grotesk','Inter',system-ui;
+            font-family: 'Space Grotesk', 'Inter', system-ui;
             font-weight: 600;
             font-size: 0.85rem;
             color: var(--af-accent);
@@ -566,92 +581,90 @@
             text-transform: uppercase;
             opacity: 1;
         }
-        .af-typewriter{
-            display:block;
-            font-family: 'Inter','Space Grotesk',system-ui;
+
+        .af-typewriter {
+            display: block;
+            font-family: 'Inter', 'Space Grotesk', system-ui;
             font-weight: 400;
             font-size: clamp(1.05rem, 2vw, 1.25rem);
             line-height: 1.75;
-            color: rgba(255,255,255,0.9);
+            color: rgba(255, 255, 255, 0.9);
             white-space: normal;
             min-height: 3.5em;
             letter-spacing: 0.005em;
         }
-        .af-typewriter::after{
-            content:"";
-            display:inline-block;
-            width:2px;
-            height:1em;
-            vertical-align:-0.15em;
-            margin-left:4px;
+
+        .af-typewriter::after {
+            content: "";
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            vertical-align: -0.15em;
+            margin-left: 4px;
             background: currentColor;
-            animation: af-blink .9s steps(1,end) infinite;
+            animation: af-blink .9s steps(1, end) infinite;
         }
-        @keyframes af-blink { 50% { opacity: 0; } }
+
+        @keyframes af-blink {
+            50% {
+                opacity: 0;
+            }
+        }
 
         /* reveal-on-scroll */
-        .af-step .af-card, .af-step .af-node{
+        .af-step .af-card, .af-step .af-node {
             opacity: 1;
             transform: none;
             transition: opacity .6s ease, transform .6s ease;
         }
-        .af-step.is-inview .af-card, .af-step.is-inview .af-node{
+
+        .af-step.is-inview .af-card, .af-step.is-inview .af-node {
             opacity: 1;
             transform: none;
         }
 
         /* Mobile: hide spine + right panel; keep cards only */
-        @media (max-width: 900px){
-            .af-grid{ grid-template-columns: 1fr; }
-            .af-spine{ display:none; }
-            .af-right{ display:none; }
-            .af-step{ grid-template-columns: 1fr; }
-            .af-node{ display:none; }
-            .af-card::after{ display:none; }
-            .af-zig::before { display:none; }
+        @media (max-width: 900px) {
+            .af-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .af-spine {
+                display: none;
+            }
+
+            .af-right {
+                display: none;
+            }
+
+            .af-step {
+                grid-template-columns: 1fr;
+            }
+
+            .af-node {
+                display: none;
+            }
+
+            .af-card::after {
+                display: none;
+            }
+
+            .af-zig::before {
+                display: none;
+            }
         }
 
         /* Respect motion prefs */
-        @media (prefers-reduced-motion: reduce){
-            .af-step .af-card, .af-step .af-node{ transition: none; }
-            .af-typewriter::after{ animation: none; }
+        @media (prefers-reduced-motion: reduce) {
+            .af-step .af-card, .af-step .af-node {
+                transition: none;
+            }
+
+            .af-typewriter::after {
+                animation: none;
+            }
         }
 
-
-
-
-        /* Timeline */
-        .flow {
-            padding: 24px 0 120px;
-            margin-top: var(--section-gap);
-        }
-
-        .timeline {
-            position: relative;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.2rem;
-        }
-
-        .timeline::before {
-            content: "";
-            position: absolute;
-            top: 22px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--line);
-            border-radius: 2px;
-        }
-
-        .step {
-            position: relative;
-            background: #0f1116;
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 22px 18px 18px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-        }
 
         .step .node {
             position: absolute;
@@ -663,20 +676,6 @@
             border-radius: 50%;
             background: var(--silver);
             box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 999px;
-            background: transparent;
-            color: #e9efff;
-            font-weight: 700;
-            font-size: .9rem;
-            border: 1px solid var(--line);
         }
 
         .step h3 {
@@ -717,27 +716,6 @@
             }
         }
 
-        /* Features */
-        .features {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin: 40px 0;
-        }
-
-        @media (max-width: 980px) {
-            .features {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: #0f1116;
-            border: 1px solid var(--line);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-        }
 
         .card h3 {
             margin: 0 0 8px;
@@ -753,7 +731,7 @@
 
         /* Testimonials */
         .testimonials {
-            margin: 40px 0;
+            margin: var(--section-gap);
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
@@ -820,9 +798,6 @@
             color: var(--muted);
             border-top: 1px solid rgba(255, 255, 255, 0.03);
         }
-
-
-
 
 
         /* --- NEW: Stats section --- */
@@ -894,8 +869,11 @@
 
         /* --- NEW: Products static grid (replaces carousel) --- */
         .products {
-            margin-top: var(--section-gap);
-            padding: 8px 0 18px;
+            margin-top: 20px;
+            padding-top: var(--section-gap);
+            padding-bottom: var(--section-gap);
+            background: linear-gradient(180deg, #0e1118, #0a0a0c); /* Darker fade */
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .product-grid {
@@ -1080,24 +1058,24 @@
             const phrases = phrasesAttr.split('|').map(s => s.trim()).filter(Boolean);
             const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            if (!reduced && phrases.length){
-                const TYPE=22, ERASE=12, HOLD1=1200, HOLD2=600;
-                let i=0, j=0, typing=true;
+            if (!reduced && phrases.length) {
+                const TYPE = 22, ERASE = 12, HOLD1 = 1200, HOLD2 = 600;
+                let i = 0, j = 0, typing = true;
 
                 const tick = () => {
-                    if (typing){
+                    if (typing) {
                         tw.textContent = phrases[i].slice(0, ++j);
-                        if (j === phrases[i].length){
-                            typing=false;
+                        if (j === phrases[i].length) {
+                            typing = false;
                             setTimeout(tick, HOLD1);
                         } else {
                             setTimeout(tick, TYPE);
                         }
                     } else {
                         tw.textContent = phrases[i].slice(0, --j);
-                        if (j === 0){
-                            typing=true;
-                            i=(i+1)%phrases.length;
+                        if (j === 0) {
+                            typing = true;
+                            i = (i + 1) % phrases.length;
                             setTimeout(tick, HOLD2);
                         } else {
                             setTimeout(tick, ERASE);
@@ -1114,15 +1092,15 @@
 
         // Reveal-on-scroll
         const steps = document.querySelectorAll('.af-step');
-        if (steps.length){
+        if (steps.length) {
             const io = new IntersectionObserver((entries, obs) => {
-                for (const e of entries){
-                    if (e.isIntersecting){
+                for (const e of entries) {
+                    if (e.isIntersecting) {
                         e.target.classList.add('is-inview');
                         obs.unobserve(e.target);
                     }
                 }
-            }, { threshold: 0.25 });
+            }, {threshold: 0.25});
             steps.forEach(s => io.observe(s));
         }
     });
@@ -1131,7 +1109,7 @@
 <body>
 <header>
     <div class="container nav">
-        <a class="brand" href="#">
+        <a class="brand" href="index.html">
             <img src="assets/images/favicon.ico" alt="IPFX logo"/>
             <b>IPFX&nbsp;CAPITAL</b>
         </a>
@@ -1140,16 +1118,16 @@
                 <div class="dropdown">
                     <span class="dropdown-btn">Services ▾</span>
                     <ul>
-                        <li><a href="#">Infinity Challenge</a></li>
-                        <li><a href="#">Personalized Application Challenge (PAC)</a></li>
-                        <li><a href="#">Social Trading / Pot</a></li>
+                        <li><a href="infinity.html">Infinity Challenge</a></li>
+                        <li><a href="personalised-challenge.html">Personalised Application Challenge</a></li>
+                        <li><a href="trading-pot.html">Social Trading / Pot</a></li>
                     </ul>
                 </div>
-                <a href="#">FAQ</a>
-                <a href="#">About Us</a>
-                <a href="#">Contact</a>
+                <a href="faq.html">FAQ</a>
+                <a href="about.html">About Us</a>
+                <a href="contact.html">Contact</a>
                 <span class="sep" aria-hidden="true"></span>
-                <a href="#">Login</a>
+                <a href="login.html">Login</a>
             </div>
         </nav>
     </div>
@@ -1167,8 +1145,8 @@
                         class="underline-load flicker-word" data-flicker="force">Transparent.</span>
                 </p>
                 <div class="cta-row">
-                    <a class="btn btn-primary" href="#">Start Infinity Challenge</a>
-                    <a class="btn btn-secondary" href="#flow">Explore Products</a>
+                    <a class="btn btn-primary" href="infinity.html">Start Infinity Challenge</a>
+                    <a class="btn btn-secondary" href="#products">Explore Products</a>
                 </div>
             </div>
             <div class="chart-box">
@@ -1219,7 +1197,7 @@
                     <span class="af-node" aria-hidden="true"></span>
                     <div class="af-card">
                         <h3>Show us your trade history</h3>
-                        <p>Upload trades from MT5 or begin tracking your positions live</p>
+                        <p>Upload trades from MT5 or begin tracking your positions live.</p>
                     </div>
                 </li>
                 <li class="af-step">
@@ -1233,14 +1211,14 @@
                     <span class="af-node" aria-hidden="true"></span>
                     <div class="af-card">
                         <h3>Secure our trust</h3>
-                        <p>When verified, you switch from simulated to real funds you can control</p>
+                        <p>When verified, you switch from simulated to real funds you can control.</p>
                     </div>
                 </li>
                 <li class="af-step">
                     <span class="af-node" aria-hidden="true"></span>
                     <div class="af-card">
                         <h3>Scale & retain</h3>
-                        <p>Through our account insurance we remove the risk of losing access to your capital</p>
+                        <p>Through our account insurance we remove the risk of losing access to your capital.</p>
                     </div>
                 </li>
             </ol>
@@ -1266,7 +1244,7 @@
 
 
     <!-- NEW: PRODUCTS (STATIC GRID) -->
-    <section class="products" aria-label="Products">
+    <section id="products" class="products" aria-label="Products">
         <div class="container">
             <h2 class="reveal" style="font-family:'Space Grotesk','Inter'; font-size:var(--h2); margin:0 0 6px;">
                 Products</h2>
@@ -1277,7 +1255,7 @@
                 <article class="product-card reveal">
                     <span class="tag">Free entry</span>
                     <h3>Infinity Challenge</h3>
-                    <p>Start simulated, double every +10% gain. Consistency triggers A-book mirroring to real
+                    <p>Start simulated, double every +10% gain. Consistency triggers transition to real
                         capital.</p>
                     <div class="meta">No buy-in • Risk-aware scaling</div>
                 </article>
@@ -1294,110 +1272,70 @@
                     <h3>Insurance / Retention</h3>
                     <p>After a hit, retain your account by sacrificing a portion of pending payout. Progress isn’t reset
                         to zero.</p>
-                    <div class="meta">Continuation over churn</div>
+                    <div class="meta">Removes fear of restarting</div>
                 </article>
 
                 <article class="product-card reveal">
                     <span class="tag">Transparent</span>
                     <h3>Social Trading — Pot System</h3>
-                    <p>Top traders share verified risk scores; others buy in to mirror. Fees reward the
+                    <p>Top traders share verified risk scores; you can buy in to mirror their profits. Fees reward the
                         signal-generators.</p>
-                    <div class="meta">Merit-based economics</div>
+                    <div class="meta">Accessible to anyone</div>
                 </article>
 
                 <article class="product-card reveal">
-                    <span class="tag">Risk layer</span>
-                    <h3>AI & Behavioural Oversight</h3>
-                    <p>Automated consistency checks, volatility control, and manual review for edge cases.</p>
-                    <div class="meta">Trust tiers • Allocation gates</div>
+                    <span class="tag">Classic style</span>
+                    <h3>Traditional Challenge</h3>
+                    <p>You still want to buy in for a traditional challenge? We've got you.</p>
+                    <div class="meta">Cheap entry • Instant capital</div>
                 </article>
-
+                
                 <article class="product-card reveal">
-                    <span class="tag">Clarity</span>
-                    <h3>Payouts</h3>
-                    <p>Fast, predictable, and documented. Targets and splits are stable—no moving goalposts.</p>
-                    <div class="meta">Avg 96 hrs*</div>
-                </article>
-            </div>
-            <p style="color:#7b7f86; font-size:13px; margin-top:8px">* Example metric; replace with your verified
-                figure.</p>
-        </div>
-    </section>
-
-    <!-- WHY US -->
-    <section class="why">
-        <div class="container" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; align-items:start;">
-            <div></div>
-            <div class="reveal">
-                <h2 style="margin:0 0 10px; font-family: 'Space Grotesk','Inter',system-ui; font-weight:700; font-size:var(--h2); color:#fff;">
-                    Why us?</h2>
-                <p style="margin:0; max-width: 540px; color: rgba(255,255,255,.88); font-weight: 300; letter-spacing: .02em;">
-                    We align incentives with traders, not against them. Our challenges are free or pay-on-failure, our
-                    scaling is data-driven, and our copy-trading mirrors only consistent, low-risk behavior. That means
-                    you advance on merit—and we only win when you do.
-                </p>
+                <span class="tag">Risk layer</span>
+                <h3>AI & Behavioural Oversight</h3>
+                <p>Automated consistency checks, volatility control, and manual review for edge cases. We interact with 
+                    each client personally.</p>
+                <div class="meta">Trust tiers • Allocation gates</div>
+            </article>
             </div>
         </div>
     </section>
 </main>
 
 <!-- FEATURES / TESTIMONIALS / CONTACT / FOOTER -->
-<section class="container">
-    <div class="features">
-        <div class="card reveal">
-            <h3>Adaptive Risk Models</h3>
-            <p>AI-driven assessments that scale capital and move traders from simulated to real trading when consistency
-                is proven.</p>
+<div class="full-bg-section">
+    <section class="container">
+        <div class="testimonials">
+            <div class="review reveal">
+                <p>“IPFX changed how I scaled — finally a platform that rewards skill.”</p>
+                <small>— A. Patel, day trader</small>
+            </div>
+            <div class="review reveal">
+                <p>“Transparent, fair, and the support team actually cares.”</p>
+                <small>— J. Nguyen, swing trader</small>
+            </div>
         </div>
-        <div class="card reveal">
-            <h3>Personalized Challenges</h3>
-            <p>Traders set their own targets and durations; our dynamic failure fee aligns risk with actual challenge
-                difficulty.</p>
-        </div>
-        <div class="card reveal">
-            <h3>Social Pot & Copy Trading</h3>
-            <p>Top traders share verified risk scores; others can buy-in to mirror them. Buy-in yields primarily reward
-                the top traders.</p>
-        </div>
-    </div>
 
-    <div class="testimonials">
-        <div class="review reveal">
-            <p>“IPFX changed how I scaled — finally a platform that rewards skill.”</p>
-            <small>— A. Patel, day trader</small>
+        <div class="contact">
+            <div class="reveal">
+                <h3 style="font-family:'Space Grotesk','Inter'; font-size:1.3rem; margin:0 0 6px;">Get in touch</h3>
+                <p class="text">Questions or partnerships? Email us at <a href="mailto:enquiries@ipfxcapital.com"
+                                                                          style="color:var(--mint)">enquiries@ipfxcapital.com</a>.
+                </p>
+                <p style="margin-top:12px"><a class="mini-cta" href="infinity.html">Start Infinity Challenge</a></p>
+            </div>
         </div>
-        <div class="review reveal">
-            <p>“Transparent, fair, and the support team actually cares.”</p>
-            <small>— J. Nguyen, swing trader</small>
-        </div>
-    </div>
 
-    <div class="contact">
-        <div class="reveal">
-            <h3 style="font-family:'Space Grotesk','Inter'; font-size:1.3rem; margin:0 0 6px;">Get in touch</h3>
-            <p class="text">Questions or partnerships? Email us at <a href="mailto:enquiries@ipfxcapital.com"
-                                                                      style="color:var(--mint)">enquiries@ipfxcapital.com</a>
-                or fill the application form (coming soon).</p>
-            <p style="margin-top:12px"><a class="mini-cta" href="#">Start Infinity Challenge</a></p>
-        </div>
-        <div class="card reveal">
-            <h4 style="margin:0 0 6px">Office</h4>
-            <p style="margin:0 0 8px">London, UK</p>
-            <small>Mon–Fri, 09:00–17:00 GMT</small>
-        </div>
-    </div>
+        <footer>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+                <div>© <span id="year"></span> IPFX Capital</div>
+                <div style="color:var(--muted)">• <a href="#" style="color:var(--mint)">Privacy</a> •
+                    <a href="#" style="color:var(--mint)">Terms</a></div>
 
-    <footer>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
-            <div>© <span id="year"></span> IPFX Capital</div>
-            <div style="color:var(--muted)">We profit when you do. • <a href="#" style="color:var(--mint)">Privacy</a> •
-                <a href="#" style="color:var(--mint)">Terms</a></div>
-        </div>
-    </footer>
-</section>
-
-
-
+            </div>
+        </footer>
+    </section>
+</div>
 <script>
     // Footer year
     const yearEl = document.getElementById('year');
