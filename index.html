@@ -1147,6 +1147,117 @@
                 animation: none;
             }
         }
+
+        /*CHALLENGE PRICES SECTION*/
+        .challenge-offers {
+            padding: var(--section-gap) 0;
+            background: linear-gradient(180deg, #0a0a0b 0%, rgba(0,0,0, 0.2) 20%,rgba(0,0,0, 0.2) 90%, #0a0a0b 100%);
+            color: #fff;
+        }
+
+        .challenge-offers h2 {
+            font-size: var(--h2);
+            margin-bottom: 12px;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .challenge-offers .subtext {
+            font-size: var(--lead);
+            color: var(--muted);
+            max-width: 60ch;
+            margin-bottom: 32px;
+        }
+
+        .balance-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 32px;
+            align-items: center;
+        }
+
+        .balance-selector span {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .balance-btn {
+            padding: 8px 16px;
+            background: #1a1d24;
+            border: 1px solid #2e2f35;
+            border-radius: 6px;
+            color: #cfe0ff;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .balance-btn.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #fff;
+        }
+
+        table.terms-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        table.terms-table th,
+        table.terms-table td {
+            padding: 20px 12px; /* top/bottom 20px makes the cell taller */
+            height: 60px;       /* optional: forces a minimum height */
+        }
+
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr 1fr;
+        }
+
+        .table-row.header {
+            background: #1a1d24;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.92rem;
+        }
+
+        .table-row:not(.header):nth-child(even) {
+            background: #13151b;
+        }
+
+        .cell {
+            padding: 14px 12px;
+            border-bottom: 1px solid #2e2f35;
+        }
+
+        .cell.label {
+            font-weight: 500;
+            background: #16181d;
+        }
+
+        .cell.empty {
+            background: #0c0d11;
+        }
+
+        @media (max-width: 780px) {
+            .table-row {
+                grid-template-columns: 1fr 1fr;
+                grid-auto-rows: auto;
+                grid-template-areas:
+      "label label"
+      "step1 step2";
+            }
+
+            .terms-table {
+                font-size: 0.9rem;
+            }
+
+            .table-row.header {
+                display: none;
+            }
+        }
+
     </style>
 </head>
 <script>
@@ -1480,7 +1591,7 @@
         <!-- Left image block -->
         <div class="why-us-image">
             <!-- Replace with actual image later -->
-            <div class="image-placeholder">IMAGE</div>
+            <div class="assets/images/favicon.ico"></div>
         </div>
 
         <!-- Vertical separator -->
@@ -1498,6 +1609,79 @@
         </div>
     </div>
 </section>
+
+<!--CHALLENGE OFFERS-->
+<section class="challenge-offers">
+    <div class="container">
+        <h2>Traditional Challenge Offers</h2>
+        <p class="subtext">
+            You still want to pay for capital rather than have it for free? 
+            Fine. choose your preferred account size below and get started. 
+            All the challenges follow the classic two-step structure alongside usual rules.
+        </p>
+
+
+        <div class="balance-selector">
+            <span>Select Capital Size:</span>
+            <button class="balance-btn active" data-size="10000">$10,000</button>
+            <button class="balance-btn" data-size="25000">$25,000</button>
+            <button class="balance-btn" data-size="50000">$50,000</button>
+            <button class="balance-btn" data-size="100000">$100,000</button>
+            <button class="balance-btn" data-size="200000">$200,000</button>
+        </div>
+
+
+        <div class="terms-table">
+            <div class="table-row header">
+                <div class="cell empty"></div>
+                <div class="cell">Step 1<br><small>Challenge</small></div>
+                <div class="cell">Step 2<br><small>Verification</small></div>
+                <div class="cell">Step 3<br><small>Trusted Trader</small></div>
+            </div>
+
+
+            <div class="table-row">
+                <div class="cell label">Trading Period</div>
+                <div class="cell">Unlimited</div>
+                <div class="cell">Unlimited</div>
+                <div class="cell">Unlimited</div>
+            </div>
+
+
+            <div class="table-row">
+                <div class="cell label">Minimum Trading Days</div>
+                <div class="cell">4 Days</div>
+                <div class="cell">4 Days</div>
+                <div class="cell">X</div>
+            </div>
+
+
+            <div class="table-row">
+                <div class="cell label">Max Daily Loss</div>
+                <div class="cell daily-loss"></div>
+                <div class="cell daily-loss"></div>
+                <div class="cell daily-loss"></div>
+            </div>
+
+
+            <div class="table-row">
+                <div class="cell label">Max Total Loss</div>
+                <div class="cell total-loss"></div>
+                <div class="cell total-loss"></div>
+                <div class="cell total-loss"></div>
+            </div>
+
+
+            <div class="table-row">
+                <div class="cell label">Profit Target</div>
+                <div class="cell target"></div>
+                <div class="cell target"></div>
+                <div class="cell">N/A</div>
+            </div>
+        </div>
+    </div>
+</section>
+
 
 
 <!-- FEATURES / TESTIMONIALS / CONTACT / FOOTER -->
@@ -1534,6 +1718,41 @@
         </footer>
     </section>
 </div>
+<script>
+    const terms = {
+        10000: { daily: 500, total: 1000, target1: 1000, target2: 500 },
+        25000: { daily: 1250, total: 2500, target1: 2500, target2: 1250 },
+        50000: { daily: 2500, total: 5000, target1: 5000, target2: 2500 },
+        100000: { daily: 5000, total: 10000, target1: 10000, target2: 5000 },
+        200000: { daily: 10000, total: 20000, target1: 20000, target2: 10000 }
+    };
+
+
+    const buttons = document.querySelectorAll('.balance-btn');
+    const dailyEls = document.querySelectorAll('.daily-loss');
+    const totalEls = document.querySelectorAll('.total-loss');
+    const targetEls = document.querySelectorAll('.target');
+
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+
+            const size = btn.dataset.size;
+            const t = terms[size];
+            dailyEls.forEach(el => el.textContent = `$${t.daily.toLocaleString()}`);
+            totalEls.forEach(el => el.textContent = `$${t.total.toLocaleString()}`);
+            targetEls[0].textContent = `$${t.target1.toLocaleString()}`;
+            targetEls[1].textContent = `$${t.target2.toLocaleString()}`;
+        });
+    });
+
+
+    // Trigger default
+    document.querySelector('.balance-btn.active').click();
+</script>
 <script>
     // Footer year
     const yearEl = document.getElementById('year');
@@ -1585,13 +1804,12 @@
         const typewriterEl = card.querySelector('.typewriter-text');
         let typewriterTimeout = null;
         let isTyping = false;
-
         if (!description || !typewriterEl) return;
 
         function typeWriter(text, index = 0) {
             if (index < text.length && isTyping) {
                 typewriterEl.textContent = text.substring(0, index + 1);
-                const delay = Math.random() * 10 + 10;
+                const delay = Math.random() * 8 + 5;
                 typewriterTimeout = setTimeout(() => typeWriter(text, index + 1), delay);
             }
         }
@@ -1602,14 +1820,11 @@
             if (typewriterTimeout) clearTimeout(typewriterTimeout);
             typeWriter(description);
         });
-
+        
         card.addEventListener('mouseleave', () => {
             isTyping = false;
             if (typewriterTimeout) clearTimeout(typewriterTimeout);
-
-            setTimeout(() => {
-                typewriterEl.textContent = '';
-            }, 12000); // wait 1.2 seconds before clearing text
+            typewriterEl.textContent = '';
         });
     });
 </script>
