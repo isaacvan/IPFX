@@ -1399,7 +1399,8 @@
                 designed to scale with skill—not fees.</p>
 
             <div class="product-grid">
-                <article class="product-card reveal" data-description="Start simulated and double capital every 10% gain. Consistency triggers transition to real capital with active payouts.">
+                <article class="product-card reveal"
+                         data-description="Start simulated and double capital every 10% gain. Consistency triggers transition to real capital with active payouts.">
                     <div class="hover-reveal">
                         <div class="typewriter-text"></div>
                     </div>
@@ -1410,7 +1411,8 @@
                     <div class="meta">No buy-in • Risk-aware scaling</div>
                 </article>
 
-                <article class="product-card reveal" data-description="Choose your target, drawdown, duration, and size. A dynamic failure-only fee keeps our incentives aligned with yours.">
+                <article class="product-card reveal"
+                         data-description="Choose your target, drawdown, duration, and size. A dynamic failure-only fee keeps our incentives aligned with yours.">
                     <div class="hover-reveal">
                         <div class="typewriter-text"></div>
                     </div>
@@ -1420,7 +1422,8 @@
                     <div class="meta">Pay only on failure</div>
                 </article>
 
-                <article class="product-card reveal" data-description="After a drawdown hit, retain your account by sacrificing a portion of pending payout. Progress isn't reset to zero.">
+                <article class="product-card reveal"
+                         data-description="After a drawdown hit, retain your account by sacrificing a portion of pending payout. Progress isn't reset to zero.">
                     <div class="hover-reveal">
                         <div class="typewriter-text"></div>
                     </div>
@@ -1431,7 +1434,8 @@
                     <div class="meta">Removes fear of restarting</div>
                 </article>
 
-                <article class="product-card reveal" data-description="Top traders share verified risk scores; you can buy in to mirror their profits. Fees reward the signal-generators.">
+                <article class="product-card reveal"
+                         data-description="Top traders share verified risk scores; you can buy in to mirror their profits. Fees reward the signal-generators.">
                     <div class="hover-reveal">
                         <div class="typewriter-text"></div>
                     </div>
@@ -1442,7 +1446,8 @@
                     <div class="meta">Accessible to anyone</div>
                 </article>
 
-                <article class="product-card reveal" data-description="You still want to buy in for a traditional prop challenge? We've got you. Cheap entry with instant capital deployment.">
+                <article class="product-card reveal"
+                         data-description="You still want to buy in for a traditional prop challenge? We've got you. Cheap entry with instant capital deployment.">
                     <div class="hover-reveal">
                         <div class="typewriter-text"></div>
                     </div>
@@ -1452,7 +1457,8 @@
                     <div class="meta">Cheap entry • Instant capital</div>
                 </article>
 
-                <article class="product-card reveal" data-description="Automated consistency checks, volatility control, and manual review for edge cases. We interact with each client personally.">
+                <article class="product-card reveal"
+                         data-description="Automated consistency checks, volatility control, and manual review for edge cases. We interact with each client personally.">
                     <div class="hover-reveal">
                         <div class="typewriter-text"></div>
                     </div>
@@ -1484,9 +1490,10 @@
         <div class="why-us-content">
             <h2>Why us?</h2>
             <p>
-                Our model is built on transparency, aligned incentives, and scalability.
-                This is where you would highlight your key selling points — how your firm
-                supports real traders, avoids hidden fees, and focuses on long-term performance.
+                Only <span
+                    class="underline-load" data-flicker="force">0.007%</span> of traders ever receive their first payout
+                from contemporary prop firms.
+                We are building the system that changes that, and it starts with you.
             </p>
         </div>
     </div>
@@ -1599,7 +1606,10 @@
         card.addEventListener('mouseleave', () => {
             isTyping = false;
             if (typewriterTimeout) clearTimeout(typewriterTimeout);
-            typewriterEl.textContent = '';
+
+            setTimeout(() => {
+                typewriterEl.textContent = '';
+            }, 12000); // wait 1.2 seconds before clearing text
         });
     });
 </script>
