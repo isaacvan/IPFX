@@ -1015,6 +1015,25 @@
             position: relative;
             overflow: hidden;
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 200px;
+        }
+
+        .product-card .tag,
+        .product-card p {
+            display: none;
+        }
+
+        .product-card h3 {
+            margin: 0 0 12px;
+        }
+
+        .product-card .meta {
+            margin: 0;
         }
 
         .product-card > *:not(.hover-reveal) {
