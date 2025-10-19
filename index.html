@@ -425,7 +425,9 @@
         }
 
         .aboutflow {
-            padding: clamp(40px, 8vw, 112px) 0;
+            padding-top: clamp(40px, 8vw, 112px);
+            padding-right: clamp(40px, 8vw, 112px);
+            padding-left: clamp(40px, 8vw, 112px);
             margin-top: 35px;
             background: transparent;
         }
@@ -674,13 +676,34 @@
         .staircase-section {
             position: relative;
             width: 100%;
-            height: 60vh;
-            min-height: 500px;
+            min-height: 600px;
             overflow: hidden;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 40px 0;
+            justify-content: flex-start;
+            margin-top: 20px;
+            padding-top: 120px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(38, 73, 65, 0.25) 30%, rgba(30, 60, 56, 0.3) 70%, rgba(18, 22, 32, 1) 100%);
+        }
+
+        .staircase-title {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(1.4rem, 3vw, 2rem);
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            text-align: center;
+            margin-bottom: 12px;
+            letter-spacing: -0.01em;
+        }
+
+        .staircase-subtitle {
+            font-family: 'Inter', system-ui;
+            font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            margin-bottom: 80px;
+            max-width: 50ch;
         }
 
         .staircase-wrapper {
@@ -688,15 +711,22 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 80px;
+            gap: 60px;
             width: 100%;
             max-width: 900px;
-            margin: 0 auto;
+            margin-top: 200px;
+        }
+
+        .arrow-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
         }
 
         .arrow-down {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             position: relative;
             opacity: 0;
             transform: translateY(-20px);
@@ -712,8 +742,8 @@
             width: 100%;
             height: 100%;
             fill: none;
-            stroke: rgba(37, 99, 235, 0.6);
-            stroke-width: 2;
+            stroke: rgba(37, 99, 235, 0.4);
+            stroke-width: 2.5;
             stroke-linecap: round;
             stroke-linejoin: round;
             animation: arrow-bounce 2s ease-in-out infinite;
@@ -724,15 +754,35 @@
                 transform: translateY(0);
             }
             50% {
-                transform: translateY(10px);
+                transform: translateY(8px);
             }
+        }
+
+        .arrow-label {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(37, 99, 235, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s;
+        }
+
+        .arrow-down.is-visible ~ .arrow-label,
+        .arrow-column .arrow-down.is-visible + .arrow-label {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .staircase-container {
             position: relative;
-            width: 400px;
-            height: 400px;
-            perspective: 1200px;
+            width: 450px;
+            height: 300px;
+            perspective: 1400px;
             perspective-origin: 50% 50%;
         }
 
@@ -746,25 +796,34 @@
 
         .stair-step {
             position: absolute;
-            width: 180px;
-            height: 40px;
-            background: linear-gradient(135deg, #1a2842 0%, #0f1a2e 100%);
-            border: 1px solid rgba(37, 99, 235, 0.3);
-            box-shadow:
-                    0 4px 12px rgba(0, 0, 0, 0.4),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            width: 160px;
+            height: 50px;
+            background: linear-gradient(145deg,
+            rgba(30, 58, 138, 0.12) 0%,
+            rgba(37, 99, 235, 0.08) 50%,
+            rgba(15, 26, 46, 0.18) 100%);
+            border: 1.5px solid rgba(37, 99, 235, 1);
+            border-radius: 2px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3),
+            inset 0 2px 4px rgba(255, 255, 255, 0.03),
+            inset 0 -1px 2px rgba(0, 0, 0, 0.2);
             transform-style: preserve-3d;
             left: 50%;
             top: 50%;
-            margin-left: -90px;
-            margin-top: -20px;
+            margin-left: -80px;
+            margin-top: -25px;
+            backdrop-filter: blur(1px);
         }
 
         .stair-step::before {
             content: '';
             position: absolute;
-            inset: 4px;
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.03), transparent);
+            inset: 6px;
+            background: linear-gradient(135deg,
+            rgba(37, 99, 235, 0.04) 0%,
+            rgba(37, 99, 235, 0.01) 50%,
+            transparent 100%);
+            border-radius: 1px;
             pointer-events: none;
         }
 
@@ -772,41 +831,64 @@
             content: '';
             position: absolute;
             left: 0;
-            bottom: -20px;
+            bottom: -35px;
             width: 100%;
-            height: 20px;
-            background: linear-gradient(180deg, #0f1a2e, #0a1220);
-            border-left: 1px solid rgba(37, 99, 235, 0.2);
-            border-right: 1px solid rgba(37, 99, 235, 0.2);
+            height: 35px;
+            background: linear-gradient(180deg,
+            rgba(15, 26, 46, 0.25) 0%,
+            rgba(10, 18, 32, 0.3) 100%);
+            border-left: 1.5px solid rgba(37, 99, 235, 0.18);
+            border-right: 1.5px solid rgba(37, 99, 235, 0.18);
+            border-bottom: 1px solid rgba(37, 99, 235, 0.12);
             transform-origin: top;
-            transform: rotateX(-90deg);
+            transform: rotateX(-20deg);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
         }
 
         @media (max-width: 900px) {
             .staircase-section {
-                height: 50vh;
-                min-height: 400px;
+                min-height: 500px;
+                padding-top: 60px;
+                padding-bottom: 50px;
+            }
+
+            .staircase-title {
+                font-size: 1.5rem;
+            }
+
+            .staircase-subtitle {
+                font-size: 0.95rem;
+                margin-bottom: 60px;
             }
 
             .staircase-wrapper {
-                gap: 40px;
+                gap: 35px;
             }
 
             .staircase-container {
-                width: 300px;
-                height: 300px;
+                width: 320px;
+                height: 320px;
             }
 
             .stair-step {
-                width: 140px;
-                height: 32px;
-                margin-left: -70px;
-                margin-top: -16px;
+                width: 120px;
+                height: 38px;
+                margin-left: -60px;
+                margin-top: -19px;
+            }
+
+            .stair-step::after {
+                bottom: -28px;
+                height: 28px;
             }
 
             .arrow-down {
-                width: 30px;
-                height: 30px;
+                width: 28px;
+                height: 28px;
+            }
+
+            .arrow-label {
+                font-size: 0.75rem;
             }
         }
 
@@ -876,12 +958,14 @@
 
         .why-us-section {
             padding: var(--section-gap) 0;
+            
             background: #0d0f13; /* Or any background you prefer */
         }
 
         .why-us-container {
             width: min(1200px, 90vw);
             margin: 0 auto;
+            margin-top: 30px;
             display: grid;
             grid-template-columns: 1fr 1px 1fr;
             gap: 3rem;
@@ -891,7 +975,7 @@
         .why-us-image .image-placeholder {
             width: 100%;
             height: 300px;
-            background-color: rgba(38,73,65,0.60);
+            background-color: rgba(38, 73, 65, 0.60);
             border: 1px ridge #808080;
             color: #777;
             font-size: 1rem;
@@ -1074,11 +1158,11 @@
 
         /* --- NEW: Products static grid (replaces carousel) --- */
         .products {
-            margin-top: 20px;
+
             padding-top: var(--section-gap);
             padding-bottom: var(--section-gap);
             background: linear-gradient(180deg, #121620, #0e0e12); /* Darker fade */
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            /*border-top: 1px solid rgba(255, 255, 255, 0.08);*/
         }
 
         .product-grid {
@@ -1293,7 +1377,7 @@
         /*CHALLENGE PRICES SECTION*/
         .challenge-offers {
             padding: var(--section-gap) 0;
-            background: linear-gradient(180deg, #0a0a0b 0%, rgba(0,0,0, 0.2) 20%,rgba(0,0,0, 0.2) 90%, #0a0a0b 100%);
+            background: linear-gradient(180deg, #0a0a0b 0%, rgba(0, 0, 0, 0.2) 20%, rgba(0, 0, 0, 0.2) 90%, #0a0a0b 100%);
             color: #fff;
         }
 
@@ -1348,7 +1432,7 @@
         table.terms-table th,
         table.terms-table td {
             padding: 20px 12px; /* top/bottom 20px makes the cell taller */
-            height: 60px;       /* optional: forces a minimum height */
+            height: 60px; /* optional: forces a minimum height */
         }
 
 
@@ -1570,19 +1654,19 @@
                     <div class="foot">Across all programmes</div>
                 </article>
                 <article class="kpi reveal" data-kpi="capital-deployed">
-                    <div class="value" data-countup>$38.6M</div>
-                    <div class="label">Capital deployed</div>
+                    <div class="value live-count" data-countup>3,000</div>
+                    <div class="label">Pre-registered members</div>
                     <div class="foot">Aggregate mirrored exposure</div>
                 </article>
                 <article class="kpi reveal" data-kpi="payout-time">
-                    <div class="value" data-countup>96 hrs</div>
+                    <div class="value" data-countup>10 min</div>
                     <div class="label">Average payout time</div>
                     <div class="foot">From request to receipt</div>
                 </article>
                 <article class="kpi reveal" data-kpi="scaled-traders">
                     <div class="value" data-countup>312</div>
                     <div class="label">Scaled to real capital</div>
-                    <div class="foot">Active A-book mirrors</div>
+                    <div class="foot">Active A-book users</div>
                 </article>
             </div>
         </div>
@@ -1643,22 +1727,31 @@
     </section>
 
     <!-- 3D SPIRAL STAIRCASE -->
-    <section class="staircase-section" aria-hidden="true">
+    <section class="staircase-section" aria-labelledby="staircase-heading">
+        <h2 id="staircase-heading" class="staircase-title reveal">Ascend The Infinity Challenge</h2>
+        <p class="staircase-subtitle reveal">Scale your capital infinitely through consistent performance. Each level
+            unlocks greater potential.</p>
         <div class="staircase-wrapper">
-            <div class="arrow-down reveal">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 5 L12 19 M5 12 L12 19 L19 12"/>
-                </svg>
+            <div class="arrow-column">
+                <div class="arrow-down reveal">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 5 L12 19 M5 12 L12 19 L19 12"/>
+                    </svg>
+                </div>
+                <span class="arrow-label reveal">Scale</span>
             </div>
             <div class="staircase-container">
                 <div class="staircase" id="staircase">
                     <!-- Steps will be generated by JavaScript -->
                 </div>
             </div>
-            <div class="arrow-down reveal">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 5 L12 19 M5 12 L12 19 L19 12"/>
-                </svg>
+            <div class="arrow-column">
+                <div class="arrow-down reveal">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 5 L12 19 M5 12 L12 19 L19 12"/>
+                    </svg>
+                </div>
+                <span class="arrow-label reveal">Ascend</span>
             </div>
         </div>
     </section>
@@ -1846,7 +1939,6 @@
 </section>
 
 
-
 <!-- FEATURES / TESTIMONIALS / CONTACT / FOOTER -->
 <div class="full-bg-section end">
     <section class="container">
@@ -1883,11 +1975,11 @@
 </div>
 <script>
     const terms = {
-        10000: { daily: 500, total: 1000, target1: 1000, target2: 500 },
-        25000: { daily: 1250, total: 2500, target1: 2500, target2: 1250 },
-        50000: { daily: 2500, total: 5000, target1: 5000, target2: 2500 },
-        100000: { daily: 5000, total: 10000, target1: 10000, target2: 5000 },
-        200000: { daily: 10000, total: 20000, target1: 20000, target2: 10000 }
+        10000: {daily: 500, total: 1000, target1: 1000, target2: 500},
+        25000: {daily: 1250, total: 2500, target1: 2500, target2: 1250},
+        50000: {daily: 2500, total: 5000, target1: 5000, target2: 2500},
+        100000: {daily: 5000, total: 10000, target1: 10000, target2: 5000},
+        200000: {daily: 10000, total: 20000, target1: 20000, target2: 10000}
     };
 
 
@@ -2040,7 +2132,7 @@
                 if (link.startsWith('#')) {
                     const targetSection = document.querySelector(link);
                     if (targetSection) {
-                        targetSection.scrollIntoView({ behavior: 'smooth' });
+                        targetSection.scrollIntoView({behavior: 'smooth'});
                     }
                 } else {
                     window.location.href = link;
@@ -2056,10 +2148,10 @@
         const staircase = document.getElementById('staircase');
         if (!staircase) return;
 
-        const numSteps = 12;
+        const numSteps = 14;
         const angleStep = 360 / numSteps;
-        const verticalStep = 30;
-        const radius = 80;
+        const verticalStep = 28;
+        const radius = 90;
 
         for (let i = 0; i < numSteps; i++) {
             const step = document.createElement('div');
@@ -2079,7 +2171,7 @@
 
         const section = document.querySelector('.staircase-section');
         let rotationY = 0;
-        let rotationX = 20;
+        let rotationX = 25;
 
         function updateRotation() {
             const rect = section.getBoundingClientRect();
@@ -2087,22 +2179,47 @@
 
             if (rect.top < windowHeight && rect.bottom > 0) {
                 const progress = 1 - ((rect.top + rect.height / 2) / windowHeight);
-                rotationY = progress * 360 * 2;
+                rotationY = progress * 360 * 2.5;
 
                 staircase.style.transform = `
                     rotateX(${rotationX}deg)
                     rotateY(${rotationY}deg)
+                    translateZ(-40px)
                 `;
             }
         }
 
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            staircase.style.transform = `rotateX(${rotationX}deg) rotateY(0deg)`;
+            staircase.style.transform = `rotateX(${rotationX}deg) rotateY(45deg) translateZ(-40px)`;
         } else {
-            window.addEventListener('scroll', updateRotation, { passive: true });
+            window.addEventListener('scroll', updateRotation, {passive: true});
             updateRotation();
         }
     })();
+</script>
+<script>
+    // Configuration: your spreadsheet ID and API key
+    const sheetId = '1Ffk811lqi8lIJ2zb4JTaqs2jHTzCw6CWXYoYeKVuBHE';       // e.g. "1FABCdEXAMPLE_URL_GOESHERE"
+    const apiKey = 'AIzaSyAHV1PDPbU9EWeKw1q-shI81ngMN3Sh7dI';               // your Google API key
+    const range = 'Pre-Register Form!H1';                   // sheet name and cell range (H1)
+
+    // Construct the Google Sheets API URL for the specified range
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;  //:contentReference[oaicite:8]{index=8}
+
+    // Fetch the data from Google Sheets API and update the page
+    fetch(url)
+        .then(response => response.json())                  // parse the JSON response:contentReference[oaicite:9]{index=9}
+        .then(data => {
+            if (data.values) {
+                const cellValue = data.values[0][0];            // the value in cell H1
+                // Instead of querySelector('.value[data-countup]')
+                const valueElement = document.querySelector('.live-count');
+                valueElement.textContent = cellValue;         // insert the value into the div
+            } else {
+                console.error('No data returned for H1');
+            }
+        })
+        .catch(error => console.error('Error fetching Google Sheets data:', error));
 </script>
 
 </body>
