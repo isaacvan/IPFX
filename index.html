@@ -672,7 +672,7 @@
             }
         }
 
-        /* 3D Spiral Staircase */
+        /* 2D Spiral Staircase */
         .staircase-section {
             position: relative;
             width: 100%;
@@ -682,9 +682,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            margin-top: 20px;
-            padding-top: 120px;
-            background: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(38, 73, 65, 0.25) 30%, rgba(30, 60, 56, 0.3) 70%, rgba(18, 22, 32, 1) 100%);
+            padding-top: var(--section-gap);
+            padding-bottom: 60px;
+            background: transparent;
         }
 
         .staircase-title {
@@ -711,10 +711,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 60px;
+            gap: 40px;
             width: 100%;
-            max-width: 900px;
-            margin-top: 200px;
+            max-width: 700px;
+            margin: 0 auto;
         }
 
         .arrow-column {
@@ -725,8 +725,8 @@
         }
 
         .arrow-down {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             position: relative;
             opacity: 0;
             transform: translateY(-20px);
@@ -760,7 +760,7 @@
 
         .arrow-label {
             font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: rgba(37, 99, 235, 0.5);
             text-transform: uppercase;
@@ -780,69 +780,94 @@
 
         .staircase-container {
             position: relative;
-            width: 450px;
-            height: 300px;
-            perspective: 1400px;
-            perspective-origin: 50% 50%;
+            width: 280px;
+            height: 450px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .staircase {
             position: relative;
             width: 100%;
             height: 100%;
-            transform-style: preserve-3d;
-            transition: transform 0.1s ease-out;
         }
 
-        .stair-step {
+        /* Central pole */
+        .spiral-pole {
             position: absolute;
-            width: 160px;
-            height: 50px;
-            background: linear-gradient(145deg,
-            rgba(30, 58, 138, 0.12) 0%,
-            rgba(37, 99, 235, 0.08) 50%,
-            rgba(15, 26, 46, 0.18) 100%);
-            border: 1.5px solid rgba(37, 99, 235, 0.4);
-            border-radius: 3px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3),
-            inset 0 2px 4px rgba(255, 255, 255, 0.03),
-            inset 0 -1px 2px rgba(0, 0, 0, 0.2);
-            transform-style: preserve-3d;
             left: 50%;
-            top: 50%;
-            margin-left: -80px;
-            margin-top: -25px;
-            backdrop-filter: blur(1px);
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg,
+            rgba(37, 99, 235, 0.3) 0%,
+            rgba(37, 99, 235, 0.15) 50%,
+            rgba(37, 99, 235, 0.3) 100%);
+            transform: translateX(-50%);
+            border-radius: 2px;
         }
 
-        .stair-step::before {
-            content: '';
+        /* Individual step */
+        .spiral-step {
             position: absolute;
-            inset: 6px;
-            background: linear-gradient(135deg,
-            rgba(37, 99, 235, 0.04) 0%,
-            rgba(37, 99, 235, 0.01) 50%,
-            transparent 100%);
-            border-radius: 1px;
-            pointer-events: none;
+            left: 50%;
+            width: 160px;
+            height: 20px;
+            background: linear-gradient(90deg,
+            rgba(37, 99, 235, 0.05) 0%,
+            rgba(37, 99, 235, 0.2) 5%,
+            rgba(37, 99, 235, 0.3) 50%,
+            rgba(37, 99, 235, 0.2) 95%,
+            rgba(37, 99, 235, 0.05) 100%);
+            transform-origin: 0% 50%;
+            border-radius: 2px;
+            transition: opacity 0.3s ease;
+            margin-left: 0;
+            border: 1px solid rgba(37, 99, 235, 0.4);
+            box-shadow:
+                    0 2px 8px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
-        .stair-step::after {
+        /* Step depth/side (creates 3D stair effect) */
+        .spiral-step::before {
             content: '';
             position: absolute;
             left: 0;
-            bottom: -35px;
+            top: 100%;
             width: 100%;
-            height: 35px;
-            background: linear-gradient(180deg,
-            rgba(15, 26, 46, 0.25) 0%,
-            rgba(10, 18, 32, 0.3) 100%);
-            border-left: 1.5px solid rgba(37, 99, 235, 0.18);
-            border-right: 1.5px solid rgba(37, 99, 235, 0.18);
-            border-bottom: 1px solid rgba(37, 99, 235, 0.12);
-            transform-origin: top;
-            transform: rotateX(-20deg);
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+            height: 12px;
+            background: linear-gradient(90deg,
+            rgba(37, 99, 235, 0.05) 0%,
+            rgba(37, 99, 235, 0.15) 5%,
+            rgba(37, 99, 235, 0.2) 50%,
+            rgba(37, 99, 235, 0.15) 95%,
+            rgba(37, 99, 235, 0.05) 100%);
+            border-left: 1px solid rgba(37, 99, 235, 0.3);
+            border-right: 1px solid rgba(37, 99, 235, 0.3);
+            border-bottom: 1px solid rgba(37, 99, 235, 0.25);
+            border-radius: 0 0 2px 2px;
+            box-shadow: inset 0 -1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Step striped tread pattern */
+        .spiral-step::after {
+            content: '';
+            position: absolute;
+            left: 5%;
+            top: 3px;
+            width: 90%;
+            height: calc(100% - 6px);
+            background: repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(0, 0, 0, 0.15) 10px,
+                    rgba(0, 0, 0, 0.15) 12px
+            );
+            border-radius: 1px;
+            pointer-events: none;
         }
 
         @media (max-width: 900px) {
@@ -862,33 +887,34 @@
             }
 
             .staircase-wrapper {
-                gap: 35px;
+                gap: 30px;
             }
 
             .staircase-container {
-                width: 320px;
-                height: 320px;
+                width: 220px;
+                height: 380px;
             }
 
-            .stair-step {
-                width: 120px;
-                height: 38px;
-                margin-left: -60px;
-                margin-top: -19px;
+            .spiral-step {
+                width: 130px;
+                height: 16px;
             }
 
-            .stair-step::after {
-                bottom: -28px;
-                height: 28px;
+            .spiral-step::before {
+                height: 10px;
+            }
+
+            .spiral-pole {
+                width: 2px;
             }
 
             .arrow-down {
-                width: 28px;
-                height: 28px;
+                width: 26px;
+                height: 26px;
             }
 
             .arrow-label {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
             }
         }
 
@@ -958,7 +984,7 @@
 
         .why-us-section {
             padding: var(--section-gap) 0;
-            
+
             background: #0d0f13; /* Or any background you prefer */
         }
 
@@ -2143,57 +2169,71 @@
         card.style.cursor = 'pointer';
     });
 
-    // 3D Spiral Staircase
+    // 2D Spiral Staircase
     (() => {
         const staircase = document.getElementById('staircase');
         if (!staircase) return;
 
-        const numSteps = 14;
-        const angleStep = 360 / numSteps;
-        const verticalStep = 28;
-        const radius = 90;
+        const numSteps = 20;
+        const turnsPerScroll = 2.5;
 
+        // Create central pole
+        const pole = document.createElement('div');
+        pole.className = 'spiral-pole';
+        staircase.appendChild(pole);
+
+        // Create steps
+        const steps = [];
         for (let i = 0; i < numSteps; i++) {
             const step = document.createElement('div');
-            step.className = 'stair-step';
+            step.className = 'spiral-step';
 
-            const angle = i * angleStep;
-            const y = -i * verticalStep;
-
-            step.style.transform = `
-                rotateY(${angle}deg)
-                translateZ(${radius}px)
-                translateY(${y}px)
-            `;
+            // Evenly distribute steps vertically
+            const verticalPosition = (i / (numSteps - 1)) * 100;
+            step.style.top = `${verticalPosition}%`;
 
             staircase.appendChild(step);
+            steps.push(step);
         }
 
         const section = document.querySelector('.staircase-section');
-        let rotationY = 0;
-        let rotationX = 25;
 
-        function updateRotation() {
+        function updateStaircase() {
             const rect = section.getBoundingClientRect();
             const windowHeight = window.innerHeight;
 
             if (rect.top < windowHeight && rect.bottom > 0) {
-                const progress = 1 - ((rect.top + rect.height / 2) / windowHeight);
-                rotationY = progress * 360 * 2.5;
+                const progress = Math.max(0, Math.min(1, 1 - ((rect.top + rect.height / 2) / windowHeight)));
+                const baseRotation = progress * 360 * turnsPerScroll;
 
-                staircase.style.transform = `
-                    rotateX(${rotationX}deg)
-                    rotateY(${rotationY}deg)
-                    translateZ(-40px)
-                `;
+                steps.forEach((step, i) => {
+                    // Each step has its base angle plus the scroll-driven rotation
+                    const baseAngle = (i / numSteps) * 360 * turnsPerScroll;
+                    const stepAngle = baseRotation + baseAngle;
+                    const normalizedAngle = stepAngle % 360;
+
+                    // Calculate depth (z-position) based on angle for perspective
+                    // 0° = front, 180° = back
+                    const depthFactor = Math.cos((normalizedAngle * Math.PI) / 180);
+                    const scale = 0.6 + (depthFactor * 0.4);
+                    const opacity = 0.25 + (depthFactor * 0.75);
+
+                    step.style.transform = `rotate(${stepAngle}deg) scaleX(${scale})`;
+                    step.style.opacity = opacity;
+                    step.style.zIndex = Math.round(depthFactor * 100);
+                });
             }
         }
 
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            staircase.style.transform = `rotateX(${rotationX}deg) rotateY(45deg) translateZ(-40px)`;
+            steps.forEach((step, i) => {
+                const angle = (i / numSteps) * 360 + 45;
+                step.style.transform = `rotate(${angle}deg)`;
+                step.style.opacity = 0.5;
+            });
         } else {
-            window.addEventListener('scroll', updateRotation, {passive: true});
-            updateRotation();
+            window.addEventListener('scroll', updateStaircase, { passive: true });
+            updateStaircase();
         }
     })();
 </script>
