@@ -683,7 +683,8 @@
             align-items: center;
             justify-content: flex-start;
             padding-top: var(--section-gap);
-            padding-bottom: 60px;
+            padding-bottom: 100px;
+            margin-top: 40px;
             background: transparent;
         }
 
@@ -785,6 +786,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
         }
 
         .staircase {
@@ -825,9 +828,8 @@
             transition: opacity 0.3s ease;
             margin-left: 0;
             border: 1px solid rgba(37, 99, 235, 0.4);
-            box-shadow:
-                    0 2px 8px rgba(0, 0, 0, 0.3),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         /* Step depth/side (creates 3D stair effect) */
@@ -1188,7 +1190,7 @@
             padding-top: var(--section-gap);
             padding-bottom: var(--section-gap);
             background: linear-gradient(180deg, #121620, #0e0e12); /* Darker fade */
-            /*border-top: 1px solid rgba(255, 255, 255, 0.08);*/
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .product-grid {
@@ -1465,31 +1467,44 @@
         .table-row {
             display: grid;
             grid-template-columns: 1.2fr 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 12px;
         }
 
         .table-row.header {
-            background: #1a1d24;
+            background: rgba(38, 49, 104, 0.1);
             font-weight: 600;
             text-align: center;
             font-size: 0.92rem;
+            border-radius: 10px;
         }
 
         .table-row:not(.header):nth-child(even) {
-            background: #13151b;
+            background: transparent;
         }
 
         .cell {
-            padding: 14px 12px;
-            border-bottom: 1px solid #2e2f35;
+            padding: 28px 18px;
+            border-bottom: 1px solid rgba(38, 49, 104, 0.8);
+            background: #13151b;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-left: 1px solid rgba(38, 49, 104, 0.8);
         }
 
         .cell.label {
             font-weight: 500;
             background: #16181d;
+            justify-content: flex-start;
+            text-align: left;
         }
 
         .cell.empty {
-            background: #0c0d11;
+            background: transparent;
+            border: none;
         }
 
         @media (max-width: 780px) {
@@ -1509,7 +1524,6 @@
                 display: none;
             }
         }
-
     </style>
 </head>
 <script>
@@ -1872,7 +1886,7 @@
         <!-- Left image block -->
         <div class="why-us-image">
             <!-- Replace with actual image later -->
-            <div class="why-us-image image-placeholder"></div>
+            <div class="why-us-image image-placeholder">Something interesting here.</div>
             <!-- <img src="assets/images/scribble.png" alt="img"> -->
         </div>
 
@@ -1916,9 +1930,9 @@
         <div class="terms-table">
             <div class="table-row header">
                 <div class="cell empty"></div>
-                <div class="cell">Step 1<br><small>Challenge</small></div>
-                <div class="cell">Step 2<br><small>Verification</small></div>
-                <div class="cell">Step 3<br><small>Trusted Trader</small></div>
+                <div class="cell">Challenge</div>
+                <div class="cell">Verification</div>
+                <div class="cell">Certified Trader</div>
             </div>
 
 
@@ -2232,7 +2246,7 @@
                 step.style.opacity = 0.5;
             });
         } else {
-            window.addEventListener('scroll', updateStaircase, { passive: true });
+            window.addEventListener('scroll', updateStaircase, {passive: true});
             updateStaircase();
         }
     })();
