@@ -429,6 +429,7 @@
             padding-right: clamp(40px, 8vw, 112px);
             padding-left: clamp(40px, 8vw, 112px);
             margin-top: 35px;
+            margin-bottom: 20px;
             background: transparent;
         }
 
@@ -472,7 +473,8 @@
             top: 8px;
             bottom: 0;
             width: 1px;
-            background: rgba(255, 255, 255, 0.14);
+            /*background: linear-gradient(180deg, var(--af-line) 15%, var(--af-line) 85%, transparent);*/
+            background: var(--af-line);
             z-index: 0;
         }
 
@@ -551,7 +553,7 @@
             align-self: stretch;
             justify-self: center;
             width: 1px;
-            background: linear-gradient(180deg, transparent, var(--af-line) 15%, var(--af-line) 85%, transparent);
+            background: linear-gradient(180deg, transparent, var(--af-line) 15%, var(--af-line) 95%, transparent);
         }
 
         /* RIGHT sticky typewriter - minimal, elegant */
@@ -1295,11 +1297,20 @@
         .flow-divider {
             position: relative;
             height: 75vh;              /* adjust: 40–75vh works well */
-            min-height: 360px;
+            min-height: 400px;
             width: 100%;
             overflow: hidden;
-            background: radial-gradient(1200px 600px at 60% -20%, rgba(40,60,110,0.15), transparent 60%)
-            , #0a0f1a;     /* subtle brand-y glow over your dark base */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            margin-top: 40px;
+            background: linear-gradient(180deg,
+            transparent 0%,
+            rgba(18, 22, 32, 0.05) 20%,
+            rgba(18, 22, 32, 0.2) 50%,
+            rgba(18, 22, 32, 0.6) 75%,
+            #121620 100%);
         }
 
         #flowLines {
@@ -1309,6 +1320,45 @@
             height: 100%;
             display: block;
             pointer-events: none;      /* so it never traps clicks/scrolls */
+            mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+            /*-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);*/
+            animation: fadeInCanvas 8s ease-out forwards;
+        }
+
+        @keyframes fadeInCanvas {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .staircase-title {
+            position: relative;
+            z-index: 2;
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: var(--h2);
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            max-width: 800px;
+            margin-top: 60px;
+            padding: 40px 20px 0;
+        }
+
+        .staircase-subtitle {
+            position: relative;
+            z-index: 2;
+            font-size: var(--lead);
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.6;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
         }
 
     </style>
@@ -1560,15 +1610,14 @@
             unlocks greater potential.</p>
         <canvas id="flowLines"></canvas>
     </section>
-    
+
 
     <!-- NEW: PRODUCTS (STATIC GRID) -->
     <section id="products" class="products" aria-label="Products">
         <div class="container">
             <h2 class="reveal" style="font-family:'Space Grotesk','Inter'; font-size:var(--h2); margin:0 0 6px;">
-                Products</h2>
-            <p class="reveal" style="margin:0 0 16px; color:var(--muted); font-size:var(--lead)">Clean, transparent, and
-                designed to scale with skill—not fees.</p>
+                Our core programs</h2>
+            <p class="reveal" style="margin:0 0 16px; color:var(--muted); font-size:var(--lead)">Explore each funding path — hover to see how it works, click to dive deeper.</p>
 
             <div class="product-grid">
                 <article class="product-card reveal"
@@ -1991,7 +2040,7 @@
 
             const needResize = (canvas.width !== Math.floor(cssW * dpr)) || (canvas.height !== Math.floor(cssH * dpr));
             if (needResize) {
-                
+
                 canvas.width  = Math.floor(cssW * dpr);
                 canvas.height = Math.floor(cssH * dpr);
                 pxW = canvas.width  / dpr;
