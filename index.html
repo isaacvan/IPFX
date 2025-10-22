@@ -672,254 +672,6 @@
             }
         }
 
-        /* 2D Spiral Staircase */
-        .staircase-section {
-            position: relative;
-            width: 100%;
-            min-height: 600px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: var(--section-gap);
-            padding-bottom: 100px;
-            margin-top: 40px;
-            background: transparent;
-        }
-
-        .staircase-title {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(1.4rem, 3vw, 2rem);
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.95);
-            text-align: center;
-            margin-bottom: 12px;
-            letter-spacing: -0.01em;
-        }
-
-        .staircase-subtitle {
-            font-family: 'Inter', system-ui;
-            font-size: clamp(0.95rem, 1.6vw, 1.1rem);
-            color: rgba(255, 255, 255, 0.7);
-            text-align: center;
-            margin-bottom: 80px;
-            max-width: 50ch;
-        }
-
-        .staircase-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 40px;
-            width: 100%;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        .arrow-column {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .arrow-down {
-            width: 32px;
-            height: 32px;
-            position: relative;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.8s ease, transform 0.8s ease;
-        }
-
-        .arrow-down.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .arrow-down svg {
-            width: 100%;
-            height: 100%;
-            fill: none;
-            stroke: rgba(37, 99, 235, 0.4);
-            stroke-width: 2.5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            animation: arrow-bounce 2s ease-in-out infinite;
-        }
-
-        @keyframes arrow-bounce {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(8px);
-            }
-        }
-
-        .arrow-label {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: rgba(37, 99, 235, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s;
-        }
-
-        .arrow-down.is-visible ~ .arrow-label,
-        .arrow-column .arrow-down.is-visible + .arrow-label {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .staircase-container {
-            position: relative;
-            width: 280px;
-            height: 450px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-
-        .staircase {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Central pole */
-        .spiral-pole {
-            position: absolute;
-            left: 50%;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: linear-gradient(180deg,
-            rgba(37, 99, 235, 0.3) 0%,
-            rgba(37, 99, 235, 0.15) 50%,
-            rgba(37, 99, 235, 0.3) 100%);
-            transform: translateX(-50%);
-            border-radius: 2px;
-        }
-
-        /* Individual step */
-        .spiral-step {
-            position: absolute;
-            left: 50%;
-            width: 160px;
-            height: 20px;
-            background: linear-gradient(90deg,
-            rgba(37, 99, 235, 0.05) 0%,
-            rgba(37, 99, 235, 0.2) 5%,
-            rgba(37, 99, 235, 0.3) 50%,
-            rgba(37, 99, 235, 0.2) 95%,
-            rgba(37, 99, 235, 0.05) 100%);
-            transform-origin: 0% 50%;
-            border-radius: 2px;
-            transition: opacity 0.3s ease;
-            margin-left: 0;
-            border: 1px solid rgba(37, 99, 235, 0.4);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-
-        /* Step depth/side (creates 3D stair effect) */
-        .spiral-step::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 100%;
-            width: 100%;
-            height: 12px;
-            background: linear-gradient(90deg,
-            rgba(37, 99, 235, 0.05) 0%,
-            rgba(37, 99, 235, 0.15) 5%,
-            rgba(37, 99, 235, 0.2) 50%,
-            rgba(37, 99, 235, 0.15) 95%,
-            rgba(37, 99, 235, 0.05) 100%);
-            border-left: 1px solid rgba(37, 99, 235, 0.3);
-            border-right: 1px solid rgba(37, 99, 235, 0.3);
-            border-bottom: 1px solid rgba(37, 99, 235, 0.25);
-            border-radius: 0 0 2px 2px;
-            box-shadow: inset 0 -1px 3px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Step striped tread pattern */
-        .spiral-step::after {
-            content: '';
-            position: absolute;
-            left: 5%;
-            top: 3px;
-            width: 90%;
-            height: calc(100% - 6px);
-            background: repeating-linear-gradient(
-                    90deg,
-                    transparent,
-                    transparent 10px,
-                    rgba(0, 0, 0, 0.15) 10px,
-                    rgba(0, 0, 0, 0.15) 12px
-            );
-            border-radius: 1px;
-            pointer-events: none;
-        }
-
-        @media (max-width: 900px) {
-            .staircase-section {
-                min-height: 500px;
-                padding-top: 60px;
-                padding-bottom: 50px;
-            }
-
-            .staircase-title {
-                font-size: 1.5rem;
-            }
-
-            .staircase-subtitle {
-                font-size: 0.95rem;
-                margin-bottom: 60px;
-            }
-
-            .staircase-wrapper {
-                gap: 30px;
-            }
-
-            .staircase-container {
-                width: 220px;
-                height: 380px;
-            }
-
-            .spiral-step {
-                width: 130px;
-                height: 16px;
-            }
-
-            .spiral-step::before {
-                height: 10px;
-            }
-
-            .spiral-pole {
-                width: 2px;
-            }
-
-            .arrow-down {
-                width: 26px;
-                height: 26px;
-            }
-
-            .arrow-label {
-                font-size: 0.7rem;
-            }
-        }
-
 
         .step .node {
             position: absolute;
@@ -1539,6 +1291,26 @@
                 display: none;
             }
         }
+
+        .flow-divider {
+            position: relative;
+            height: 75vh;              /* adjust: 40–75vh works well */
+            min-height: 360px;
+            width: 100%;
+            overflow: hidden;
+            background: radial-gradient(1200px 600px at 60% -20%, rgba(40,60,110,0.15), transparent 60%)
+            , #0a0f1a;     /* subtle brand-y glow over your dark base */
+        }
+
+        #flowLines {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            pointer-events: none;      /* so it never traps clicks/scrolls */
+        }
+
     </style>
 </head>
 <script>
@@ -1782,35 +1554,13 @@
         </div>
     </section>
 
-    <!-- 3D SPIRAL STAIRCASE -->
-    <section class="staircase-section" aria-labelledby="staircase-heading">
+    <section class="flow-divider">
         <h2 id="staircase-heading" class="staircase-title reveal">Ascend The Infinity Challenge</h2>
         <p class="staircase-subtitle reveal">Scale your capital infinitely through consistent performance. Each level
             unlocks greater potential.</p>
-        <div class="staircase-wrapper">
-            <div class="arrow-column">
-                <div class="arrow-down reveal">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 5 L12 19 M5 12 L12 19 L19 12"/>
-                    </svg>
-                </div>
-                <span class="arrow-label reveal">Scale</span>
-            </div>
-            <div class="staircase-container">
-                <div class="staircase" id="staircase">
-                    <!-- Steps will be generated by JavaScript -->
-                </div>
-            </div>
-            <div class="arrow-column">
-                <div class="arrow-down reveal">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 5 L12 19 M5 12 L12 19 L19 12"/>
-                    </svg>
-                </div>
-                <span class="arrow-label reveal">Ascend</span>
-            </div>
-        </div>
+        <canvas id="flowLines"></canvas>
     </section>
+    
 
     <!-- NEW: PRODUCTS (STATIC GRID) -->
     <section id="products" class="products" aria-label="Products">
@@ -2219,74 +1969,6 @@
         card.style.cursor = 'pointer';
     });
 
-    // 2D Spiral Staircase
-    (() => {
-        const staircase = document.getElementById('staircase');
-        if (!staircase) return;
-
-        const numSteps = 20;
-        const turnsPerScroll = 2.5;
-
-        // Create central pole
-        const pole = document.createElement('div');
-        pole.className = 'spiral-pole';
-        staircase.appendChild(pole);
-
-        // Create steps
-        const steps = [];
-        for (let i = 0; i < numSteps; i++) {
-            const step = document.createElement('div');
-            step.className = 'spiral-step';
-
-            // Evenly distribute steps vertically
-            const verticalPosition = (i / (numSteps - 1)) * 100;
-            step.style.top = `${verticalPosition}%`;
-
-            staircase.appendChild(step);
-            steps.push(step);
-        }
-
-        const section = document.querySelector('.staircase-section');
-
-        function updateStaircase() {
-            const rect = section.getBoundingClientRect();
-            const windowHeight = window.innerHeight;
-
-            if (rect.top < windowHeight && rect.bottom > 0) {
-                const progress = Math.max(0, Math.min(1, 1 - ((rect.top + rect.height / 2) / windowHeight)));
-                const baseRotation = progress * 360 * turnsPerScroll;
-
-                steps.forEach((step, i) => {
-                    // Each step has its base angle plus the scroll-driven rotation
-                    const baseAngle = (i / numSteps) * 360 * turnsPerScroll;
-                    const stepAngle = baseRotation + baseAngle;
-                    const normalizedAngle = stepAngle % 360;
-
-                    // Calculate depth (z-position) based on angle for perspective
-                    // 0° = front, 180° = back
-                    const depthFactor = Math.cos((normalizedAngle * Math.PI) / 180);
-                    const scale = 0.6 + (depthFactor * 0.4);
-                    const opacity = 0.25 + (depthFactor * 0.75);
-
-                    step.style.transform = `rotate(${stepAngle}deg) scaleX(${scale})`;
-                    step.style.opacity = opacity;
-                    step.style.zIndex = Math.round(depthFactor * 100);
-                });
-            }
-        }
-
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            steps.forEach((step, i) => {
-                const angle = (i / numSteps) * 360 + 45;
-                step.style.transform = `rotate(${angle}deg)`;
-                step.style.opacity = 0.5;
-            });
-        } else {
-            window.addEventListener('scroll', updateStaircase, {passive: true});
-            updateStaircase();
-        }
-    })();
-
     // ===== Candlestick Animation (Canvas) — unchanged =====
 
     (function () {
@@ -2503,6 +2185,193 @@
             }
         })
         .catch(error => console.error('Error fetching Google Sheets data:', error));
+</script>
+<script type="module">
+    (() => {
+        const canvas = document.getElementById('flowLines');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { alpha: true });
+
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // ---- Brand palette (tweak to taste)
+        const palette = {
+            glow:    'rgba(40, 80, 180, 0.25)',   // outer glow
+            stroke1: '#1f4b99',                   // main line
+            stroke2: '#7aa2ff',                   // highlight blend
+            bgMist:  'rgba(20, 30, 55, 0.18)'     // faint mist
+        };
+
+        let running = true;
+        let dpr = 1, cssW = 0, cssH = 0, pxW = 0, pxH = 0;
+
+        // Size / DPR
+        function applySize() {
+            const newDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            if (newDpr !== dpr) dpr = newDpr;
+
+            const need = (canvas.width !== Math.floor(cssW * dpr)) || (canvas.height !== Math.floor(cssH * dpr));
+            if (need) {
+                canvas.width  = Math.floor(cssW * dpr);
+                canvas.height = Math.floor(cssH * dpr);
+                pxW = canvas.width / dpr;
+                pxH = canvas.height / dpr;
+                ctx.setTransform(1,0,0,1,0,0);
+                ctx.scale(dpr, dpr);
+                rebuild();
+            }
+        }
+        const ro = new ResizeObserver(entries => {
+            const { width, height } = entries[0].contentRect;
+            const newW = Math.max(1, Math.round(width));
+            const newH = Math.max(1, Math.round(height));
+            if (newW !== cssW || newH !== cssH) {
+                cssW = newW; cssH = newH; applySize();
+            }
+        });
+        ro.observe(canvas);
+
+        // ---- Flow lines
+        const lines = [];
+        let lineCount = 0;
+        const maxCountBase = 18;          // base # of lines; scaled with size
+        const baseSpeed = prefersReduced ? 12 : 28; // px/s downward
+        let speedBoost = 0;               // transient extra speed from scroll
+        let targetBoost = 0;
+
+        function random(min, max) { return min + Math.random() * (max - min); }
+
+        function rebuild() {
+            lines.length = 0;
+            // Scale count with area but cap to keep it light
+            const area = (pxW * pxH) / (1280 * 720);
+            lineCount = Math.min(32, Math.max(8, Math.round(maxCountBase * area)));
+
+            for (let i = 0; i < lineCount; i++) {
+                lines.push(makeLine(true));
+            }
+        }
+
+        function makeLine(seedY = false) {
+            const x = random(pxW * 0.35, pxW * 0.65);  // keep them near center column
+            const wiggleAmp = random(30, 90);          // lateral wandering amplitude
+            const wiggleFreq = random(0.2, 0.55);      // Hz
+            const thickness = random(0.6, 1.8);
+            return {
+                x0: x,
+                y: seedY ? random(-pxH, pxH) : -random(40, pxH * 0.5),
+                t: Math.random() * 10,
+                amp: wiggleAmp,
+                freq: wiggleFreq,
+                width: thickness,
+                len: random(pxH * 0.35, pxH * 0.7),      // path length
+                hueShift: Math.random(),                 // mixes stroke1/stroke2 slightly
+                alpha: random(0.35, 0.8)
+            };
+        }
+
+        function drawLine(l, dt, spd) {
+            l.t += dt;
+            l.y += spd * dt;
+
+            // Recycle when fully past bottom
+            if (l.y - l.len > pxH + 40) {
+                Object.assign(l, makeLine(false));
+            }
+
+            const segs = 16;                 // polyline segments (keep small for perf)
+            const step = l.len / segs;
+            const mid = l.x0;
+
+            ctx.lineWidth = l.width;
+            ctx.globalAlpha = l.alpha;
+
+            // Gradient stroke that subtly mixes brand blues
+            const grad = ctx.createLinearGradient(mid, l.y - l.len, mid, l.y);
+            grad.addColorStop(0, palette.stroke1);
+            grad.addColorStop(1, palette.stroke2);
+            ctx.strokeStyle = grad;
+
+            ctx.shadowColor = palette.glow;
+            ctx.shadowBlur = 8;
+
+            ctx.beginPath();
+            for (let i = 0; i <= segs; i++) {
+                const y = l.y - l.len + i * step;
+                // horizontal wandering (sinusoidal drift over time + along path)
+                const x = mid + Math.sin((i * 0.6) + l.t * (2 * Math.PI * l.freq)) * l.amp;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Clean shadow so it doesn't bloom future strokes
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+        }
+
+        // Subtle mist layer to add depth without heavy particles
+        function drawMist() {
+            ctx.fillStyle = palette.bgMist;
+            ctx.fillRect(0, 0, pxW, pxH);
+        }
+
+        // Scroll velocity → temporary speed boost
+        let lastScrollY = window.scrollY;
+        let lastBoostTime = performance.now();
+        function onScroll() {
+            const now = performance.now();
+            const dy = Math.abs(window.scrollY - lastScrollY);
+            lastScrollY = window.scrollY;
+
+            // Convert pixels scrolled in this frame to a boost; clamp for sanity
+            const raw = Math.min(3.0, dy * 0.02);
+            // Merge bursts but avoid spikes when browser batches scroll events
+            const dt = Math.max(16, now - lastBoostTime);
+            lastBoostTime = now;
+            targetBoost = Math.max(targetBoost, raw * (16 / dt));
+        }
+        window.addEventListener('scroll', onScroll, { passive: true });
+
+        // Pause when tab hidden (prevents timing spikes)
+        document.addEventListener('visibilitychange', () => {
+            running = document.visibilityState === 'visible';
+        });
+
+        // Main loop
+        let last = performance.now();
+        (function loop(now = performance.now()) {
+            if (!pxW || !pxH) { requestAnimationFrame(loop); return; }
+
+            const dt = Math.min(0.05, (now - last) / 1000);
+            last = now;
+
+            // Ease boost toward target, then decay toward 0
+            const ease = 8; // larger = snappier
+            speedBoost += (targetBoost - speedBoost) * Math.min(1, dt * ease);
+            targetBoost *= Math.pow(0.001, dt);    // bleed off target quickly
+            speedBoost *= Math.pow(0.25, dt);      // decay over a second or two
+
+            ctx.clearRect(0, 0, pxW, pxH);
+            drawMist();
+
+            const spd = (prefersReduced ? baseSpeed * 0.4 : baseSpeed) * (1 + speedBoost);
+            for (let i = 0; i < lines.length; i++) drawLine(lines[i], dt, spd);
+
+            if (running) requestAnimationFrame(loop);
+            else requestAnimationFrame(loop); // keep sizing responsive; cheap to keep
+        })();
+
+        // Initial size if RO fires late
+        queueMicrotask(() => {
+            if (!cssW || !cssH) {
+                const r = canvas.getBoundingClientRect();
+                cssW = Math.max(1, r.width || canvas.clientWidth || 800);
+                cssH = Math.max(1, r.height || canvas.clientHeight || 400);
+                applySize();
+            }
+        });
+    })();
 </script>
 </body>
 </html>
