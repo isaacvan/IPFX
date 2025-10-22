@@ -1493,13 +1493,28 @@
             justify-content: center;
             text-align: center;
             border-left: 1px solid rgba(38, 49, 104, 0.8);
+            font-weight: 300;
         }
 
         .cell.label {
-            font-weight: 500;
+            font-weight: 700;
             background: #16181d;
             justify-content: flex-start;
             text-align: left;
+            color: #2563eb; /* EDIT THIS COLOR - currently blue */
+        }
+
+        .cell.head {
+            font-weight: 700;
+            font-size: 1rem;
+            background: #16181d;
+            justify-content: center;
+            text-align: center;
+            color: #dadada; /* EDIT THIS COLOR - currently blue */
+        }
+
+        .cell:not(.label):not(.empty):not(.head) {
+            background: #1a1c22; /* More grey background for main cells */
         }
 
         .cell.empty {
@@ -1673,9 +1688,7 @@
                     <a class="btn btn-secondary" href="#products">Explore Products</a>
                 </div>
             </div>
-            <div class="chart-box">
-                <canvas id="tape"></canvas>
-            </div>
+            <div class="chart-box reveal"><canvas id="candles" aria-hidden="true"></canvas></div>
         </div>
     </section>
 
@@ -1930,9 +1943,9 @@
         <div class="terms-table">
             <div class="table-row header">
                 <div class="cell empty"></div>
-                <div class="cell">Challenge</div>
-                <div class="cell">Verification</div>
-                <div class="cell">Certified Trader</div>
+                <div class="cell head">Challenge</div>
+                <div class="cell head">Verification</div>
+                <div class="cell head">Certified Trader</div>
             </div>
 
 
@@ -2004,11 +2017,20 @@
         </div>
 
         <footer>
+            <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:40px 0 32px;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
                 <div>© <span id="year"></span> IPFX Capital</div>
                 <div style="color:var(--muted)">• <a href="#" style="color:var(--mint)">Privacy</a> •
                     <a href="#" style="color:var(--mint)">Terms</a></div>
+            </div>
+            <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:32px 0 28px;">
 
+            <div style="font-size:0.85rem; line-height:1.7; color:rgba(255,255,255,0.55); max-width:90ch; margin:0 0 16px; text-align:left;">
+                <p style="margin:0 0 12px;"><strong style="color:rgba(255,255,255,0.7);">Risk Disclosure:</strong> Trading derivatives and leveraged products carries significant risk. You may lose more than your initial investment. Past performance does not guarantee future results. IPFX Capital provides access to trading capital but does not guarantee profitability or protection against losses.</p>
+
+                <p style="margin:0 0 12px;"><strong style="color:rgba(255,255,255,0.7);">Regulatory Notice:</strong> IPFX Capital operates as a proprietary trading platform. We are not a licensed broker-dealer or investment adviser. All funded accounts are proprietary and trades are executed on behalf of IPFX Capital, not the individual trader.</p>
+
+                <p style="margin:0;"><strong style="color:rgba(255,255,255,0.7);">Geographic Restrictions:</strong> Services may not be available in all jurisdictions. It is your responsibility to ensure compliance with local laws and regulations. Prohibited jurisdictions include but are not limited to regions where proprietary trading platforms are restricted.</p>
             </div>
         </footer>
     </section>
@@ -2083,26 +2105,37 @@
     const formatLike = (original, num) => {
         if (/\$/.test(original)) return '$' + Math.round(num).toLocaleString();
         if (/hrs?/.test(original)) return Math.round(num) + ' hrs';
+        if (/min/.test(original)) return Math.round(num) + ' min';
         return Math.round(num).toLocaleString();
     };
-    document.querySelectorAll('[data-countup]').forEach(el => {
-        const original = el.textContent.trim();
-        const base = cleanNumber(original);
-        if (base === null) return;
-        el.textContent = '0';
-        const duration = 900; // ms
-        const start = performance.now();
 
-        function tick(now) {
-            const t = Math.min(1, (now - start) / duration);
-            const eased = 1 - Math.pow(1 - t, 3);
-            el.textContent = formatLike(original, base * eased);
-            if (t < 1) requestAnimationFrame(tick);
-            else el.textContent = original;
-        }
+    const countupIo = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                const el = e.target;
+                const original = el.textContent.trim();
+                const base = cleanNumber(original);
+                if (base === null) return;
 
-        requestAnimationFrame(tick);
-    });
+                el.textContent = '0';
+                const duration = 1800; // ms (increased from 900)
+                const start = performance.now();
+
+                function tick(now) {
+                    const t = Math.min(1, (now - start) / duration);
+                    const eased = 1 - Math.pow(1 - t, 3);
+                    el.textContent = formatLike(original, base * eased);
+                    if (t < 1) requestAnimationFrame(tick);
+                    else el.textContent = original;
+                }
+
+                requestAnimationFrame(tick);
+                countupIo.unobserve(el);
+            }
+        });
+    }, {threshold: 0.5});
+
+    document.querySelectorAll('[data-countup]').forEach(el => countupIo.observe(el));
 
     // Product card typewriter effect and navigation
     const productLinks = {
@@ -2250,6 +2283,199 @@
             updateStaircase();
         }
     })();
+
+    // ===== Candlestick Animation (Canvas) — unchanged =====
+
+    (function () {
+        const canvas = document.getElementById('candles');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let running = true;
+
+        // ===== Size management (avoid layout in render loop) =====
+        let dpr = 1;
+        let cssW = 0, cssH = 0;   // cached CSS pixel size
+        let pxW = 0,  pxH = 0;    // backing store size
+
+        function applySize() {
+            // Set DPR once (or when DPR changes)
+            const newDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            if (newDpr !== dpr) dpr = newDpr;
+
+            const needResize = (canvas.width !== Math.floor(cssW * dpr)) || (canvas.height !== Math.floor(cssH * dpr));
+            if (needResize) {
+                
+                canvas.width  = Math.floor(cssW * dpr);
+                canvas.height = Math.floor(cssH * dpr);
+                pxW = canvas.width  / dpr;
+                pxH = canvas.height / dpr;
+
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.scale(dpr, dpr);
+
+                recalcMaxBars();
+
+                // Rebuild any prerendered layers here if you add them later.
+            }
+        }
+
+        // Observe the canvas box size without triggering layout in the render loop
+        const ro = new ResizeObserver(entries => {
+            for (const e of entries) {
+                const cr = e.contentRect;
+                cssW = Math.max(1, cr.width);
+                cssH = Math.max(1, cr.height);
+                applySize();
+            }
+        });
+        ro.observe(canvas);
+
+        // Fallback initial size (just in case RO fires late)
+        queueMicrotask(() => {
+            if (cssW === 0 || cssH === 0) {
+                const rect = canvas.getBoundingClientRect();
+                cssW = Math.max(1, rect.width  || canvas.clientWidth  || canvas.offsetWidth  || 600);
+                cssH = Math.max(1, rect.height || canvas.clientHeight || canvas.offsetHeight || 300);
+                applySize();
+            }
+        });
+
+        // ===== Data & rendering =====
+        const series = [];
+        function nextBar(prev) {
+            const drift = 0.01, vol = 4.5;
+            let close = prev + (Math.random() - 0.5) * vol + drift;
+            close = Math.max(92, Math.min(108, close));
+            const open = prev;
+            let high = Math.max(open, close) + Math.random() * 2.0;
+            let low  = Math.min(open, close) - Math.random() * 2.0;
+            // if its too low make high higher, if its too high make low lower
+            if (close < 92) {
+                close = Math.max(close, 94 + (Math.random() * 2.0));
+            }
+            if (close > 108) {
+                close = Math.min(close, 106 - (Math.random() * 2.0));
+            }
+            return { open, high, low, close };
+        }
+        let last = 100;
+        for (let i = 0; i < 175; i++) { const b = nextBar(last); series.push(b); last = b.close; }
+
+        const globalMin = 88;
+        const globalMax = 112;
+
+        const pad = 10, barW = 6, gap = 3;
+        const step = barW + gap;
+        const speed = prefersReduced ? 10 : 26;
+        let offset = 0;
+
+        // Add near your constants:
+        let maxBars = 0;               // bars that fit in view
+        const lead   = 6;              // small buffer so we can draw slightly offscreen
+
+        function recalcMaxBars() {
+            if (!pxW) return;
+            maxBars = Math.max(1, Math.floor((pxW - 2 * pad) / step)) + lead;
+        }
+
+
+        // ----- Fixed timestep accumulator (prevents big first-frame jump) -----
+        const TICK = 1 / 60; // 60 Hz logical update
+        let accumulator = 0;
+        let lastTime = 0;
+        let started = false;
+
+        function update(dt) {
+            offset += speed * dt;
+            while (offset >= step) {
+                offset -= step;
+                const b = nextBar(series[series.length - 1].close);
+                series.push(b);
+                // Keep a sliding window sized to what the screen can show
+                while (maxBars > 0 && series.length > maxBars) {
+                    series.shift();
+                }
+            }
+        }
+
+        function draw() {
+            if (!pxW || !pxH) return; // not sized yet
+            recalcMaxBars();
+            const w = pxW, h = pxH;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grid (cheap; can be prerendered to an offscreen canvas if you want)
+            ctx.globalAlpha = 0.22; ctx.strokeStyle = '#2b2d34';
+            for (let gy = 0; gy <= 4; gy++) {
+                const y = Math.round((h / 4) * gy) + 0.5;
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+
+            const y = v => h - pad - ((v - globalMin) / (globalMax - globalMin)) * (h - 2 * pad);
+
+            const upFill = '#1f4b99';
+            const downFill = '#ffffff';
+            const wick = '#cfd2d7';
+
+            let x = pad - offset;
+            for (let i = 5; i < series.length; i++) {
+                const b = series[i];
+                if (x > w - pad) break;
+                if (x + barW < 0) { x += step; continue; }
+
+                ctx.strokeStyle = wick; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(x + barW / 2, y(b.high)); ctx.lineTo(x + barW / 2, y(b.low)); ctx.stroke();
+
+                const top = y(Math.max(b.open, b.close));
+                const bot = y(Math.min(b.open, b.close));
+                ctx.fillStyle = (b.close >= b.open) ? upFill : downFill;
+                ctx.fillRect(x, top, barW, Math.max(1, bot - top));
+
+                x += step;
+            }
+        }
+
+        function frame(ts) {
+            if (!running) { lastTime = ts; requestAnimationFrame(frame); return; }
+            if (!started) { started = true; lastTime = ts; }
+
+            let dt = (ts - lastTime) / 1000;
+            lastTime = ts;
+
+            // Clamp big spikes (first frames / tab switching)
+            if (dt > 0.25) dt = 0.25;
+
+            accumulator += dt;
+            while (accumulator >= TICK) {
+                update(TICK);
+                accumulator -= TICK;
+            }
+
+            draw();
+            requestAnimationFrame(frame);
+        }
+
+        // ===== Start after layout & fonts settle a bit =====
+        // Kicks off on next paint; idle lets heavy pages finish first work.
+        const start = () => requestAnimationFrame(frame);
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(start, { timeout: 500 });
+        } else if (document.readyState === 'complete') {
+            start();
+        } else {
+            window.addEventListener('load', start, { once: true });
+        }
+
+        // Pause when hidden (prevents big dt spikes)
+        document.addEventListener('visibilitychange', () => {
+            running = document.visibilityState === 'visible';
+            if (running) { lastTime = 0; } // reset timing to avoid jump
+        });
+    })();
 </script>
 <script>
     // Configuration: your spreadsheet ID and API key
@@ -2275,6 +2501,5 @@
         })
         .catch(error => console.error('Error fetching Google Sheets data:', error));
 </script>
-
 </body>
 </html>
