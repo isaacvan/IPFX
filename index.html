@@ -1221,16 +1221,12 @@
         .table-row {
             display: grid;
             grid-template-columns: 1.2fr 1fr 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         .table-row.header {
-            background: rgba(38, 49, 104, 0.1);
-            font-weight: 600;
-            text-align: center;
-            font-size: 0.92rem;
-            border-radius: 10px;
+            margin-bottom: 16px;
         }
 
         .table-row:not(.header):nth-child(even) {
@@ -1238,37 +1234,49 @@
         }
 
         .cell {
-            padding: 28px 18px;
-            border-bottom: 1px solid rgba(38, 49, 104, 0.8);
-            background: #13151b;
+            padding: 20px 16px;
+            background: rgba(26, 28, 34, 0.6);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            border-left: 1px solid rgba(38, 49, 104, 0.8);
-            font-weight: 300;
+            font-weight: 400;
+            border: 1px solid rgba(43, 45, 52, 0.4);
+            transition: background 0.2s ease, border-color 0.2s ease;
         }
 
         .cell.label {
-            font-weight: 700;
-            background: #16181d;
+            font-weight: 600;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.08));
             justify-content: flex-start;
             text-align: left;
-            color: #2563eb; /* EDIT THIS COLOR - currently blue */
+            color: #ffffff;
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            font-size: 0.98rem;
+            letter-spacing: 0.01em;
         }
 
         .cell.head {
             font-weight: 700;
-            font-size: 1rem;
-            background: #16181d;
+            font-size: 1.05rem;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(37, 99, 235, 0.15));
             justify-content: center;
             text-align: center;
-            color: #dadada; /* EDIT THIS COLOR - currently blue */
+            color: #ffffff;
+            border: 1px solid rgba(37, 99, 235, 0.4);
+            padding: 24px 16px;
+            letter-spacing: 0.02em;
         }
 
         .cell:not(.label):not(.empty):not(.head) {
-            background: #1a1c22; /* More grey background for main cells */
+            background: rgba(19, 21, 27, 0.8);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .cell:not(.label):not(.empty):not(.head):hover {
+            background: rgba(26, 28, 34, 0.95);
+            border-color: rgba(43, 45, 52, 0.6);
         }
 
         .cell.empty {
@@ -1296,20 +1304,20 @@
 
         .flow-divider {
             position: relative;
-            height: 75vh;              /* adjust: 40–75vh works well */
+            height: 60vh;
             min-height: 400px;
             width: 100%;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            margin-top: 40px;
+            justify-content: center;
             background: linear-gradient(180deg,
             transparent 0%,
-            rgba(18, 22, 32, 0.05) 20%,
-            rgba(18, 22, 32, 0.2) 50%,
-            rgba(18, 22, 32, 0.6) 75%,
+            rgba(18, 22, 32, 0.02) 15%,
+            rgba(18, 22, 32, 0.15) 40%,
+            rgba(18, 22, 32, 0.5) 70%,
+            rgba(18, 22, 32, 0.85) 90%,
             #121620 100%);
         }
 
@@ -1319,22 +1327,28 @@
             width: 100%;
             height: 100%;
             display: block;
-            pointer-events: none;      /* so it never traps clicks/scrolls */
-            mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
-            /*-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);*/
-            animation: fadeInCanvas 8s ease-out forwards;
+            pointer-events: none;
+            opacity: 0.85;
+            mask-image: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(0,0,0,0.3) 10%,
+            rgba(0,0,0,0.9) 25%,
+            black 40%,
+            black 70%,
+            rgba(0,0,0,0.7) 90%,
+            transparent 100%);
+            /*
+            -webkit-mask-image: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(0,0,0,0.3) 10%,
+            rgba(0,0,0,0.9) 25%,
+            black 40%,
+            black 70%,
+            rgba(0,0,0,0.7) 90%,
+            transparent 100%);
+            */
         }
 
-        @keyframes fadeInCanvas {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
 
         .staircase-title {
             position: relative;
@@ -1604,10 +1618,13 @@
         </div>
     </section>
 
+    
     <section class="flow-divider">
+        <!--
         <h2 id="staircase-heading" class="staircase-title reveal">Ascend The Infinity Challenge</h2>
         <p class="staircase-subtitle reveal">Scale your capital infinitely through consistent performance. Each level
             unlocks greater potential.</p>
+        -->
         <canvas id="flowLines"></canvas>
     </section>
 
@@ -1957,7 +1974,6 @@
         let clearDelayTimeout = null;
         let isTyping = false;
         let typingComplete = false;
-        let shouldClearAfterDelay = false;
         if (!description || !typewriterEl) return;
 
         function typeWriter(text, index = 0) {
@@ -1967,13 +1983,6 @@
                 typewriterTimeout = setTimeout(() => typeWriter(text, index + 1), delay);
             } else if (index >= text.length) {
                 typingComplete = true;
-                if (shouldClearAfterDelay) {
-                    clearDelayTimeout = setTimeout(() => {
-                        typewriterEl.textContent = '';
-                        typingComplete = false;
-                        shouldClearAfterDelay = false;
-                    }, 5000);
-                }
             }
         }
 
@@ -1982,7 +1991,6 @@
                 clearTimeout(clearDelayTimeout);
                 clearDelayTimeout = null;
             }
-            shouldClearAfterDelay = false;
             isTyping = true;
             typingComplete = false;
             typewriterEl.textContent = '';
@@ -1995,7 +2003,10 @@
             if (typewriterTimeout) clearTimeout(typewriterTimeout);
 
             if (typingComplete) {
-                shouldClearAfterDelay = true;
+                clearDelayTimeout = setTimeout(() => {
+                    typewriterEl.textContent = '';
+                    typingComplete = false;
+                }, 5000);
             } else {
                 typewriterEl.textContent = '';
             }
@@ -2243,12 +2254,13 @@
 
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        // ---- Brand palette (tweak to taste)
+        // Professional blue palette
         const palette = {
-            glow:    'rgba(40, 80, 180, 0.25)',   // outer glow
-            stroke1: '#1f4b99',                   // main line
-            stroke2: '#7aa2ff',                   // highlight blend
-            bgMist:  'rgba(20, 30, 55, 0.18)'     // faint mist
+            glow:    'rgba(37, 99, 235, 0.2)',
+            stroke1: 'rgba(37, 99, 235, 0.4)',
+            stroke2: 'rgba(96, 165, 250, 0.6)',
+            stroke3: 'rgba(147, 197, 253, 0.3)',
+            bgMist:  'rgba(18, 22, 32, 0.03)'
         };
 
         let running = true;
@@ -2283,9 +2295,9 @@
         // ---- Flow lines
         const lines = [];
         let lineCount = 0;
-        const maxCountBase = 18;          // base # of lines; scaled with size
-        const baseSpeed = prefersReduced ? 12 : 28; // px/s downward
-        let speedBoost = 0;               // transient extra speed from scroll
+        const maxCountBase = 24;
+        const baseSpeed = prefersReduced ? 8 : 20;
+        let speedBoost = 0;
         let targetBoost = 0;
 
         function random(min, max) { return min + Math.random() * (max - min); }
@@ -2302,20 +2314,21 @@
         }
 
         function makeLine(seedY = false) {
-            const x = random(pxW * 0.35, pxW * 0.65);  // keep them near center column
-            const wiggleAmp = random(30, 90);          // lateral wandering amplitude
-            const wiggleFreq = random(0.2, 0.55);      // Hz
-            const thickness = random(0.6, 1.8);
+            const x = random(pxW * 0.25, pxW * 0.75);
+            const wiggleAmp = random(20, 50);
+            const wiggleFreq = random(0.15, 0.35);
+            const thickness = random(0.8, 2.2);
+            const variant = Math.random();
             return {
                 x0: x,
-                y: seedY ? random(-pxH, pxH) : -random(40, pxH * 0.5),
+                y: seedY ? random(-pxH, pxH) : -random(60, pxH * 0.6),
                 t: Math.random() * 10,
                 amp: wiggleAmp,
                 freq: wiggleFreq,
                 width: thickness,
-                len: random(pxH * 0.35, pxH * 0.7),      // path length
-                hueShift: Math.random(),                 // mixes stroke1/stroke2 slightly
-                alpha: random(0.35, 0.8)
+                len: random(pxH * 0.4, pxH * 0.85),
+                variant: variant,
+                alpha: random(0.4, 0.75)
             };
         }
 
@@ -2323,43 +2336,49 @@
             l.t += dt;
             l.y += spd * dt;
 
-            // Recycle when fully past bottom
-            if (l.y - l.len > pxH + 40) {
+            if (l.y - l.len > pxH + 60) {
                 Object.assign(l, makeLine(false));
             }
 
-            const segs = 16;                 // polyline segments (keep small for perf)
+            const segs = 20;
             const step = l.len / segs;
             const mid = l.x0;
 
             ctx.lineWidth = l.width;
             ctx.globalAlpha = l.alpha;
 
-            // Gradient stroke that subtly mixes brand blues
             const grad = ctx.createLinearGradient(mid, l.y - l.len, mid, l.y);
-            grad.addColorStop(0, palette.stroke1);
-            grad.addColorStop(1, palette.stroke2);
+            if (l.variant < 0.33) {
+                grad.addColorStop(0, palette.stroke3);
+                grad.addColorStop(0.5, palette.stroke1);
+                grad.addColorStop(1, palette.stroke2);
+            } else if (l.variant < 0.66) {
+                grad.addColorStop(0, palette.stroke1);
+                grad.addColorStop(1, palette.stroke2);
+            } else {
+                grad.addColorStop(0, palette.stroke2);
+                grad.addColorStop(0.6, palette.stroke1);
+                grad.addColorStop(1, palette.stroke3);
+            }
             ctx.strokeStyle = grad;
 
             ctx.shadowColor = palette.glow;
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 12;
 
             ctx.beginPath();
             for (let i = 0; i <= segs; i++) {
                 const y = l.y - l.len + i * step;
-                // horizontal wandering (sinusoidal drift over time + along path)
-                const x = mid + Math.sin((i * 0.6) + l.t * (2 * Math.PI * l.freq)) * l.amp;
+                const phase = (i * 0.4) + l.t * (2 * Math.PI * l.freq);
+                const x = mid + Math.sin(phase) * l.amp;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
 
-            // Clean shadow so it doesn't bloom future strokes
             ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
         }
 
-        // Subtle mist layer to add depth without heavy particles
         function drawMist() {
             ctx.fillStyle = palette.bgMist;
             ctx.fillRect(0, 0, pxW, pxH);
