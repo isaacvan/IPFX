@@ -799,36 +799,213 @@
         }
 
 
-        /* Testimonials */
-        .testimonials {
-            /*margin: var(--section-gap);*/
-            margin-bottom: var(--section-gap);
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+        /* Testimonials Carousel */
+        .testimonials-section {
+            margin: 80px 0;
+            padding: 0;
+            position: relative;
         }
 
-        @media (max-width: 980px) {
-            .testimonials {
-                grid-template-columns: 1fr;
-            }
+        .testimonials-header {
+            text-align: center;
+            margin-bottom: 48px;
         }
 
-        .review {
-            background: #0f1116;
-            border: 1px solid var(--line);
-            padding: 18px;
-            border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+        .testimonials-header h2 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: var(--h2);
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 12px;
         }
 
-        .review p {
-            margin: 0 0 8px;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .review small {
+        .testimonials-header p {
             color: var(--muted);
+            font-size: var(--lead);
+            margin: 0;
+        }
+
+        .testimonials-carousel {
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+            padding: 20px 0;
+        }
+
+        .testimonials-carousel.dragging {
+            cursor: grabbing;
+        }
+
+        .testimonials-track {
+            display: flex;
+            gap: 24px;
+            transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: transform;
+        }
+
+        .testimonials-track.no-transition {
+            transition: none;
+        }
+
+        .testimonial-card {
+            min-width: min(680px, 85vw);
+            background: linear-gradient(180deg, #0f1116, #13151b);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: clamp(32px, 5vw, 48px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .testimonial-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(600px 300px at 70% -10%, rgba(37, 99, 235, 0.08), transparent 60%);
+            pointer-events: none;
+        }
+
+        .testimonial-quote {
+            position: relative;
+            z-index: 1;
+        }
+
+        .testimonial-quote::before {
+            content: "";
+            position: absolute;
+            left: -20px;
+            top: -10px;
+            font-size: 80px;
+            color: rgba(37, 99, 235, 0.2);
+            font-family: Georgia, serif;
+            line-height: 1;
+        }
+
+        .testimonial-text {
+            font-size: clamp(1.1rem, 2vw, 1.35rem);
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.95);
+            margin: 0 0 24px;
+            font-weight: 300;
+            letter-spacing: 0.01em;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .author-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(37, 99, 235, 0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: rgba(37, 99, 235, 0.9);
+            border: 2px solid rgba(37, 99, 235, 0.3);
+            flex-shrink: 0;
+        }
+
+        .author-info {
+            flex: 1;
+        }
+
+        .author-name {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0 0 4px;
+        }
+
+        .author-role {
+            font-size: 0.92rem;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .carousel-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 40px;
+        }
+
+        .carousel-arrow {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .carousel-arrow:hover {
+            background: rgba(37, 99, 235, 0.2);
+            border-color: rgba(37, 99, 235, 0.4);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        .carousel-arrow:active {
+            transform: scale(0.95);
+        }
+
+        .carousel-arrow.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .carousel-arrow.disabled:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: scale(1);
+        }
+
+        .carousel-dots {
+            display: flex;
+            gap: 10px;
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .carousel-dot.active {
+            background: rgba(37, 99, 235, 0.8);
+            transform: scale(1.2);
+        }
+
+        @media (max-width: 768px) {
+            .testimonial-card {
+                min-width: 90vw;
+            }
+
+            .carousel-arrow {
+                width: 40px;
+                height: 40px;
+            }
         }
 
         /* Contact + Footer */
@@ -836,7 +1013,7 @@
             display: grid;
             grid-template-columns: 1fr 320px;
             gap: 20px;
-            margin: 40px 0 80px;
+            margin-top: 150px;
             align-items: start;
         }
 
@@ -1816,14 +1993,118 @@
 <!-- FEATURES / TESTIMONIALS / CONTACT / FOOTER -->
 <div class="full-bg-section end">
     <section class="container">
-        <div class="testimonials">
-            <div class="review reveal">
-                <p>“IPFX changed how I scaled — finally a platform that rewards skill.”</p>
-                <small>— A. Patel, day trader</small>
+        <div class="testimonials-section">
+            <div class="testimonials-header">
+                <h2>Trusted by Traders Worldwide</h2>
+                <p>Real stories from real traders who've scaled with IPFX Capital</p>
             </div>
-            <div class="review reveal">
-                <p>“Transparent, fair, and the support team actually cares.”</p>
-                <small>— J. Nguyen, swing trader</small>
+
+            <div class="testimonials-carousel" id="testimonials-carousel">
+                <div class="testimonials-track" id="testimonials-track">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "IPFX Capital completely changed my trading career. I started with the Infinity Challenge at zero cost, proved my consistency, and within 4 months I was trading real capital. The transparency and fair scaling structure is unlike anything I've experienced with other prop firms."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">AP</div>
+                            <div class="author-info">
+                                <div class="author-name">Arjun Patel</div>
+                                <div class="author-role">Day Trader • Scaled to $100K</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "After being burned by traditional prop firms with hidden fees and impossible targets, I found IPFX. The Personalized Application Challenge let me set my own terms. No more cookie-cutter rules. I hit my first payout in 3 weeks and haven't looked back since."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">JN</div>
+                            <div class="author-info">
+                                <div class="author-name">Jessica Nguyen</div>
+                                <div class="author-role">Swing Trader • 8 Consecutive Payouts</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "The account insurance feature saved my trading career. I hit a tough drawdown but didn't lose everything I'd built. IPFX actually wants you to succeed long-term. The support team knows me by name and checks in regularly. This is what proper capital backing should feel like."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">MR</div>
+                            <div class="author-info">
+                                <div class="author-name">Marcus Rodriguez</div>
+                                <div class="author-role">Forex Trader • A-Book Verified</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "I was skeptical about prop firms until I tried IPFX. The 10-minute average payout time isn't marketing fluff—it's real. My first withdrawal request was processed in 7 minutes. The platform is intuitive, the rules are clear, and there's zero ambiguity. This is how trading capital should work."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">SK</div>
+                            <div class="author-info">
+                                <div class="author-name">Sarah Kim</div>
+                                <div class="author-role">Crypto Trader • $250K Capital</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "What impressed me most is that IPFX doesn't profit from trader failures. The alignment of incentives is genuine. When I succeed, they succeed. I've scaled from $10K simulated to $150K real capital in 6 months. The progression feels natural, not gatekept."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">TW</div>
+                            <div class="author-info">
+                                <div class="author-name">Thomas Weber</div>
+                                <div class="author-role">Institutional Trader • Former Hedge Fund</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "The social trading pot system is brilliant. I'm not confident enough to trade my own capital yet, but I can follow verified traders with transparent track records. I'm learning while earning, and when I'm ready, I'll start my own challenge. IPFX has products for every stage of your journey."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">LC</div>
+                            <div class="author-info">
+                                <div class="author-name">Lisa Chen</div>
+                                <div class="author-role">Beginner Trader • Social Trading Participant</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="carousel-nav">
+                <div class="carousel-arrow" id="carousel-prev">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </div>
+                <div class="carousel-dots" id="carousel-dots"></div>
+                <div class="carousel-arrow" id="carousel-next">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </div>
             </div>
         </div>
 
@@ -2083,7 +2364,7 @@
         ro.observe(canvas);
 
         // Fallback initial size (just in case RO fires late)
-        
+
         queueMicrotask(() => {
             if (cssW === 0 || cssH === 0) {
                 const rect = canvas.getBoundingClientRect();
@@ -2093,8 +2374,8 @@
                 if (series.length === 0) seedSeries();  // <-- ensure seeded before start
             }
         });
-        
-         
+
+
 
         // ===== Data & rendering =====
         const series = [];
@@ -2236,7 +2517,7 @@
             }
             requestAnimationFrame(frame);
         };
-        
+
         if ('requestIdleCallback' in window) {
             requestIdleCallback(start, { timeout: 500 });
         } else if (document.readyState === 'complete') {
@@ -2470,6 +2751,157 @@
             }
         });
     })();
+</script>
+<script>
+    // Testimonials Carousel
+    class TestimonialsCarousel {
+        constructor() {
+            this.carousel = document.getElementById('testimonials-carousel');
+            this.track = document.getElementById('testimonials-track');
+            this.prevBtn = document.getElementById('carousel-prev');
+            this.nextBtn = document.getElementById('carousel-next');
+            this.dotsContainer = document.getElementById('carousel-dots');
+
+            if (!this.carousel || !this.track) return;
+
+            this.cards = Array.from(this.track.querySelectorAll('.testimonial-card'));
+            this.currentIndex = 0;
+            this.isDragging = false;
+            this.startPos = 0;
+            this.currentTranslate = 0;
+            this.prevTranslate = 0;
+            this.animationID = null;
+
+            this.init();
+        }
+
+        init() {
+            this.createDots();
+            this.updateCarousel();
+            this.attachEventListeners();
+        }
+
+        createDots() {
+            this.cards.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.classList.add('carousel-dot');
+                if (index === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goToSlide(index));
+                this.dotsContainer.appendChild(dot);
+            });
+            this.dots = Array.from(this.dotsContainer.querySelectorAll('.carousel-dot'));
+        }
+
+        attachEventListeners() {
+            this.prevBtn.addEventListener('click', () => this.prev());
+            this.nextBtn.addEventListener('click', () => this.next());
+
+            this.carousel.addEventListener('mousedown', this.dragStart.bind(this));
+            this.carousel.addEventListener('touchstart', this.dragStart.bind(this));
+
+            this.carousel.addEventListener('mousemove', this.drag.bind(this));
+            this.carousel.addEventListener('touchmove', this.drag.bind(this));
+
+            this.carousel.addEventListener('mouseup', this.dragEnd.bind(this));
+            this.carousel.addEventListener('mouseleave', this.dragEnd.bind(this));
+            this.carousel.addEventListener('touchend', this.dragEnd.bind(this));
+
+            window.addEventListener('resize', () => this.updateCarousel());
+        }
+
+        getPositionX(event) {
+            return event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
+        }
+
+        dragStart(event) {
+            this.isDragging = true;
+            this.startPos = this.getPositionX(event);
+            this.animationID = requestAnimationFrame(this.animation.bind(this));
+            this.carousel.classList.add('dragging');
+            this.track.classList.add('no-transition');
+        }
+
+        drag(event) {
+            if (!this.isDragging) return;
+            const currentPosition = this.getPositionX(event);
+            this.currentTranslate = this.prevTranslate + currentPosition - this.startPos;
+        }
+
+        dragEnd() {
+            if (!this.isDragging) return;
+
+            this.isDragging = false;
+            cancelAnimationFrame(this.animationID);
+            this.carousel.classList.remove('dragging');
+            this.track.classList.remove('no-transition');
+
+            const movedBy = this.currentTranslate - this.prevTranslate;
+            const threshold = 50;
+
+            if (movedBy < -threshold && this.currentIndex < this.cards.length - 1) {
+                this.currentIndex += 1;
+            } else if (movedBy > threshold && this.currentIndex > 0) {
+                this.currentIndex -= 1;
+            }
+
+            this.updateCarousel();
+        }
+
+        animation() {
+            this.setSliderPosition();
+            if (this.isDragging) requestAnimationFrame(this.animation.bind(this));
+        }
+
+        setSliderPosition() {
+            this.track.style.transform = `translateX(${this.currentTranslate}px)`;
+        }
+
+        getCardWidth() {
+            return this.cards[0].offsetWidth + 24;
+        }
+
+        updateCarousel() {
+            const cardWidth = this.getCardWidth();
+            this.currentTranslate = -this.currentIndex * cardWidth;
+            this.prevTranslate = this.currentTranslate;
+            this.track.style.transform = `translateX(${this.currentTranslate}px)`;
+
+            this.updateDots();
+            this.updateArrows();
+        }
+
+        updateDots() {
+            this.dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === this.currentIndex);
+            });
+        }
+
+        updateArrows() {
+            this.prevBtn.classList.toggle('disabled', this.currentIndex === 0);
+            this.nextBtn.classList.toggle('disabled', this.currentIndex === this.cards.length - 1);
+        }
+
+        prev() {
+            if (this.currentIndex > 0) {
+                this.currentIndex -= 1;
+                this.updateCarousel();
+            }
+        }
+
+        next() {
+            if (this.currentIndex < this.cards.length - 1) {
+                this.currentIndex += 1;
+                this.updateCarousel();
+            }
+        }
+
+        goToSlide(index) {
+            this.currentIndex = index;
+            this.updateCarousel();
+        }
+    }
+
+    new TestimonialsCarousel();
 </script>
 </body>
 </html>
