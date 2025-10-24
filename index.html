@@ -2038,6 +2038,9 @@
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
+        if (window.__candlesInit) return;
+        window.__candlesInit = true;
+
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let running = true;
 
@@ -2063,7 +2066,7 @@
                 ctx.scale(dpr, dpr);
 
                 recalcMaxBars();
-
+                if (series.length === 0) seedSeries();   // <-- seed once, when sized
                 // Rebuild any prerendered layers here if you add them later.
             }
         }
@@ -2080,14 +2083,18 @@
         ro.observe(canvas);
 
         // Fallback initial size (just in case RO fires late)
+        
         queueMicrotask(() => {
             if (cssW === 0 || cssH === 0) {
                 const rect = canvas.getBoundingClientRect();
                 cssW = Math.max(1, rect.width  || canvas.clientWidth  || canvas.offsetWidth  || 600);
                 cssH = Math.max(1, rect.height || canvas.clientHeight || canvas.offsetHeight || 300);
                 applySize();
+                if (series.length === 0) seedSeries();  // <-- ensure seeded before start
             }
         });
+        
+         
 
         // ===== Data & rendering =====
         const series = [];
@@ -2107,8 +2114,21 @@
             }
             return { open, high, low, close };
         }
-        let last = 100;
-        for (let i = 0; i < 175; i++) { const b = nextBar(last); series.push(b); last = b.close; }
+        // let last = 100;
+        // for (let i = 0; i < 175; i++) { const b = nextBar(last); series.push(b); last = b.close; }
+
+        function seedSeries() {
+            series.length = 0;
+            let last = 100;
+            // ensure we have a size + maxBars
+            const count = Math.max(1, maxBars || 120); // fallback if size late
+            for (let i = 0; i < count; i++) {
+                const b = nextBar(last);
+                series.push(b);
+                last = b.close;
+            }
+            offset = 0; // start aligned
+        }
 
         const globalMin = 88;
         const globalMax = 112;
@@ -2208,7 +2228,15 @@
 
         // ===== Start after layout & fonts settle a bit =====
         // Kicks off on next paint; idle lets heavy pages finish first work.
-        const start = () => requestAnimationFrame(frame);
+        const start = () => {
+            // wait until pxW/pxH are non-zero and we have data
+            if (!pxW || !pxH || series.length === 0) {
+                requestAnimationFrame(start);
+                return;
+            }
+            requestAnimationFrame(frame);
+        };
+        
         if ('requestIdleCallback' in window) {
             requestIdleCallback(start, { timeout: 500 });
         } else if (document.readyState === 'complete') {
