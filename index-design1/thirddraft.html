@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPFX Capital - The capital platform that only profits from your successes</title>
+    <meta name="description" content="Trade with our capital. We only profit when you do. Free entry, real opportunity, aligned incentives.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ========================================
+           CSS RESET & BASE
+        ======================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* ========================================
+           CSS CUSTOM PROPERTIES - Dark Blue & Grey (Original Palette)
+        ======================================== */
+        :root {
+            /* === BACKGROUNDS === */
+            --bg-primary: #0a0a0c;
+            --bg-secondary: #0f1116;
+            --bg-elevated: #1a1c22;
+            --bg-hover: #23252b;
+
+            /* === ACCENTS === */
+            --accent-primary: #2563eb;
+            --accent-secondary: #1e3a8a;
+            --accent-tertiary: #10b981;
+            --accent-light: #60a5fa;
+
+            /* === NEUTRALS === */
+            --fg-primary: #ffffff;
+            --fg-secondary: #cfd2d7;
+            --fg-muted: #94a3b8;
+            --fg-disabled: #64748b;
+
+            /* === BORDERS & LINES (THIN) === */
+            --border-subtle: #2b2d34;
+            --border-default: #3f3f46;
+            --border-strong: #52525b;
+
+            /* === METALLICS === */
+            --silver: #cfd2d7;
+            --silver-glow: #e2e8f0;
+
+            /* === SEMANTIC === */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #06b6d4;
+
+            /* === GRADIENTS === */
+            --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+            --gradient-secondary: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+
+            /* === SHADOWS === */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+            --shadow-glow-blue: 0 0 30px rgba(37, 99, 235, 0.4);
+
+            /* === ANIMATION === */
+            --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+            --duration-fast: 150ms;
+            --duration-base: 250ms;
+            --duration-slow: 500ms;
+
+            /* === SPACING === */
+            --container-w: min(1280px, 90vw);
+            --section-gap: clamp(100px, 15vw, 200px);
+        }
+
+        /* ========================================
+           PREMIUM MULTI-LAYER GRADIENT BACKGROUND
+           (Original cobalt blue scheme)
+        ======================================== */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--fg-secondary);
+            overflow-x: hidden;
+
+            /* Complex layered gradients for premium feel */
+            background:
+                linear-gradient(120deg, rgba(38, 73, 65, 0.10), transparent 60%),
+                radial-gradient(1200px 700px at 80% -10%, rgba(207, 210, 215, 0.14), transparent 62%),
+                radial-gradient(1000px 580px at -12% 18%, rgba(207, 210, 215, 0.12), transparent 68%),
+                conic-gradient(from 200deg at 72% 8%, rgba(37, 99, 235, 0.14), rgba(37, 99, 235, 0.0) 28% 72%, rgba(37, 99, 235, 0.14)),
+                linear-gradient(160deg, rgba(207, 210, 215, 0.08), transparent 30%),
+                var(--bg-primary);
+            background-attachment: fixed;
+        }
+
+        /* ========================================
+           TYPOGRAPHY (Bold)
+        ======================================== */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            font-weight: 700;
+            color: var(--fg-primary);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 10vw, 7rem);
+            line-height: 1.05;
+        }
+
+        h2 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            line-height: 1.1;
+        }
+
+        h3 {
+            font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+        }
+
+        p {
+            line-height: 1.7;
+        }
+
+        .lead {
+            font-size: clamp(1.125rem, 2vw, 1.5rem);
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           LAYOUT UTILITIES
+        ======================================== */
+        .container {
+            width: var(--container-w);
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .section {
+            padding: var(--section-gap) 0;
+            position: relative;
+        }
+
+        /* ========================================
+           NAVIGATION (From seconddraft - with hover underlines)
+        ======================================== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: rgba(13, 13, 18, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            z-index: 1000;
+            transition: all var(--duration-base);
+        }
+
+        .navbar.scrolled {
+            box-shadow: var(--shadow-lg);
+            background: rgba(13, 13, 18, 0.95);
+        }
+
+        .navbar-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+
+        .navbar-logo {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--fg-primary);
+            text-decoration: none;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -0.03em;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .navbar-links a {
+            color: var(--fg-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color var(--duration-base);
+            position: relative;
+        }
+
+        .navbar-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .navbar-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transition: width var(--duration-base);
+        }
+
+        .navbar-links a:hover::after {
+            width: 100%;
+        }
+
+        .navbar-cta {
+            background: var(--gradient-primary);
+            color: var(--fg-primary);
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: var(--shadow-glow-blue);
+            transition: all var(--duration-base);
+        }
+
+        .navbar-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow-blue), var(--shadow-lg);
+        }
+
+        .navbar-cta::after {
+            display: none;
+        }
+
+        /* Mobile menu */
+        .menu-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .menu-toggle span {
+            width: 24px;
+            height: 2px;
+            background: var(--fg-primary);
+            transition: all var(--duration-base);
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-links {
+                position: fixed;
+                top: 72px;
+                right: -100%;
+                width: 300px;
+                max-width: 80vw;
+                height: calc(100vh - 72px);
+                background: rgba(22, 22, 33, 0.98);
+                backdrop-filter: blur(20px);
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 40px 32px;
+                gap: 24px;
+                transition: right var(--duration-slow) var(--ease-out);
+                border-left: 1px solid var(--border-subtle);
+            }
+
+            .navbar-links.active {
+                right: 0;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+        }
+
+        /* ========================================
+           HERO SECTION WITH CANDLESTICKS
+        ======================================== */
+        .hero {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding-top: 72px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(ellipse at top, rgba(37, 99, 235, 0.12) 0%, transparent 60%);
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            z-index: 1;
+            padding-right: 40px;
+        }
+
+        .hero-headline {
+            margin-bottom: 32px;
+        }
+
+        .hero-headline .highlight {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subheadline {
+            margin-bottom: 56px;
+            opacity: 0.9;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Candlestick chart box */
+        .chart-box {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        #candles {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        @media (max-width: 1024px) {
+            .hero {
+                grid-template-columns: 1fr;
+                min-height: auto;
+                padding-top: 120px;
+                padding-bottom: 60px;
+            }
+
+            .hero-content {
+                padding-right: 0;
+                text-align: center;
+            }
+
+            .hero-ctas {
+                justify-content: center;
+            }
+
+            .chart-box {
+                height: 400px;
+            }
+        }
+
+        /* ========================================
+           BUTTONS
+        ======================================== */
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: var(--fg-primary);
+            font-size: 18px;
+            font-weight: 600;
+            padding: 18px 40px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-glow-blue);
+            transition: all var(--duration-base) var(--ease-out);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            opacity: 0;
+            transition: opacity var(--duration-base);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-glow-blue), var(--shadow-xl);
+        }
+
+        .btn-primary:hover::before {
+            opacity: 1;
+        }
+
+        .btn-primary span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-primary);
+            font-size: 18px;
+            font-weight: 600;
+            padding: 18px 40px;
+            border-radius: 12px;
+            border: 1px solid var(--accent-primary);
+            cursor: pointer;
+            transition: all var(--duration-base) var(--ease-out);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: var(--accent-light);
+            color: var(--accent-light);
+            transform: translateY(-3px);
+        }
+
+        /* ========================================
+           STATS SECTION (THIN/LESS BLOCKY - MOVED UP)
+        ======================================== */
+        .stats-section {
+            position: relative;
+            background: var(--bg-secondary);
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 56px;
+        }
+
+        .section-header h2 {
+            margin-bottom: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 32px;
+            margin-top: 56px;
+        }
+
+        .stat-card {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 32px 24px;
+            text-align: center;
+            transition: all var(--duration-base);
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
+            background: rgba(37, 99, 235, 0.03);
+        }
+
+        .stat-value {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        .stat-label {
+            font-size: 18px;
+            color: var(--fg-primary);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stat-description {
+            font-size: 14px;
+            color: var(--fg-muted);
+        }
+
+        /* ========================================
+           COMPARISON TABLE
+        ======================================== */
+        .comparison-section {
+            position: relative;
+        }
+
+        .comparison-table {
+            display: grid;
+            grid-template-columns: 200px repeat(3, 1fr);
+            gap: 2px;
+            background: var(--border-subtle);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-top: 56px;
+        }
+
+        .comparison-cell {
+            background: var(--bg-elevated);
+            padding: 24px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 80px;
+        }
+
+        .comparison-cell.header {
+            background: var(--bg-secondary);
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--fg-primary);
+        }
+
+        .comparison-cell.label {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            font-size: 15px;
+            justify-content: flex-start;
+            text-align: left;
+            padding-left: 24px;
+        }
+
+        .comparison-cell.ipfx {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(30, 58, 138, 0.10));
+            border-left: 2px solid var(--accent-primary);
+            border-right: 2px solid var(--accent-primary);
+            font-weight: 600;
+            color: var(--fg-primary);
+            box-shadow: 0 0 30px rgba(37, 99, 235, 0.2);
+        }
+
+        .comparison-cell.ipfx.header {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(30, 58, 138, 0.2));
+            box-shadow: var(--shadow-glow-blue);
+        }
+
+        .checkmark {
+            color: var(--success);
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .xmark {
+            color: var(--error);
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .comparison-table {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-cell.header:first-child {
+                display: none;
+            }
+        }
+
+        /* ========================================
+           ABOUTFLOW STICKY SECTION
+        ======================================== */
+        .aboutflow {
+            padding: var(--section-gap) 0;
+            background: var(--bg-primary);
+        }
+
+        .af-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 32px;
+            display: grid;
+            grid-template-columns: 1fr 1px minmax(400px, 0.95fr);
+            column-gap: clamp(48px, 6vw, 80px);
+        }
+
+        /* LEFT: Cards with steps */
+        .af-zig {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .af-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 80px;
+            opacity: 0.5;
+            transition: opacity 0.5s ease;
+        }
+
+        .af-step.is-inview {
+            opacity: 1;
+        }
+
+        .af-node {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            box-shadow: 0 0 16px rgba(37, 99, 235, 0.6);
+            flex-shrink: 0;
+            margin-top: 8px;
+        }
+
+        .af-card {
+            background: var(--bg-elevated);
+            border-left: 2px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 24px;
+            flex: 1;
+        }
+
+        .af-card h3 {
+            font-size: 22px;
+            margin-bottom: 12px;
+            color: var(--fg-primary);
+        }
+
+        .af-card p {
+            color: var(--fg-muted);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        /* CENTER: Spine (1px) */
+        .af-spine {
+            width: 1px;
+            background: var(--border-subtle);
+            align-self: stretch;
+        }
+
+        /* RIGHT: Sticky typewriter box */
+        .af-right {
+            position: sticky;
+            top: 120px;
+            align-self: start;
+        }
+
+        .af-typebox {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 40px;
+        }
+
+        .af-typebox h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 24px;
+            color: var(--fg-primary);
+        }
+
+        .af-typewriter {
+            font-family: 'Inter', system-ui;
+            font-size: clamp(1.05rem, 2vw, 1.25rem);
+            line-height: 1.7;
+            color: var(--fg-secondary);
+            min-height: 200px;
+        }
+
+        /* Blinking cursor */
+        .af-typewriter::after {
+            content: '';
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            vertical-align: -0.15em;
+            margin-left: 4px;
+            background: var(--accent-primary);
+            animation: tw-blink 0.9s steps(1, end) infinite;
+        }
+
+        @keyframes tw-blink {
+            50% { opacity: 0; }
+        }
+
+        @media (max-width: 1024px) {
+            .af-grid {
+                grid-template-columns: 1fr;
+                gap: 60px;
+            }
+
+            .af-spine {
+                display: none;
+            }
+
+            .af-right {
+                position: static;
+            }
+        }
+
+        /* ========================================
+           PROGRESSION VISUALIZER
+        ======================================== */
+        .progression-section {
+            position: relative;
+            background: var(--bg-secondary);
+        }
+
+        .progression-timeline {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            margin-top: 80px;
+            padding: 60px 40px;
+            background: var(--bg-elevated);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+            overflow-x: auto;
+        }
+
+        .progression-tier {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+        }
+
+        .progression-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progression-amount {
+            font-size: clamp(1.5rem, 2.5vw, 2rem);
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--fg-primary);
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .progression-label {
+            font-size: 13px;
+            color: var(--fg-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .progression-requirement {
+            font-size: 14px;
+            color: var(--accent-light);
+            padding: 6px 16px;
+            background: rgba(37, 99, 235, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            white-space: nowrap;
+        }
+
+        .progression-arrow {
+            font-size: 32px;
+            color: var(--accent-primary);
+            opacity: 0.6;
+        }
+
+        .progression-infinity {
+            font-size: 64px;
+            color: var(--accent-primary);
+            text-shadow: var(--shadow-glow-blue);
+        }
+
+        /* ========================================
+           PRODUCT CARDS WITH HOVER TYPEWRITER
+        ======================================== */
+        .products-section {
+            background: var(--bg-secondary);
+            position: relative;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-top: 56px;
+        }
+
+        .product-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 32px;
+            cursor: pointer;
+            transition: all var(--duration-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .product-tag {
+            display: inline-block;
+            padding: 6px 12px;
+            background: rgba(37, 99, 235, 0.15);
+            color: var(--accent-light);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .product-card h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--fg-primary);
+        }
+
+        .product-description {
+            color: var(--fg-muted);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .product-meta {
+            font-size: 13px;
+            color: var(--accent-light);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        /* Hover typewriter reveal */
+        .hover-reveal {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, var(--bg-elevated) 0%, var(--bg-elevated) 70%, transparent 100%);
+            padding: 24px 32px 32px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--duration-base);
+        }
+
+        .product-card:hover .hover-reveal {
+            opacity: 1;
+        }
+
+        .typewriter-text {
+            font-size: 14px;
+            color: var(--fg-secondary);
+            line-height: 1.6;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .typewriter-text::after {
+            content: '';
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            margin-left: 2px;
+            background: var(--accent-primary);
+            animation: cursor-blink 0.75s step-end infinite;
+        }
+
+        @keyframes cursor-blink {
+            50% { opacity: 0; }
+        }
+
+        /* ========================================
+           TESTIMONIALS (Thin borders)
+        ======================================== */
+        .testimonials-section {
+            position: relative;
+        }
+
+        .testimonials-carousel {
+            margin-top: 56px;
+            overflow: hidden;
+        }
+
+        .testimonials-track {
+            display: flex;
+            gap: 24px;
+            transition: transform 0.5s var(--ease-out);
+        }
+
+        .testimonial-card {
+            min-width: 100%;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 40px;
+        }
+
+        .testimonial-quote {
+            margin-bottom: 24px;
+        }
+
+        .testimonial-text {
+            font-size: 18px;
+            line-height: 1.7;
+            color: var(--fg-secondary);
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .author-photo {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .author-name {
+            font-weight: 700;
+            color: var(--fg-primary);
+            font-size: 16px;
+        }
+
+        .author-role {
+            font-size: 14px;
+            color: var(--fg-muted);
+        }
+
+        .carousel-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-top: 32px;
+        }
+
+        .carousel-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border-subtle);
+            cursor: pointer;
+            transition: all var(--duration-base);
+        }
+
+        .carousel-dot.active {
+            background: var(--accent-primary);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .carousel-arrow {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--duration-base);
+        }
+
+        .carousel-arrow:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        /* ========================================
+           FOOTER (Thin borders)
+        ======================================== */
+        .footer {
+            background: var(--bg-secondary);
+            padding: 80px 0 40px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 60px;
+        }
+
+        .footer-brand {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--fg-primary);
+            margin-bottom: 16px;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .footer-tagline {
+            color: var(--fg-muted);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .footer-section h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: var(--fg-primary);
+        }
+
+        .footer-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: var(--fg-muted);
+            text-decoration: none;
+            font-size: 15px;
+            transition: color var(--duration-base);
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .footer-bottom {
+            padding-top: 40px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+            font-size: 14px;
+            color: var(--fg-muted);
+        }
+
+        @media (max-width: 1024px) {
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========================================
+           ANIMATIONS
+        ======================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+        }
+
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                opacity: 1;
+                transform: none;
+            }
+
+            .af-typewriter::after {
+                animation: none;
+            }
+
+            .typewriter-text::after {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="#" class="navbar-logo">IPFX CAPITAL</a>
+            <div class="navbar-links">
+                <a href="#about">About</a>
+                <a href="#products">Products</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#testimonials">Testimonials</a>
+                <a href="#" class="navbar-cta">Start Infinity Challenge</a>
+            </div>
+            <button class="menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION WITH CANDLESTICKS -->
+    <section class="hero container">
+        <div class="hero-content reveal">
+            <h1 class="hero-headline">
+                The capital platform that only <span class="highlight">profits from your successes</span>, not your failures.
+            </h1>
+            <p class="hero-subheadline lead">
+                You prove your talent, we provide your capital. Fair. Scalable. Transparent.
+            </p>
+            <div class="hero-ctas">
+                <a href="#" class="btn-primary"><span>Start Infinity Challenge</span></a>
+                <a href="#about" class="btn-secondary">Learn How It Works</a>
+            </div>
+        </div>
+        <div class="chart-box reveal">
+            <canvas id="candles" aria-hidden="true"></canvas>
+        </div>
+    </section>
+
+    <!-- STATS SECTION (MOVED UP) -->
+    <section class="stats-section section">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Live transparency</h2>
+                <p class="lead">Real numbers from real traders. Updated daily.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-countup>1,248</div>
+                    <div class="stat-label">Traders Funded</div>
+                    <div class="stat-description">Across all programs</div>
+                </div>
+
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-countup>3,000</div>
+                    <div class="stat-label">Pre-Registered</div>
+                    <div class="stat-description">Waiting for launch</div>
+                </div>
+
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-countup>10 min</div>
+                    <div class="stat-label">Avg Payout Time</div>
+                    <div class="stat-description">From request to receipt</div>
+                </div>
+
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-countup>312</div>
+                    <div class="stat-label">A-Book Traders</div>
+                    <div class="stat-description">Trading real capital</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- COMPARISON TABLE -->
+    <section class="comparison-section section">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>How IPFX is different</h2>
+                <p class="lead">We only profit when you do. No upfront fees, no misaligned incentives.</p>
+            </div>
+
+            <div class="comparison-table reveal">
+                <div class="comparison-cell header"></div>
+                <div class="comparison-cell header">Traditional Firms</div>
+                <div class="comparison-cell header ipfx">IPFX</div>
+                <div class="comparison-cell header">Other "Free" Firms</div>
+
+                <div class="comparison-cell label">Entry Fee</div>
+                <div class="comparison-cell">$200-500</div>
+                <div class="comparison-cell ipfx"><span class="checkmark">FREE</span></div>
+                <div class="comparison-cell"><span class="checkmark">FREE</span></div>
+
+                <div class="comparison-cell label">Pass Rate</div>
+                <div class="comparison-cell">~4%</div>
+                <div class="comparison-cell ipfx">Higher (real incentive)</div>
+                <div class="comparison-cell">~6%</div>
+
+                <div class="comparison-cell label">Revenue from Failures</div>
+                <div class="comparison-cell"><span class="checkmark">YES</span></div>
+                <div class="comparison-cell ipfx"><span class="xmark">NO</span></div>
+                <div class="comparison-cell">Hidden fees</div>
+
+                <div class="comparison-cell label">Revenue from Success</div>
+                <div class="comparison-cell">Minimal</div>
+                <div class="comparison-cell ipfx"><span class="checkmark">PRIMARY</span></div>
+                <div class="comparison-cell">Profit split</div>
+
+                <div class="comparison-cell label">Account Insurance</div>
+                <div class="comparison-cell"><span class="xmark">NO</span></div>
+                <div class="comparison-cell ipfx"><span class="checkmark">YES</span></div>
+                <div class="comparison-cell"><span class="xmark">NO</span></div>
+
+                <div class="comparison-cell label">Customizable Terms</div>
+                <div class="comparison-cell"><span class="xmark">NO</span></div>
+                <div class="comparison-cell ipfx"><span class="checkmark">YES (PAC)</span></div>
+                <div class="comparison-cell"><span class="xmark">NO</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ABOUTFLOW STICKY SECTION -->
+    <section id="about" class="aboutflow">
+        <div class="af-grid">
+            <!-- LEFT: Step cards -->
+            <ol class="af-zig">
+                <li class="af-step">
+                    <span class="af-node"></span>
+                    <div class="af-card">
+                        <h3>Free Entry, Zero Risk</h3>
+                        <p>Start with the Infinity Challenge at no cost. Prove consistency on simulated capital before moving to real funds.</p>
+                    </div>
+                </li>
+                <li class="af-step">
+                    <span class="af-node"></span>
+                    <div class="af-card">
+                        <h3>Double Every +10%</h3>
+                        <p>Scale your capital infinitely. Each 10% gain doubles your account size. From $10K to $20K to $40K and beyond.</p>
+                    </div>
+                </li>
+                <li class="af-step">
+                    <span class="af-node"></span>
+                    <div class="af-card">
+                        <h3>Transition to Real Capital</h3>
+                        <p>Consistent performance triggers A-book transition. You're now trading real capital with full payout access.</p>
+                    </div>
+                </li>
+                <li class="af-step">
+                    <span class="af-node"></span>
+                    <div class="af-card">
+                        <h3>Account Insurance Protection</h3>
+                        <p>Hit a drawdown? Retain your account by sacrificing a portion of pending payout. No restart from zero.</p>
+                    </div>
+                </li>
+            </ol>
+
+            <!-- CENTER: Spine -->
+            <div class="af-spine"></div>
+
+            <!-- RIGHT: Sticky typewriter -->
+            <aside class="af-right">
+                <div class="af-typebox">
+                    <h2>How IPFX Works</h2>
+                    <p class="af-typewriter" data-phrases="We make money when you make money, not when you fail challenges.|Our revenue comes from profit-sharing with successful traders on real capital.|The Infinity Challenge is genuinely free because we profit from your long-term success.|Account insurance keeps you trading, which keeps us earning. We want you to succeed.|Traditional firms charge upfront and profit from failures. We don't. Simple as that.|B-book simulated funds transition to A-book real capital as you prove consistency.|We're not a challenge mill. We're building a community of profitable, funded traders."></p>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- PROGRESSION VISUALIZER -->
+    <section class="progression-section section">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Scale infinitely through consistent performance</h2>
+                <p class="lead">Each 10% gain doubles your capital. No limits, no gatekeeping.</p>
+            </div>
+
+            <div class="progression-timeline reveal">
+                <div class="progression-tier">
+                    <div class="progression-node">
+                        <div class="progression-amount">$10K</div>
+                        <div class="progression-label">START</div>
+                    </div>
+                    <div class="progression-requirement">Grow +10%</div>
+                </div>
+
+                <div class="progression-arrow">→</div>
+
+                <div class="progression-tier">
+                    <div class="progression-node">
+                        <div class="progression-amount">$20K</div>
+                        <div class="progression-label">TIER 2</div>
+                    </div>
+                    <div class="progression-requirement">Grow +10%</div>
+                </div>
+
+                <div class="progression-arrow">→</div>
+
+                <div class="progression-tier">
+                    <div class="progression-node">
+                        <div class="progression-amount">$40K</div>
+                        <div class="progression-label">TIER 3</div>
+                    </div>
+                    <div class="progression-requirement">Grow +10%</div>
+                </div>
+
+                <div class="progression-arrow">→</div>
+
+                <div class="progression-tier">
+                    <div class="progression-node">
+                        <div class="progression-amount">$80K</div>
+                        <div class="progression-label">TIER 4</div>
+                    </div>
+                    <div class="progression-requirement">Grow +10%</div>
+                </div>
+
+                <div class="progression-arrow">→</div>
+
+                <div class="progression-tier">
+                    <div class="progression-node">
+                        <div class="progression-amount">$160K</div>
+                        <div class="progression-label">TIER 5</div>
+                    </div>
+                    <div class="progression-requirement">Continue...</div>
+                </div>
+
+                <div class="progression-arrow">→</div>
+
+                <div class="progression-tier">
+                    <div class="progression-node">
+                        <div class="progression-infinity">∞</div>
+                        <div class="progression-label">NO LIMIT</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRODUCTS SECTION WITH HOVER TYPEWRITER -->
+    <section id="products" class="products-section section">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Our core programs</h2>
+                <p class="lead">Explore each funding path. Hover to see details, click to dive deeper.</p>
+            </div>
+
+            <div class="products-grid">
+                <div class="product-card reveal" data-description="Start simulated and double capital every 10% gain. Consistency triggers transition to real capital with active payouts.">
+                    <span class="product-tag">Free Entry</span>
+                    <h3>Infinity Challenge</h3>
+                    <p class="product-description">
+                        Start simulated, double every +10% gain. Consistency triggers transition to real capital.
+                    </p>
+                    <div class="product-meta">No buy-in • Risk-aware scaling</div>
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
+                </div>
+
+                <div class="product-card reveal" data-description="Choose your target, drawdown, duration, and size. A dynamic failure-only fee keeps our incentives aligned with yours.">
+                    <span class="product-tag">You Set The Rules</span>
+                    <h3>Personalized Challenge (PAC)</h3>
+                    <p class="product-description">
+                        Choose target, drawdown, duration, and size. A dynamic failure-only fee aligns incentives.
+                    </p>
+                    <div class="product-meta">Pay only on failure</div>
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
+                </div>
+
+                <div class="product-card reveal" data-description="After a drawdown hit, retain your account by sacrificing a portion of pending payout. Progress isn't reset to zero.">
+                    <span class="product-tag">Keep Your Seat</span>
+                    <h3>Account Insurance</h3>
+                    <p class="product-description">
+                        After a drawdown, retain your account by sacrificing payout. Progress isn't reset to zero.
+                    </p>
+                    <div class="product-meta">Removes fear of restarting</div>
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
+                </div>
+
+                <div class="product-card reveal" data-description="Top traders share verified risk scores; you can buy in to mirror their profits. Fees reward the signal-generators.">
+                    <span class="product-tag">Transparent</span>
+                    <h3>Social Trading — Pot System</h3>
+                    <p class="product-description">
+                        Top traders share verified risk scores. Buy in to mirror profits. Fees reward signal-generators.
+                    </p>
+                    <div class="product-meta">No experience required</div>
+                    <div class="hover-reveal">
+                        <div class="typewriter-text"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section id="testimonials" class="testimonials-section section">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Trusted by traders worldwide</h2>
+                <p class="lead">Real stories from real traders who've scaled with IPFX</p>
+            </div>
+
+            <div class="testimonials-carousel reveal">
+                <div class="testimonials-track" id="testimonials-track">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "IPFX Capital completely changed my trading career. I started with the Infinity Challenge at zero cost, proved my consistency, and within 4 months I was trading real capital. The transparency and fair scaling structure is unlike anything I've experienced."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-photo"></div>
+                            <div>
+                                <div class="author-name">Arjun Patel</div>
+                                <div class="author-role">Day Trader • Scaled to $100K</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "After being burned by traditional prop firms with hidden fees and impossible targets, I found IPFX. The Personalized Application Challenge let me set my own terms. I hit my first payout in 3 weeks and haven't looked back."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-photo"></div>
+                            <div>
+                                <div class="author-name">Jessica Nguyen</div>
+                                <div class="author-role">Swing Trader • 8 Consecutive Payouts</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <p class="testimonial-text">
+                                "The account insurance feature saved my trading career. I hit a tough drawdown but didn't lose everything I'd built. IPFX actually wants you to succeed long-term. This is what proper capital backing should feel like."
+                            </p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-photo"></div>
+                            <div>
+                                <div class="author-name">Marcus Rodriguez</div>
+                                <div class="author-role">Forex Trader • A-Book Verified</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="carousel-nav">
+                <div class="carousel-arrow" id="carousel-prev">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </div>
+                <div class="carousel-dots" id="carousel-dots"></div>
+                <div class="carousel-arrow" id="carousel-next">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <div class="footer-brand">IPFX CAPITAL</div>
+                    <p class="footer-tagline">
+                        The capital platform that only profits from your successes, not your failures.
+                    </p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Products</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Infinity Challenge</a></li>
+                        <li><a href="#">Personalized Challenge</a></li>
+                        <li><a href="#">Account Insurance</a></li>
+                        <li><a href="#">Pot System</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">How It Works</a></li>
+                        <li><a href="#">FAQ</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Risk Disclosure</a></li>
+                        <li><a href="#">Regulatory</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div>© 2025 IPFX Capital. All rights reserved.</div>
+                <div>Built with transparency and aligned incentives.</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navbarLinks = document.querySelector('.navbar-links');
+
+        menuToggle.addEventListener('click', () => {
+            navbarLinks.classList.toggle('active');
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Reveal on scroll
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+        // Aboutflow step reveals
+        const stepObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-inview');
+                }
+            });
+        }, { threshold: 0.25 });
+
+        document.querySelectorAll('.af-step').forEach(el => stepObserver.observe(el));
+
+        // Typewriter effect for aboutflow sticky section
+        document.addEventListener('DOMContentLoaded', () => {
+            const tw = document.querySelector('.af-typewriter');
+            if (!tw) return;
+
+            const phrasesAttr = tw.dataset.phrases || '';
+            const phrases = phrasesAttr.split('|').map(s => s.trim()).filter(Boolean);
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            if (!reduced && phrases.length) {
+                const TYPE = 12, ERASE = 8, HOLD1 = 1600, HOLD2 = 600;
+                let i = 0, j = 0, typing = true;
+
+                const tick = () => {
+                    if (typing) {
+                        tw.textContent = phrases[i].slice(0, ++j);
+                        if (j === phrases[i].length) {
+                            typing = false;
+                            setTimeout(tick, HOLD1);
+                        } else {
+                            setTimeout(tick, TYPE);
+                        }
+                    } else {
+                        tw.textContent = phrases[i].slice(0, --j);
+                        if (j === 0) {
+                            typing = true;
+                            i = (i + 1) % phrases.length;
+                            setTimeout(tick, HOLD2);
+                        } else {
+                            setTimeout(tick, ERASE);
+                        }
+                    }
+                };
+
+                setTimeout(tick, 500);
+            } else if (phrases[0]) {
+                tw.textContent = phrases[0];
+            }
+        });
+
+        // Product card hover typewriter
+        document.querySelectorAll('.product-card').forEach(card => {
+            const description = card.dataset.description;
+            const typewriterEl = card.querySelector('.typewriter-text');
+            if (!description || !typewriterEl) return;
+
+            let typewriterTimeout = null;
+            let isTyping = false;
+
+            function typeWriter(text, index = 0) {
+                if (index < text.length && isTyping) {
+                    typewriterEl.textContent = text.substring(0, index + 1);
+                    const delay = Math.random() * 8 + 5;
+                    typewriterTimeout = setTimeout(() => typeWriter(text, index + 1), delay);
+                }
+            }
+
+            card.addEventListener('mouseenter', () => {
+                isTyping = true;
+                typewriterEl.textContent = '';
+                if (typewriterTimeout) clearTimeout(typewriterTimeout);
+                typeWriter(description);
+            });
+
+            card.addEventListener('mouseleave', () => {
+                isTyping = false;
+                if (typewriterTimeout) clearTimeout(typewriterTimeout);
+                typewriterEl.textContent = '';
+            });
+        });
+
+        // Count-up animation
+        const cleanNumber = (s) => {
+            const n = s.replace(/[^0-9.]/g, '');
+            return n ? parseFloat(n) : null;
+        };
+
+        const formatLike = (original, num) => {
+            if (/min/.test(original)) return Math.round(num) + ' min';
+            return Math.round(num).toLocaleString();
+        };
+
+        const countupObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const original = el.textContent.trim();
+                    const base = cleanNumber(original);
+                    if (base === null) return;
+
+                    el.textContent = '0';
+                    const duration = 1800;
+                    const start = performance.now();
+
+                    function tick(now) {
+                        const t = Math.min(1, (now - start) / duration);
+                        const eased = 1 - Math.pow(1 - t, 3);
+                        el.textContent = formatLike(original, base * eased);
+                        if (t < 1) requestAnimationFrame(tick);
+                        else el.textContent = original;
+                    }
+
+                    requestAnimationFrame(tick);
+                    countupObserver.unobserve(el);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('[data-countup]').forEach(el => countupObserver.observe(el));
+
+        // Testimonials carousel
+        class TestimonialsCarousel {
+            constructor() {
+                this.track = document.getElementById('testimonials-track');
+                this.prevBtn = document.getElementById('carousel-prev');
+                this.nextBtn = document.getElementById('carousel-next');
+                this.dotsContainer = document.getElementById('carousel-dots');
+
+                if (!this.track) return;
+
+                this.cards = Array.from(this.track.querySelectorAll('.testimonial-card'));
+                this.currentIndex = 0;
+
+                this.init();
+            }
+
+            init() {
+                this.createDots();
+                this.updateCarousel();
+                this.attachEventListeners();
+            }
+
+            createDots() {
+                this.cards.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.classList.add('carousel-dot');
+                    if (index === 0) dot.classList.add('active');
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                    this.dotsContainer.appendChild(dot);
+                });
+                this.dots = Array.from(this.dotsContainer.querySelectorAll('.carousel-dot'));
+            }
+
+            attachEventListeners() {
+                this.prevBtn.addEventListener('click', () => this.prev());
+                this.nextBtn.addEventListener('click', () => this.next());
+            }
+
+            updateCarousel() {
+                this.track.style.transform = `translateX(-${this.currentIndex * 100}%)`;
+                this.updateDots();
+            }
+
+            updateDots() {
+                this.dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentIndex);
+                });
+            }
+
+            prev() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex -= 1;
+                    this.updateCarousel();
+                }
+            }
+
+            next() {
+                if (this.currentIndex < this.cards.length - 1) {
+                    this.currentIndex += 1;
+                    this.updateCarousel();
+                }
+            }
+
+            goToSlide(index) {
+                this.currentIndex = index;
+                this.updateCarousel();
+            }
+        }
+
+        new TestimonialsCarousel();
+
+        // ===== Candlestick Animation (Canvas) =====
+        (function () {
+            const canvas = document.getElementById('candles');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            if (window.__candlesInit) return;
+            window.__candlesInit = true;
+
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            let running = true;
+
+            // Size management
+            let dpr = 1;
+            let cssW = 0, cssH = 0;
+            let pxW = 0, pxH = 0;
+
+            function applySize() {
+                const newDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+                if (newDpr !== dpr) dpr = newDpr;
+
+                const needResize = (canvas.width !== Math.floor(cssW * dpr)) || (canvas.height !== Math.floor(cssH * dpr));
+                if (needResize) {
+                    canvas.width = Math.floor(cssW * dpr);
+                    canvas.height = Math.floor(cssH * dpr);
+                    pxW = canvas.width / dpr;
+                    pxH = canvas.height / dpr;
+
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.scale(dpr, dpr);
+
+                    recalcMaxBars();
+                    if (series.length === 0) seedSeries();
+                }
+            }
+
+            const ro = new ResizeObserver(entries => {
+                for (const e of entries) {
+                    const cr = e.contentRect;
+                    cssW = Math.max(1, cr.width);
+                    cssH = Math.max(1, cr.height);
+                    applySize();
+                }
+            });
+            ro.observe(canvas);
+
+            queueMicrotask(() => {
+                if (cssW === 0 || cssH === 0) {
+                    const rect = canvas.getBoundingClientRect();
+                    cssW = Math.max(1, rect.width || canvas.clientWidth || 600);
+                    cssH = Math.max(1, rect.height || canvas.clientHeight || 300);
+                    applySize();
+                    if (series.length === 0) seedSeries();
+                }
+            });
+
+            // Data & rendering
+            const series = [];
+            function nextBar(prev) {
+                const drift = 0.01, vol = 4.5;
+                let close = prev + (Math.random() - 0.5) * vol + drift;
+                close = Math.max(92, Math.min(108, close));
+                const open = prev;
+                let high = Math.max(open, close) + Math.random() * 2.0;
+                let low = Math.min(open, close) - Math.random() * 2.0;
+                if (close < 92) {
+                    close = Math.max(close, 94 + (Math.random() * 2.0));
+                }
+                if (close > 108) {
+                    close = Math.min(close, 106 - (Math.random() * 2.0));
+                }
+                return { open, high, low, close };
+            }
+
+            function seedSeries() {
+                series.length = 0;
+                let last = 100;
+                const count = Math.max(1, maxBars || 120);
+                for (let i = 0; i < count; i++) {
+                    const b = nextBar(last);
+                    series.push(b);
+                    last = b.close;
+                }
+                offset = 0;
+            }
+
+            const globalMin = 88;
+            const globalMax = 112;
+
+            const pad = 10, barW = 6, gap = 3;
+            const step = barW + gap;
+            const speed = prefersReduced ? 10 : 26;
+            let offset = 0;
+
+            let maxBars = 0;
+            const lead = 6;
+
+            function recalcMaxBars() {
+                if (!pxW) return;
+                maxBars = Math.max(1, Math.floor((pxW - 2 * pad) / step)) + lead;
+            }
+
+            const TICK = 1 / 60;
+            let accumulator = 0;
+            let lastTime = 0;
+            let started = false;
+
+            function update(dt) {
+                offset += speed * dt;
+                while (offset >= step) {
+                    offset -= step;
+                    const b = nextBar(series[series.length - 1].close);
+                    series.push(b);
+                    while (maxBars > 0 && series.length > maxBars) {
+                        series.shift();
+                    }
+                }
+            }
+
+            function draw() {
+                if (!pxW || !pxH) return;
+                recalcMaxBars();
+                const w = pxW, h = pxH;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // Grid
+                ctx.globalAlpha = 0.22;
+                ctx.strokeStyle = '#2b2d34';
+                for (let gy = 0; gy <= 4; gy++) {
+                    const y = Math.round((h / 4) * gy) + 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+
+                const y = v => h - pad - ((v - globalMin) / (globalMax - globalMin)) * (h - 2 * pad);
+
+                const upFill = '#1f4b99';
+                const downFill = '#ffffff';
+                const wick = '#cfd2d7';
+
+                let x = pad - offset;
+                for (let i = 5; i < series.length; i++) {
+                    const b = series[i];
+                    if (x > w - pad) break;
+                    if (x + barW < 0) {
+                        x += step;
+                        continue;
+                    }
+
+                    ctx.strokeStyle = wick;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x + barW / 2, y(b.high));
+                    ctx.lineTo(x + barW / 2, y(b.low));
+                    ctx.stroke();
+
+                    const top = y(Math.max(b.open, b.close));
+                    const bot = y(Math.min(b.open, b.close));
+                    ctx.fillStyle = (b.close >= b.open) ? upFill : downFill;
+                    ctx.fillRect(x, top, barW, Math.max(1, bot - top));
+
+                    x += step;
+                }
+            }
+
+            function frame(ts) {
+                if (!running) {
+                    lastTime = ts;
+                    requestAnimationFrame(frame);
+                    return;
+                }
+                if (!started) {
+                    started = true;
+                    lastTime = ts;
+                }
+
+                let dt = (ts - lastTime) / 1000;
+                lastTime = ts;
+
+                if (dt > 0.25) dt = 0.25;
+
+                accumulator += dt;
+                while (accumulator >= TICK) {
+                    update(TICK);
+                    accumulator -= TICK;
+                }
+
+                draw();
+                requestAnimationFrame(frame);
+            }
+
+            const start = () => {
+                if (!pxW || !pxH || series.length === 0) {
+                    requestAnimationFrame(start);
+                    return;
+                }
+                requestAnimationFrame(frame);
+            };
+
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(start, { timeout: 500 });
+            } else if (document.readyState === 'complete') {
+                start();
+            } else {
+                window.addEventListener('load', start, { once: true });
+            }
+
+            document.addEventListener('visibilitychange', () => {
+                running = document.visibilityState === 'visible';
+                if (running) {
+                    lastTime = 0;
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

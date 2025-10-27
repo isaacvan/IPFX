@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPFX Capital - Scroll Journey</title>
+
+    <style>
+        /* ========================================
+           RESET & BASE
+        ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            position: relative;
+        }
+
+        /* ========================================
+           SCROLL JOURNEY LINE & DOT
+        ======================================== */
+        .journey-line-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .journey-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .journey-path {
+            fill: none;
+            stroke: #c0c0c0;
+            stroke-width: 2;
+            stroke-linecap: square;
+            stroke-linejoin: miter;
+            opacity: 0.6;
+        }
+
+        .journey-dot {
+            r: 12;
+            fill: #2563eb;
+            filter: drop-shadow(0 0 12px rgba(37, 99, 235, 0.8));
+        }
+
+        .journey-dot.pulsate {
+            animation: pulsate 0.8s ease-out;
+        }
+
+        @keyframes pulsate {
+            0% {
+                r: 12;
+                opacity: 1;
+            }
+            50% {
+                r: 20;
+                opacity: 0.6;
+            }
+            100% {
+                r: 12;
+                opacity: 1;
+            }
+        }
+
+        /* ========================================
+           LAYOUT STRUCTURE
+        ======================================== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .section {
+            padding: 80px 0;
+            border-bottom: 2px solid #ddd;
+            position: relative;
+        }
+
+        /* Anchor points for the journey dot */
+        .journey-anchor {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* ========================================
+           NAVIGATION
+        ======================================== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: white;
+            border-bottom: 1px solid #ddd;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .navbar .container {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #000;
+            text-decoration: none;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 40px;
+            list-style: none;
+        }
+
+        .navbar-links a {
+            color: #666;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .navbar-links a:hover {
+            color: #000;
+        }
+
+        /* ========================================
+           HERO SECTION
+        ======================================== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 70px;
+            background: white;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .hero .container {
+            width: 100%;
+        }
+
+        .hero-content {
+            max-width: 700px;
+        }
+
+        .hero-headline {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            color: #000;
+        }
+
+        .hero-subheadline {
+            font-size: 20px;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 32px;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            padding: 16px 32px;
+            background: #000;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .hero-cta:hover {
+            background: #333;
+        }
+
+        @media (max-width: 1024px) {
+            .hero-headline {
+                font-size: 36px;
+            }
+        }
+
+        /* ========================================
+           MISSION SECTION
+        ======================================== */
+        .mission {
+            background: white;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 60px;
+        }
+
+        .section-title {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #000;
+        }
+
+        .section-subtitle {
+            font-size: 18px;
+            color: #666;
+            line-height: 1.7;
+        }
+
+        .mission-content {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .mission-card {
+            padding: 40px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+        }
+
+        .mission-card h3 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: #000;
+        }
+
+        .mission-card p {
+            color: #666;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            .mission-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========================================
+           PRODUCTS SECTION
+        ======================================== */
+        .products {
+            background: #f9f9f9;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .product-card {
+            padding: 60px 40px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 16px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+
+        .product-tag {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #000;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 6px;
+            margin-bottom: 24px;
+        }
+
+        .product-card h3 {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #000;
+        }
+
+        .product-card p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+
+        .product-cta {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #000;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .product-cta:hover {
+            background: #333;
+        }
+
+        @media (max-width: 768px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========================================
+           BRANDS/PARTNERS SECTION
+        ======================================== */
+        .brands {
+            background: white;
+        }
+
+        .brands-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 40px;
+            margin-top: 60px;
+            align-items: center;
+        }
+
+        .brand-logo {
+            height: 80px;
+            background: #f0f0f0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #999;
+            text-align: center;
+            padding: 16px;
+            transition: transform 0.2s;
+        }
+
+        .brand-logo:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 1024px) {
+            .brands-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .brands-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ========================================
+           CONTACT SECTION
+        ======================================== */
+        .contact {
+            background: #f9f9f9;
+        }
+
+        .contact-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            margin-top: 60px;
+        }
+
+        .contact-form-container,
+        .contact-info-container {
+            padding: 40px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+        }
+
+        .contact-form-container h3,
+        .contact-info-container h3 {
+            font-size: 28px;
+            margin-bottom: 24px;
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: #333;
+        }
+
+        .contact-info-container p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        .contact-email {
+            display: inline-block;
+            color: #000;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 12px 24px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            margin-top: 16px;
+            transition: background 0.2s;
+        }
+
+        .contact-email:hover {
+            background: #e0e0e0;
+        }
+
+        @media (max-width: 768px) {
+            .contact-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========================================
+           FOOTER
+        ======================================== */
+        .footer {
+            background: #1a1a1a;
+            color: #999;
+            padding: 60px 0 40px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 40px;
+        }
+
+        .footer-brand {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .footer-tagline {
+            color: #999;
+            line-height: 1.6;
+        }
+
+        .footer-section h4 {
+            color: white;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: #999;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            padding-top: 40px;
+            border-top: 1px solid #333;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        @media (max-width: 1024px) {
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- SCROLL JOURNEY LINE -->
+    <div class="journey-line-container">
+        <svg class="journey-svg" id="journeySvg" viewBox="0 0 1920 5000" preserveAspectRatio="xMidYMin slice">
+            <!-- The path that the dot follows -->
+            <path id="journeyPath" class="journey-path" d="
+                M 80,40
+                L 80,300
+                L 1750,550
+                L 1750,950
+                L 150,1200
+                L 150,1600
+                L 1650,1850
+                L 1650,2250
+                L 250,2500
+                L 250,2900
+                L 1550,3150
+                L 1550,3550
+                L 350,3800
+                L 350,4200
+                L 1450,4450
+                L 1450,4850
+            "/>
+
+            <!-- The glowing dot -->
+            <circle id="journeyDot" class="journey-dot" cx="100" cy="50" r="12"/>
+        </svg>
+    </div>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="#" class="navbar-logo">IPFX CAPITAL</a>
+            <ul class="navbar-links">
+                <li><a href="#hero">Home</a></li>
+                <li><a href="#mission">Mission</a></li>
+                <li><a href="#products">Products</a></li>
+                <li><a href="#brands">Partners</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section id="hero" class="hero">
+        <span class="journey-anchor" data-journey-point="hero" style="top: 50%; left: 50px;"></span>
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-headline">The capital platform that only profits from your successes</h1>
+                <p class="hero-subheadline">
+                    We provide trading capital to talented traders. Free entry, aligned incentives, transparent model.
+                </p>
+                <a href="#contact" class="hero-cta">Start Your Journey</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- MISSION SECTION -->
+    <section id="mission" class="mission section">
+        <span class="journey-anchor" data-journey-point="mission" style="top: 30%; right: 50px;"></span>
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Our Mission</h2>
+                <p class="section-subtitle">
+                    We're building a new model for proprietary trading that aligns our success with yours.
+                </p>
+            </div>
+
+            <div class="mission-content">
+                <div class="mission-card">
+                    <h3>Who We Are</h3>
+                    <p>
+                        IPFX Capital is a proprietary trading firm that provides capital to skilled traders worldwide. We believe in transparency, fairness, and aligned incentives.
+                    </p>
+                </div>
+
+                <div class="mission-card">
+                    <h3>What We Do</h3>
+                    <p>
+                        We fund traders through our Infinity Challenge and Personalized Application Challenge programs. We profit only when you succeed—no upfront fees, no hidden costs.
+                    </p>
+                </div>
+
+                <div class="mission-card">
+                    <h3>Our Values</h3>
+                    <p>
+                        Transparency in our business model, fairness in our terms, and commitment to trader success. We're building a community, not a challenge mill.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRODUCTS SECTION -->
+    <section id="products" class="products section">
+        <span class="journey-anchor" data-journey-point="products" style="top: 40%; left: 100px;"></span>
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Our Programs</h2>
+                <p class="section-subtitle">
+                    Choose the funding path that matches your experience level and trading style.
+                </p>
+            </div>
+
+            <div class="products-grid">
+                <div class="product-card">
+                    <span class="product-tag">Free Entry</span>
+                    <h3>Infinity Challenge</h3>
+                    <p>
+                        Start with simulated capital at zero cost. Double your account with every 10% gain. Consistent performance unlocks real capital and active payouts.
+                    </p>
+                    <a href="#contact" class="product-cta">Start Challenge</a>
+                </div>
+
+                <div class="product-card">
+                    <span class="product-tag">Customizable</span>
+                    <h3>Personalized Challenge (PAC)</h3>
+                    <p>
+                        Set your own target, drawdown, duration, and capital size. Dynamic pricing based on risk. For experienced traders who know their edge.
+                    </p>
+                    <a href="#contact" class="product-cta">Apply Now</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BRANDS/PARTNERS SECTION -->
+    <section id="brands" class="brands section">
+        <span class="journey-anchor" data-journey-point="brands" style="top: 50%; right: 100px;"></span>
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Trusted Partners</h2>
+                <p class="section-subtitle">
+                    We work with industry-leading platforms and service providers to deliver the best trading experience.
+                </p>
+            </div>
+
+            <div class="brands-grid">
+                <div class="brand-logo">Partner 1</div>
+                <div class="brand-logo">Partner 2</div>
+                <div class="brand-logo">Partner 3</div>
+                <div class="brand-logo">Partner 4</div>
+                <div class="brand-logo">Partner 5</div>
+                <div class="brand-logo">Partner 6</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT SECTION -->
+    <section id="contact" class="contact section">
+        <span class="journey-anchor" data-journey-point="contact" style="top: 50%; left: 150px;"></span>
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Get Started</h2>
+                <p class="section-subtitle">
+                    Pre-register for early access or get in touch with our team.
+                </p>
+            </div>
+
+            <div class="contact-wrapper">
+                <div class="contact-form-container">
+                    <h3>Pre-Register</h3>
+                    <form>
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="program">Interested In</label>
+                            <select id="program" name="program">
+                                <option value="infinity">Infinity Challenge</option>
+                                <option value="pac">Personalized Challenge (PAC)</option>
+                                <option value="both">Both Programs</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="experience">Trading Experience</label>
+                            <select id="experience" name="experience">
+                                <option value="beginner">Less than 1 year</option>
+                                <option value="intermediate">1-3 years</option>
+                                <option value="advanced">3+ years</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message">Additional Information (Optional)</label>
+                            <textarea id="message" name="message"></textarea>
+                        </div>
+
+                        <button type="submit" class="submit-btn">Submit Pre-Registration</button>
+                    </form>
+                </div>
+
+                <div class="contact-info-container">
+                    <h3>Get in Touch</h3>
+                    <p>
+                        Have questions about our programs? Want to discuss partnership opportunities? Our team is here to help.
+                    </p>
+                    <p>
+                        Email us directly and we'll get back to you within 24 hours.
+                    </p>
+                    <a href="mailto:contact@ipfxcapital.com" class="contact-email">contact@ipfxcapital.com</a>
+
+                    <p style="margin-top: 40px;">
+                        <strong>Early Access Benefits:</strong><br>
+                        • Priority onboarding<br>
+                        • Extended evaluation period<br>
+                        • Direct support channel
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <div class="footer-brand">IPFX CAPITAL</div>
+                    <p class="footer-tagline">
+                        Proprietary trading capital for skilled traders. Transparent, fair, aligned.
+                    </p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Programs</h4>
+                    <ul class="footer-links">
+                        <li><a href="#products">Infinity Challenge</a></li>
+                        <li><a href="#products">Personalized Challenge</a></li>
+                        <li><a href="#brands">Partners</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#mission">About Us</a></li>
+                        <li><a href="#mission">Mission</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Risk Disclosure</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                © 2025 IPFX Capital. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // Scroll-synced journey line animation
+        (function() {
+            const path = document.getElementById('journeyPath');
+            const dot = document.getElementById('journeyDot');
+            const svg = document.getElementById('journeySvg');
+            const container = document.querySelector('.journey-line-container');
+
+            if (!path || !dot || !svg || !container) return;
+
+            let pathLength = 0;
+            const anchors = document.querySelectorAll('.journey-anchor');
+            let anchorPoints = [];
+
+            // Initialize and scale SVG to document height
+            function initSVG() {
+                const docHeight = document.documentElement.scrollHeight;
+
+                // Set container height to full document height
+                container.style.height = docHeight + 'px';
+
+                // Scale viewBox to match document proportions
+                const viewBoxHeight = (docHeight / window.innerHeight) * 5000;
+                svg.setAttribute('viewBox', `0 0 1920 ${viewBoxHeight}`);
+                svg.style.height = docHeight + 'px';
+
+                // Recalculate path length after scaling
+                pathLength = path.getTotalLength();
+
+                // Update anchor positions
+                updateAnchorPositions();
+            }
+
+            // Map scroll positions to path positions
+            function updateAnchorPositions() {
+                anchorPoints = [];
+                anchors.forEach(anchor => {
+                    const rect = anchor.getBoundingClientRect();
+                    const scrollPos = window.scrollY + rect.top;
+                    anchorPoints.push({
+                        scrollPos: scrollPos,
+                        element: anchor,
+                        triggered: false
+                    });
+                });
+            }
+
+            function updateJourneyDot() {
+                const scrollTop = window.scrollY;
+                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const scrollPercent = Math.min(Math.max(scrollTop / docHeight, 0), 1);
+
+                // Calculate position along path
+                const pointOnPath = scrollPercent * pathLength;
+                const point = path.getPointAtLength(pointOnPath);
+
+                // Update dot position (in SVG coordinates)
+                dot.setAttribute('cx', point.x);
+                dot.setAttribute('cy', point.y);
+
+                // Check if dot is near any anchor points (trigger pulsation)
+                anchorPoints.forEach(anchor => {
+                    const threshold = 150; // pixels
+                    const distance = Math.abs(scrollTop - anchor.scrollPos);
+
+                    if (distance < threshold && !anchor.triggered) {
+                        // Trigger pulsation
+                        dot.classList.add('pulsate');
+                        anchor.triggered = true;
+
+                        // Remove animation class after it completes
+                        setTimeout(() => {
+                            dot.classList.remove('pulsate');
+                        }, 800);
+                    }
+
+                    // Reset trigger if user scrolls back up
+                    if (scrollTop < anchor.scrollPos - threshold) {
+                        anchor.triggered = false;
+                    }
+                });
+            }
+
+            // Update on scroll
+            window.addEventListener('scroll', updateJourneyDot);
+
+            // Update on resize
+            window.addEventListener('resize', () => {
+                initSVG();
+                updateJourneyDot();
+            });
+
+            // Initialize
+            initSVG();
+            updateJourneyDot();
+        })();
+    </script>
+</body>
+</html>

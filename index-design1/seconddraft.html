@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPFX Capital - The capital platform that only profits from your successes</title>
+    <meta name="description" content="Trade with our capital. We only profit when you do. Free entry, real opportunity, aligned incentives.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ========================================
+           CSS RESET & BASE
+        ======================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* ========================================
+           CSS CUSTOM PROPERTIES
+        ======================================== */
+        :root {
+            /* === BACKGROUNDS === */
+            --bg-primary: #0d0d12;
+            --bg-secondary: #161621;
+            --bg-elevated: #1f1f2e;
+            --bg-hover: #252532;
+
+            /* === ACCENTS === */
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #06b6d4;
+            --accent-tertiary: #10b981;
+            --accent-purple-light: #a78bfa;
+            --accent-cyan-light: #22d3ee;
+
+            /* === NEUTRALS === */
+            --fg-primary: #ffffff;
+            --fg-secondary: #e0e7ff;
+            --fg-muted: #a5b4fc;
+            --fg-disabled: #64748b;
+
+            /* === BORDERS & LINES === */
+            --border-subtle: #312e81;
+            --border-default: #4c1d95;
+            --border-strong: #6d28d9;
+
+            /* === METALLICS === */
+            --silver: #c4b5fd;
+            --silver-glow: #ede9fe;
+            --silver-muted: #94a3b8;
+
+            /* === SEMANTIC === */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #06b6d4;
+
+            /* === GRADIENTS === */
+            --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            --gradient-secondary: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            --gradient-metallic: linear-gradient(135deg, #c4b5fd 0%, #ede9fe 100%);
+            --gradient-glow: radial-gradient(circle at center, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            --gradient-hero-bg: radial-gradient(ellipse at top, rgba(139, 92, 246, 0.12) 0%, transparent 60%);
+
+            /* === SHADOWS === */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+            --shadow-glow-purple: 0 0 30px rgba(139, 92, 246, 0.4);
+            --shadow-glow-cyan: 0 0 30px rgba(6, 182, 212, 0.4);
+            --shadow-glow-subtle: 0 0 60px rgba(139, 92, 246, 0.15);
+
+            /* === ANIMATION === */
+            --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --duration-fast: 150ms;
+            --duration-base: 250ms;
+            --duration-slow: 500ms;
+            --duration-slower: 1500ms;
+
+            /* === SPACING === */
+            --container-w: min(1280px, 90vw);
+            --section-gap: clamp(100px, 15vw, 200px);
+        }
+
+        /* ========================================
+           TYPOGRAPHY
+        ======================================== */
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--fg-secondary);
+            background: var(--bg-primary);
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            font-weight: 700;
+            color: var(--fg-primary);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 10vw, 7rem);
+            line-height: 1.05;
+        }
+
+        h2 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            line-height: 1.1;
+        }
+
+        h3 {
+            font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+        }
+
+        p {
+            line-height: 1.7;
+        }
+
+        .lead {
+            font-size: clamp(1.125rem, 2vw, 1.5rem);
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           LAYOUT UTILITIES
+        ======================================== */
+        .container {
+            width: var(--container-w);
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .section {
+            padding: var(--section-gap) 0;
+            position: relative;
+        }
+
+        /* ========================================
+           NAVIGATION
+        ======================================== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: rgba(13, 13, 18, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            z-index: 1000;
+            transition: all var(--duration-base);
+        }
+
+        .navbar.scrolled {
+            box-shadow: var(--shadow-lg);
+            background: rgba(13, 13, 18, 0.95);
+        }
+
+        .navbar-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+
+        .navbar-logo {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--fg-primary);
+            text-decoration: none;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -0.03em;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .navbar-links a {
+            color: var(--fg-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color var(--duration-base);
+            position: relative;
+        }
+
+        .navbar-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .navbar-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transition: width var(--duration-base);
+        }
+
+        .navbar-links a:hover::after {
+            width: 100%;
+        }
+
+        .navbar-cta {
+            background: var(--gradient-primary);
+            color: var(--fg-primary);
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: var(--shadow-glow-purple);
+            transition: all var(--duration-base);
+        }
+
+        .navbar-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow-purple), var(--shadow-lg);
+        }
+
+        .navbar-cta::after {
+            display: none;
+        }
+
+        /* Mobile menu */
+        .menu-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .menu-toggle span {
+            width: 24px;
+            height: 2px;
+            background: var(--fg-primary);
+            transition: all var(--duration-base);
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-links {
+                position: fixed;
+                top: 72px;
+                right: -100%;
+                width: 300px;
+                max-width: 80vw;
+                height: calc(100vh - 72px);
+                background: rgba(22, 22, 33, 0.98);
+                backdrop-filter: blur(20px);
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 40px 32px;
+                gap: 24px;
+                transition: right var(--duration-slow) var(--ease-out);
+                border-left: 1px solid var(--border-subtle);
+            }
+
+            .navbar-links.active {
+                right: 0;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+        }
+
+        /* ========================================
+           HERO SECTION
+        ======================================== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding-top: 72px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            width: 120%;
+            height: 120%;
+            background: var(--gradient-hero-bg);
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        /* Animated background grid */
+        .hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border-subtle) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 1;
+            max-width: 1100px;
+        }
+
+        .hero-headline {
+            margin-bottom: 32px;
+        }
+
+        .hero-headline .highlight {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        .hero-headline .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            opacity: 0.3;
+            border-radius: 2px;
+        }
+
+        .hero-subheadline {
+            max-width: 750px;
+            margin: 0 auto 56px;
+            opacity: 0.9;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 80px;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            opacity: 0.4;
+            font-size: 32px;
+            color: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-12px); }
+        }
+
+        /* ========================================
+           BUTTONS
+        ======================================== */
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: var(--fg-primary);
+            font-size: 18px;
+            font-weight: 600;
+            padding: 18px 40px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-glow-purple);
+            transition: all var(--duration-base) var(--ease-out);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+            opacity: 0;
+            transition: opacity var(--duration-base);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-glow-purple), var(--shadow-xl);
+        }
+
+        .btn-primary:hover::before {
+            opacity: 1;
+        }
+
+        .btn-primary span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-primary);
+            font-size: 18px;
+            font-weight: 600;
+            padding: 18px 40px;
+            border-radius: 12px;
+            border: 2px solid var(--accent-primary);
+            cursor: pointer;
+            transition: all var(--duration-base) var(--ease-out);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--accent-purple-light);
+            color: var(--accent-purple-light);
+            transform: translateY(-3px);
+        }
+
+        /* ========================================
+           PROBLEM SECTION
+        ======================================== */
+        .problem-section {
+            background: var(--bg-secondary);
+            position: relative;
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 56px;
+        }
+
+        .problem-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 32px;
+            transition: all var(--duration-base);
+        }
+
+        .problem-card:hover {
+            border-color: var(--error);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+        }
+
+        .problem-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+
+        .problem-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--fg-primary);
+            margin-bottom: 12px;
+        }
+
+        .problem-description {
+            color: var(--fg-muted);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           COMPARISON TABLE
+        ======================================== */
+        .comparison-wrapper {
+            margin-top: 64px;
+            position: relative;
+        }
+
+        .comparison-table {
+            background: var(--bg-elevated);
+            border-radius: 16px;
+            padding: 56px;
+            border: 1px solid var(--border-subtle);
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .comparison-table::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-glow);
+            opacity: 0.3;
+            border-radius: 16px;
+            pointer-events: none;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+            position: relative;
+            z-index: 1;
+        }
+
+        .comparison-table th {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 20px;
+            border-bottom: 2px solid var(--border-default);
+            text-align: center;
+        }
+
+        .comparison-table td {
+            padding: 24px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 16px;
+        }
+
+        .comparison-table .ipfx-column {
+            background: rgba(139, 92, 246, 0.12);
+            border-left: 3px solid var(--accent-primary);
+            border-right: 3px solid var(--accent-primary);
+            box-shadow: var(--shadow-glow-purple);
+            position: relative;
+        }
+
+        .comparison-table .ipfx-column th {
+            color: var(--accent-primary);
+            font-size: 22px;
+            position: relative;
+        }
+
+        .comparison-table .ipfx-column th::before {
+            content: '★';
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: var(--accent-primary);
+        }
+
+        .comparison-table .ipfx-column td {
+            color: var(--fg-primary);
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .comparison-table .check {
+            color: var(--success);
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .comparison-table .cross {
+            color: var(--fg-muted);
+            opacity: 0.4;
+            font-size: 24px;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: rgba(139, 92, 246, 0.03);
+        }
+
+        /* ========================================
+           BUSINESS MODEL SECTION
+        ======================================== */
+        .model-section {
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-top: 64px;
+        }
+
+        .model-card {
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 40px;
+            position: relative;
+            transition: all var(--duration-slow);
+        }
+
+        .model-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-glow);
+            opacity: 0;
+            transition: opacity var(--duration-slow);
+            border-radius: 16px;
+        }
+
+        .model-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-glow-purple);
+        }
+
+        .model-card:hover::before {
+            opacity: 1;
+        }
+
+        .model-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .model-number {
+            font-size: 48px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .model-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--fg-primary);
+            margin-bottom: 16px;
+        }
+
+        .model-description {
+            color: var(--fg-muted);
+            line-height: 1.7;
+        }
+
+        /* ========================================
+           PROGRESSION VISUALIZER
+        ======================================== */
+        .progression-section {
+            background: var(--bg-secondary);
+        }
+
+        .progression-visualizer {
+            margin-top: 64px;
+            position: relative;
+            padding: 48px 0;
+        }
+
+        .progression-timeline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            max-width: 1100px;
+            margin: 0 auto;
+            overflow-x: auto;
+            padding: 40px 20px;
+        }
+
+        .progression-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg,
+                var(--accent-primary) 0%,
+                var(--accent-secondary) 100%
+            );
+            transform: translateY(-50%);
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .progression-tier {
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+            text-align: center;
+            margin: 0 8px;
+        }
+
+        .progression-node {
+            width: 120px;
+            height: 120px;
+            border-radius: 16px;
+            background: var(--bg-elevated);
+            border: 3px solid var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+            transition: all var(--duration-slow);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .progression-node::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity var(--duration-slow);
+        }
+
+        .progression-node:hover {
+            transform: scale(1.1) translateY(-8px);
+            box-shadow: var(--shadow-glow-purple), var(--shadow-xl);
+            border-color: var(--accent-purple-light);
+        }
+
+        .progression-node:hover::before {
+            opacity: 0.15;
+        }
+
+        .progression-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--fg-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progression-label {
+            font-size: 12px;
+            color: var(--fg-muted);
+            margin-top: 4px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progression-requirement {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .progression-arrow {
+            font-size: 28px;
+            color: var(--accent-secondary);
+            opacity: 0.5;
+            flex-shrink: 0;
+        }
+
+        .progression-infinity {
+            width: 120px;
+            height: 120px;
+            border-radius: 16px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            box-shadow: var(--shadow-glow-purple);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* ========================================
+           STATS GRID
+        ======================================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 28px;
+            margin-top: 64px;
+        }
+
+        .stat-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 40px 32px;
+            text-align: center;
+            transition: all var(--duration-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity var(--duration-base);
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-glow-subtle);
+            transform: translateY(-4px);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .stat-number {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: var(--fg-muted);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+
+        .stat-sublabel {
+            color: var(--fg-muted);
+            font-size: 12px;
+            margin-top: 8px;
+            opacity: 0.7;
+        }
+
+        /* Live indicator */
+        .stat-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            font-size: 11px;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+
+        .stat-live::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ========================================
+           PATH CARDS
+        ======================================== */
+        .path-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+            margin-top: 64px;
+        }
+
+        .path-card {
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 56px 40px;
+            text-align: center;
+            transition: all var(--duration-slow) var(--ease-out);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .path-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-glow);
+            opacity: 0;
+            transition: opacity var(--duration-slow);
+        }
+
+        .path-card:hover {
+            transform: translateY(-12px);
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-glow-purple), var(--shadow-xl);
+        }
+
+        .path-card:hover::before {
+            opacity: 1;
+        }
+
+        .path-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .path-card-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 28px;
+            background: var(--gradient-primary);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: var(--shadow-glow-purple);
+        }
+
+        .path-card-subtitle {
+            font-size: 14px;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .path-card-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--fg-primary);
+        }
+
+        .path-card-description {
+            color: var(--fg-muted);
+            margin-bottom: 32px;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .path-card-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent-primary);
+            font-weight: 700;
+            transition: gap var(--duration-base);
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        .path-card:hover .path-card-cta {
+            gap: 14px;
+        }
+
+        /* ========================================
+           TESTIMONIALS
+        ======================================== */
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 32px;
+            margin-top: 64px;
+        }
+
+        .testimonial-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 40px;
+            position: relative;
+            transition: all var(--duration-base);
+        }
+
+        .testimonial-card::before {
+            content: '"';
+            position: absolute;
+            top: 24px;
+            left: 32px;
+            font-size: 80px;
+            color: var(--accent-primary);
+            opacity: 0.1;
+            font-family: Georgia, serif;
+            line-height: 1;
+        }
+
+        .testimonial-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-glow-subtle);
+        }
+
+        .testimonial-quote {
+            font-size: 17px;
+            line-height: 1.8;
+            color: var(--fg-secondary);
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .testimonial-photo {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-primary);
+            background: var(--bg-secondary);
+        }
+
+        .testimonial-info {
+            flex: 1;
+        }
+
+        .testimonial-name {
+            font-weight: 700;
+            color: var(--fg-primary);
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .testimonial-meta {
+            font-size: 13px;
+            color: var(--fg-muted);
+        }
+
+        .testimonial-verified {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--success);
+            margin-top: 12px;
+            font-weight: 600;
+        }
+
+        /* ========================================
+           FOOTER
+        ======================================== */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+            padding: 100px 0 40px;
+            margin-top: 140px;
+        }
+
+        .footer-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 56px;
+            margin-bottom: 64px;
+        }
+
+        .footer-column h4 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+        }
+
+        .footer-column a {
+            display: block;
+            color: var(--fg-muted);
+            margin-bottom: 14px;
+            text-decoration: none;
+            transition: all var(--duration-base);
+            font-size: 15px;
+        }
+
+        .footer-column a:hover {
+            color: var(--accent-primary);
+            padding-left: 4px;
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 40px;
+            border-top: 1px solid var(--border-subtle);
+            color: var(--fg-muted);
+            font-size: 14px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        /* ========================================
+           REVEAL ANIMATIONS
+        ======================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-slow) var(--ease-out),
+                        transform var(--duration-slow) var(--ease-out);
+        }
+
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0ms; }
+        .reveal:nth-child(2) { transition-delay: 100ms; }
+        .reveal:nth-child(3) { transition-delay: 150ms; }
+        .reveal:nth-child(4) { transition-delay: 200ms; }
+        .reveal:nth-child(5) { transition-delay: 250ms; }
+        .reveal:nth-child(6) { transition-delay: 300ms; }
+
+        /* ========================================
+           RESPONSIVE
+        ======================================== */
+        @media (max-width: 1024px) {
+            .progression-timeline {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .progression-line {
+                display: none;
+            }
+
+            .progression-arrow {
+                display: none;
+            }
+
+            .progression-tier {
+                margin: 12px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --section-gap: clamp(60px, 10vw, 100px);
+            }
+
+            .hero {
+                min-height: 85vh;
+            }
+
+            .hero-ctas {
+                flex-direction: column;
+                width: 100%;
+                max-width: 320px;
+                margin: 0 auto 60px;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+
+            .comparison-table {
+                padding: 32px 20px;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 16px 12px;
+                font-size: 14px;
+            }
+
+            .path-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .problem-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* ========================================
+           REDUCED MOTION
+        ======================================== */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .scroll-indicator {
+                animation: none;
+            }
+
+            .progression-infinity {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="#" class="navbar-logo">IPFX</a>
+            <div class="navbar-links">
+                <a href="#how-it-works">How It Works</a>
+                <a href="#products">Products</a>
+                <a href="#about">About</a>
+                <a href="#" class="navbar-cta">Start Free Challenge</a>
+            </div>
+            <button class="menu-toggle" aria-label="Toggle menu" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-content container">
+            <h1 class="hero-headline">
+                The capital platform that only profits from your
+                <span class="highlight">successes</span>,
+                not your <span class="highlight">failures</span>
+            </h1>
+            <p class="hero-subheadline lead">
+                You prove your talent. We provide your capital.<br>
+                Fair. Scalable. Transparent.
+            </p>
+            <div class="hero-ctas">
+                <a href="#infinity-challenge" class="btn-primary"><span>Start Infinity Challenge</span></a>
+                <a href="#how-it-works" class="btn-secondary">See How It Works</a>
+            </div>
+        </div>
+        <div class="scroll-indicator" onclick="document.querySelector('.problem-section').scrollIntoView({behavior: 'smooth'})">↓</div>
+    </section>
+
+    <!-- PROBLEM SECTION -->
+    <section class="section problem-section" id="problem">
+        <div class="container">
+            <h2 class="reveal" style="text-align: center; margin-bottom: 28px;">The prop firm model is broken</h2>
+            <p class="lead reveal" style="text-align: center; max-width: 850px; margin: 0 auto;">
+                Traditional firms profit from high entry fees and designed-to-fail challenges.
+                The entire industry is built on your failure. We're changing that.
+            </p>
+
+            <div class="problem-grid">
+                <div class="problem-card reveal">
+                    <div class="problem-icon">💸</div>
+                    <div class="problem-title">High Entry Costs</div>
+                    <div class="problem-description">
+                        Pay $200-500 upfront just for a chance. Fail once? Pay again. The barrier to entry keeps you spending.
+                    </div>
+                </div>
+
+                <div class="problem-card reveal">
+                    <div class="problem-icon">📉</div>
+                    <div class="problem-title">96% Failure Rate</div>
+                    <div class="problem-description">
+                        Challenges are designed for you to fail. Tight rules, impossible targets. Only 4% ever get funded.
+                    </div>
+                </div>
+
+                <div class="problem-card reveal">
+                    <div class="problem-icon">🔄</div>
+                    <div class="problem-title">Reset Cycle Profits</div>
+                    <div class="problem-description">
+                        Break one rule? Account reset. They profit when you fail and have to buy in again. Incentives are backwards.
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPARISON TABLE -->
+            <div class="comparison-wrapper">
+                <div class="comparison-table reveal">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th class="ipfx-column">IPFX</th>
+                                <th>Typical Firm A</th>
+                                <th>Typical Firm B</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="text-align: left; font-weight: 700;">Entry Cost</td>
+                                <td class="ipfx-column">$0</td>
+                                <td>$299</td>
+                                <td>$499</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight: 700;">Failure Fee</td>
+                                <td class="ipfx-column">$0</td>
+                                <td>Full amount lost</td>
+                                <td>Full amount lost</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight: 700;">Success Rate</td>
+                                <td class="ipfx-column">Coming soon</td>
+                                <td>4%</td>
+                                <td>5%</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight: 700;">Payout Time</td>
+                                <td class="ipfx-column">10 minutes</td>
+                                <td>14 days</td>
+                                <td>30+ days</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight: 700;">Account Insurance</td>
+                                <td class="ipfx-column"><span class="check">✓</span></td>
+                                <td><span class="cross">✗</span></td>
+                                <td><span class="cross">✗</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight: 700;">Profit Share</td>
+                                <td class="ipfx-column">80% - 90%</td>
+                                <td>70% - 80%</td>
+                                <td>50% - 70%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BUSINESS MODEL SECTION -->
+    <section class="section model-section" id="how-it-works">
+        <div class="container">
+            <h2 class="reveal" style="text-align: center; margin-bottom: 28px;">How IPFX works</h2>
+            <p class="lead reveal" style="text-align: center; max-width: 850px; margin: 0 auto;">
+                Our business model only succeeds when you succeed long-term.
+                Here's exactly how we make money—and why it's in our best interest to keep you profitable.
+            </p>
+
+            <div class="model-grid">
+                <div class="model-card reveal">
+                    <div class="model-card-content">
+                        <div class="model-number">01</div>
+                        <div class="model-title">Revenue Share Model</div>
+                        <div class="model-description">
+                            We take 10-20% of your profits. No profits = no revenue for us.
+                            This means we're incentivized to help you grow, not fail.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="model-card reveal">
+                    <div class="model-card-content">
+                        <div class="model-number">02</div>
+                        <div class="model-title">B-Book → A-Book</div>
+                        <div class="model-description">
+                            Start on simulated capital. Prove consistency. We transition successful traders to real
+                            A-book capital, where your success = our success.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="model-card reveal">
+                    <div class="model-card-content">
+                        <div class="model-number">03</div>
+                        <div class="model-title">Pot System Revenue</div>
+                        <div class="model-description">
+                            Experienced traders earn passive income from signal followers.
+                            We facilitate the marketplace and take a small platform fee.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="model-card reveal">
+                    <div class="model-card-content">
+                        <div class="model-number">04</div>
+                        <div class="model-title">Insurance Alignment</div>
+                        <div class="model-description">
+                            Our insurance model protects your account from resets.
+                            Longer trader retention = more consistent revenue for IPFX.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal" style="text-align: center; margin-top: 64px; padding: 48px; background: var(--bg-elevated); border-radius: 16px; border: 2px solid var(--accent-primary);">
+                <h3 style="margin-bottom: 20px; color: var(--accent-primary);">The Bottom Line</h3>
+                <p class="lead" style="max-width: 800px; margin: 0 auto;">
+                    Traditional firms maximize profit by maximizing trader <strong style="color: var(--error);">failures</strong>.
+                    IPFX maximizes profit by maximizing trader <strong style="color: var(--success);">successes</strong>.
+                    Aligned incentives. Genuine partnership.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS SECTION -->
+    <section class="section" style="background: var(--bg-secondary);">
+        <div class="container">
+            <h2 class="reveal" style="text-align: center; margin-bottom: 28px;">Live transparency</h2>
+            <p class="lead reveal" style="text-align: center; max-width: 700px; margin: 0 auto 0;">
+                Real numbers. Real time. No hiding behind marketing fluff.
+            </p>
+
+            <div class="stats-grid">
+                <div class="stat-card reveal">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-number">$<span class="countup" data-target="50">0</span>M+</div>
+                    <div class="stat-label">Capital Deployed</div>
+                    <div class="stat-sublabel">Simulated & Real</div>
+                    <div class="stat-live">Live</div>
+                </div>
+
+                <div class="stat-card reveal">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-number countup" data-target="1248">0</div>
+                    <div class="stat-label">Traders Funded</div>
+                    <div class="stat-sublabel">Actively trading</div>
+                    <div class="stat-live">Live</div>
+                </div>
+
+                <div class="stat-card reveal">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-number countup" data-target="10">0</div>
+                    <div class="stat-label">Minute Payouts</div>
+                    <div class="stat-sublabel">Average time</div>
+                </div>
+
+                <div class="stat-card reveal">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-number countup" data-target="312">0</div>
+                    <div class="stat-label">A-Book Traders</div>
+                    <div class="stat-sublabel">Real capital tier</div>
+                    <div class="stat-live">Live</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROGRESSION VISUALIZER -->
+    <section class="section progression-section" id="infinity-challenge">
+        <div class="container">
+            <h2 class="reveal" style="text-align: center; margin-bottom: 28px;">The Infinity Challenge</h2>
+            <p class="lead reveal" style="text-align: center; max-width: 850px; margin: 0 auto;">
+                Start with $10K. Grow by +10%. Double your account. Repeat infinitely.
+                No ceiling. No entry fees. No failure penalties.
+            </p>
+
+            <div class="progression-visualizer">
+                <div class="progression-timeline reveal">
+                    <div class="progression-line"></div>
+
+                    <div class="progression-tier">
+                        <div class="progression-node">
+                            <div class="progression-amount">$10K</div>
+                            <div class="progression-label">Start</div>
+                        </div>
+                        <div class="progression-requirement">Grow +10%</div>
+                    </div>
+
+                    <div class="progression-arrow">→</div>
+
+                    <div class="progression-tier">
+                        <div class="progression-node">
+                            <div class="progression-amount">$20K</div>
+                            <div class="progression-label">Tier 2</div>
+                        </div>
+                        <div class="progression-requirement">Grow +10%</div>
+                    </div>
+
+                    <div class="progression-arrow">→</div>
+
+                    <div class="progression-tier">
+                        <div class="progression-node">
+                            <div class="progression-amount">$40K</div>
+                            <div class="progression-label">Tier 3</div>
+                        </div>
+                        <div class="progression-requirement">Grow +10%</div>
+                    </div>
+
+                    <div class="progression-arrow">→</div>
+
+                    <div class="progression-tier">
+                        <div class="progression-node">
+                            <div class="progression-amount">$80K</div>
+                            <div class="progression-label">Tier 4</div>
+                        </div>
+                        <div class="progression-requirement">Grow +10%</div>
+                    </div>
+
+                    <div class="progression-arrow">→</div>
+
+                    <div class="progression-tier">
+                        <div class="progression-node">
+                            <div class="progression-amount">$160K</div>
+                            <div class="progression-label">Tier 5</div>
+                        </div>
+                        <div class="progression-requirement">Keep going</div>
+                    </div>
+
+                    <div class="progression-arrow">→</div>
+
+                    <div class="progression-tier">
+                        <div class="progression-infinity">∞</div>
+                        <div class="progression-requirement" style="color: var(--accent-purple-light);">No limit</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal" style="text-align: center; margin-top: 56px;">
+                <a href="#" class="btn-primary"><span>Start Infinity Challenge Free</span></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- DUAL PATH FORK SECTION -->
+    <section class="section" id="products">
+        <div class="container">
+            <h2 class="reveal" style="text-align: center; margin-bottom: 28px;">Choose your path</h2>
+            <p class="lead reveal" style="text-align: center; max-width: 800px; margin: 0 auto 0;">
+                Whether you're just starting or you're a proven trader,
+                we have a pathway designed for you.
+            </p>
+
+            <div class="path-cards">
+                <div class="path-card reveal">
+                    <div class="path-card-content">
+                        <div class="path-card-icon">🚀</div>
+                        <div class="path-card-subtitle">New to Trading</div>
+                        <h3 class="path-card-title">Infinity Challenge</h3>
+                        <p class="path-card-description">
+                            Perfect for beginners and intermediate traders. Start with $10K simulated capital,
+                            double every +10% gain, scale to unlimited real capital. Completely free entry.
+                        </p>
+                        <a href="#infinity-challenge" class="path-card-cta">
+                            Learn More →
+                        </a>
+                    </div>
+                </div>
+
+                <div class="path-card reveal">
+                    <div class="path-card-content">
+                        <div class="path-card-icon">💎</div>
+                        <div class="path-card-subtitle">Experienced Trader</div>
+                        <h3 class="path-card-title">Personalized Application</h3>
+                        <p class="path-card-description">
+                            Set your own challenge terms based on your strategy. Pay only if you fail your own parameters.
+                            Earn passive income through our pot system. Trade less, earn more.
+                        </p>
+                        <a href="#pac" class="path-card-cta">
+                            Apply Now →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- POT SYSTEM SECTION -->
+    <section class="section" style="background: var(--bg-secondary);">
+        <div class="container">
+            <h2 class="reveal" style="text-align: center; margin-bottom: 28px;">The pot system</h2>
+            <p class="lead reveal" style="text-align: center; max-width: 850px; margin: 0 auto 0;">
+                A two-sided marketplace connecting learning traders with experienced signal providers.
+                Everyone wins when traders improve.
+            </p>
+
+            <div class="path-cards">
+                <div class="path-card reveal">
+                    <div class="path-card-content">
+                        <div class="path-card-icon">📈</div>
+                        <h3 class="path-card-title">For Learners</h3>
+                        <p class="path-card-description">
+                            Follow proven traders' signals to accelerate your learning.
+                            Even if you struggle initially, you can improve by learning from experts.
+                            Stay engaged, keep growing.
+                        </p>
+                        <a href="#" class="path-card-cta">
+                            Browse Experts →
+                        </a>
+                    </div>
+                </div>
+
+                <div class="path-card reveal">
+                    <div class="path-card-content">
+                        <div class="path-card-icon">💰</div>
+                        <h3 class="path-card-title">For Experts</h3>
+                        <p class="path-card-description">
+                            Turn your trading edge into passive income. Followers pay for your signals.
+                            Trade less frequently while earning more through your expertise.
+                            Financial freedom redefined.
+                        </p>
+                        <a href="#" class="path-card-cta">
+                            Become a Provider →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS SECTION -->
+    <section class="section">
+        <div class="container">
+            <h2 class="reveal" style="text-align: center; margin-bottom: 28px;">Trusted by traders worldwide</h2>
+
+            <div class="testimonials-grid">
+                <div class="testimonial-card reveal">
+                    <p class="testimonial-quote">
+                        Finally, a prop firm that actually wants me to succeed. The free entry removed all the pressure,
+                        and I was able to focus purely on my trading strategy. Scaled from $10K to $80K in 4 months.
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-photo"></div>
+                        <div class="testimonial-info">
+                            <div class="testimonial-name">John D.</div>
+                            <div class="testimonial-meta">London, UK · 6 months funded</div>
+                        </div>
+                    </div>
+                    <div class="testimonial-verified">✓ Verified Trader</div>
+                </div>
+
+                <div class="testimonial-card reveal">
+                    <p class="testimonial-quote">
+                        The insurance model changed everything for me. I'm not constantly worried about losing my account
+                        over one bad week. I can trade with confidence knowing IPFX wants me to keep growing, not reset.
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-photo"></div>
+                        <div class="testimonial-info">
+                            <div class="testimonial-name">Sarah M.</div>
+                            <div class="testimonial-meta">New York, USA · 8 months funded</div>
+                        </div>
+                    </div>
+                    <div class="testimonial-verified">✓ Verified Trader</div>
+                </div>
+
+                <div class="testimonial-card reveal">
+                    <p class="testimonial-quote">
+                        As an experienced trader, the personalized terms let me showcase my strategy without arbitrary rules.
+                        The pot system passive income is incredible—I'm earning from followers while trading less. Game-changer.
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-photo"></div>
+                        <div class="testimonial-info">
+                            <div class="testimonial-name">Alex K.</div>
+                            <div class="testimonial-meta">Singapore · 1 year funded</div>
+                        </div>
+                    </div>
+                    <div class="testimonial-verified">✓ Verified Trader</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FINAL CTA SECTION -->
+    <section class="section" style="background: var(--bg-secondary);">
+        <div class="container">
+            <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+                <h2 class="reveal" style="margin-bottom: 28px;">Ready to start your journey?</h2>
+                <p class="lead reveal" style="margin-bottom: 56px;">
+                    Join thousands of traders who have discovered a better way to access capital.
+                    No fees. No gimmicks. Just aligned incentives and genuine partnership.
+                </p>
+                <div class="reveal" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <a href="#" class="btn-primary"><span>Start Infinity Challenge Free</span></a>
+                    <a href="#" class="btn-secondary">Talk to Our Team</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Products</h4>
+                    <a href="#infinity-challenge">Infinity Challenge</a>
+                    <a href="#pac">Personalized Application</a>
+                    <a href="#">Pot System</a>
+                    <a href="#">Insurance Model</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="#">About Us</a>
+                    <a href="#">How We Work</a>
+                    <a href="#">Contact</a>
+                    <a href="#">Careers</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="#">Blog</a>
+                    <a href="#">FAQ</a>
+                    <a href="#">Help Center</a>
+                    <a href="#">Trading Guide</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Risk Disclosure</a>
+                    <a href="#">Regulatory Info</a>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div>
+                    © 2025 IPFX Capital. All rights reserved.<br>
+                    <small style="opacity: 0.7;">FCA Regulated · Company No. [Pending Registration]</small>
+                </div>
+                <div style="font-size: 12px; opacity: 0.6;">
+                    Trading carries risk. Capital at risk. Past performance does not guarantee future results.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ========================================
+        // MOBILE MENU TOGGLE
+        // ========================================
+        function toggleMenu() {
+            const navLinks = document.querySelector('.navbar-links');
+            navLinks.classList.toggle('active');
+        }
+
+        // Close menu when clicking links
+        document.querySelectorAll('.navbar-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.querySelector('.navbar-links').classList.remove('active');
+            });
+        });
+
+        // ========================================
+        // NAVBAR SCROLL EFFECT
+        // ========================================
+        const navbar = document.querySelector('.navbar');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // ========================================
+        // SCROLL REVEAL ANIMATION
+        // ========================================
+        const reveals = document.querySelectorAll('.reveal');
+
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -80px 0px'
+        });
+
+        reveals.forEach(reveal => {
+            revealObserver.observe(reveal);
+        });
+
+        // ========================================
+        // COUNT-UP ANIMATION
+        // ========================================
+        const countups = document.querySelectorAll('.countup');
+
+        const countupObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !entry.target.classList.contains('counted')) {
+                    entry.target.classList.add('counted');
+                    animateCount(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.5
+        });
+
+        function animateCount(element) {
+            const target = parseInt(element.dataset.target);
+            const duration = 2000;
+            const steps = 60;
+            const increment = target / steps;
+            let current = 0;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    element.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(current);
+                }
+            }, duration / steps);
+        }
+
+        countups.forEach(countup => {
+            countupObserver.observe(countup);
+        });
+
+        // ========================================
+        // SMOOTH SCROLL FOR ANCHOR LINKS
+        // ========================================
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href !== '#' && href !== '') {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }
+            });
+        });
+
+        // ========================================
+        // PROGRESSION NODE INTERACTIONS
+        // ========================================
+        document.querySelectorAll('.progression-node').forEach(node => {
+            node.addEventListener('click', function() {
+                // Could add modal or tooltip with detailed requirements
+                console.log('Tier clicked:', this.querySelector('.progression-amount').textContent);
+            });
+        });
+    </script>
+</body>
+</html>
