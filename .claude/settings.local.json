@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"$env:APPDATA\\claude-code\")",
+      "Read(//c/Users/isaac/.config/**)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:executeautomation.github.io)",
+      "Bash(npx -y @executeautomation/playwright-mcp-server)",
+      "Bash(claude mcp list:*)",
+      "Bash(claude mcp add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
