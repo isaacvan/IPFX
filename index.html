@@ -201,7 +201,7 @@
 
         /* Hero */
         .hero {
-            padding: 100px 0 140px;
+            padding: var(--section-gap) 0 var(--section-gap);
         }
 
         .grid {
@@ -425,11 +425,9 @@
         }
 
         .aboutflow {
-            padding-top: clamp(40px, 8vw, 112px);
-            padding-right: clamp(40px, 8vw, 112px);
-            padding-left: clamp(40px, 8vw, 112px);
-            margin-top: 35px;
-            margin-bottom: 20px;
+            padding: var(--section-gap) clamp(40px, 8vw, 112px);
+            margin-top: 0;
+            margin-bottom: 0;
             background: transparent;
         }
 
@@ -1050,7 +1048,7 @@
 
         /* --- NEW: Stats section --- */
         section.stats {
-            padding: 100px 0 var(--section-gap);
+            padding: var(--section-gap) 0 var(--section-gap);
             border-top: 1px solid var(--line);
             border-bottom: 1px solid var(--line);
             background: linear-gradient(180deg, rgba(37, 99, 235, 0.06), rgba(37, 99, 235, 0.02));
@@ -1117,7 +1115,7 @@
 
         /* --- NEW: Products static grid (replaces carousel) --- */
         .products {
-            margin-top: 140px;
+            margin-top: 0;
             padding-top: var(--section-gap);
             padding-bottom: var(--section-gap);
             background: linear-gradient(180deg, #121620, #0e0e12); /* Darker fade */
@@ -1552,6 +1550,264 @@
             padding: 0 20px;
         }
 
+        /* 2-Path Fork Section - VERY DISTINCT (major decision point) */
+        .dual-path-section {
+            padding: var(--section-gap) 0;
+            background: linear-gradient(180deg,
+                rgba(10, 10, 12, 0.8) 0%,
+                rgba(12, 14, 20, 0.90) 50%,
+                rgba(10, 10, 12, 0.8) 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .dual-path-section h2 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: var(--h2);
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            margin: 0 0 20px;
+        }
+
+        .dual-path-section .intro {
+            text-align: center;
+            color: var(--muted);
+            font-size: var(--lead);
+            max-width: 65ch;
+            margin: 0 auto 72px;
+            line-height: 1.6;
+        }
+
+        .path-fork {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Vertical divider between paths */
+        .path-fork::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg, transparent, rgba(37, 99, 235, 0.6) 20%, rgba(37, 99, 235, 0.6) 80%, transparent);
+        }
+
+        .path-option {
+            padding: 60px 48px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s ease;
+            border-radius: 16px;
+        }
+
+        .path-option::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .path-option:hover {
+            transform: scale(1.02);
+        }
+
+        .path-option:hover::before {
+            opacity: 1;
+        }
+
+        /* Left Path: Infinity Challenge (Learning Traders) */
+        .path-left {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+            border: 2px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .path-left::before {
+            background: radial-gradient(600px 400px at 50% 50%, rgba(16, 185, 129, 0.15), transparent 70%);
+        }
+
+        .path-left:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 20px 60px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Right Path: PAC (Experienced Traders) */
+        .path-right {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
+            border: 2px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .path-right::before {
+            background: radial-gradient(600px 400px at 50% 50%, rgba(37, 99, 235, 0.15), transparent 70%);
+        }
+
+        .path-right:hover {
+            border-color: rgba(37, 99, 235, 0.5);
+            box-shadow: 0 20px 60px rgba(37, 99, 235, 0.2);
+        }
+
+        .path-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 24px;
+        }
+
+        .path-left .path-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+
+        .path-right .path-badge {
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px solid rgba(37, 99, 235, 0.4);
+            color: var(--mint);
+        }
+
+        .path-icon {
+            font-size: 4.5rem;
+            margin-bottom: 28px;
+            display: block;
+            line-height: 1;
+        }
+
+        .path-title {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 16px;
+            line-height: 1.2;
+        }
+
+        .path-description {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin: 0 0 32px;
+            max-width: 42ch;
+        }
+
+        .path-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .path-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            text-align: left;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1.5;
+        }
+
+        .path-features li::before {
+            content: "✓";
+            flex-shrink: 0;
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+
+        .path-left .path-features li::before {
+            color: #10b981;
+        }
+
+        .path-right .path-features li::before {
+            color: var(--mint);
+        }
+
+        .path-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 10px;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            margin-top: auto;
+        }
+
+        .path-left .path-cta {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+        }
+
+        .path-right .path-cta {
+            background: linear-gradient(135deg, var(--mint), #1e40af);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+        }
+
+        .path-cta:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .path-left .path-cta:hover {
+            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+        }
+
+        .path-right .path-cta:hover {
+            box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+        }
+
+        .path-cta::after {
+            content: "→";
+            font-size: 1.3rem;
+            transition: transform 0.2s ease;
+        }
+
+        .path-cta:hover::after {
+            transform: translateX(4px);
+        }
+
+        @media (max-width: 980px) {
+            .path-fork {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+
+            .path-fork::before {
+                display: none;
+            }
+
+            .path-option {
+                padding: 48px 32px;
+            }
+        }
+
     </style>
 </head>
 <script>
@@ -1807,6 +2063,56 @@
     </section>
 
     -->
+
+    <!-- DUAL PATH FORK: Choose Your Path -->
+    <section class="dual-path-section" aria-labelledby="path-heading">
+        <div class="container">
+            <h2 id="path-heading" class="reveal">Choose Your Path</h2>
+            <p class="intro reveal">Two distinct approaches to getting funded. Pick the one that matches your experience level.</p>
+
+            <div class="path-fork">
+                <!-- LEFT PATH: Infinity Challenge (Learning Traders) -->
+                <article class="path-option path-left reveal">
+                    <span class="path-badge">Free • Start Today</span>
+                    <span class="path-icon">∞</span>
+                    <h3 class="path-title">Infinity Challenge</h3>
+                    <p class="path-description">
+                        For traders learning their edge. Start with zero cost, prove consistency, scale infinitely as you perform.
+                    </p>
+
+                    <ul class="path-features">
+                        <li>Completely free entry — no credit card</li>
+                        <li>Start with $10K simulated capital</li>
+                        <li>Double your account every +10% gain</li>
+                        <li>Real payouts while you prove consistency</li>
+                        <li>Graduate to real capital when ready</li>
+                    </ul>
+
+                    <a href="infinity.html" class="path-cta">Start Infinity Challenge</a>
+                </article>
+
+                <!-- RIGHT PATH: PAC (Experienced Traders) -->
+                <article class="path-option path-right reveal">
+                    <span class="path-badge">For Experts • Custom Terms</span>
+                    <span class="path-icon">⚡</span>
+                    <h3 class="path-title">Personalized Challenge</h3>
+                    <p class="path-description">
+                        For experienced traders who know their capabilities. Set your own rules, trade your way, pay only if you fail.
+                    </p>
+
+                    <ul class="path-features">
+                        <li>Set your own profit targets & drawdowns</li>
+                        <li>Choose your account size & duration</li>
+                        <li>Pay only if you fail your terms</li>
+                        <li>Account insurance protects your progress</li>
+                        <li>Earn passive income via signal sharing</li>
+                    </ul>
+
+                    <a href="personalised-challenge.html" class="path-cta">Apply for PAC</a>
+                </article>
+            </div>
+        </div>
+    </section>
 
     <!-- NEW: PRODUCTS (STATIC GRID) -->
     <section id="products" class="products" aria-label="Products">

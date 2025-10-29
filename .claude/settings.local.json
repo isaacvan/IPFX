@@ -8,7 +8,14 @@
       "WebFetch(domain:executeautomation.github.io)",
       "Bash(npx -y @executeautomation/playwright-mcp-server)",
       "Bash(claude mcp list:*)",
-      "Bash(claude mcp add:*)"
+      "Bash(claude mcp add:*)",
+      "Bash(npx:*)",
+      "Bash(timeout:*)",
+      "mcp__playwright__playwright_navigate",
+      "mcp__playwright__playwright_screenshot",
+      "mcp__playwright__playwright_get_visible_html",
+      "mcp__playwright__playwright_get_visible_text",
+      "mcp__playwright__playwright_evaluate"
     ],
     "deny": [],
     "ask": []
