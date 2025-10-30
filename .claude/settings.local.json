@@ -17,7 +17,18 @@
       "mcp__playwright__playwright_get_visible_text",
       "mcp__playwright__playwright_evaluate",
       "Bash(rd /s /q \"C:\\Users\\isaac\\RiderProjects\\IPFX\\index-design1\")",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(mkdir:*)",
+      "Read(//c/Users/isaac/Downloads/**)",
+      "mcp__playwright__playwright_click",
+      "mcp__playwright__playwright_close",
+      "Bash(dir:*)",
+      "WebFetch(domain:brandfetch.com)",
+      "WebFetch(domain:seeklogo.com)",
+      "WebFetch(domain:companieslogo.com)",
+      "Bash(curl:*)",
+      "WebFetch(domain:marketing.spotware.com)",
+      "WebFetch(domain:www.spotware.com)"
     ],
     "deny": [],
     "ask": []
