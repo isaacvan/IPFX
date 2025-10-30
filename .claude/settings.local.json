@@ -28,7 +28,8 @@
       "WebFetch(domain:companieslogo.com)",
       "Bash(curl:*)",
       "WebFetch(domain:marketing.spotware.com)",
-      "WebFetch(domain:www.spotware.com)"
+      "WebFetch(domain:www.spotware.com)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []
