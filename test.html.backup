@@ -670,11 +670,11 @@
             width: 1px;
             height: 0;
             background: linear-gradient(180deg,
-            transparent 0%,
-            rgba(160, 160, 160, 0.15) 10%,
-            rgba(160, 160, 160, 0.3) 50%,
-            rgba(160, 160, 160, 0.15) 90%,
-            transparent 100%
+                transparent 0%,
+                rgba(160, 160, 160, 0.15) 10%,
+                rgba(160, 160, 160, 0.3) 50%,
+                rgba(160, 160, 160, 0.15) 90%,
+                transparent 100%
             );
             transform: translateX(-50%);
             transition: height 1.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -958,9 +958,9 @@
             right: 5%;
             height: 2px;
             background: linear-gradient(90deg,
-            rgba(37, 99, 235, 0.2) 0%,
-            rgba(37, 99, 235, 0.5) 50%,
-            rgba(37, 99, 235, 0.2) 100%);
+                rgba(37, 99, 235, 0.2) 0%,
+                rgba(37, 99, 235, 0.5) 50%,
+                rgba(37, 99, 235, 0.2) 100%);
             transform: translateY(-50%);
             z-index: 1;
         }
@@ -1478,9 +1478,9 @@
             width: 200px;
             height: 1px;
             background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(37, 99, 235, 0.3) 50%,
-            transparent 100%);
+                transparent 0%,
+                rgba(37, 99, 235, 0.3) 50%,
+                transparent 100%);
         }
 
         .platforms-heading {
@@ -1500,11 +1500,11 @@
             width: 100%;
             overflow: hidden;
             mask-image: linear-gradient(
-                    to right,
-                    transparent 0%,
-                    black 10%,
-                    black 90%,
-                    transparent 100%
+                to right,
+                transparent 0%,
+                black 10%,
+                black 90%,
+                transparent 100%
             );
         }
 
@@ -1863,1042 +1863,990 @@
     </style>
 </head>
 <body>
-<!-- Navigation -->
-<nav>
-    <a href="/" class="logo">
-        <img src="/assets/images/favicon.ico" alt="IPFX Logo">
-        <span class="logo-text">IPFX Capital</span>
-    </a>
-    <div class="hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
-    <ul class="nav-links">
-        <li class="nav-item">
-            <a href="#programs">
-                Programs
-                <span class="dropdown-arrow">▼</span>
-            </a>
-            <div class="dropdown-menu">
-                <a href="#infinity-challenge">Infinity Challenge</a>
-                <a href="#application-challenge">Application Challenge</a>
-                <a href="#profit-calculator">Profit Calculator</a>
-            </div>
-        </li>
-        <li><a href="#pricing">Pricing</a></li>
-        <li><a href="#why-us">Why Us?</a></li>
-        <li><a href="#about">About</a></li>
-        <li><a href="#login">Login</a></li>
-    </ul>
-</nav>
-
-<!-- Hero Section -->
-<section class="hero">
-    <!-- Enhanced Canvas Background -->
-    <canvas id="flowCanvas"></canvas>
-
-    <!-- Gradient Overlay -->
-    <div class="gradient-overlay"></div>
-
-    <!-- Hero Content -->
-    <div class="hero-content">
-        <div class="hero-badge">
-            Trusted by 10,000+ traders worldwide
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="logo">
+            <img src="/assets/images/favicon.ico" alt="IPFX Logo">
+            <span class="logo-text">IPFX Capital</span>
+        </a>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
         </div>
-
-        <h1>
-            Get Funded<br>
-            <span class="highlight">Zero Buy-In</span>
-        </h1>
-
-        <p>
-            Try the <span class="highlight">Infinity Challenge</span>: Start small, trade free.
-            Hit profit targets and your capital automatically scales. No limits, no fees.
-        </p>
-
-        <div class="cta-group">
-            <a href="#" class="btn btn-primary">Start Your Challenge</a>
-            <a href="#" class="btn btn-secondary">Learn More</a>
-        </div>
-
-        <div class="hero-stats">
-            <div class="stat">
-                <div class="stat-value" data-target="200" data-suffix="K" data-prefix="$">$0K</div>
-                <div class="stat-label">Max Funding</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" data-target="90" data-suffix="%">0%</div>
-                <div class="stat-label">Profit Split</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" data-target="10" data-suffix="K+">0K+</div>
-                <div class="stat-label">Active Traders</div>
-            </div>
-        </div>
-    </div>
-
-</section>
-
-<!-- Choose Your Path Section -->
-<section class="path-section" id="programs">
-    <!-- Vertical dividing line -->
-    <div class="path-divider"></div>
-
-    <!-- Left Side - Infinity Challenge -->
-    <div class="path-side path-left" id="infinity-challenge">
-        <div class="path-content">
-            <div class="path-badge">For Beginners → Intermediate</div>
-            <div class="path-icon">∞</div>
-            <h2 class="path-title">Infinity Challenge</h2>
-            <p class="path-tagline">Start free. Scale with performance.</p>
-
-            <div class="path-features">
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>Zero Buy-In</strong>
-                        <p>Start trading completely free</p>
-                    </div>
+        <ul class="nav-links">
+            <li class="nav-item">
+                <a href="#programs">
+                    Programs
+                    <span class="dropdown-arrow">▼</span>
+                </a>
+                <div class="dropdown-menu">
+                    <a href="#infinity-challenge">Infinity Challenge</a>
+                    <a href="#application-challenge">Application Challenge</a>
+                    <a href="#profit-calculator">Profit Calculator</a>
                 </div>
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>Auto-Scaling Capital</strong>
-                        <p>Hit targets, we increase your funds</p>
-                    </div>
-                </div>
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>Learn as You Grow</strong>
-                        <p>Perfect for developing your skills</p>
-                    </div>
-                </div>
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>No Limits</strong>
-                        <p>Scale to $200K+ with consistency</p>
-                    </div>
-                </div>
+            </li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#why-us">Why Us?</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#login">Login</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <!-- Enhanced Canvas Background -->
+        <canvas id="flowCanvas"></canvas>
+
+        <!-- Gradient Overlay -->
+        <div class="gradient-overlay"></div>
+
+        <!-- Hero Content -->
+        <div class="hero-content">
+            <div class="hero-badge">
+                Trusted by 10,000+ traders worldwide
             </div>
 
-            <a href="#" class="path-button btn-infinity">Start Free Challenge</a>
-            <p class="path-footnote">No credit card required</p>
-        </div>
-    </div>
+            <h1>
+                Get Funded<br>
+                <span class="highlight">Zero Buy-In</span>
+            </h1>
 
-    <!-- Right Side - PAC -->
-    <div class="path-side path-right" id="application-challenge">
-        <div class="path-content">
-            <div class="path-badge">For Intermediate → Expert</div>
-            <div class="path-icon">⚡</div>
-            <h2 class="path-title">Application Challenge</h2>
-            <p class="path-tagline">Custom rules. Fast track to capital.</p>
-
-            <div class="path-features">
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>Choose Your Buy-In</strong>
-                        <p>Set your own entry investment</p>
-                    </div>
-                </div>
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>Direct High Capital</strong>
-                        <p>Access $10K-$200K immediately</p>
-                    </div>
-                </div>
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>Custom Challenge Rules</strong>
-                        <p>Tailor rules to your strategy</p>
-                    </div>
-                </div>
-                <div class="path-feature">
-                    <span class="feature-icon">✓</span>
-                    <div class="feature-text">
-                        <strong>Skip the Grind</strong>
-                        <p>For proven, experienced traders</p>
-                    </div>
-                </div>
-            </div>
-
-            <a href="#" class="path-button btn-pac">Customise Your Path</a>
-            <p class="path-footnote">From $99 entry fee</p>
-        </div>
-    </div>
-</section>
-
-<!-- Timeline Section - How It Works -->
-<section class="timeline-section" id="pricing">
-    <div class="timeline-container">
-        <h2 class="timeline-heading">How the Infinity Challenge Works</h2>
-        <p class="timeline-subheading">Your journey from $1,000 to $200,000+ in funded capital</p>
-
-        <!-- Timeline Steps -->
-        <div class="timeline-steps">
-            <div class="timeline-step active" data-step="1">
-                <div class="step-circle">
-                    <span class="step-number">1</span>
-                </div>
-                <div class="step-label">Start Free</div>
-                <div class="step-amount">$1,000</div>
-            </div>
-
-            <div class="timeline-step" data-step="2">
-                <div class="step-circle">
-                    <span class="step-number">2</span>
-                </div>
-                <div class="step-label">Hit 10%</div>
-                <div class="step-amount">$5,000</div>
-            </div>
-
-            <div class="timeline-step" data-step="3">
-                <div class="step-circle">
-                    <span class="step-number">3</span>
-                </div>
-                <div class="step-label">Keep Growing</div>
-                <div class="step-amount">$10K+</div>
-            </div>
-
-            <div class="timeline-step" data-step="4">
-                <div class="step-circle">
-                    <span class="step-number">4</span>
-                </div>
-                <div class="step-label">Scale Up</div>
-                <div class="step-amount">$50K+</div>
-            </div>
-
-            <div class="timeline-step" data-step="5">
-                <div class="step-circle">
-                    <span class="step-number">5</span>
-                </div>
-                <div class="step-label">Max Capital</div>
-                <div class="step-amount">$200K</div>
-            </div>
-        </div>
-
-        <!-- Detail Panel -->
-        <div class="timeline-detail" id="timelineDetail">
-            <h3 class="detail-title">Step 1: Start Free with $1,000</h3>
-            <p class="detail-description">
-                Begin your trading journey with zero buy-in. We provide you with $1,000 in funded capital immediately—no credit card, no entry fees, no catches. Just start trading.
+            <p>
+                Try the <span class="highlight">Infinity Challenge</span>: Start small, trade free.
+                Hit profit targets and your capital automatically scales. No limits, no fees.
             </p>
-            <ul class="detail-features">
-                <li>Zero upfront cost to begin</li>
-                <li>Instant access to funded capital</li>
-                <li>No credit card required</li>
-                <li>Trade with real money immediately</li>
-                <li>No time pressure or deadlines</li>
-                <li>Use your own trading strategy</li>
-            </ul>
-            <div class="detail-highlight">
-                This is a true zero-risk opportunity. We believe in proving yourself through performance, not paying to play.
+
+            <div class="cta-group">
+                <a href="#" class="btn btn-primary">Start Your Challenge</a>
+                <a href="#" class="btn btn-secondary">Learn More</a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-value" data-target="200" data-suffix="K" data-prefix="$">$0K</div>
+                    <div class="stat-label">Max Funding</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" data-target="90" data-suffix="%">0%</div>
+                    <div class="stat-label">Profit Split</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" data-target="10" data-suffix="K+">0K+</div>
+                    <div class="stat-label">Active Traders</div>
+                </div>
             </div>
         </div>
-    </div>
-</section>
 
-<!-- Profit Calculator Section -->
-<section class="profit-calculator-section" id="profit-calculator">
-    <div class="calculator-container">
-        <h2 class="calculator-heading">Profit Potential Calculator</h2>
-        <p class="calculator-subheading">See how your consistent returns compound with automatic capital scaling</p>
+    </section>
 
-        <div class="calculator-content">
-            <!-- Controls (Left Side) -->
-            <div class="calculator-controls">
-                <div class="control-group">
-                    <span class="control-label">Starting Capital</span>
-                    <span class="control-value">$1,000</span>
-                </div>
+    <!-- Choose Your Path Section -->
+    <section class="path-section" id="programs">
+        <!-- Vertical dividing line -->
+        <div class="path-divider"></div>
 
-                <div class="control-group">
-                    <span class="control-label">Your Monthly Profit Target</span>
-                    <span class="control-value" id="profitPercentDisplay">5%</span>
-                    <div class="slider-container">
-                        <input type="range" min="1" max="20" value="5" step="0.5" class="profit-slider" id="profitSlider">
-                        <div class="slider-labels">
-                            <span>1%</span>
-                            <span>20%</span>
+        <!-- Left Side - Infinity Challenge -->
+        <div class="path-side path-left" id="infinity-challenge">
+            <div class="path-content">
+                <div class="path-badge">For Beginners → Intermediate</div>
+                <div class="path-icon">∞</div>
+                <h2 class="path-title">Infinity Challenge</h2>
+                <p class="path-tagline">Start free. Scale with performance.</p>
+
+                <div class="path-features">
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>Zero Buy-In</strong>
+                            <p>Start trading completely free</p>
                         </div>
                     </div>
-                    <p class="result-subtext">Drag to adjust your expected monthly return rate</p>
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>Auto-Scaling Capital</strong>
+                            <p>Hit targets, we increase your funds</p>
+                        </div>
+                    </div>
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>Learn as You Grow</strong>
+                            <p>Perfect for developing your skills</p>
+                        </div>
+                    </div>
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>No Limits</strong>
+                            <p>Scale to $200K+ with consistency</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="control-group">
-                    <span class="control-label">Time Period</span>
-                    <span class="control-value">12 Months</span>
+                <a href="#" class="path-button btn-infinity">Start Free Challenge</a>
+                <p class="path-footnote">No credit card required</p>
+            </div>
+        </div>
+
+        <!-- Right Side - PAC -->
+        <div class="path-side path-right" id="application-challenge">
+            <div class="path-content">
+                <div class="path-badge">For Intermediate → Expert</div>
+                <div class="path-icon">⚡</div>
+                <h2 class="path-title">Application Challenge</h2>
+                <p class="path-tagline">Custom rules. Fast track to capital.</p>
+
+                <div class="path-features">
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>Choose Your Buy-In</strong>
+                            <p>Set your own entry investment</p>
+                        </div>
+                    </div>
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>Direct High Capital</strong>
+                            <p>Access $10K-$200K immediately</p>
+                        </div>
+                    </div>
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>Custom Challenge Rules</strong>
+                            <p>Tailor rules to your strategy</p>
+                        </div>
+                    </div>
+                    <div class="path-feature">
+                        <span class="feature-icon">✓</span>
+                        <div class="feature-text">
+                            <strong>Skip the Grind</strong>
+                            <p>For proven, experienced traders</p>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="#" class="path-button btn-pac">Customise Your Path</a>
+                <p class="path-footnote">From $99 entry fee</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Timeline Section - How It Works -->
+    <section class="timeline-section" id="pricing">
+        <div class="timeline-container">
+            <h2 class="timeline-heading">How the Infinity Challenge Works</h2>
+            <p class="timeline-subheading">Your journey from $1,000 to $200,000+ in funded capital</p>
+
+            <!-- Timeline Steps -->
+            <div class="timeline-steps">
+                <div class="timeline-step active" data-step="1">
+                    <div class="step-circle">
+                        <span class="step-number">1</span>
+                    </div>
+                    <div class="step-label">Start Free</div>
+                    <div class="step-amount">$1,000</div>
+                </div>
+
+                <div class="timeline-step" data-step="2">
+                    <div class="step-circle">
+                        <span class="step-number">2</span>
+                    </div>
+                    <div class="step-label">Hit 10%</div>
+                    <div class="step-amount">$5,000</div>
+                </div>
+
+                <div class="timeline-step" data-step="3">
+                    <div class="step-circle">
+                        <span class="step-number">3</span>
+                    </div>
+                    <div class="step-label">Keep Growing</div>
+                    <div class="step-amount">$10K+</div>
+                </div>
+
+                <div class="timeline-step" data-step="4">
+                    <div class="step-circle">
+                        <span class="step-number">4</span>
+                    </div>
+                    <div class="step-label">Scale Up</div>
+                    <div class="step-amount">$50K+</div>
+                </div>
+
+                <div class="timeline-step" data-step="5">
+                    <div class="step-circle">
+                        <span class="step-number">5</span>
+                    </div>
+                    <div class="step-label">Max Capital</div>
+                    <div class="step-amount">$200K</div>
                 </div>
             </div>
 
-            <!-- Results (Right Side) -->
-            <div class="calculator-results">
-                <div class="result-item">
-                    <span class="result-label">Estimated Annual Profit</span>
-                    <span class="result-value" id="annualProfit">$0</span>
-                    <p class="result-subtext">With 90% profit split</p>
+            <!-- Detail Panel -->
+            <div class="timeline-detail" id="timelineDetail">
+                <h3 class="detail-title">Step 1: Start Free with $1,000</h3>
+                <p class="detail-description">
+                    Begin your trading journey with zero buy-in. We provide you with $1,000 in funded capital immediately—no credit card, no entry fees, no catches. Just start trading.
+                </p>
+                <ul class="detail-features">
+                    <li>Zero upfront cost to begin</li>
+                    <li>Instant access to funded capital</li>
+                    <li>No credit card required</li>
+                    <li>Trade with real money immediately</li>
+                    <li>No time pressure or deadlines</li>
+                    <li>Use your own trading strategy</li>
+                </ul>
+                <div class="detail-highlight">
+                    This is a true zero-risk opportunity. We believe in proving yourself through performance, not paying to play.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profit Calculator Section -->
+    <section class="profit-calculator-section" id="profit-calculator">
+        <div class="calculator-container">
+            <h2 class="calculator-heading">Profit Potential Calculator</h2>
+            <p class="calculator-subheading">See how your consistent returns compound with automatic capital scaling</p>
+
+            <div class="calculator-content">
+                <!-- Controls (Left Side) -->
+                <div class="calculator-controls">
+                    <div class="control-group">
+                        <span class="control-label">Starting Capital</span>
+                        <span class="control-value">$1,000</span>
+                    </div>
+
+                    <div class="control-group">
+                        <span class="control-label">Your Monthly Profit Target</span>
+                        <span class="control-value" id="profitPercentDisplay">5%</span>
+                        <div class="slider-container">
+                            <input type="range" min="1" max="20" value="5" step="0.5" class="profit-slider" id="profitSlider">
+                            <div class="slider-labels">
+                                <span>1%</span>
+                                <span>20%</span>
+                            </div>
+                        </div>
+                        <p class="result-subtext">Drag to adjust your expected monthly return rate</p>
+                    </div>
+
+                    <div class="control-group">
+                        <span class="control-label">Time Period</span>
+                        <span class="control-value">12 Months</span>
+                    </div>
                 </div>
 
-                <div class="scaling-milestones">
-                    <span class="milestone-label">Capital Progression</span>
-                    <div id="milestonesList">
-                        <!-- Dynamically populated -->
+                <!-- Results (Right Side) -->
+                <div class="calculator-results">
+                    <div class="result-item">
+                        <span class="result-label">Estimated Annual Profit</span>
+                        <span class="result-value" id="annualProfit">$0</span>
+                        <p class="result-subtext">With 90% profit split</p>
+                    </div>
+
+                    <div class="scaling-milestones">
+                        <span class="milestone-label">Capital Progression</span>
+                        <div id="milestonesList">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="calculator-disclaimer">
+                * Projections are hypothetical and for educational purposes only. Actual trading results will vary based on market conditions and individual performance. Past performance does not guarantee future results.
+            </p>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials-section" id="why-us">
+        <div class="testimonials-container">
+            <h2 class="testimonials-heading">What Traders Say</h2>
+            <p class="testimonials-subheading">Join thousands of traders who've found success with IPFX</p>
+
+            <div class="testimonials-grid">
+                <!-- Testimonial 1 -->
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">"Made $8,200 in my first month with the Infinity Challenge. The zero buy-in model let me prove myself without financial risk. Best decision ever."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">SM</div>
+                        <div class="testimonial-info">
+                            <h4>Sarah M.</h4>
+                            <p>Funded $50K</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 2 -->
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">"The transparency is unmatched. No hidden fees, same-day payouts, and actual support from people who understand trading. IPFX delivers on every promise."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">MR</div>
+                        <div class="testimonial-info">
+                            <h4>Mike R.</h4>
+                            <p>Funded $25K</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 3 -->
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">"Tried three other firms before IPFX. None compare. The auto-scaling is genius, and the 90% profit split means I actually keep what I earn. Game changer."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">DK</div>
+                        <div class="testimonial-info">
+                            <h4>David K.</h4>
+                            <p>Funded $100K</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <p class="calculator-disclaimer">
-            * Projections are hypothetical and for educational purposes only. Actual trading results will vary based on market conditions and individual performance. Past performance does not guarantee future results.
-        </p>
-    </div>
-</section>
+    <!-- Final CTA Section -->
+    <section class="final-cta-section">
+        <div class="final-cta-content">
+            <h2 class="final-cta-heading">Ready to Start?</h2>
+            <p class="final-cta-text">Choose your path and begin trading today.</p>
 
-<!-- Testimonials Section -->
-<section class="testimonials-section" id="why-us">
-    <div class="testimonials-container">
-        <h2 class="testimonials-heading">What Traders Say</h2>
-        <p class="testimonials-subheading">Join thousands of traders who've found success with IPFX</p>
+            <div class="final-cta-buttons">
+                <a href="#" class="btn btn-primary btn-large">Start Infinity Challenge</a>
+                <a href="#" class="btn btn-secondary btn-large">Apply for PAC</a>
+            </div>
+        </div>
+    </section>
 
-        <div class="testimonials-grid">
-            <!-- Testimonial 1 -->
-            <div class="testimonial-card">
-                <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p class="testimonial-text">"Made $8,200 in my first month with the Infinity Challenge. The zero buy-in model let me prove myself without financial risk. Best decision ever."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">SM</div>
-                    <div class="testimonial-info">
-                        <h4>Sarah M.</h4>
-                        <p>Funded $50K</p>
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">
+                <h3>IPFX Capital</h3>
+                <p>Empowering traders with fair, transparent access to capital. No gimmicks, no hidden fees—just real opportunities to scale your trading career.</p>
+
+                <div class="footer-platforms">
+                    <h4>Supported Platforms</h4>
+                    <div class="footer-platform-logos">
+                        <img src="/brand-logos/MT4.png" alt="MetaTrader 4">
+                        <img src="/brand-logos/MT5.png" alt="MetaTrader 5">
+                        <img src="/brand-logos/cTraderWhite.svg" alt="cTrader">
+                        <img src="/brand-logos/TradingView.svg" alt="TradingView">
+                        <img src="/brand-logos/matchTrader.png" alt="MatchTrader">
                     </div>
                 </div>
             </div>
 
-            <!-- Testimonial 2 -->
-            <div class="testimonial-card">
-                <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p class="testimonial-text">"The transparency is unmatched. No hidden fees, same-day payouts, and actual support from people who understand trading. IPFX delivers on every promise."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">MR</div>
-                    <div class="testimonial-info">
-                        <h4>Mike R.</h4>
-                        <p>Funded $25K</p>
-                    </div>
-                </div>
+            <div class="footer-links">
+                <h4>Programs</h4>
+                <ul>
+                    <li><a href="/infinity.html">Infinity Challenge</a></li>
+                    <li><a href="/personalised-challenge.html">Application Challenge</a></li>
+                    <li><a href="/trading-pot.html">Trading Pot</a></li>
+                </ul>
             </div>
 
-            <!-- Testimonial 3 -->
-            <div class="testimonial-card">
-                <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p class="testimonial-text">"Tried three other firms before IPFX. None compare. The auto-scaling is genius, and the 90% profit split means I actually keep what I earn. Game changer."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">DK</div>
-                    <div class="testimonial-info">
-                        <h4>David K.</h4>
-                        <p>Funded $100K</p>
-                    </div>
-                </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="/about.html">About Us</a></li>
+                    <li><a href="/contact.html">Contact</a></li>
+                    <li><a href="/faq.html">FAQ</a></li>
+                </ul>
             </div>
-        </div>
-    </div>
-</section>
 
-<!-- Final CTA Section -->
-<section class="final-cta-section">
-    <div class="final-cta-content">
-        <h2 class="final-cta-heading">Ready to Start?</h2>
-        <p class="final-cta-text">Choose your path and begin trading today.</p>
-
-        <div class="final-cta-buttons">
-            <a href="#" class="btn btn-primary btn-large">Start Infinity Challenge</a>
-            <a href="#" class="btn btn-secondary btn-large">Apply for PAC</a>
-        </div>
-    </div>
-</section>
-
-<!-- Footer -->
-<footer>
-    <div class="footer-container">
-        <div class="footer-brand">
-            <h3>IPFX Capital</h3>
-            <p>Empowering traders with fair, transparent access to capital. No gimmicks, no hidden fees—just real opportunities to scale your trading career.</p>
-
-            <div class="footer-platforms">
-                <h4>Supported Platforms</h4>
-                <div class="footer-platform-logos">
-                    <img src="/brand-logos/MT4.png" alt="MetaTrader 4">
-                    <img src="/brand-logos/MT5.png" alt="MetaTrader 5">
-                    <img src="/brand-logos/cTraderWhite.svg" alt="cTrader">
-                    <img src="/brand-logos/TradingView.svg" alt="TradingView">
-                    <img src="/brand-logos/matchTrader.png" alt="MatchTrader">
-                </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Terms & Conditions</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Risk Disclosure</a></li>
+                </ul>
             </div>
         </div>
 
-        <div class="footer-links">
-            <h4>Programs</h4>
-            <ul>
-                <li><a href="/infinity.html">Infinity Challenge</a></li>
-                <li><a href="/personalised-challenge.html">Application Challenge</a></li>
-                <li><a href="/trading-pot.html">Trading Pot</a></li>
-            </ul>
+        <div class="footer-bottom">
+            <p>&copy; 2024 IPFX Capital. All rights reserved.</p>
+            <div class="footer-social">
+                <a href="#">Twitter</a>
+                <a href="#">Discord</a>
+                <a href="#">Instagram</a>
+            </div>
         </div>
+    </footer>
 
-        <div class="footer-links">
-            <h4>Company</h4>
-            <ul>
-                <li><a href="/about.html">About Us</a></li>
-                <li><a href="/contact.html">Contact</a></li>
-                <li><a href="/faq.html">FAQ</a></li>
-            </ul>
-        </div>
+    <script>
+        // Hamburger Menu Toggle
+        const hamburger = document.querySelector('.hamburger');
+        const navLinks = document.querySelector('.nav-links');
 
-        <div class="footer-links">
-            <h4>Legal</h4>
-            <ul>
-                <li><a href="#">Terms & Conditions</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Risk Disclosure</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="footer-bottom">
-        <p>&copy; 2024 IPFX Capital. All rights reserved.</p>
-        <div class="footer-social">
-            <a href="#">Twitter</a>
-            <a href="#">Discord</a>
-            <a href="#">Instagram</a>
-        </div>
-    </div>
-</footer>
-
-<script>
-    // Hamburger Menu Toggle
-    const hamburger = document.querySelector('.hamburger');
-    const navLinks = document.querySelector('.nav-links');
-
-    hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('active');
-        navLinks.classList.toggle('mobile-open');
-    });
-
-    // Close menu when clicking a link
-    document.querySelectorAll('.nav-links a').forEach(link => {
-        link.addEventListener('click', () => {
-            hamburger.classList.remove('active');
-            navLinks.classList.remove('mobile-open');
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('mobile-open');
         });
-    });
 
-    // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
-            hamburger.classList.remove('active');
-            navLinks.classList.remove('mobile-open');
-        }
-    });
+        // Close menu when clicking a link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navLinks.classList.remove('mobile-open');
+            });
+        });
 
-    // Enhanced Canvas Flow Lines with Mouse Interaction
-    const canvas = document.getElementById('flowCanvas');
-    const ctx = canvas.getContext('2d');
-    let width, height;
-    let particles = [];
-    let mousePos = { x: width / 2, y: height / 2 };
-    const particleCount = 100;
-
-    function resize() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        width = canvas.offsetWidth;
-        height = canvas.offsetHeight;
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        ctx.scale(dpr, dpr);
-        initParticles();
-    }
-
-    class Particle {
-        constructor() {
-            this.reset();
-        }
-
-        reset() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.5;
-            this.vy = (Math.random() - 0.5) * 0.5;
-            this.life = Math.random() * 100;
-            this.maxLife = 100;
-        }
-
-        update() {
-            // Move towards mouse slightly
-            const dx = mousePos.x - this.x;
-            const dy = mousePos.y - this.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < 200) {
-                this.vx += dx * 0.00005;
-                this.vy += dy * 0.00005;
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+                hamburger.classList.remove('active');
+                navLinks.classList.remove('mobile-open');
             }
+        });
 
-            this.x += this.vx;
-            this.y += this.vy;
-            this.life--;
+        // Enhanced Canvas Flow Lines with Mouse Interaction
+        const canvas = document.getElementById('flowCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        let mousePos = { x: width / 2, y: height / 2 };
+        const particleCount = 100;
 
-            // Boundaries
-            if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life < 0) {
+        function resize() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
                 this.reset();
             }
 
-            // Damping
-            this.vx *= 0.99;
-            this.vy *= 0.99;
-        }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.life = Math.random() * 100;
+                this.maxLife = 100;
+            }
 
-        draw() {
-            const opacity = this.life / this.maxLife;
-            ctx.fillStyle = `rgba(37, 99, 235, ${opacity * 0.6})`;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    function initParticles() {
-        particles = [];
-        for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle());
-        }
-    }
-
-    function drawConnections() {
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
+            update() {
+                // Move towards mouse slightly
+                const dx = mousePos.x - this.x;
+                const dy = mousePos.y - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < 120) {
-                    const opacity = (1 - distance / 120) * 0.3;
-                    ctx.strokeStyle = `rgba(37, 99, 235, ${opacity})`;
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.stroke();
+                if (distance < 200) {
+                    this.vx += dx * 0.00005;
+                    this.vy += dy * 0.00005;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+
+                // Boundaries
+                if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life < 0) {
+                    this.reset();
+                }
+
+                // Damping
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+            }
+
+            draw() {
+                const opacity = this.life / this.maxLife;
+                ctx.fillStyle = `rgba(37, 99, 235, ${opacity * 0.6})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 120) {
+                        const opacity = (1 - distance / 120) * 0.3;
+                        ctx.strokeStyle = `rgba(37, 99, 235, ${opacity})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
                 }
             }
         }
-    }
 
-    function animate() {
-        // Slightly more opaque fade to prevent ghosting while maintaining smooth trails
-        ctx.fillStyle = 'rgba(10, 10, 12, 0.25)';
-        ctx.fillRect(0, 0, width, height);
+        function animate() {
+            // Slightly more opaque fade to prevent ghosting while maintaining smooth trails
+            ctx.fillStyle = 'rgba(10, 10, 12, 0.25)';
+            ctx.fillRect(0, 0, width, height);
 
-        particles.forEach(p => {
-            p.update();
-            p.draw();
-        });
-
-        drawConnections();
-
-        requestAnimationFrame(animate);
-    }
-
-    // Mouse tracking for particle interaction
-    canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        mousePos.x = e.clientX - rect.left;
-        mousePos.y = e.clientY - rect.top;
-    });
-
-    // Initialize
-    window.addEventListener('resize', resize);
-    resize();
-    animate();
-
-    // Smooth Scrolling
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-
-    // Optimized parallax effect on scroll and sticky nav
-    const nav = document.querySelector('nav');
-    const heroContent = document.querySelector('.hero-content');
-    const heroSection = document.querySelector('.hero');
-    let ticking = false;
-
-    function updateScroll() {
-        const scrolled = window.pageYOffset;
-
-        // Parallax effect
-        if (heroContent) {
-            heroContent.style.transform = `translateY(${scrolled * 0.3}px)`;
-            heroContent.style.opacity = 1 - (scrolled / 700);
-        }
-
-        // Sticky nav after hero section
-        if (heroSection && nav) {
-            const heroHeight = heroSection.offsetHeight;
-            if (scrolled > heroHeight - nav.offsetHeight) {
-                nav.classList.add('scrolled');
-            } else {
-                nav.classList.remove('scrolled');
-            }
-        }
-
-        ticking = false;
-    }
-
-    window.addEventListener('scroll', () => {
-        if (!ticking) {
-            window.requestAnimationFrame(updateScroll);
-            ticking = true;
-        }
-    }, { passive: true });
-
-    // Count-up animation for stats
-    function animateValue(element, start, end, duration, prefix = '', suffix = '') {
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-
-            // Easing function for smooth animation
-            const easeOutQuad = progress * (2 - progress);
-            const currentValue = Math.floor(easeOutQuad * (end - start) + start);
-
-            element.textContent = prefix + currentValue + suffix;
-
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            } else {
-                element.textContent = prefix + end + suffix;
-            }
-        };
-        window.requestAnimationFrame(step);
-    }
-
-    // Intersection Observer for stats
-    const statsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !entry.target.classList.contains('counted')) {
-                entry.target.classList.add('counted');
-
-                const statValues = entry.target.querySelectorAll('.stat-value');
-                statValues.forEach(stat => {
-                    const target = parseInt(stat.dataset.target);
-                    const prefix = stat.dataset.prefix || '';
-                    const suffix = stat.dataset.suffix || '';
-
-                    animateValue(stat, 0, target, 2200, prefix, suffix);
-                });
-            }
-        });
-    }, {
-        threshold: 0.2
-    });
-
-    // Observe the stats section
-    const heroStats = document.querySelector('.hero-stats');
-    if (heroStats) {
-        statsObserver.observe(heroStats);
-    }
-
-    // Path Section Animations
-    const pathObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
-        });
-    }, {
-        threshold: 0.3
-    });
-
-    // Observe path divider and content
-    const pathDivider = document.querySelector('.path-divider');
-    const pathContents = document.querySelectorAll('.path-content');
-
-    if (pathDivider) {
-        pathObserver.observe(pathDivider);
-    }
-
-    pathContents.forEach(content => {
-        pathObserver.observe(content);
-    });
-
-    // Infinite Carousel for Platform Logos
-    const carouselTrack = document.getElementById('carouselTrack');
-
-    if (carouselTrack) {
-        const originalLogos = Array.from(carouselTrack.children);
-
-        // Clone logos enough times to fill viewport + buffer
-        const cloneCount = Math.max(3, Math.ceil((window.innerWidth * 3) / (originalLogos.length * 150)));
-
-        for (let i = 0; i < cloneCount; i++) {
-            originalLogos.forEach(logo => {
-                const clone = logo.cloneNode(true);
-                carouselTrack.appendChild(clone);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
             });
+
+            drawConnections();
+
+            requestAnimationFrame(animate);
         }
 
-        // Wait for images to load before calculating width
-        let animationId;
-        let isPaused = false;
+        // Mouse tracking for particle interaction
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mousePos.x = e.clientX - rect.left;
+            mousePos.y = e.clientY - rect.top;
+        });
 
-        const initCarousel = () => {
-            // Calculate the exact width of one complete set
-            const trackGap = parseFloat(getComputedStyle(carouselTrack).gap) || 0;
-            let singleSetWidth = 0;
+        // Initialize
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
 
-            for (let i = 0; i < originalLogos.length; i++) {
-                const logo = carouselTrack.children[i];
-                singleSetWidth += logo.offsetWidth + trackGap;
+        // Smooth Scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Optimized parallax effect on scroll and sticky nav
+        const nav = document.querySelector('nav');
+        const heroContent = document.querySelector('.hero-content');
+        const heroSection = document.querySelector('.hero');
+        let ticking = false;
+
+        function updateScroll() {
+            const scrolled = window.pageYOffset;
+
+            // Parallax effect
+            if (heroContent) {
+                heroContent.style.transform = `translateY(${scrolled * 0.3}px)`;
+                heroContent.style.opacity = 1 - (scrolled / 700);
             }
 
-            let position = 0;
-            const speed = 0.5; // pixels per frame
+            // Sticky nav after hero section
+            if (heroSection && nav) {
+                const heroHeight = heroSection.offsetHeight;
+                if (scrolled > heroHeight - nav.offsetHeight) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
+            }
 
-            function animate() {
-                if (!isPaused) {
-                    position += speed;
+            ticking = false;
+        }
 
-                    // Seamlessly reset when exactly one set has scrolled past
-                    if (position >= singleSetWidth) {
-                        position = position % singleSetWidth;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                window.requestAnimationFrame(updateScroll);
+                ticking = true;
+            }
+        }, { passive: true });
+
+        // Count-up animation for stats
+        function animateValue(element, start, end, duration, prefix = '', suffix = '') {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+
+                // Easing function for smooth animation
+                const easeOutQuad = progress * (2 - progress);
+                const currentValue = Math.floor(easeOutQuad * (end - start) + start);
+
+                element.textContent = prefix + currentValue + suffix;
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    element.textContent = prefix + end + suffix;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Intersection Observer for stats
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !entry.target.classList.contains('counted')) {
+                    entry.target.classList.add('counted');
+
+                    const statValues = entry.target.querySelectorAll('.stat-value');
+                    statValues.forEach(stat => {
+                        const target = parseInt(stat.dataset.target);
+                        const prefix = stat.dataset.prefix || '';
+                        const suffix = stat.dataset.suffix || '';
+
+                        animateValue(stat, 0, target, 2200, prefix, suffix);
+                    });
+                }
+            });
+        }, {
+            threshold: 0.2
+        });
+
+        // Observe the stats section
+        const heroStats = document.querySelector('.hero-stats');
+        if (heroStats) {
+            statsObserver.observe(heroStats);
+        }
+
+        // Path Section Animations
+        const pathObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, {
+            threshold: 0.3
+        });
+
+        // Observe path divider and content
+        const pathDivider = document.querySelector('.path-divider');
+        const pathContents = document.querySelectorAll('.path-content');
+
+        if (pathDivider) {
+            pathObserver.observe(pathDivider);
+        }
+
+        pathContents.forEach(content => {
+            pathObserver.observe(content);
+        });
+
+        // Infinite Carousel for Platform Logos
+        const carouselTrack = document.getElementById('carouselTrack');
+
+        if (carouselTrack) {
+            const originalLogos = Array.from(carouselTrack.children);
+
+            // Clone logos enough times to fill viewport + buffer
+            const cloneCount = Math.max(3, Math.ceil((window.innerWidth * 3) / (originalLogos.length * 150)));
+
+            for (let i = 0; i < cloneCount; i++) {
+                originalLogos.forEach(logo => {
+                    const clone = logo.cloneNode(true);
+                    carouselTrack.appendChild(clone);
+                });
+            }
+
+            // Wait for images to load before calculating width
+            let animationId;
+            let isPaused = false;
+
+            const initCarousel = () => {
+                // Calculate the exact width of one complete set
+                const trackGap = parseFloat(getComputedStyle(carouselTrack).gap) || 0;
+                let singleSetWidth = 0;
+
+                for (let i = 0; i < originalLogos.length; i++) {
+                    const logo = carouselTrack.children[i];
+                    singleSetWidth += logo.offsetWidth + trackGap;
+                }
+
+                let position = 0;
+                const speed = 0.5; // pixels per frame
+
+                function animate() {
+                    if (!isPaused) {
+                        position += speed;
+
+                        // Seamlessly reset when exactly one set has scrolled past
+                        if (position >= singleSetWidth) {
+                            position = position % singleSetWidth;
+                        }
+
+                        carouselTrack.style.transform = `translateX(-${position}px)`;
                     }
 
-                    carouselTrack.style.transform = `translateX(-${position}px)`;
+                    animationId = requestAnimationFrame(animate);
                 }
 
-                animationId = requestAnimationFrame(animate);
+                // Pause on hover
+                carouselTrack.addEventListener('mouseenter', () => {
+                    isPaused = true;
+                });
+
+                carouselTrack.addEventListener('mouseleave', () => {
+                    isPaused = false;
+                });
+
+                // Start animation
+                animate();
+            };
+
+            // Wait for images to load
+            Promise.all(
+                Array.from(carouselTrack.querySelectorAll('img')).map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    });
+                })
+            ).then(initCarousel);
+
+            // Recalculate on resize
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (animationId) cancelAnimationFrame(animationId);
+                    location.reload(); // Simplest way to reinit on resize
+                }, 500);
+            });
+        }
+
+        // ==================== PROFIT CALCULATOR ====================
+        const profitSlider = document.getElementById('profitSlider');
+        const profitPercentDisplay = document.getElementById('profitPercentDisplay');
+        const annualProfitDisplay = document.getElementById('annualProfit');
+        const milestonesList = document.getElementById('milestonesList');
+
+        // Capital progression levels for Infinity Challenge
+        const capitalLevels = [1000, 5000, 10000, 50000, 100000, 200000];
+
+        function calculateProfits(monthlyProfitPercent) {
+            const months = 12;
+            const profitSplit = 0.90; // 90% profit split
+            const scaleThreshold = 10; // Scale up at 10% cumulative gain
+
+            let currentCapital = capitalLevels[0];
+            let currentLevelIndex = 0;
+            let totalProfitMade = 0;
+            let cumulativePercentGain = 0;
+
+            const milestones = [];
+
+            // Record starting position
+            milestones.push({
+                month: 0,
+                capital: currentCapital,
+                profit: 0
+            });
+
+            for (let month = 1; month <= months; month++) {
+                // Calculate profit for this month
+                const monthProfit = currentCapital * (monthlyProfitPercent / 100);
+                totalProfitMade += monthProfit;
+                cumulativePercentGain += monthlyProfitPercent;
+
+                // Check if we should scale up capital (can scale multiple times in one month if high %)
+                while (cumulativePercentGain >= scaleThreshold && currentLevelIndex < capitalLevels.length - 1) {
+                    // Move to next capital level
+                    currentLevelIndex++;
+                    currentCapital = capitalLevels[currentLevelIndex];
+                    cumulativePercentGain -= scaleThreshold; // Subtract threshold, carry over excess
+
+                    // Record this milestone
+                    milestones.push({
+                        month: month,
+                        capital: currentCapital,
+                        profit: totalProfitMade
+                    });
+                }
             }
 
-            // Pause on hover
-            carouselTrack.addEventListener('mouseenter', () => {
-                isPaused = true;
-            });
-
-            carouselTrack.addEventListener('mouseleave', () => {
-                isPaused = false;
-            });
-
-            // Start animation
-            animate();
-        };
-
-        // Wait for images to load
-        Promise.all(
-            Array.from(carouselTrack.querySelectorAll('img')).map(img => {
-                if (img.complete) return Promise.resolve();
-                return new Promise(resolve => {
-                    img.onload = resolve;
-                    img.onerror = resolve;
-                });
-            })
-        ).then(initCarousel);
-
-        // Recalculate on resize
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                if (animationId) cancelAnimationFrame(animationId);
-                location.reload(); // Simplest way to reinit on resize
-            }, 500);
-        });
-    }
-
-    // ==================== PROFIT CALCULATOR ====================
-    const profitSlider = document.getElementById('profitSlider');
-    const profitPercentDisplay = document.getElementById('profitPercentDisplay');
-    const annualProfitDisplay = document.getElementById('annualProfit');
-    const milestonesList = document.getElementById('milestonesList');
-
-    // Capital progression levels for Infinity Challenge
-    const capitalLevels = [1000, 5000, 10000, 50000, 100000, 200000];
-
-    function calculateProfits(monthlyProfitPercent) {
-        const months = 12;
-        const profitSplit = 0.90; // 90% profit split
-        const scaleThreshold = 10; // Scale up at 10% cumulative gain
-
-        let currentCapital = capitalLevels[0];
-        let currentLevelIndex = 0;
-        let totalProfitMade = 0;
-        let cumulativePercentGain = 0;
-
-        const milestones = [];
-
-        // Record starting position
-        milestones.push({
-            month: 0,
-            capital: currentCapital,
-            profit: 0
-        });
-
-        for (let month = 1; month <= months; month++) {
-            // Calculate profit for this month
-            const monthProfit = currentCapital * (monthlyProfitPercent / 100);
-            totalProfitMade += monthProfit;
-            cumulativePercentGain += monthlyProfitPercent;
-
-            // Check if we should scale up capital (can scale multiple times in one month if high %)
-            while (cumulativePercentGain >= scaleThreshold && currentLevelIndex < capitalLevels.length - 1) {
-                // Move to next capital level
-                currentLevelIndex++;
-                currentCapital = capitalLevels[currentLevelIndex];
-                cumulativePercentGain -= scaleThreshold; // Subtract threshold, carry over excess
-
-                // Record this milestone
+            // Add final milestone if not already added
+            if (milestones[milestones.length - 1].month !== months) {
                 milestones.push({
-                    month: month,
+                    month: months,
                     capital: currentCapital,
                     profit: totalProfitMade
                 });
             }
+
+            // Calculate your take (90% split)
+            const yourProfit = totalProfitMade * profitSplit;
+
+            return {
+                totalProfit: yourProfit,
+                finalCapital: currentCapital,
+                milestones: milestones
+            };
         }
 
-        // Add final milestone if not already added
-        if (milestones[milestones.length - 1].month !== months) {
-            milestones.push({
-                month: months,
-                capital: currentCapital,
-                profit: totalProfitMade
+        function formatCurrency(value) {
+            if (value >= 1000000) {
+                return '$' + (value / 1000000).toFixed(2) + 'M';
+            } else if (value >= 1000) {
+                return '$' + (value / 1000).toFixed(1) + 'K';
+            } else {
+                return '$' + value.toFixed(0);
+            }
+        }
+
+        function updateCalculator() {
+            const profitPercent = parseFloat(profitSlider.value);
+            profitPercentDisplay.textContent = profitPercent + '%';
+
+            const results = calculateProfits(profitPercent);
+
+            // Update annual profit display
+            annualProfitDisplay.textContent = formatCurrency(results.totalProfit);
+
+            // Update milestones list
+            milestonesList.innerHTML = '';
+
+            // Show key milestones (filter to show only significant capital changes)
+            const significantMilestones = results.milestones.filter((milestone, index) => {
+                if (index === 0) return true; // Always show start
+                if (index === results.milestones.length - 1) return true; // Always show end
+                return milestone.capital !== results.milestones[index - 1].capital; // Show when capital changes
+            });
+
+            significantMilestones.forEach((milestone, index) => {
+                const milestoneItem = document.createElement('div');
+                milestoneItem.className = 'milestone-item';
+
+                const monthLabel = document.createElement('span');
+                monthLabel.className = 'milestone-month';
+                monthLabel.textContent = index === 0 ? 'Start' : `Month ${milestone.month}`;
+
+                const capitalLabel = document.createElement('span');
+                capitalLabel.className = 'milestone-capital';
+                capitalLabel.textContent = formatCurrency(milestone.capital);
+
+                milestoneItem.appendChild(monthLabel);
+                milestoneItem.appendChild(capitalLabel);
+                milestonesList.appendChild(milestoneItem);
             });
         }
 
-        // Calculate your take (90% split)
-        const yourProfit = totalProfitMade * profitSplit;
+        // Initialize calculator
+        updateCalculator();
 
-        return {
-            totalProfit: yourProfit,
-            finalCapital: currentCapital,
-            milestones: milestones
+        // Update on slider change
+        profitSlider.addEventListener('input', updateCalculator);
+
+        // ==================== TIMELINE INTERACTIVE ====================
+        const timelineSteps = document.querySelectorAll('.timeline-step');
+        const timelineDetail = document.getElementById('timelineDetail');
+
+        const stepContent = {
+            1: {
+                title: 'Step 1: Start Free with $1,000',
+                description: 'Begin your trading journey with zero buy-in. We provide you with $1,000 in funded capital immediately—no credit card, no entry fees, no catches. Just start trading.',
+                features: [
+                    'Zero upfront cost to begin',
+                    'Instant access to funded capital',
+                    'No credit card required',
+                    'Trade with real money immediately',
+                    'No time pressure or deadlines',
+                    'Use your own trading strategy'
+                ],
+                highlight: 'This is a true zero-risk opportunity. We believe in proving yourself through performance, not paying to play.'
+            },
+            2: {
+                title: 'Step 2: Hit 10% Profit → Scale to $5,000',
+                description: 'Once you hit a cumulative 10% profit on your $1,000 account, we automatically scale your capital to $5,000. Your percentage counter resets, and you continue trading with more buying power.',
+                features: [
+                    'Automatic capital scaling at 10%',
+                    'No paperwork or approval needed',
+                    'Immediate access to increased capital',
+                    'Your profit percentage resets to 0%',
+                    'Keep all your earned profits (90% split)',
+                    'Continue with your same strategy'
+                ],
+                highlight: 'Capital scaling is instant and automatic. Focus on trading—we handle the rest.'
+            },
+            3: {
+                title: 'Step 3: Keep Growing → $10,000 Capital',
+                description: 'Hit another 10% cumulative profit on your $5,000 account, and you unlock $10,000 in capital. Each milestone brings exponentially more earning potential.',
+                features: [
+                    'Scale from $5K to $10K capital',
+                    'Compound growth accelerates earnings',
+                    'Same 10% rule applies',
+                    'No additional requirements',
+                    'Trade larger positions safely',
+                    'Bigger capital, bigger profits'
+                ],
+                highlight: 'At $10K capital, your earning potential really starts to compound. A 10% gain here is $1,000 in your pocket (at 90% split).'
+            },
+            4: {
+                title: 'Step 4: Scale Up → $50,000 Capital',
+                description: 'Continue hitting 10% cumulative profit targets to unlock $50,000 in funded capital. You\'re now trading with professional-level capital allocation.',
+                features: [
+                    'Access to $50,000 in capital',
+                    'Professional trading account size',
+                    'Same simple 10% scaling rule',
+                    'Trade higher timeframes comfortably',
+                    'Substantial earning potential',
+                    'Still zero fees or hidden costs'
+                ],
+                highlight: 'At this level, consistent 5% monthly returns can earn you $2,250/month (at 90% split).'
+            },
+            5: {
+                title: 'Step 5: Maximum Capital → $200,000',
+                description: 'Reach the ultimate tier with $200,000 in funded capital. You\'ve proven consistent profitability and now trade with institutional-level capital.',
+                features: [
+                    'Maximum $200K funded account',
+                    'Institutional capital allocation',
+                    'Unlimited earning potential',
+                    '90% profit split on all earnings',
+                    'Same-day withdrawals available',
+                    'Continue trading indefinitely'
+                ],
+                highlight: 'You\'ve reached the top! With $200K capital, even conservative 3% monthly returns earn you $5,400/month. The sky\'s the limit.'
+            }
         };
-    }
 
-    function formatCurrency(value) {
-        if (value >= 1000000) {
-            return '$' + (value / 1000000).toFixed(2) + 'M';
-        } else if (value >= 1000) {
-            return '$' + (value / 1000).toFixed(1) + 'K';
-        } else {
-            return '$' + value.toFixed(0);
-        }
-    }
+        function showStepDetail(stepNumber) {
+            const content = stepContent[stepNumber];
 
-    function updateCalculator() {
-        const profitPercent = parseFloat(profitSlider.value);
-        profitPercentDisplay.textContent = profitPercent + '%';
-
-        const results = calculateProfits(profitPercent);
-
-        // Update annual profit display
-        annualProfitDisplay.textContent = formatCurrency(results.totalProfit);
-
-        // Update milestones list
-        milestonesList.innerHTML = '';
-
-        // Show key milestones (filter to show only significant capital changes)
-        const significantMilestones = results.milestones.filter((milestone, index) => {
-            if (index === 0) return true; // Always show start
-            if (index === results.milestones.length - 1) return true; // Always show end
-            return milestone.capital !== results.milestones[index - 1].capital; // Show when capital changes
-        });
-
-        significantMilestones.forEach((milestone, index) => {
-            const milestoneItem = document.createElement('div');
-            milestoneItem.className = 'milestone-item';
-
-            const monthLabel = document.createElement('span');
-            monthLabel.className = 'milestone-month';
-            monthLabel.textContent = index === 0 ? 'Start' : `Month ${milestone.month}`;
-
-            const capitalLabel = document.createElement('span');
-            capitalLabel.className = 'milestone-capital';
-            capitalLabel.textContent = formatCurrency(milestone.capital);
-
-            milestoneItem.appendChild(monthLabel);
-            milestoneItem.appendChild(capitalLabel);
-            milestonesList.appendChild(milestoneItem);
-        });
-    }
-
-    // Initialize calculator
-    updateCalculator();
-
-    // Update on slider change
-    profitSlider.addEventListener('input', updateCalculator);
-
-    // ==================== TIMELINE INTERACTIVE ====================
-    const timelineSteps = document.querySelectorAll('.timeline-step');
-    const timelineDetail = document.getElementById('timelineDetail');
-
-    const stepContent = {
-        1: {
-            title: 'Step 1: Start Free with $1,000',
-            description: 'Begin your trading journey with zero buy-in. We provide you with $1,000 in funded capital immediately—no credit card, no entry fees, no catches. Just start trading.',
-            stats: { cost: '$0', capital: '$1,000', split: '90%' },
-            features: [
-                'Zero upfront cost to begin',
-                'Instant access to funded capital',
-                'No credit card required',
-                'Trade with real money immediately',
-                'No time pressure or deadlines',
-                'Use your own trading strategy'
-            ],
-            nextSteps: [
-                'Trade and hit 10% cumulative profit',
-                'Automatically scale to $5,000 capital',
-                'Your percentage counter resets to 0%'
-            ]
-        },
-        2: {
-            title: 'Step 2: Hit 10% Profit → Scale to $5,000',
-            description: 'Once you hit a cumulative 10% profit on your $1,000 account, we automatically scale your capital to $5,000. Your percentage counter resets, and you continue trading with more buying power.',
-            stats: { cost: '$0', capital: '$5,000', split: '90%' },
-            features: [
-                'Automatic capital scaling at 10%',
-                'No paperwork or approval needed',
-                'Immediate access to increased capital',
-                'Your profit percentage resets to 0%',
-                'Keep all your earned profits',
-                'Continue with your same strategy'
-            ],
-            nextSteps: [
-                'Hit another 10% cumulative profit',
-                'Scale to $10,000 capital',
-                'Keep compounding your earnings'
-            ]
-        },
-        3: {
-            title: 'Step 3: Keep Growing → $10,000 Capital',
-            description: 'Hit another 10% cumulative profit on your $5,000 account, and you unlock $10,000 in capital. Each milestone brings exponentially more earning potential.',
-            stats: { cost: '$0', capital: '$10,000', split: '90%' },
-            features: [
-                'Scale from $5K to $10K capital',
-                'Compound growth accelerates earnings',
-                'Same 10% rule applies',
-                'No additional requirements',
-                'Trade larger positions safely',
-                'Bigger capital, bigger profits'
-            ],
-            nextSteps: [
-                'Continue hitting 10% milestones',
-                'Scale to $50,000 capital',
-                'Reach professional-level capital'
-            ]
-        },
-        4: {
-            title: 'Step 4: Scale Up → $50,000 Capital',
-            description: 'Continue hitting 10% cumulative profit targets to unlock $50,000 in funded capital. You\'re now trading with professional-level capital allocation.',
-            stats: { cost: '$0', capital: '$50,000', split: '90%' },
-            features: [
-                'Access to $50,000 in capital',
-                'Professional trading account size',
-                'Same simple 10% scaling rule',
-                'Trade higher timeframes comfortably',
-                'Substantial earning potential',
-                'Still zero fees or hidden costs'
-            ],
-            nextSteps: [
-                'Maintain 10% profit targets',
-                'Unlock maximum $200,000 capital',
-                'Achieve institutional-level trading'
-            ]
-        },
-        5: {
-            title: 'Step 5: Maximum Capital → $200,000',
-            description: 'Reach the ultimate tier with $200,000 in funded capital. You\'ve proven consistent profitability and now trade with institutional-level capital.',
-            stats: { cost: '$0', capital: '$200,000', split: '90%' },
-            features: [
-                'Maximum $200K funded account',
-                'Institutional capital allocation',
-                'Unlimited earning potential',
-                '90% profit split on all earnings',
-                'Same-day withdrawals available',
-                'Continue trading indefinitely'
-            ],
-            nextSteps: [
-                'Trade with unlimited potential',
-                'Withdraw profits same-day',
-                'Continue growing indefinitely'
-            ]
-        }
-    };
-
-    function showStepDetail(stepNumber) {
-        const content = stepContent[stepNumber];
-
-        // Update detail panel content with new vertical flow structure
-        timelineDetail.innerHTML = `
+            // Update detail panel content
+            timelineDetail.innerHTML = `
                 <h3 class="detail-title">${content.title}</h3>
                 <p class="detail-description">${content.description}</p>
-
-                <div class="detail-stats-bar">
-                    <div class="detail-stat">
-                        <span class="detail-stat-label">Cost</span>
-                        <span class="detail-stat-value">${content.stats.cost}</span>
-                    </div>
-                    <span class="detail-stat-separator">•</span>
-                    <div class="detail-stat">
-                        <span class="detail-stat-label">Capital</span>
-                        <span class="detail-stat-value">${content.stats.capital}</span>
-                    </div>
-                    <span class="detail-stat-separator">•</span>
-                    <div class="detail-stat">
-                        <span class="detail-stat-label">Profit Split</span>
-                        <span class="detail-stat-value">${content.stats.split}</span>
-                    </div>
-                </div>
-
-                <div class="detail-features-section">
-                    <h4 class="detail-section-title">You Get:</h4>
-                    <ul class="detail-features">
-                        ${content.features.map(feature => `<li>${feature}</li>`).join('')}
-                    </ul>
-                </div>
-
-                <div class="detail-next">
-                    <h4 class="detail-next-title">What Happens Next</h4>
-                    <ul class="detail-next-list">
-                        ${content.nextSteps.map(step => `<li class="detail-next-item">${step}</li>`).join('')}
-                    </ul>
-                </div>
+                <ul class="detail-features">
+                    ${content.features.map(feature => `<li>${feature}</li>`).join('')}
+                </ul>
+                <div class="detail-highlight">${content.highlight}</div>
             `;
 
-        // Update active state
-        timelineSteps.forEach(step => step.classList.remove('active'));
-        document.querySelector(`[data-step="${stepNumber}"]`).classList.add('active');
-    }
+            // Update active state
+            timelineSteps.forEach(step => step.classList.remove('active'));
+            document.querySelector(`[data-step="${stepNumber}"]`).classList.add('active');
+        }
 
-    // Add click handlers to timeline steps
-    timelineSteps.forEach(step => {
-        step.addEventListener('click', () => {
-            const stepNumber = parseInt(step.getAttribute('data-step'));
-            showStepDetail(stepNumber);
+        // Add click handlers to timeline steps
+        timelineSteps.forEach(step => {
+            step.addEventListener('click', () => {
+                const stepNumber = parseInt(step.getAttribute('data-step'));
+                showStepDetail(stepNumber);
+            });
         });
-    });
-</script>
+    </script>
 </body>
 </html>

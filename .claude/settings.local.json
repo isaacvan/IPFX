@@ -29,7 +29,12 @@
       "Bash(curl:*)",
       "WebFetch(domain:marketing.spotware.com)",
       "WebFetch(domain:www.spotware.com)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "WebFetch(domain:gsacapital.com)",
+      "mcp__playwright__playwright_hover",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []
