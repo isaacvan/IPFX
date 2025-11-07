@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
     <style>
         * {
             margin: 0;
@@ -658,7 +659,7 @@
             );
             margin-top: 5vh;
             padding-top: 10vh;
-            padding-bottom: 8rem;
+            padding-bottom: 12rem;
             transform: translateZ(0);
         }
 
@@ -690,20 +691,20 @@
             flex: 1;
             display: flex;
             align-items: center;
-            padding: 8rem 2rem;
+            padding: 10rem 2rem;
             position: relative;
         }
 
         .path-left {
             border-right: 1px solid rgba(37, 99, 235, 0.1);
             justify-content: flex-end;
-            padding-right: 6rem;
+            padding-right: clamp(2rem, 8vw, 10rem);
         }
 
         .path-right {
             border-left: 1px solid rgba(37, 99, 235, 0.1);
             justify-content: flex-start;
-            padding-left: 6rem;
+            padding-left: clamp(2rem, 8vw, 10rem);
         }
 
         .path-content {
@@ -908,340 +909,338 @@
             }
         }
 
-        /* Pricing Comparison Section */
-        /* Timeline Section - How It Works */
-        .timeline-section {
-            background: var(--bg);
-            padding: 10rem 2rem;
+        /* Vertical Timeline Section */
+        .vertical-timeline-wrapper {
             position: relative;
+            padding: 12rem 2rem;
+            background: #0e0e10;
+            overflow: hidden;
+        }
+
+        .timeline-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 6rem;
+        }
+
+        .timeline-header h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .timeline-header p {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            color: var(--muted);
+            line-height: 1.8;
         }
 
         .timeline-container {
-            max-width: 1200px;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            padding-left: 60px;
+        }
+
+        /* Ultra-minimal Vertical Line */
+        .timeline-line {
+            position: absolute;
+            left: 3px;
+            top: 0;
+            width: 1px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-line-progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 0%;
+            background: rgba(37, 99, 235, 0.3);
+            transition: height 0.3s ease-out;
+        }
+
+        /* Timeline Stage Items */
+        .timeline-stage {
+            position: relative;
+            margin-bottom: 10rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .timeline-stage.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .timeline-stage:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Tiny Timeline Dot */
+        .timeline-node {
+            position: absolute;
+            left: -57px;
+            top: 0.5rem;
+            width: 6px;
+            height: 6px;
+            background: rgba(37, 99, 235, 0.4);
+            border-radius: 50%;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-stage.is-visible .timeline-node {
+            background: var(--cobalt);
+        }
+
+        /* Stage Content - No Card */
+        .stage-content {
+            background: transparent;
+            border: none;
+            padding: 0;
+            position: relative;
+        }
+
+        .capital-display {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 600;
+            color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.1;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+
+        .stage-title {
+            font-size: clamp(1.125rem, 2vw, 1.25rem);
+            font-weight: 600;
+            color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.01em;
+        }
+
+        .stage-subtitle {
+            font-size: clamp(0.9375rem, 1.5vw, 1rem);
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.7;
+            max-width: 550px;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .timeline-container {
+                padding-left: 40px;
+            }
+
+            .timeline-line {
+                left: 3px;
+            }
+
+            .timeline-node {
+                left: -37px;
+                width: 6px;
+                height: 6px;
+            }
+
+            .timeline-stage {
+                margin-bottom: 7rem;
+            }
+        }
+
+        /* Trading Pot Section */
+        .trading-pot-section {
+            position: relative;
+            padding: 12rem 2rem;
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        .pot-section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 6rem;
+        }
+
+        .pot-section-header h2 {
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            color: var(--fg);
+            letter-spacing: -0.02em;
+        }
+
+        .pot-section-header p {
+            font-size: clamp(1rem, 2vw, 1.125rem);
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .pot-cards-wrapper {
+            max-width: 700px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            position: relative;
+        }
+
+        .pot-card {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 3rem 3.5rem;
+            position: relative;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .pot-card:first-of-type {
+            margin-bottom: 0;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .pot-card:last-of-type {
+            margin-top: 0;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+            border-top: none;
+        }
+
+        .pot-card:hover {
+            border-color: rgba(37, 99, 235, 0.2);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .pot-card-label {
+            display: inline-block;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--cobalt);
+            margin-bottom: 1.5rem;
+            padding: 0.35rem 0.8rem;
+            background: rgba(37, 99, 235, 0.08);
+            border-radius: 4px;
+        }
+
+        .pot-card h3 {
+            font-size: clamp(1.5rem, 3vw, 1.75rem);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--fg);
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+
+        .pot-card-description {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.55);
+            max-width: 580px;
             margin: 0 auto;
         }
 
-        .timeline-heading {
-            text-align: center;
-            font-size: clamp(2rem, 4vw, 3rem);
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--fg);
-            font-family: 'Space Grotesk', sans-serif;
-        }
-
-        .timeline-subheading {
-            text-align: center;
-            font-size: clamp(1rem, 2vw, 1.25rem);
-            color: var(--muted);
-            margin-bottom: 5rem;
-        }
-
-        /* Timeline Steps */
-        .timeline-steps {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4rem;
-            position: relative;
-            max-width: 900px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Connecting line */
-        .timeline-steps::before {
-            content: '';
+        .pot-flow-canvas {
             position: absolute;
             top: 50%;
-            left: 5%;
-            right: 5%;
-            height: 2px;
-            background: linear-gradient(90deg,
-            rgba(37, 99, 235, 0.2) 0%,
-            rgba(37, 99, 235, 0.5) 50%,
-            rgba(37, 99, 235, 0.2) 100%);
-            transform: translateY(-50%);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 180px;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.5;
+        }
+
+        .pot-card {
+            position: relative;
             z-index: 1;
         }
 
-        .timeline-step {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
+        .pot-flow-connector {
             position: relative;
-            z-index: 2;
-        }
-
-        .step-circle {
-            width: 80px;
             height: 80px;
-            border-radius: 50%;
-            background: rgba(15, 15, 17, 0.9);
-            border: 3px solid rgba(160, 160, 160, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 0;
         }
 
-        .step-number {
-            font-size: 1.75rem;
-            color: var(--muted);
-            font-weight: 700;
-            font-family: 'Space Grotesk', sans-serif;
-        }
-
-        .step-icon {
-            display: none;
-        }
-
-        .step-label {
-            text-align: center;
-            font-size: 0.9rem;
-            color: var(--muted);
-            font-weight: 600;
-            max-width: 100px;
-            transition: color 0.3s ease;
-        }
-
-        .step-amount {
-            font-size: 0.85rem;
-            color: var(--cobalt);
-            font-weight: 700;
-            margin-top: 0.25rem;
-        }
-
-        /* Active state */
-        .timeline-step.active .step-circle {
-            border-color: var(--cobalt);
-            background: rgba(37, 99, 235, 0.1);
-            transform: scale(1.1);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
-        }
-
-        .timeline-step.active .step-number {
-            color: var(--cobalt);
-        }
-
-        .timeline-step.active .step-label {
-            color: var(--fg);
-        }
-
-        /* Hover state */
-        .timeline-step:hover .step-circle {
-            border-color: rgba(37, 99, 235, 0.6);
-            transform: scale(1.05);
-        }
-
-        /* Detail Panel - Vertical Flow Design */
-        .timeline-detail {
-            background: rgba(15, 15, 17, 0.6);
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            border-radius: 12px;
-            padding: 4rem 3.5rem;
-            max-width: 900px;
-            margin: 0 auto;
-            min-height: 400px;
-        }
-
-        .detail-title {
-            font-size: clamp(1.5rem, 3vw, 1.75rem);
-            font-weight: 600;
-            color: var(--fg);
-            font-family: 'Space Grotesk', sans-serif;
-            margin-bottom: 2rem;
-            text-align: center;
-            letter-spacing: 0.3px;
-        }
-
-        .detail-title::after {
-            content: '';
-            display: block;
-            width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.3), transparent);
-            margin-top: 2rem;
-        }
-
-        .detail-description {
-            font-size: 1.1rem;
-            line-height: 1.9;
-            color: var(--muted);
-            margin-bottom: 3rem;
-            text-align: left;
-        }
-
-        /* Stats Bar */
-        .detail-stats-bar {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 2.5rem;
-            padding: 2rem;
-            background: rgba(37, 99, 235, 0.05);
-            border-radius: 8px;
-            margin-bottom: 3rem;
-            flex-wrap: wrap;
-        }
-
-        .detail-stat {
-            text-align: center;
-        }
-
-        .detail-stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--cobalt);
-            font-family: 'Space Grotesk', sans-serif;
-            display: block;
-        }
-
-        .detail-stat-label {
-            font-size: 0.85rem;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 0.25rem;
-        }
-
-        .detail-stat-separator {
-            color: rgba(37, 99, 235, 0.3);
-            font-size: 1.5rem;
-        }
-
-        /* Features Section */
-        .detail-features-label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 1.5rem;
-        }
-
-        .detail-features {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-            margin-bottom: 3rem;
-        }
-
-        .detail-features li {
-            font-size: 1.05rem;
-            color: var(--muted);
-            padding-left: 2rem;
-            position: relative;
-            line-height: 1.6;
-        }
-
-        .detail-features li::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0.5rem;
-            width: 4px;
-            height: 4px;
-            background: var(--cobalt);
-            border-radius: 50%;
-        }
-
-        /* What's Next Box */
-        .detail-next {
-            background: rgba(15, 15, 17, 0.8);
-            border: 1px solid rgba(37, 99, 235, 0.25);
-            border-radius: 8px;
-            padding: 2rem;
-        }
-
-        .detail-next-label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--cobalt);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .detail-next-label::before {
-            content: '—';
-            color: var(--cobalt);
-        }
-
-        .detail-next-label::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(37, 99, 235, 0.2);
-        }
-
-        .detail-next-content {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .detail-next-item {
-            font-size: 1rem;
-            color: var(--fg);
-            padding-left: 1.5rem;
+        .pot-flow-line {
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg,
+                rgba(37, 99, 235, 0.3) 0%,
+                rgba(37, 99, 235, 0.6) 50%,
+                rgba(37, 99, 235, 0.3) 100%);
             position: relative;
         }
 
-        .detail-next-item::before {
-            content: '→';
+        .pot-flow-arrow {
             position: absolute;
-            left: 0;
-            color: var(--cobalt);
-            font-weight: 600;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            border-left: 2px solid var(--cobalt);
+            border-bottom: 2px solid var(--cobalt);
+            transform: translate(-50%, -50%) rotate(-45deg);
+            opacity: 0.8;
+        }
+
+        .pot-bottom-note {
+            max-width: 700px;
+            margin: 5rem auto 0;
+            text-align: center;
+            padding: 0 2rem;
+        }
+
+        .pot-bottom-note p {
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.45);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 2rem;
         }
 
         @media (max-width: 968px) {
-            .timeline-steps {
-                flex-wrap: wrap;
-                gap: 2rem;
+            .trading-pot-section {
+                padding: 12rem 2rem;
             }
 
-            .timeline-steps::before {
-                display: none;
+            .pot-section-header {
+                margin-bottom: 4rem;
             }
 
-            .timeline-step {
-                flex: 0 0 calc(33.33% - 1.5rem);
+            .pot-card {
+                padding: 2.5rem 2rem;
             }
 
-            .detail-features {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 568px) {
-            .timeline-step {
-                flex: 0 0 100%;
+            .pot-flow-connector {
+                height: 60px;
             }
 
-            .step-circle {
-                width: 70px;
-                height: 70px;
-            }
-
-            .timeline-detail {
-                padding: 2rem;
+            .pot-bottom-note {
+                margin-top: 4rem;
             }
         }
 
         /* Profit Calculator Section */
         .profit-calculator-section {
             background: var(--bg);
-            padding: 10rem 2rem;
+            padding: 12rem 2rem;
             position: relative;
         }
 
@@ -1567,7 +1566,7 @@
         /* Testimonials Section */
         .testimonials-section {
             background: var(--bg);
-            padding: 10rem 2rem;
+            padding: 12rem 2rem;
             position: relative;
         }
 
@@ -1664,10 +1663,219 @@
             }
         }
 
+        /* Newsletter Signup Section */
+        .newsletter-section {
+            padding: 12rem 2rem;
+            background: #0e0e10;
+            position: relative;
+        }
+
+        .newsletter-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 4rem 3rem;
+        }
+
+        .newsletter-heading {
+            font-size: clamp(1.75rem, 4vw, 2.25rem);
+            font-weight: 600;
+            color: var(--fg);
+            margin-bottom: 1rem;
+            letter-spacing: -0.01em;
+        }
+
+        .newsletter-description {
+            font-size: 1.0625rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .newsletter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            max-width: 650px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--fg);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .newsletter-input,
+        .newsletter-select {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--fg);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .newsletter-select option {
+            background: var(--bg);
+            color: var(--fg);
+        }
+
+        .newsletter-input:focus,
+        .newsletter-select:focus {
+            outline: none;
+            border-color: var(--cobalt);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .newsletter-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .newsletter-select {
+            cursor: pointer;
+        }
+
+        .frequency-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .frequency-option {
+            position: relative;
+        }
+
+        .frequency-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .frequency-label {
+            display: block;
+            padding: 0.875rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9375rem;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .frequency-option input[type="radio"]:checked + .frequency-label {
+            background: rgba(37, 99, 235, 0.15);
+            border-color: var(--cobalt);
+            color: var(--cobalt);
+        }
+
+        .frequency-label:hover {
+            border-color: rgba(37, 99, 235, 0.4);
+        }
+
+        .premium-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            background: rgba(37, 99, 235, 0.05);
+            border: 1px solid rgba(37, 99, 235, 0.15);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .premium-option:hover {
+            border-color: rgba(37, 99, 235, 0.3);
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        .premium-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .premium-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--fg);
+        }
+
+        .premium-subtitle {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .premium-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--cobalt);
+        }
+
+        .newsletter-button {
+            padding: 1.125rem 2rem;
+            background: var(--cobalt);
+            color: var(--fg);
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .newsletter-button:hover {
+            background: #1e3a8a;
+            transform: translateY(-2px);
+        }
+
+        .newsletter-disclaimer {
+            font-size: 0.8125rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .newsletter-container {
+                padding: 3rem 2rem;
+            }
+
+            .frequency-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .premium-option {
+                padding: 1.25rem;
+            }
+        }
+
         /* Final CTA Section */
         .final-cta-section {
-            padding: 10rem 2rem;
-            background: var(--bg);
+            padding: 12rem 2rem;
+            background: #0e0e10;
             text-align: center;
         }
 
@@ -1875,17 +2083,9 @@
         <span></span>
     </div>
     <ul class="nav-links">
-        <li class="nav-item">
-            <a href="#programs">
-                Programs
-                <span class="dropdown-arrow">▼</span>
-            </a>
-            <div class="dropdown-menu">
-                <a href="#infinity-challenge">Infinity Challenge</a>
-                <a href="#application-challenge">Application Challenge</a>
-                <a href="#profit-calculator">Profit Calculator</a>
-            </div>
-        </li>
+        <li><a href="#programs">Challenges</a></li>
+        <li><a href="#profit-calculator">Profit Calculator</a></li>
+        <li><a href="#analyst-reports">Analyst Reports</a></li>
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="#why-us">Why Us?</a></li>
         <li><a href="#about">About</a></li>
@@ -1924,7 +2124,7 @@
 
         <div class="hero-stats">
             <div class="stat">
-                <div class="stat-value" data-target="200" data-suffix="K" data-prefix="$">$0K</div>
+                <div class="stat-value" data-target="200" data-suffix="K" data-prefix="£">£0K</div>
                 <div class="stat-label">Max Funding</div>
             </div>
             <div class="stat">
@@ -1979,7 +2179,7 @@
                     <span class="feature-icon">✓</span>
                     <div class="feature-text">
                         <strong>No Limits</strong>
-                        <p>Scale to $200K+ with consistency</p>
+                        <p>Scale to £200K+ with consistency</p>
                     </div>
                 </div>
             </div>
@@ -2009,7 +2209,7 @@
                     <span class="feature-icon">✓</span>
                     <div class="feature-text">
                         <strong>Direct High Capital</strong>
-                        <p>Access $10K-$200K immediately</p>
+                        <p>Access £10K-£200K immediately</p>
                     </div>
                 </div>
                 <div class="path-feature">
@@ -2029,80 +2229,91 @@
             </div>
 
             <a href="#" class="path-button btn-pac">Customise Your Path</a>
-            <p class="path-footnote">From $99 entry fee</p>
+            <p class="path-footnote">From £99 entry fee</p>
         </div>
     </div>
 </section>
 
-<!-- Timeline Section - How It Works -->
-<section class="timeline-section" id="pricing">
+<!-- Vertical Timeline Section -->
+<div class="vertical-timeline-wrapper" id="pricing">
+    <!-- Timeline Header -->
+    <div class="timeline-header">
+        <h2>How It Works</h2>
+        <p>Simple. Prove yourself, we scale your capital.</p>
+    </div>
+
+    <!-- Timeline Container -->
     <div class="timeline-container">
-        <h2 class="timeline-heading">How the Infinity Challenge Works</h2>
-        <p class="timeline-subheading">Your journey from $1,000 to $200,000+ in funded capital</p>
+        <!-- Animated Vertical Line -->
+        <div class="timeline-line">
+            <div class="timeline-line-progress"></div>
+        </div>
 
-        <!-- Timeline Steps -->
-        <div class="timeline-steps">
-            <div class="timeline-step active" data-step="1">
-                <div class="step-circle">
-                    <span class="step-number">1</span>
-                </div>
-                <div class="step-label">Start Free</div>
-                <div class="step-amount">$1,000</div>
-            </div>
-
-            <div class="timeline-step" data-step="2">
-                <div class="step-circle">
-                    <span class="step-number">2</span>
-                </div>
-                <div class="step-label">Hit 10%</div>
-                <div class="step-amount">$5,000</div>
-            </div>
-
-            <div class="timeline-step" data-step="3">
-                <div class="step-circle">
-                    <span class="step-number">3</span>
-                </div>
-                <div class="step-label">Keep Growing</div>
-                <div class="step-amount">$10K+</div>
-            </div>
-
-            <div class="timeline-step" data-step="4">
-                <div class="step-circle">
-                    <span class="step-number">4</span>
-                </div>
-                <div class="step-label">Scale Up</div>
-                <div class="step-amount">$50K+</div>
-            </div>
-
-            <div class="timeline-step" data-step="5">
-                <div class="step-circle">
-                    <span class="step-number">5</span>
-                </div>
-                <div class="step-label">Max Capital</div>
-                <div class="step-amount">$200K</div>
+        <!-- Stage 1: Start -->
+        <div class="timeline-stage" data-stage="1">
+            <div class="timeline-node"></div>
+            <div class="stage-content">
+                <div class="capital-display">£1,000</div>
+                <h3 class="stage-title">Start Free</h3>
+                <p class="stage-subtitle">Begin with £1,000 funded capital. Zero buy-in. Start trading immediately and prove your skills.</p>
             </div>
         </div>
 
-        <!-- Detail Panel -->
-        <div class="timeline-detail" id="timelineDetail">
-            <h3 class="detail-title">Step 1: Start Free with $1,000</h3>
-            <p class="detail-description">
-                Begin your trading journey with zero buy-in. We provide you with $1,000 in funded capital immediately—no credit card, no entry fees, no catches. Just start trading.
-            </p>
-            <ul class="detail-features">
-                <li>Zero upfront cost to begin</li>
-                <li>Instant access to funded capital</li>
-                <li>No credit card required</li>
-                <li>Trade with real money immediately</li>
-                <li>No time pressure or deadlines</li>
-                <li>Use your own trading strategy</li>
-            </ul>
-            <div class="detail-highlight">
-                This is a true zero-risk opportunity. We believe in proving yourself through performance, not paying to play.
+        <!-- Stage 2: Scale -->
+        <div class="timeline-stage" data-stage="2">
+            <div class="timeline-node"></div>
+            <div class="stage-content">
+                <div class="capital-display">£10K - £50K</div>
+                <h3 class="stage-title">Hit 10%, Scale Up</h3>
+                <p class="stage-subtitle">Each time you hit a 10% profit target, your capital automatically scales. Keep 90% of all profits you make.</p>
+            </div>
+        </div>
+
+        <!-- Stage 3: Maximum -->
+        <div class="timeline-stage" data-stage="3">
+            <div class="timeline-node"></div>
+            <div class="stage-content">
+                <div class="capital-display">£200,000</div>
+                <h3 class="stage-title">Maximum Capital</h3>
+                <p class="stage-subtitle">Trade with institutional-level capital. No limits on your earning potential. Full support every step.</p>
             </div>
         </div>
     </div>
+</div>
+
+<!-- TRADING POT SECTION - COMMENTED OUT (Uncomment to restore)
+<section class="trading-pot-section">
+    <div class="pot-section-header">
+        <h2>The Trading Pot</h2>
+        <p>A symbiotic ecosystem where learning traders access professional strategies, and successful traders earn passive income.</p>
+    </div>
+
+    <div class="pot-cards-wrapper">
+        <div class="pot-card">
+            <span class="pot-card-label">For Learners</span>
+            <h3>Copy Professional Trades</h3>
+            <p class="pot-card-description">Access verified traders • Learn through execution • Stay funded while improving</p>
+        </div>
+
+        <div class="pot-flow-connector">
+            <canvas class="pot-flow-canvas" id="potFlowCanvas"></canvas>
+            <div class="pot-flow-line">
+                <div class="pot-flow-arrow"></div>
+            </div>
+        </div>
+
+        <div class="pot-card">
+            <span class="pot-card-label">For Earners</span>
+            <h3>Share Your Strategy</h3>
+            <p class="pot-card-description">Earn passive income • Build reputation • Direct payments from followers</p>
+        </div>
+    </div>
+
+    <div class="pot-bottom-note">
+        <p>100% of copy fees go directly to the trader. The better you trade, the more you earn.</p>
+    </div>
 </section>
+-->
 
 <!-- Profit Calculator Section -->
 <section class="profit-calculator-section" id="profit-calculator">
@@ -2115,7 +2326,7 @@
             <div class="calculator-controls">
                 <div class="control-group">
                     <span class="control-label">Starting Capital</span>
-                    <span class="control-value">$1,000</span>
+                    <span class="control-value">£1,000</span>
                 </div>
 
                 <div class="control-group">
@@ -2141,7 +2352,7 @@
             <div class="calculator-results">
                 <div class="result-item">
                     <span class="result-label">Estimated Annual Profit</span>
-                    <span class="result-value" id="annualProfit">$0</span>
+                    <span class="result-value" id="annualProfit">£0</span>
                     <p class="result-subtext">With 90% profit split</p>
                 </div>
 
@@ -2160,6 +2371,89 @@
     </div>
 </section>
 
+<!-- Newsletter Signup Section -->
+<section class="newsletter-section" id="analyst-reports">
+    <div class="newsletter-container">
+        <h2 class="newsletter-heading">Stay Updated with Market Insights</h2>
+        <p class="newsletter-description">Get our analyst reports delivered to your inbox. Market analysis, trading strategies, and funding updates tailored to your preferences.</p>
+
+        <form class="newsletter-form" id="newsletterForm">
+            <!-- Email Input -->
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input
+                    type="email"
+                    class="newsletter-input"
+                    placeholder="Enter your email address"
+                    required
+                    id="newsletterEmail"
+                >
+            </div>
+
+            <!-- Report Frequency -->
+            <div class="form-group">
+                <label class="form-label">Report Frequency</label>
+                <div class="frequency-options">
+                    <div class="frequency-option">
+                        <input type="radio" name="frequency" id="freq-daily" value="daily">
+                        <label for="freq-daily" class="frequency-label">Daily</label>
+                    </div>
+                    <div class="frequency-option">
+                        <input type="radio" name="frequency" id="freq-weekly" value="weekly" checked>
+                        <label for="freq-weekly" class="frequency-label">Weekly</label>
+                    </div>
+                    <div class="frequency-option">
+                        <input type="radio" name="frequency" id="freq-monthly" value="monthly">
+                        <label for="freq-monthly" class="frequency-label">Monthly</label>
+                    </div>
+                    <div class="frequency-option">
+                        <input type="radio" name="frequency" id="freq-annual" value="annual">
+                        <label for="freq-annual" class="frequency-label">Annual</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Asset Class Selection -->
+            <div class="form-group">
+                <label class="form-label">Asset Class</label>
+                <select class="newsletter-select" id="assetClass" required>
+                    <option value="">Select asset class</option>
+                    <option value="forex">Forex</option>
+                    <option value="crypto">Cryptocurrency</option>
+                    <option value="indexes">Indexes</option>
+                    <option value="commodities">Commodities</option>
+                </select>
+            </div>
+
+            <!-- Specific Instrument Selection -->
+            <div class="form-group">
+                <label class="form-label">Trading Instrument</label>
+                <select class="newsletter-select" id="tradingInstrument" required disabled>
+                    <option value="">Select asset class first</option>
+                </select>
+            </div>
+
+            <!-- Premium Subscription -->
+            <div class="premium-option" onclick="document.getElementById('premiumSubscription').click()">
+                <div class="premium-content">
+                    <div class="premium-title">Premium Analyst Reports</div>
+                    <div class="premium-subtitle">Exclusive insights, priority alerts, and advanced strategies</div>
+                </div>
+                <input
+                    type="checkbox"
+                    class="premium-checkbox"
+                    id="premiumSubscription"
+                    onclick="event.stopPropagation()"
+                >
+            </div>
+
+            <button type="submit" class="newsletter-button">Subscribe →</button>
+        </form>
+
+        <p class="newsletter-disclaimer">No spam. Unsubscribe anytime. Premium features require subscription.</p>
+    </div>
+</section>
+
 <!-- Testimonials Section -->
 <section class="testimonials-section" id="why-us">
     <div class="testimonials-container">
@@ -2170,12 +2464,12 @@
             <!-- Testimonial 1 -->
             <div class="testimonial-card">
                 <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p class="testimonial-text">"Made $8,200 in my first month with the Infinity Challenge. The zero buy-in model let me prove myself without financial risk. Best decision ever."</p>
+                <p class="testimonial-text">"Made £8,200 in my first month with the Infinity Challenge. The zero buy-in model let me prove myself without financial risk. Best decision ever."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar">SM</div>
                     <div class="testimonial-info">
                         <h4>Sarah M.</h4>
-                        <p>Funded $50K</p>
+                        <p>Funded £50K</p>
                     </div>
                 </div>
             </div>
@@ -2188,7 +2482,7 @@
                     <div class="testimonial-avatar">MR</div>
                     <div class="testimonial-info">
                         <h4>Mike R.</h4>
-                        <p>Funded $25K</p>
+                        <p>Funded £25K</p>
                     </div>
                 </div>
             </div>
@@ -2201,23 +2495,10 @@
                     <div class="testimonial-avatar">DK</div>
                     <div class="testimonial-info">
                         <h4>David K.</h4>
-                        <p>Funded $100K</p>
+                        <p>Funded £100K</p>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-<!-- Final CTA Section -->
-<section class="final-cta-section">
-    <div class="final-cta-content">
-        <h2 class="final-cta-heading">Ready to Start?</h2>
-        <p class="final-cta-text">Choose your path and begin trading today.</p>
-
-        <div class="final-cta-buttons">
-            <a href="#" class="btn btn-primary btn-large">Start Infinity Challenge</a>
-            <a href="#" class="btn btn-secondary btn-large">Apply for PAC</a>
         </div>
     </div>
 </section>
@@ -2280,6 +2561,208 @@
 </footer>
 
 <script>
+    // ==================== VERTICAL TIMELINE ====================
+    function initVerticalTimeline() {
+        const timelineWrapper = document.querySelector('.vertical-timeline-wrapper');
+        const timelineStages = document.querySelectorAll('.timeline-stage');
+        const timelineProgress = document.querySelector('.timeline-line-progress');
+        const timelineContainer = document.querySelector('.timeline-container');
+
+        if (!timelineWrapper || !timelineStages.length) return;
+
+        // IntersectionObserver for stage reveal animations
+        const stageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, {
+            threshold: 0.3,
+            rootMargin: '0px 0px -100px 0px'
+        });
+
+        // Observe each stage
+        timelineStages.forEach(stage => {
+            stageObserver.observe(stage);
+        });
+
+        // Animate the vertical line as user scrolls through timeline
+        function updateTimelineLine() {
+            if (!timelineContainer || !timelineProgress) return;
+
+            const containerRect = timelineContainer.getBoundingClientRect();
+            const containerTop = containerRect.top;
+            const containerHeight = containerRect.height;
+            const windowHeight = window.innerHeight;
+
+            // Calculate how much of the timeline is visible/scrolled
+            const scrollProgress = Math.max(0, Math.min(1,
+                (windowHeight - containerTop) / (containerHeight + windowHeight)
+            ));
+
+            // Update line height based on scroll progress
+            timelineProgress.style.height = `${scrollProgress * 100}%`;
+        }
+
+        // Update line on scroll
+        window.addEventListener('scroll', updateTimelineLine);
+        window.addEventListener('resize', updateTimelineLine);
+
+        // Initial update
+        updateTimelineLine();
+    }
+
+    // Initialize on DOM load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initVerticalTimeline);
+    } else {
+        initVerticalTimeline();
+    }
+
+    // ==================== END VERTICAL TIMELINE ====================
+
+    // ==================== TRADING POT FLOW ANIMATION - COMMENTED OUT ====================
+    /*
+    function initPotFlowAnimation() {
+        const canvas = document.getElementById('potFlowCanvas');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        let animationId;
+
+        // Check for reduced motion preference
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        class FlowParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                // Start from top
+                this.x = Math.random() * width;
+                this.y = 0;
+                this.baseX = this.x;
+                this.speed = prefersReducedMotion ? 0.3 : (Math.random() * 0.3 + 0.2);
+                this.size = Math.random() * 1.5 + 0.8;
+                this.opacity = Math.random() * 0.25 + 0.1;
+                this.phase = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                // Move vertically downward
+                this.y += this.speed;
+
+                // Add subtle horizontal wave motion
+                this.phase += 0.015;
+                const waveOffset = Math.sin(this.phase) * 15;
+                const currentX = this.baseX + waveOffset;
+
+                // Reset when particle reaches the bottom
+                if (this.y > height) {
+                    this.reset();
+                }
+
+                return { x: currentX, y: this.y };
+            }
+
+            draw(position) {
+                ctx.beginPath();
+                ctx.arc(position.x, position.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(37, 99, 235, ${this.opacity})`;
+                ctx.fill();
+
+                // Add subtle glow effect
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = 'rgba(37, 99, 235, 0.25)';
+            }
+        }
+
+        function resize() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            initParticles();
+        }
+
+        function initParticles() {
+            particles = [];
+            // Fewer particles for subtle vertical flow
+            const particleCount = width < 768 ? 8 : 12;
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new FlowParticle());
+                // Stagger initial Y positions
+                particles[i].y = (i / particleCount) * height;
+            }
+        }
+
+        function animate() {
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Store positions for line drawing
+            const positions = [];
+
+            // Update and draw particles
+            particles.forEach(particle => {
+                const position = particle.update();
+                particle.draw(position);
+                positions.push(position);
+            });
+
+            // Draw subtle connecting lines between nearby particles
+            ctx.shadowBlur = 0;
+            for (let i = 0; i < positions.length; i++) {
+                for (let j = i + 1; j < positions.length; j++) {
+                    const dx = positions[i].x - positions[j].x;
+                    const dy = positions[i].y - positions[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(positions[i].x, positions[i].y);
+                        ctx.lineTo(positions[j].x, positions[j].y);
+                        const opacity = (1 - distance / 100) * 0.08;
+                        ctx.strokeStyle = `rgba(37, 99, 235, ${opacity})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Initialize
+        resize();
+        animate();
+
+        // Handle resize
+        const resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(canvas);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            cancelAnimationFrame(animationId);
+            resizeObserver.disconnect();
+        });
+    }
+
+    // Initialize on DOM load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPotFlowAnimation);
+    } else {
+        initPotFlowAnimation();
+    }
+    */
+    // ==================== END TRADING POT FLOW ANIMATION ====================
+
     // Hamburger Menu Toggle
     const hamburger = document.querySelector('.hamburger');
     const navLinks = document.querySelector('.nav-links');
@@ -2699,11 +3182,11 @@
 
     function formatCurrency(value) {
         if (value >= 1000000) {
-            return '$' + (value / 1000000).toFixed(2) + 'M';
+            return '£' + (value / 1000000).toFixed(2) + 'M';
         } else if (value >= 1000) {
-            return '$' + (value / 1000).toFixed(1) + 'K';
+            return '£' + (value / 1000).toFixed(1) + 'K';
         } else {
-            return '$' + value.toFixed(0);
+            return '£' + value.toFixed(0);
         }
     }
 
@@ -2750,15 +3233,166 @@
     // Update on slider change
     profitSlider.addEventListener('input', updateCalculator);
 
+    // ==================== NEWSLETTER FORM ====================
+    const newsletterForm = document.getElementById('newsletterForm');
+    const newsletterEmail = document.getElementById('newsletterEmail');
+    const assetClassSelect = document.getElementById('assetClass');
+    const tradingInstrumentSelect = document.getElementById('tradingInstrument');
+
+    // Define instruments for each asset class
+    const instrumentsByClass = {
+        forex: [
+            { value: 'EURUSD', label: 'EUR/USD - Euro / US Dollar' },
+            { value: 'GBPUSD', label: 'GBP/USD - British Pound / US Dollar' },
+            { value: 'USDJPY', label: 'USD/JPY - US Dollar / Japanese Yen' },
+            { value: 'AUDUSD', label: 'AUD/USD - Australian Dollar / US Dollar' },
+            { value: 'USDCHF', label: 'USD/CHF - US Dollar / Swiss Franc' },
+            { value: 'USDCAD', label: 'USD/CAD - US Dollar / Canadian Dollar' },
+            { value: 'NZDUSD', label: 'NZD/USD - New Zealand Dollar / US Dollar' },
+            { value: 'EURGBP', label: 'EUR/GBP - Euro / British Pound' }
+        ],
+        crypto: [
+            { value: 'BTC', label: 'Bitcoin (BTC)' },
+            { value: 'ETH', label: 'Ethereum (ETH)' },
+            { value: 'USDT', label: 'Tether (USDT)' },
+            { value: 'BNB', label: 'Binance Coin (BNB)' },
+            { value: 'SOL', label: 'Solana (SOL)' },
+            { value: 'XRP', label: 'Ripple (XRP)' },
+            { value: 'ADA', label: 'Cardano (ADA)' },
+            { value: 'DOGE', label: 'Dogecoin (DOGE)' }
+        ],
+        indexes: [
+            { value: 'SPX', label: 'S&P 500' },
+            { value: 'NDX', label: 'NASDAQ 100' },
+            { value: 'DJI', label: 'Dow Jones Industrial Average' },
+            { value: 'FTSE', label: 'FTSE 100' },
+            { value: 'DAX', label: 'DAX 40' },
+            { value: 'NKY', label: 'Nikkei 225' },
+            { value: 'CAC', label: 'CAC 40' },
+            { value: 'HSI', label: 'Hang Seng Index' }
+        ],
+        commodities: [
+            { value: 'GOLD', label: 'Gold' },
+            { value: 'SILVER', label: 'Silver' },
+            { value: 'CRUDE', label: 'Crude Oil' },
+            { value: 'NATGAS', label: 'Natural Gas' },
+            { value: 'COPPER', label: 'Copper' },
+            { value: 'PLATINUM', label: 'Platinum' },
+            { value: 'PALLADIUM', label: 'Palladium' },
+            { value: 'WHEAT', label: 'Wheat' }
+        ]
+    };
+
+    // Handle asset class selection change
+    if (assetClassSelect && tradingInstrumentSelect) {
+        assetClassSelect.addEventListener('change', function() {
+            const selectedClass = this.value;
+
+            // Clear current options
+            tradingInstrumentSelect.innerHTML = '';
+
+            if (selectedClass && instrumentsByClass[selectedClass]) {
+                // Enable dropdown and populate with instruments
+                tradingInstrumentSelect.disabled = false;
+
+                // Add placeholder option
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = '';
+                placeholderOption.textContent = 'Select trading instrument';
+                tradingInstrumentSelect.appendChild(placeholderOption);
+
+                // Add instruments for selected class
+                instrumentsByClass[selectedClass].forEach(instrument => {
+                    const option = document.createElement('option');
+                    option.value = instrument.value;
+                    option.textContent = instrument.label;
+                    tradingInstrumentSelect.appendChild(option);
+                });
+            } else {
+                // Disable dropdown if no class selected
+                tradingInstrumentSelect.disabled = true;
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = '';
+                placeholderOption.textContent = 'Select asset class first';
+                tradingInstrumentSelect.appendChild(placeholderOption);
+            }
+        });
+    }
+
+    // Handle form submission
+    if (newsletterForm) {
+        newsletterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const email = newsletterEmail.value.trim();
+            const frequency = document.querySelector('input[name="frequency"]:checked')?.value;
+            const assetClass = assetClassSelect.value;
+            const instrument = tradingInstrumentSelect.value;
+            const isPremium = document.getElementById('premiumSubscription')?.checked;
+
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address');
+                return;
+            }
+
+            // Asset class validation
+            if (!assetClass) {
+                alert('Please select an asset class');
+                return;
+            }
+
+            // Instrument validation
+            if (!instrument) {
+                alert('Please select a trading instrument');
+                return;
+            }
+
+            // Log all form data
+            console.log('Newsletter Signup:', {
+                email,
+                frequency,
+                assetClass,
+                instrument,
+                isPremium
+            });
+
+            // Format frequency for display
+            const frequencyText = frequency.charAt(0).toUpperCase() + frequency.slice(1);
+
+            // Get readable instrument name
+            const instrumentLabel = tradingInstrumentSelect.options[tradingInstrumentSelect.selectedIndex].text;
+
+            // Show success message
+            const container = newsletterForm.parentElement;
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem 0;">
+                    <h3 style="color: var(--cobalt); font-size: 1.5rem; margin-bottom: 1rem;">✓ Successfully Subscribed!</h3>
+                    <p style="color: rgba(255, 255, 255, 0.6);">Thank you for subscribing. You'll receive ${frequencyText.toLowerCase()} analyst reports for ${instrumentLabel}.</p>
+                    ${isPremium ? '<p style="color: var(--cobalt); margin-top: 0.5rem; font-weight: 600;">✓ Premium features enabled</p>' : ''}
+                </div>
+            `;
+
+            // TODO: Replace with actual newsletter service integration
+            // Example:
+            // fetch('/api/newsletter/subscribe', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ email, frequency, assetClass, instrument, isPremium })
+            // });
+        });
+    }
+
     // ==================== TIMELINE INTERACTIVE ====================
     const timelineSteps = document.querySelectorAll('.timeline-step');
     const timelineDetail = document.getElementById('timelineDetail');
 
     const stepContent = {
         1: {
-            title: 'Step 1: Start Free with $1,000',
-            description: 'Begin your trading journey with zero buy-in. We provide you with $1,000 in funded capital immediately—no credit card, no entry fees, no catches. Just start trading.',
-            stats: { cost: '$0', capital: '$1,000', split: '90%' },
+            title: 'Step 1: Start Free with £1,000',
+            description: 'Begin your trading journey with zero buy-in. We provide you with £1,000 in funded capital immediately—no credit card, no entry fees, no catches. Just start trading.',
+            stats: { cost: '£0', capital: '£1,000', split: '90%' },
             features: [
                 'Zero upfront cost to begin',
                 'Instant access to funded capital',
@@ -2769,14 +3403,14 @@
             ],
             nextSteps: [
                 'Trade and hit 10% cumulative profit',
-                'Automatically scale to $5,000 capital',
+                'Automatically scale to £5,000 capital',
                 'Your percentage counter resets to 0%'
             ]
         },
         2: {
-            title: 'Step 2: Hit 10% Profit → Scale to $5,000',
-            description: 'Once you hit a cumulative 10% profit on your $1,000 account, we automatically scale your capital to $5,000. Your percentage counter resets, and you continue trading with more buying power.',
-            stats: { cost: '$0', capital: '$5,000', split: '90%' },
+            title: 'Step 2: Hit 10% Profit → Scale to £5,000',
+            description: 'Once you hit a cumulative 10% profit on your £1,000 account, we automatically scale your capital to £5,000. Your percentage counter resets, and you continue trading with more buying power.',
+            stats: { cost: '£0', capital: '£5,000', split: '90%' },
             features: [
                 'Automatic capital scaling at 10%',
                 'No paperwork or approval needed',
@@ -2787,16 +3421,16 @@
             ],
             nextSteps: [
                 'Hit another 10% cumulative profit',
-                'Scale to $10,000 capital',
+                'Scale to £10,000 capital',
                 'Keep compounding your earnings'
             ]
         },
         3: {
-            title: 'Step 3: Keep Growing → $10,000 Capital',
-            description: 'Hit another 10% cumulative profit on your $5,000 account, and you unlock $10,000 in capital. Each milestone brings exponentially more earning potential.',
-            stats: { cost: '$0', capital: '$10,000', split: '90%' },
+            title: 'Step 3: Keep Growing → £10,000 Capital',
+            description: 'Hit another 10% cumulative profit on your £5,000 account, and you unlock £10,000 in capital. Each milestone brings exponentially more earning potential.',
+            stats: { cost: '£0', capital: '£10,000', split: '90%' },
             features: [
-                'Scale from $5K to $10K capital',
+                'Scale from £5K to £10K capital',
                 'Compound growth accelerates earnings',
                 'Same 10% rule applies',
                 'No additional requirements',
@@ -2805,16 +3439,16 @@
             ],
             nextSteps: [
                 'Continue hitting 10% milestones',
-                'Scale to $50,000 capital',
+                'Scale to £50,000 capital',
                 'Reach professional-level capital'
             ]
         },
         4: {
-            title: 'Step 4: Scale Up → $50,000 Capital',
-            description: 'Continue hitting 10% cumulative profit targets to unlock $50,000 in funded capital. You\'re now trading with professional-level capital allocation.',
-            stats: { cost: '$0', capital: '$50,000', split: '90%' },
+            title: 'Step 4: Scale Up → £50,000 Capital',
+            description: 'Continue hitting 10% cumulative profit targets to unlock £50,000 in funded capital. You\'re now trading with professional-level capital allocation.',
+            stats: { cost: '£0', capital: '£50,000', split: '90%' },
             features: [
-                'Access to $50,000 in capital',
+                'Access to £50,000 in capital',
                 'Professional trading account size',
                 'Same simple 10% scaling rule',
                 'Trade higher timeframes comfortably',
@@ -2823,16 +3457,16 @@
             ],
             nextSteps: [
                 'Maintain 10% profit targets',
-                'Unlock maximum $200,000 capital',
+                'Unlock maximum £200,000 capital',
                 'Achieve institutional-level trading'
             ]
         },
         5: {
-            title: 'Step 5: Maximum Capital → $200,000',
-            description: 'Reach the ultimate tier with $200,000 in funded capital. You\'ve proven consistent profitability and now trade with institutional-level capital.',
-            stats: { cost: '$0', capital: '$200,000', split: '90%' },
+            title: 'Step 5: Maximum Capital → £200,000',
+            description: 'Reach the ultimate tier with £200,000 in funded capital. You\'ve proven consistent profitability and now trade with institutional-level capital.',
+            stats: { cost: '£0', capital: '£200,000', split: '90%' },
             features: [
-                'Maximum $200K funded account',
+                'Maximum £200K funded account',
                 'Institutional capital allocation',
                 'Unlimited earning potential',
                 '90% profit split on all earnings',
