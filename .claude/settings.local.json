@@ -34,7 +34,8 @@
       "mcp__playwright__playwright_hover",
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

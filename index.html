@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-
     <style>
         * {
             margin: 0;
@@ -202,6 +201,14 @@
             border-left-color: var(--cobalt);
         }
 
+        /* Navigation Separator */
+        .nav-separator {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.15);
+            align-self: center;
+        }
+
         /* Hamburger Menu */
         .hamburger {
             display: none;
@@ -305,6 +312,7 @@
             content: '✦';
             font-size: 1rem;
         }
+
 
         /* Main Heading */
         .hero h1 {
@@ -496,7 +504,6 @@
             font-weight: 600;
         }
 
-
         /* Next Section Preview */
         .preview-section {
             min-height: 100vh;
@@ -541,6 +548,61 @@
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+
+        /* Reveal animation for sections */
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .reveal-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered reveal for child elements */
+        .reveal-stagger > * {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(1) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.1s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(2) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.2s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(3) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.3s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(4) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.4s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(5) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.5s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(6) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.6s;
         }
 
         @keyframes bounce {
@@ -598,6 +660,12 @@
 
             .nav-links a:hover {
                 color: var(--cobalt);
+            }
+
+            .nav-separator {
+                width: 100%;
+                height: 1px;
+                margin: 0.5rem 0;
             }
 
             .hero-content {
@@ -658,7 +726,7 @@
             var(--bg) 100%
             );
             margin-top: 5vh;
-            padding-top: 10vh;
+            padding-top: 11rem;
             padding-bottom: 12rem;
             transform: translateZ(0);
         }
@@ -1237,6 +1305,131 @@
             }
         }
 
+        /* Pricing Cards Section */
+        .pricing-section {
+            padding: 12rem 2rem;
+            background: #0e0e10;
+        }
+
+        .pricing-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 5rem;
+        }
+
+        .pricing-header h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .pricing-header p {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: var(--muted);
+        }
+
+        .cards-horizontal {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            border-color: var(--cobalt);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2);
+        }
+
+        .pricing-card.featured {
+            background: rgba(37, 99, 235, 0.08);
+            border-color: var(--cobalt);
+            position: relative;
+        }
+
+        .pricing-card.featured::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--cobalt);
+            color: white;
+            padding: 0.25rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .card-size {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--cobalt);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-fee {
+            font-size: 1.125rem;
+            color: var(--muted);
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .card-specs {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .card-specs li {
+            padding: 0.75rem 0;
+            color: var(--fg);
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-specs li span:first-child {
+            color: var(--muted);
+            font-size: 0.875rem;
+        }
+
+        .card-specs li span:last-child {
+            font-weight: 600;
+        }
+
+        .card-button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--cobalt);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .card-button:hover {
+            background: #1d4ed8;
+            transform: scale(1.02);
+        }
+
         /* Profit Calculator Section */
         .profit-calculator-section {
             background: var(--bg);
@@ -1663,6 +1856,106 @@
             }
         }
 
+        /* Trading Rules Section */
+        .trading-rules-section {
+            padding: 12rem 2rem;
+            background: var(--bg);
+            position: relative;
+        }
+
+        .trading-rules-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .trading-rules-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .trading-rules-header h2 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 600;
+            color: var(--fg);
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .trading-rules-header p {
+            font-size: 1.125rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+
+        .rule-card {
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+        }
+
+        .rule-card.featured {
+            background: rgba(37, 99, 235, 0.08);
+            border-color: rgba(37, 99, 235, 0.3);
+            position: relative;
+        }
+
+        .rule-card.featured::before {
+            content: 'Fast Track';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--cobalt);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .rule-card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--fg);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .rule-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .rule-list li {
+            padding: 0.75rem 0;
+            color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .rule-list li::before {
+            content: '✓';
+            color: #10b981;
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        @media (max-width: 768px) {
+            .rules-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Newsletter Signup Section */
         .newsletter-section {
             padding: 12rem 2rem;
@@ -1925,8 +2218,7 @@
 
         /* Footer */
         footer {
-            background: rgba(15, 15, 17, 0.8);
-            border-top: 1px solid rgba(160, 160, 160, 0.1);
+            background: #0e0e10;
             padding: 4rem 2rem 2rem;
         }
 
@@ -2013,11 +2305,28 @@
             color: var(--cobalt);
         }
 
+        .footer-risk-disclosure {
+            max-width: 1400px;
+            margin: 3rem auto 2rem;
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+
+        .footer-risk-disclosure p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .footer-risk-disclosure strong {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
         .footer-bottom {
             max-width: 1400px;
             margin: 0 auto;
             padding-top: 2rem;
-            border-top: 1px solid rgba(160, 160, 160, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -2085,18 +2394,27 @@
     <ul class="nav-links">
         <li class="nav-item">
             <a href="#programs">
-                Programs
+                Challenges
                 <span class="dropdown-arrow">▼</span>
             </a>
             <div class="dropdown-menu">
-                <a href="#programs">Challenges</a>
+                <a href="#infinity-challenge">Infinity Challenge</a>
+                <a href="#application-challenge">Application Challenge</a>
+                <a href="#traditional-challenge">Traditional Challenge</a>
+            </div>
+        </li>
+        <li class="nav-item">
+            <a href="#resources">
+                Resources
+                <span class="dropdown-arrow">▼</span>
+            </a>
+            <div class="dropdown-menu">
                 <a href="#profit-calculator">Profit Calculator</a>
                 <a href="#analyst-reports">Analyst Reports</a>
             </div>
         </li>
-        <li><a href="#pricing">Pricing</a></li>
-        <li><a href="#why-us">Why Us?</a></li>
-        <li><a href="#about">About</a></li>
+        <li><a href="#about">About us</a></li>
+        <li class="nav-separator"></li>
         <li><a href="#login">Login</a></li>
     </ul>
 </nav>
@@ -2137,7 +2455,7 @@
             </div>
             <div class="stat">
                 <div class="stat-value" data-target="90" data-suffix="%">0%</div>
-                <div class="stat-label">Profit Split</div>
+                <div class="stat-label">Up to 90% Profit Split</div>
             </div>
             <div class="stat">
                 <div class="stat-value" data-target="10" data-suffix="K+">0K+</div>
@@ -2236,7 +2554,7 @@
                 </div>
             </div>
 
-            <a href="#" class="path-button btn-pac">Customise Your Path</a>
+            <a href="#" class="path-button btn-pac">Customize Your Path</a>
             <p class="path-footnote">From £99 entry fee</p>
         </div>
     </div>
@@ -2246,8 +2564,8 @@
 <div class="vertical-timeline-wrapper" id="pricing">
     <!-- Timeline Header -->
     <div class="timeline-header">
-        <h2>How It Works</h2>
-        <p>Simple. Prove yourself, we scale your capital.</p>
+        <h2>How Infinity Challenge Works</h2>
+        <p>Simple. Prove yourself, we scale your capital. Keep 90% of profits.</p>
     </div>
 
     <!-- Timeline Container -->
@@ -2323,13 +2641,140 @@
 </section>
 -->
 
+<!-- Trading Rules Section -->
+<section class="trading-rules-section">
+    <div class="trading-rules-container">
+        <div class="trading-rules-header reveal-section">
+            <h2>Trading Rules & Instruments</h2>
+            <p>Everything you need to know about what and how you can trade</p>
+        </div>
+
+        <div class="rules-grid reveal-stagger">
+            <div class="rule-card">
+                <h3 class="rule-card-title">What You Can Trade</h3>
+                <ul class="rule-list">
+                    <li>Forex (EUR/USD, GBP/USD, etc.)</li>
+                    <li>Indices (S&P 500, NASDAQ, etc.)</li>
+                    <li>Commodities (Gold, Silver, Oil)</li>
+                    <li>Cryptocurrencies (BTC, ETH, etc.)</li>
+                    <li>100+ instruments available</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h3 class="rule-card-title">Supported Platforms</h3>
+                <ul class="rule-list">
+                    <li>MetaTrader 4 (MT4)</li>
+                    <li>MetaTrader 5 (MT5)</li>
+                    <li>cTrader</li>
+                    <li>TradingView</li>
+                    <li>MatchTrader</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h3 class="rule-card-title">Key Rules</h3>
+                <ul class="rule-list">
+                    <li>Scalping allowed</li>
+                    <li>News trading allowed</li>
+                    <li>EAs & bots allowed</li>
+                    <li>Copy trading allowed</li>
+                    <li>Weekend holding allowed</li>
+                    <li>Flexible trading days (varies by challenge)</li>
+                </ul>
+            </div>
+
+            <div class="rule-card featured">
+                <h3 class="rule-card-title">Skip The Queue</h3>
+                <ul class="rule-list">
+                    <li>Upload your trade history</li>
+                    <li>We verify your performance</li>
+                    <li>Skip initial challenge steps</li>
+                    <li>Get funded faster</li>
+                    <li>Proven traders get priority</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing Section -->
+<section class="pricing-section" id="traditional-challenge">
+    <div class="pricing-container">
+        <div class="pricing-header reveal-section">
+            <h2>Traditional Challenge Pricing</h2>
+            <p>Choose your account size and get funded. All fees are fully refundable upon passing.</p>
+        </div>
+
+        <div class="cards-horizontal reveal-stagger">
+            <div class="pricing-card">
+                <div class="card-size">£10K</div>
+                <div class="card-fee">£99 refundable fee</div>
+                <ul class="card-specs">
+                    <li><span>Trading Period</span><span>Unlimited</span></li>
+                    <li><span>Min Trading Days</span><span>5 days</span></li>
+                    <li><span>Max Daily Loss</span><span>£500 (5%)</span></li>
+                    <li><span>Max Loss</span><span>£1,000 (10%)</span></li>
+                    <li><span>Profit Target</span><span>£800 (8%)</span></li>
+                    <li><span>Profit Split</span><span>80%</span></li>
+                </ul>
+                <button class="card-button">Get Started</button>
+            </div>
+
+            <div class="pricing-card">
+                <div class="card-size">£25K</div>
+                <div class="card-fee">£249 refundable fee</div>
+                <ul class="card-specs">
+                    <li><span>Trading Period</span><span>Unlimited</span></li>
+                    <li><span>Min Trading Days</span><span>5 days</span></li>
+                    <li><span>Max Daily Loss</span><span>£1,250 (5%)</span></li>
+                    <li><span>Max Loss</span><span>£2,500 (10%)</span></li>
+                    <li><span>Profit Target</span><span>£2,000 (8%)</span></li>
+                    <li><span>Profit Split</span><span>80%</span></li>
+                </ul>
+                <button class="card-button">Get Started</button>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="card-size">£50K</div>
+                <div class="card-fee">£399 refundable fee</div>
+                <ul class="card-specs">
+                    <li><span>Trading Period</span><span>Unlimited</span></li>
+                    <li><span>Min Trading Days</span><span>5 days</span></li>
+                    <li><span>Max Daily Loss</span><span>£2,500 (5%)</span></li>
+                    <li><span>Max Loss</span><span>£5,000 (10%)</span></li>
+                    <li><span>Profit Target</span><span>£4,000 (8%)</span></li>
+                    <li><span>Profit Split</span><span>85%</span></li>
+                </ul>
+                <button class="card-button">Get Started</button>
+            </div>
+
+            <div class="pricing-card">
+                <div class="card-size">£100K</div>
+                <div class="card-fee">£599 refundable fee</div>
+                <ul class="card-specs">
+                    <li><span>Trading Period</span><span>Unlimited</span></li>
+                    <li><span>Min Trading Days</span><span>5 days</span></li>
+                    <li><span>Max Daily Loss</span><span>£5,000 (5%)</span></li>
+                    <li><span>Max Loss</span><span>£10,000 (10%)</span></li>
+                    <li><span>Profit Target</span><span>£8,000 (8%)</span></li>
+                    <li><span>Profit Split</span><span>85%</span></li>
+                </ul>
+                <button class="card-button">Get Started</button>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Profit Calculator Section -->
 <section class="profit-calculator-section" id="profit-calculator">
     <div class="calculator-container">
-        <h2 class="calculator-heading">Profit Potential Calculator</h2>
-        <p class="calculator-subheading">See how your consistent returns compound with automatic capital scaling</p>
+        <div class="reveal-section">
+            <h2 class="calculator-heading">Profit Potential Calculator</h2>
+            <p class="calculator-subheading">See how your consistent returns compound with automatic capital scaling</p>
+        </div>
 
-        <div class="calculator-content">
+        <div class="calculator-content reveal-section">
             <!-- Controls (Left Side) -->
             <div class="calculator-controls">
                 <div class="control-group">
@@ -2382,10 +2827,12 @@
 <!-- Newsletter Signup Section -->
 <section class="newsletter-section" id="analyst-reports">
     <div class="newsletter-container">
-        <h2 class="newsletter-heading">Stay Updated with Market Insights</h2>
-        <p class="newsletter-description">Get our analyst reports delivered to your inbox. Market analysis, trading strategies, and funding updates tailored to your preferences.</p>
+        <div class="reveal-section">
+            <h2 class="newsletter-heading">Stay Updated with Market Insights</h2>
+            <p class="newsletter-description">Get our analyst reports delivered to your inbox. Market analysis, trading strategies, and funding updates tailored to your preferences.</p>
+        </div>
 
-        <form class="newsletter-form" id="newsletterForm">
+        <form class="newsletter-form reveal-section" id="newsletterForm">
             <!-- Email Input -->
             <div class="form-group">
                 <label class="form-label">Email Address</label>
@@ -2462,55 +2909,6 @@
     </div>
 </section>
 
-<!-- Testimonials Section -->
-<section class="testimonials-section" id="why-us">
-    <div class="testimonials-container">
-        <h2 class="testimonials-heading">What Traders Say</h2>
-        <p class="testimonials-subheading">Join thousands of traders who've found success with IPFX</p>
-
-        <div class="testimonials-grid">
-            <!-- Testimonial 1 -->
-            <div class="testimonial-card">
-                <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p class="testimonial-text">"Made £8,200 in my first month with the Infinity Challenge. The zero buy-in model let me prove myself without financial risk. Best decision ever."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">SM</div>
-                    <div class="testimonial-info">
-                        <h4>Sarah M.</h4>
-                        <p>Funded £50K</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Testimonial 2 -->
-            <div class="testimonial-card">
-                <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p class="testimonial-text">"The transparency is unmatched. No hidden fees, same-day payouts, and actual support from people who understand trading. IPFX delivers on every promise."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">MR</div>
-                    <div class="testimonial-info">
-                        <h4>Mike R.</h4>
-                        <p>Funded £25K</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Testimonial 3 -->
-            <div class="testimonial-card">
-                <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p class="testimonial-text">"Tried three other firms before IPFX. None compare. The auto-scaling is genius, and the 90% profit split means I actually keep what I earn. Game changer."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">DK</div>
-                    <div class="testimonial-info">
-                        <h4>David K.</h4>
-                        <p>Funded £100K</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- Footer -->
 <footer>
     <div class="footer-container">
@@ -2558,8 +2956,12 @@
         </div>
     </div>
 
+    <div class="footer-risk-disclosure">
+        <p>⚠ <strong>Risk Disclosure:</strong> Trading involves substantial risk of loss and is not suitable for all investors. Past performance is not indicative of future results. You should carefully consider whether trading is appropriate for you in light of your financial condition and risk tolerance. IPFX Capital is a proprietary trading firm providing funded accounts to qualified traders.</p>
+    </div>
+
     <div class="footer-bottom">
-        <p>&copy; 2024 IPFX Capital. All rights reserved.</p>
+        <p>&copy; 2025 IPFX Capital. All rights reserved.</p>
         <div class="footer-social">
             <a href="#">Twitter</a>
             <a href="#">Discord</a>
@@ -3541,6 +3943,25 @@
             showStepDetail(stepNumber);
         });
     });
+
+    // Reveal animations for all sections
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+            }
+        });
+    }, {
+        threshold: 0.15,
+        rootMargin: '0px 0px -50px 0px'
+    });
+
+    // Observe all reveal elements
+    document.querySelectorAll('.reveal-section, .reveal-stagger').forEach(element => {
+        revealObserver.observe(element);
+    });
 </script>
+
+
 </body>
 </html>

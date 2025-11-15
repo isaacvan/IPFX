@@ -125,3 +125,4 @@ Since this is a marketing site with no backend:
 3. Test animations with reduced motion preferences
 4. Verify touch interactions on mobile devices
 5. Test canvas performance on lower-end devices
+- can you ensure that all the elements have that same fade into view effect that we had for the top things
