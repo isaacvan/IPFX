@@ -14,17 +14,12 @@
             --fg: #ffffff;
             --muted: #9ea0a6;
             --line: #2b2d34;
-            --mint: #2563eb;
+            --cobalt: #2563eb;
+            --deep-blue: #1e3a8a;
         }
 
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
@@ -43,38 +38,91 @@
             padding: 20px;
         }
 
-        .container {
-            max-width: 600px;
+        .container { max-width: 600px; }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 40px;
+            transition: color 0.3s ease;
         }
+        .back-link:hover { color: var(--cobalt); }
+
+        .icon { font-size: 4rem; margin-bottom: 20px; }
 
         h1 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: clamp(2rem, 5vw, 3rem);
             margin: 0 0 16px;
-            color: var(--mint);
+            color: var(--cobalt);
         }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--fg);
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .coming-soon-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+
+        .launch-date {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--fg);
+            margin-bottom: 30px;
+        }
+        .launch-date span { color: var(--cobalt); }
 
         p {
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--muted);
-            line-height: 1.6;
+            line-height: 1.7;
+            margin-bottom: 30px;
         }
 
-        a {
-            color: var(--mint);
+        .home-btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: var(--cobalt);
+            color: white;
             text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
-
-        a:hover {
-            text-decoration: underline;
+        .home-btn:hover {
+            background: var(--deep-blue);
+            transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚧 Under Construction</h1>
-        <p>This page is currently being built. Check back soon!</p>
-        <p><a href="index.html">← Return to Home</a></p>
+        <a href="/" class="back-link">&larr; Back to Home</a>
+        <div class="icon">&#9993;</div>
+        <h1>Contact</h1>
+        <p class="tagline">Get in touch with our team.</p>
+        <div class="coming-soon-badge">Coming Soon</div>
+        <p class="launch-date">Launching <span>1st January 2026</span></p>
+        <p>
+            Our contact form and support channels are being set up. Soon you'll be able to
+            reach our team for questions about challenges, payouts, and partnerships.
+        </p>
+        <a href="/" class="home-btn">Return to Home</a>
     </div>
 </body>
 </html>

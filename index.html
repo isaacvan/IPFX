@@ -2352,6 +2352,12 @@
             color: var(--cobalt);
         }
 
+        .footer-social .social-disabled {
+            color: var(--line);
+            cursor: default;
+            opacity: 0.5;
+        }
+
         @media (max-width: 968px) {
             .footer-container {
                 grid-template-columns: 1fr 1fr;
@@ -2416,9 +2422,9 @@
                 <a href="#analyst-reports">Analyst Reports</a>
             </div>
         </li>
-        <li><a href="#about">About us</a></li>
+        <li><a href="/about.html">About us</a></li>
         <li class="nav-separator"></li>
-        <li><a href="#login">Login</a></li>
+        <li><a href="/login.html">Login</a></li>
     </ul>
 </nav>
 
@@ -2447,8 +2453,8 @@
         </p>
 
         <div class="cta-group">
-            <a href="#" class="btn btn-primary">Start Your Challenge</a>
-            <a href="#" class="btn btn-secondary">Learn More</a>
+            <a href="/signup.html" class="btn btn-primary">Start Your Challenge</a>
+            <a href="/about.html" class="btn btn-secondary">Learn More</a>
         </div>
 
         <div class="hero-stats">
@@ -2513,7 +2519,7 @@
                 </div>
             </div>
 
-            <a href="#" class="path-button btn-infinity">Start Free Challenge</a>
+            <a href="/infinity.html" class="path-button btn-infinity">Start Free Challenge</a>
             <p class="path-footnote">No credit card required</p>
         </div>
     </div>
@@ -2557,7 +2563,7 @@
                 </div>
             </div>
 
-            <a href="#" class="path-button btn-pac">Customize Your Path</a>
+            <a href="/personalised-challenge.html" class="path-button btn-pac">Customize Your Path</a>
             <p class="path-footnote">From £99 entry fee</p>
         </div>
     </div>
@@ -2720,7 +2726,7 @@
                     <li><span>Profit Target</span><span>£800 (8%)</span></li>
                     <li><span>Profit Split</span><span>80%</span></li>
                 </ul>
-                <button class="card-button">Get Started</button>
+                <a href="/signup.html#10k" class="card-button">Get Started</a>
             </div>
 
             <div class="pricing-card">
@@ -2734,7 +2740,7 @@
                     <li><span>Profit Target</span><span>£2,000 (8%)</span></li>
                     <li><span>Profit Split</span><span>80%</span></li>
                 </ul>
-                <button class="card-button">Get Started</button>
+                <a href="/signup.html#25k" class="card-button">Get Started</a>
             </div>
 
             <div class="pricing-card featured">
@@ -2748,7 +2754,7 @@
                     <li><span>Profit Target</span><span>£4,000 (8%)</span></li>
                     <li><span>Profit Split</span><span>85%</span></li>
                 </ul>
-                <button class="card-button">Get Started</button>
+                <a href="/signup.html#50k" class="card-button">Get Started</a>
             </div>
 
             <div class="pricing-card">
@@ -2762,7 +2768,7 @@
                     <li><span>Profit Target</span><span>£8,000 (8%)</span></li>
                     <li><span>Profit Split</span><span>85%</span></li>
                 </ul>
-                <button class="card-button">Get Started</button>
+                <a href="/signup.html#100k" class="card-button">Get Started</a>
             </div>
         </div>
     </div>
@@ -2948,14 +2954,7 @@
             </ul>
         </div>
 
-        <div class="footer-links">
-            <h4>Legal</h4>
-            <ul>
-                <li><a href="#">Terms & Conditions</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Risk Disclosure</a></li>
-            </ul>
-        </div>
+        <!-- Legal links hidden until documents are ready -->
     </div>
 
     <div class="footer-risk-disclosure reveal-section">
@@ -2965,9 +2964,9 @@
     <div class="footer-bottom reveal-section">
         <p>&copy; 2025 IPFX Capital. All rights reserved.</p>
         <div class="footer-social">
-            <a href="#">Twitter</a>
-            <a href="#">Discord</a>
-            <a href="#">Instagram</a>
+            <span class="social-disabled">Twitter</span>
+            <span class="social-disabled">Discord</span>
+            <span class="social-disabled">Instagram</span>
         </div>
     </div>
 </footer>

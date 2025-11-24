@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>IPFX | Start Your Challenge</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --fg: #ffffff;
+            --muted: #9ea0a6;
+            --line: #2b2d34;
+            --cobalt: #2563eb;
+            --deep-blue: #1e3a8a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            min-height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            color: var(--fg);
+            background: radial-gradient(1200px 700px at 80% -10%, rgba(207, 210, 215, 0.14), transparent 62%),
+            radial-gradient(1000px 580px at -12% 18%, rgba(207, 210, 215, 0.12), transparent 68%),
+            conic-gradient(from 200deg at 72% 8%, rgba(37, 99, 235, 0.14), rgba(37, 99, 235, 0.0) 28% 72%, rgba(37, 99, 235, 0.14)),
+            linear-gradient(160deg, rgba(207, 210, 215, 0.08), transparent 30%),
+            var(--bg);
+            background-attachment: fixed;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 40px;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--cobalt);
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin: 0 0 16px;
+            color: var(--fg);
+        }
+
+        h1 span {
+            color: var(--cobalt);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--muted);
+            line-height: 1.6;
+            margin-bottom: 50px;
+        }
+
+        .coming-soon-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 30px;
+        }
+
+        .launch-date {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--fg);
+            margin-bottom: 60px;
+        }
+
+        .launch-date span {
+            color: var(--cobalt);
+        }
+
+        .tier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .tier-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .tier-card:hover {
+            border-color: var(--cobalt);
+            transform: translateY(-4px);
+        }
+
+        .tier-card h3 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.5rem;
+            color: var(--cobalt);
+            margin-bottom: 8px;
+        }
+
+        .tier-card p {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .info-text {
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .home-btn {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 14px 32px;
+            background: var(--cobalt);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .home-btn:hover {
+            background: var(--deep-blue);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">&larr; Back to Home</a>
+
+        <div class="coming-soon-badge">Coming Soon</div>
+
+        <h1>Start Your <span>Challenge</span></h1>
+
+        <p class="subtitle">Our signup platform is being prepared to give you the best trading experience.</p>
+
+        <p class="launch-date">Launching <span>1st January 2026</span></p>
+
+        <div class="tier-grid" id="tiers">
+            <div class="tier-card" id="10k">
+                <h3>£10K</h3>
+                <p>£99 refundable</p>
+            </div>
+            <div class="tier-card" id="25k">
+                <h3>£25K</h3>
+                <p>£249 refundable</p>
+            </div>
+            <div class="tier-card" id="50k">
+                <h3>£50K</h3>
+                <p>£399 refundable</p>
+            </div>
+            <div class="tier-card" id="100k">
+                <h3>£100K</h3>
+                <p>£599 refundable</p>
+            </div>
+        </div>
+
+        <p class="info-text">
+            All challenge fees are fully refundable upon successfully passing your evaluation.
+            Join thousands of traders who have already expressed interest in our fair, transparent funding program.
+        </p>
+
+        <a href="/" class="home-btn">Return to Home</a>
+    </div>
+
+    <script>
+        // Highlight the tier if arriving from a specific anchor
+        if (window.location.hash) {
+            const targetId = window.location.hash.substring(1);
+            const targetCard = document.getElementById(targetId);
+            if (targetCard) {
+                targetCard.style.borderColor = '#2563eb';
+                targetCard.style.background = 'rgba(37, 99, 235, 0.1)';
+                targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    </script>
+</body>
+</html>
