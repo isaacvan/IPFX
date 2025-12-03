@@ -3,37 +3,46 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Login</title>
+    <title>IPFX | Trader Login</title>
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
-            --muted: #9ea0a6;
-            --line: #2b2d34;
+            --muted: #a0a0a0;
+            --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
+            --radius: 12px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
             color: var(--fg);
             background: var(--bg);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
             padding: 20px;
         }
 
-        .container { max-width: 600px; }
+        .login-container {
+            max-width: 450px;
+            width: 100%;
+        }
 
         .back-link {
             display: inline-flex;
@@ -45,79 +54,231 @@
             margin-bottom: 40px;
             transition: color 0.3s ease;
         }
-        .back-link:hover { color: var(--cobalt); }
 
-        .icon { font-size: 4rem; margin-bottom: 20px; }
-
-        h1 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2rem, 5vw, 3rem);
-            margin: 0 0 16px;
+        .back-link:hover {
             color: var(--cobalt);
         }
 
-        .tagline {
-            font-size: 1.2rem;
-            color: var(--fg);
-            margin-bottom: 30px;
-            font-weight: 500;
+        .login-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 3rem 2.5rem;
+            text-align: center;
         }
 
-        .coming-soon-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            padding: 10px 24px;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 16px;
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.5rem;
         }
 
-        .launch-date {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--fg);
-            margin-bottom: 30px;
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
-        .launch-date span { color: var(--cobalt); }
 
-        p {
-            font-size: 1rem;
+        h1 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
             color: var(--muted);
-            line-height: 1.7;
-            margin-bottom: 30px;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
         }
 
-        .home-btn {
-            display: inline-block;
-            padding: 14px 32px;
-            background: var(--cobalt);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
+        .form-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
             font-weight: 600;
+            color: var(--fg);
+            margin-bottom: 0.5rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: var(--fg);
+            font-size: 0.95rem;
+            font-family: 'Inter', system-ui;
             transition: all 0.3s ease;
         }
-        .home-btn:hover {
-            background: var(--deep-blue);
+
+        input:focus {
+            outline: none;
+            border-color: var(--cobalt);
+            background: rgba(37, 99, 235, 0.05);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--muted);
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 1.5rem;
+        }
+
+        .forgot-password a {
+            color: var(--cobalt);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            opacity: 0.8;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', system-ui;
+        }
+
+        .btn-login:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--line);
+        }
+
+        .signup-link {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .signup-link a {
+            color: var(--cobalt);
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s ease;
+        }
+
+        .signup-link a:hover {
+            opacity: 0.8;
+        }
+
+        .demo-credentials {
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .demo-credentials h4 {
+            color: var(--cobalt);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .demo-credentials p {
+            color: var(--muted);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .demo-credentials code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--fg);
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="index.html" class="back-link">&larr; Back to Home</a>
-        <div class="icon">&#128274;</div>
-        <h1>Trader Login</h1>
-        <p class="tagline">Access your trading dashboard.</p>
-        <div class="coming-soon-badge">Coming Soon</div>
-        <p class="launch-date">Launching <span>1st January 2026</span></p>
-        <p>
-            Your trader dashboard is being built. Soon you'll be able to track your challenge
-            progress, view analytics, request payouts, and manage your funded account.
-        </p>
-        <a href="index.html" class="home-btn">Return to Home</a>
+    <div class="login-container">
+        <a href="index.html" class="back-link">← Back to Home</a>
+
+        <div class="login-card">
+            <div class="logo">
+                <img src="assets/images/favicon.ico" alt="IPFX Capital">
+            </div>
+
+            <h1>Welcome Back</h1>
+            <p class="subtitle">Login to access your trader dashboard</p>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="john.doe@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+
+                <div class="forgot-password">
+                    <a href="#forgot">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+
+            <div class="divider">or</div>
+
+            <p class="signup-link">Don't have an account? <a href="signup.html">Sign up now</a></p>
+
+            <!-- Demo Credentials Info -->
+            <div class="demo-credentials">
+                <h4>📝 Demo Access</h4>
+                <p>For demo purposes, use any email and password to access the dashboard mockup. Click "Login" to view the trader portal.</p>
+            </div>
+        </div>
     </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Simulate login - redirect to dashboard
+            window.location.href = 'dashboard.html';
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>IPFX | Trader Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --fg: #ffffff;
+            --muted: #a0a0a0;
+            --line: #2a2a2c;
+            --cobalt: #2563eb;
+            --deep-blue: #1e3a8a;
+            --radius: 12px;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            min-height: 100vh;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            color: var(--fg);
+            background: var(--bg);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .nav {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--line);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--fg);
+        }
+
+        .nav-brand img {
+            width: 28px;
+            height: 28px;
+        }
+
+        .nav-brand-text {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .btn-logout {
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            color: var(--fg);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--cobalt);
+        }
+
+        /* Main Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--cobalt);
+            transform: translateY(-2px);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .stat-icon.primary {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .stat-icon.success {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .stat-icon.warning {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .stat-icon.error {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value.success {
+            color: var(--success);
+        }
+
+        .stat-value.error {
+            color: var(--error);
+        }
+
+        .stat-value.warning {
+            color: var(--warning);
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--error);
+        }
+
+        /* Progress Section */
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 2rem;
+        }
+
+        .progress-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .progress-value {
+            color: var(--cobalt);
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cobalt), var(--deep-blue));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-info {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--line);
+        }
+
+        .progress-info-item {
+            flex: 1;
+        }
+
+        .progress-info-label {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .progress-info-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Trading Activity */
+        .activity-list {
+            list-style: none;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .activity-icon.buy {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .activity-icon.sell {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .activity-details h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-details p {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .activity-result {
+            text-align: right;
+        }
+
+        .activity-pnl {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-pnl.profit {
+            color: var(--success);
+        }
+
+        .activity-pnl.loss {
+            color: var(--error);
+        }
+
+        .activity-time {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        /* Alert Box */
+        .alert {
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+        }
+
+        .alert.success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .alert.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .alert-icon {
+            font-size: 1.3rem;
+            margin-top: 0.1rem;
+        }
+
+        .alert-content h4 {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .alert-content p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Button */
+        .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--fg);
+            border: 1px solid var(--line);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--cobalt);
+            box-shadow: none;
+        }
+
+        /* Grid Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .status-badge.completed {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--cobalt);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .nav {
+                padding: 1rem;
+            }
+
+            .nav-actions {
+                gap: 1rem;
+            }
+
+            .user-name {
+                display: none;
+            }
+
+            .progress-info {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-brand">
+            <img src="assets/images/favicon.ico" alt="IPFX">
+            <span class="nav-brand-text">IPFX Capital</span>
+        </a>
+        <div class="nav-actions">
+            <div class="user-info">
+                <div class="user-avatar">JD</div>
+                <span class="user-name">John Doe</span>
+            </div>
+            <a href="index.html" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="page-title">Welcome back, John! 👋</h1>
+            <p class="page-subtitle">Here's your trading performance overview</p>
+        </div>
+
+        <!-- Alert -->
+        <div class="alert success">
+            <div class="alert-icon">🎉</div>
+            <div class="alert-content">
+                <h4>Congratulations! You're on track to pass Phase 1</h4>
+                <p>You've achieved 72% of your profit target. Keep up the great work and stay within your risk limits!</p>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Account Balance</span>
+                    <div class="stat-icon primary">💰</div>
+                </div>
+                <div class="stat-value">£10,576</div>
+                <div class="stat-change positive">
+                    <span>↗</span>
+                    <span>+5.76% this week</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Profit Target Progress</span>
+                    <div class="stat-icon success">🎯</div>
+                </div>
+                <div class="stat-value success">£576 / £800</div>
+                <div class="stat-change positive">
+                    <span>↗</span>
+                    <span>72% complete</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Daily Loss Limit</span>
+                    <div class="stat-icon success">✓</div>
+                </div>
+                <div class="stat-value">£124 / £500</div>
+                <div class="stat-change">
+                    <span>Safe zone - 25% used</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Total Trades</span>
+                    <div class="stat-icon primary">📊</div>
+                </div>
+                <div class="stat-value">47</div>
+                <div class="stat-change positive">
+                    <span>↗</span>
+                    <span>64% win rate</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Challenge Progress -->
+        <div class="section">
+            <h2 class="section-title">Challenge Progress</h2>
+            <div class="card">
+                <div class="progress-header">
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">Phase 1 - Traditional Challenge</h3>
+                        <span class="status-badge active">In Progress</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: var(--muted); font-size: 0.9rem; margin-bottom: 0.25rem;">Days Remaining</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--cobalt);">23</div>
+                    </div>
+                </div>
+
+                <div class="progress-container" style="margin-top: 2rem;">
+                    <div class="progress-header">
+                        <span class="progress-label">Profit Target</span>
+                        <span class="progress-value">£576 / £800 (72%)</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 72%;"></div>
+                    </div>
+                </div>
+
+                <div class="progress-info">
+                    <div class="progress-info-item">
+                        <div class="progress-info-label">Starting Balance</div>
+                        <div class="progress-info-value">£10,000</div>
+                    </div>
+                    <div class="progress-info-item">
+                        <div class="progress-info-label">Current Balance</div>
+                        <div class="progress-info-value" style="color: var(--success);">£10,576</div>
+                    </div>
+                    <div class="progress-info-item">
+                        <div class="progress-info-label">Max Drawdown</div>
+                        <div class="progress-info-value">£124 / £1,000</div>
+                    </div>
+                    <div class="progress-info-item">
+                        <div class="progress-info-label">Trading Days</div>
+                        <div class="progress-info-value">7 / 30</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div class="grid-2">
+            <!-- Recent Trades -->
+            <div class="section">
+                <h2 class="section-title">Recent Trades</h2>
+                <div class="card" style="padding: 0;">
+                    <ul class="activity-list">
+                        <li class="activity-item">
+                            <div class="activity-info">
+                                <div class="activity-icon buy">📈</div>
+                                <div class="activity-details">
+                                    <h4>EUR/USD</h4>
+                                    <p>Buy • 0.5 lots</p>
+                                </div>
+                            </div>
+                            <div class="activity-result">
+                                <div class="activity-pnl profit">+£84.50</div>
+                                <div class="activity-time">2 hours ago</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-info">
+                                <div class="activity-icon sell">📉</div>
+                                <div class="activity-details">
+                                    <h4>GBP/USD</h4>
+                                    <p>Sell • 0.3 lots</p>
+                                </div>
+                            </div>
+                            <div class="activity-result">
+                                <div class="activity-pnl loss">-£32.20</div>
+                                <div class="activity-time">5 hours ago</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-info">
+                                <div class="activity-icon buy">📈</div>
+                                <div class="activity-details">
+                                    <h4>XAU/USD</h4>
+                                    <p>Buy • 0.2 lots</p>
+                                </div>
+                            </div>
+                            <div class="activity-result">
+                                <div class="activity-pnl profit">+£156.80</div>
+                                <div class="activity-time">1 day ago</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-info">
+                                <div class="activity-icon buy">📈</div>
+                                <div class="activity-details">
+                                    <h4>US30</h4>
+                                    <p>Buy • 1.0 lots</p>
+                                </div>
+                            </div>
+                            <div class="activity-result">
+                                <div class="activity-pnl profit">+£92.40</div>
+                                <div class="activity-time">1 day ago</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-info">
+                                <div class="activity-icon sell">📉</div>
+                                <div class="activity-details">
+                                    <h4>BTC/USD</h4>
+                                    <p>Sell • 0.1 lots</p>
+                                </div>
+                            </div>
+                            <div class="activity-result">
+                                <div class="activity-pnl loss">-£18.60</div>
+                                <div class="activity-time">2 days ago</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="section">
+                <h2 class="section-title">Quick Actions</h2>
+                <div class="card">
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="margin-bottom: 0.75rem;">Trading Platform</h4>
+                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Connect to your trading platform to start trading</p>
+                        <button class="btn">Launch MT5 WebTrader</button>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line);">
+                        <h4 style="margin-bottom: 0.75rem;">Performance Report</h4>
+                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Download detailed analytics of your trading activity</p>
+                        <button class="btn-secondary btn">Download Report</button>
+                    </div>
+
+                    <div style="padding-top: 1.5rem; border-top: 1px solid var(--line);">
+                        <h4 style="margin-bottom: 0.75rem;">Request Payout</h4>
+                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Available after passing Phase 1 & 2</p>
+                        <button class="btn-secondary btn" disabled style="opacity: 0.5; cursor: not-allowed;">Locked</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

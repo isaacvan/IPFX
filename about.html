@@ -7,117 +7,613 @@
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
-            --muted: #9ea0a6;
-            --line: #2b2d34;
+            --muted: #a0a0a0;
+            --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
+            --radius: 12px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
             color: var(--fg);
             background: var(--bg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
+            line-height: 1.6;
         }
 
-        .container { max-width: 600px; }
+        /* Navigation */
+        .nav {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--line);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
 
-        .back-link {
-            display: inline-flex;
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 8px;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--fg);
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .nav-brand img {
+            width: 28px;
+            height: 28px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
             color: var(--muted);
             text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 40px;
+            font-weight: 500;
             transition: color 0.3s ease;
         }
-        .back-link:hover { color: var(--cobalt); }
 
-        .icon { font-size: 4rem; margin-bottom: 20px; }
-
-        h1 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2rem, 5vw, 3rem);
-            margin: 0 0 16px;
-            color: var(--cobalt);
-        }
-
-        .tagline {
-            font-size: 1.2rem;
+        .nav-links a:hover {
             color: var(--fg);
-            margin-bottom: 30px;
-            font-weight: 500;
         }
 
-        .coming-soon-badge {
-            display: inline-block;
+        .btn-cta {
+            padding: 10px 24px;
             background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
             color: white;
-            padding: 10px 24px;
-            border-radius: 50px;
+            text-decoration: none;
+            border-radius: 6px;
             font-weight: 600;
             font-size: 0.9rem;
-            margin-bottom: 16px;
-        }
-
-        .launch-date {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--fg);
-            margin-bottom: 30px;
-        }
-        .launch-date span { color: var(--cobalt); }
-
-        p {
-            font-size: 1rem;
-            color: var(--muted);
-            line-height: 1.7;
-            margin-bottom: 30px;
-        }
-
-        .home-btn {
-            display: inline-block;
-            padding: 14px 32px;
-            background: var(--cobalt);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
             transition: all 0.3s ease;
         }
-        .home-btn:hover {
-            background: var(--deep-blue);
+
+        .btn-cta:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--muted);
+            max-width: 700px;
+            margin: 0 auto 3rem;
+            line-height: 1.8;
+        }
+
+        /* Stats Section */
+        .stats {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 1.1rem;
+        }
+
+        /* Content Section */
+        .section {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 5rem 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Mission/Vision Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 2.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--cobalt);
+            transform: translateY(-4px);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: rgba(37, 99, 235, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h3 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card p {
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        /* Values Section */
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .value-card {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .value-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 1.5rem;
+        }
+
+        .value-card h4 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .value-card p {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        /* Team Section */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .team-member {
+            text-align: center;
+        }
+
+        .team-avatar {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0 auto 1.5rem;
+            border: 3px solid var(--line);
+            transition: all 0.3s ease;
+        }
+
+        .team-member:hover .team-avatar {
+            border-color: var(--cobalt);
+            transform: scale(1.05);
+        }
+
+        .team-name {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .team-role {
+            color: var(--cobalt);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .team-bio {
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .cta-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .cta-content h2 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-content p {
+            font-size: 1.1rem;
+            color: var(--muted);
+            margin-bottom: 2.5rem;
+            line-height: 1.8;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--fg);
+            border: 1px solid var(--line);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--cobalt);
+        }
+
+        /* Divider */
+        .divider {
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 1px;
+            background: var(--line);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav {
+                padding: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 4rem 1.5rem;
+            }
+
+            .section {
+                padding: 3rem 1.5rem;
+            }
+
+            .stats {
+                padding: 3rem 1.5rem;
+                gap: 2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="index.html" class="back-link">&larr; Back to Home</a>
-        <div class="icon">&#127970;</div>
-        <h1>About Us</h1>
-        <p class="tagline">The team behind IPFX Capital.</p>
-        <div class="coming-soon-badge">Coming Soon</div>
-        <p class="launch-date">Launching <span>1st January 2026</span></p>
-        <p>
-            Learn about our mission to democratize access to trading capital. We're building
-            a prop firm that puts traders first with fair rules, transparent terms, and real opportunities.
-        </p>
-        <a href="index.html" class="home-btn">Return to Home</a>
-    </div>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="index.html" class="nav-brand">
+                <img src="assets/images/favicon.ico" alt="IPFX">
+                <span>IPFX Capital</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="contact.html">Contact</a>
+                <a href="login.html">Login</a>
+                <a href="signup.html" class="btn-cta">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Empowering Traders, <span>Redefining Success</span></h1>
+        <p>At IPFX Capital, we believe talented traders deserve access to capital without unnecessary barriers. We're building the future of prop trading with fairness, transparency, and trader success at our core.</p>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats">
+        <div class="stat-item">
+            <div class="stat-number">10,000+</div>
+            <div class="stat-label">Active Traders</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">£5M+</div>
+            <div class="stat-label">Capital Deployed</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">£2M+</div>
+            <div class="stat-label">Paid to Traders</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">87%</div>
+            <div class="stat-label">Trader Satisfaction</div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Mission & Vision -->
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">Our Mission & Vision</h2>
+            <p class="section-subtitle">Building a prop trading firm that puts traders first</p>
+        </div>
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <h3>Our Mission</h3>
+                <p>To democratize access to trading capital by providing talented traders worldwide with the resources, technology, and support they need to succeed in the markets.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🚀</div>
+                <h3>Our Vision</h3>
+                <p>To become the world's most trusted proprietary trading firm, known for fair rules, transparent processes, and genuine commitment to trader success.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">💡</div>
+                <h3>Our Approach</h3>
+                <p>We combine cutting-edge technology with human-centered design to create challenges that test skill, not luck. Every rule we implement is designed with trader success in mind.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Core Values -->
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">Our Core Values</h2>
+            <p class="section-subtitle">The principles that guide everything we do</p>
+        </div>
+        <div class="values-grid">
+            <div class="value-card">
+                <div class="value-icon">⚖️</div>
+                <h4>Fairness First</h4>
+                <p>Clear rules, no hidden fees, and evaluation criteria designed to identify genuine trading skill.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon">🔍</div>
+                <h4>Full Transparency</h4>
+                <p>Open communication about our processes, terms, and payout structures. No surprises, ever.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon">🤝</div>
+                <h4>Trader Success</h4>
+                <p>Your success is our success. We're invested in your growth and provide the tools to help you thrive.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon">⚡</div>
+                <h4>Innovation</h4>
+                <p>Constantly evolving our platform and challenge structures based on trader feedback and market dynamics.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Team Section -->
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">Meet Our Team</h2>
+            <p class="section-subtitle">Experienced traders and technologists dedicated to your success</p>
+        </div>
+        <div class="team-grid">
+            <div class="team-member">
+                <div class="team-avatar">MJ</div>
+                <div class="team-name">Michael Johnson</div>
+                <div class="team-role">Founder & CEO</div>
+                <p class="team-bio">15+ years trading experience across forex, equities, and derivatives. Former institutional trader passionate about democratizing capital access.</p>
+            </div>
+            <div class="team-member">
+                <div class="team-avatar">SC</div>
+                <div class="team-name">Sarah Chen</div>
+                <div class="team-role">Head of Risk</div>
+                <p class="team-bio">Ex-hedge fund risk manager with expertise in portfolio optimization and drawdown management. Ensures fair evaluation standards.</p>
+            </div>
+            <div class="team-member">
+                <div class="team-avatar">DK</div>
+                <div class="team-name">David Kumar</div>
+                <div class="team-role">CTO</div>
+                <p class="team-bio">Built trading platforms for top-tier financial institutions. Leading our technology stack to deliver best-in-class trader experience.</p>
+            </div>
+            <div class="team-member">
+                <div class="team-avatar">EP</div>
+                <div class="team-name">Emily Parker</div>
+                <div class="team-role">Head of Trader Success</div>
+                <p class="team-bio">Dedicated to supporting our traders with education, resources, and personalized guidance to maximize their funded potential.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Why Choose Us -->
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">Why Choose IPFX?</h2>
+            <p class="section-subtitle">What makes us different from other prop firms</p>
+        </div>
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-icon">💰</div>
+                <h3>Fair Profit Splits</h3>
+                <p>Industry-leading profit splits up to 90%. Keep more of what you earn with transparent payout structures and no hidden deductions.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🎓</div>
+                <h3>Trader Education</h3>
+                <p>Access to exclusive webinars, trading strategies, and mentorship programs to continuously improve your edge in the markets.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">⚙️</div>
+                <h3>Flexible Challenges</h3>
+                <p>Multiple challenge types to suit your trading style - from traditional evaluations to our unique Infinity Challenge with zero upfront cost.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">⏱️</div>
+                <h3>Fast Payouts</h3>
+                <p>Weekly payout cycles once funded. Your profits, delivered reliably and on time, every time.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">📊</div>
+                <h3>Advanced Analytics</h3>
+                <p>Comprehensive dashboard with detailed performance metrics, risk analysis, and insights to refine your trading strategy.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🌍</div>
+                <h3>Global Community</h3>
+                <p>Join thousands of traders worldwide. Share strategies, learn from peers, and grow together in our supportive community.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2>Ready to Trade with Us?</h2>
+            <p>Join thousands of traders who have chosen IPFX Capital to fund their trading career. Start your journey today with our flexible challenge options.</p>
+            <div class="cta-buttons">
+                <a href="signup.html" class="btn btn-primary">Start Your Challenge</a>
+                <a href="contact.html" class="btn btn-secondary">Get in Touch</a>
+            </div>
+        </div>
+    </section>
 </body>
 </html>
