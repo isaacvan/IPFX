@@ -518,6 +518,7 @@
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -547,8 +548,8 @@
         <div class="alert success">
             <div class="alert-icon">🎉</div>
             <div class="alert-content">
-                <h4>Congratulations! You're on track to pass Phase 1</h4>
-                <p>You've achieved 72% of your profit target. Keep up the great work and stay within your risk limits!</p>
+                <h4>Account Created Successfully!</h4>
+                <p>You're all set! Choose your challenge size below and start trading immediately. No waiting, no delays - begin your journey to funded trading right now.</p>
             </div>
         </div>
 
@@ -729,9 +730,9 @@
                 <h2 class="section-title">Quick Actions</h2>
                 <div class="card">
                     <div style="margin-bottom: 1.5rem;">
-                        <h4 style="margin-bottom: 0.75rem;">Trading Platform</h4>
-                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Connect to your trading platform to start trading</p>
-                        <button class="btn">Launch MT5 WebTrader</button>
+                        <h4 style="margin-bottom: 0.75rem;">Ready to Get Funded?</h4>
+                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Choose your challenge size and start trading immediately</p>
+                        <a href="start-challenge.html" class="btn" style="display: inline-block;">Start Your Challenge</a>
                     </div>
 
                     <div style="margin-bottom: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line);">
@@ -749,5 +750,50 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // ============================================
+        // SUPABASE CONFIGURATION
+        // ============================================
+        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================
+        // CHECK AUTHENTICATION & LOAD USER DATA
+        // ============================================
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                // Not logged in - redirect to login page
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // User is logged in - display their info
+            const user = session.user;
+            const fullName = user.user_metadata?.full_name || user.email.split('@')[0];
+            const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+
+            // Update user display
+            document.querySelector('.user-avatar').textContent = initials;
+            document.querySelector('.user-name').textContent = fullName;
+            document.querySelector('.page-title').textContent = `Welcome back, ${fullName.split(' ')[0]}! 👋`;
+        }
+
+        // ============================================
+        // LOGOUT FUNCTIONALITY
+        // ============================================
+        document.querySelector('.btn-logout').addEventListener('click', async function(e) {
+            e.preventDefault();
+
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        });
+
+        // Check auth on page load
+        checkAuth();
+    </script>
 </body>
 </html>
