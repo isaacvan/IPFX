@@ -230,6 +230,7 @@
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="login-container">
@@ -264,20 +265,48 @@
             <div class="divider">or</div>
 
             <p class="signup-link">Don't have an account? <a href="signup.html">Sign up now</a></p>
-
-            <!-- Demo Credentials Info -->
-            <div class="demo-credentials">
-                <h4>📝 Demo Access</h4>
-                <p>For demo purposes, use any email and password to access the dashboard mockup. Click "Login" to view the trader portal.</p>
-            </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        // ============================================
+        // SUPABASE CONFIGURATION
+        // ============================================
+        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================
+        // LOGIN FORM HANDLER
+        // ============================================
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            // Simulate login - redirect to dashboard
-            window.location.href = 'dashboard.html';
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            // Disable button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                // Login successful - redirect to dashboard
+                window.location.href = 'dashboard.html';
+
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Login';
+            }
         });
     </script>
 </body>
