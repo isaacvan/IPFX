@@ -771,15 +771,35 @@
                 return;
             }
 
-            // User is logged in - display their info
+            // User is logged in - load their profile from database
             const user = session.user;
-            const fullName = user.user_metadata?.full_name || user.email.split('@')[0];
-            const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 
-            // Update user display
-            document.querySelector('.user-avatar').textContent = initials;
-            document.querySelector('.user-name').textContent = fullName;
-            document.querySelector('.page-title').textContent = `Welcome back, ${fullName.split(' ')[0]}! 👋`;
+            try {
+                // Fetch user profile from database
+                const { data: profile, error } = await supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error loading profile:', error);
+                    // Fallback to user metadata
+                    var fullName = user.user_metadata?.full_name || user.email.split('@')[0];
+                } else {
+                    var fullName = profile.full_name;
+                }
+
+                const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+
+                // Update user display
+                document.querySelector('.user-avatar').textContent = initials;
+                document.querySelector('.user-name').textContent = fullName;
+                document.querySelector('.page-title').textContent = `Welcome back, ${fullName.split(' ')[0]}! 👋`;
+
+            } catch (error) {
+                console.error('Error in checkAuth:', error);
+            }
         }
 
         // ============================================
