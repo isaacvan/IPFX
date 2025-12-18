@@ -757,13 +757,14 @@
         // ============================================
         const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { createClient } = window.supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================
         // CHECK AUTHENTICATION & LOAD USER DATA
         // ============================================
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
 
             if (!session) {
                 // Not logged in - redirect to login page
@@ -776,7 +777,7 @@
 
             try {
                 // Fetch user profile from database
-                const { data: profile, error } = await supabase
+                const { data: profile, error } = await supabaseClient
                     .from('user_profiles')
                     .select('*')
                     .eq('user_id', user.id)
@@ -808,7 +809,7 @@
         document.querySelector('.btn-logout').addEventListener('click', async function(e) {
             e.preventDefault();
 
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             window.location.href = 'login.html';
         });
 
