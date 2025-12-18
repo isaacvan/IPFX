@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Signup</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family: Arial; padding: 40px; background: #0a0a0c; color: white;">
+    <h1>Supabase Connection Test</h1>
+
+    <div id="status" style="padding: 20px; background: #1a1a1c; border-radius: 8px; margin-bottom: 20px;">
+        <p>Testing connection...</p>
+    </div>
+
+    <div style="background: #1a1a1c; padding: 20px; border-radius: 8px;">
+        <h2>Quick Signup Test</h2>
+        <input type="email" id="testEmail" placeholder="Email" style="display:block; margin:10px 0; padding:10px; width:300px;">
+        <input type="password" id="testPassword" placeholder="Password" style="display:block; margin:10px 0; padding:10px; width:300px;">
+        <button onclick="testSignup()" style="padding:10px 20px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer;">Test Signup</button>
+        <div id="result" style="margin-top:20px; padding:10px; background:#0a0a0c; border-radius:6px;"></div>
+    </div>
+
+    <script>
+        // Supabase config
+        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Test connection
+        async function testConnection() {
+            const statusDiv = document.getElementById('status');
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                if (error) throw error;
+                statusDiv.innerHTML = '<p style="color:#10b981;">✅ Connection successful!</p><p>Supabase is connected properly.</p>';
+            } catch (error) {
+                statusDiv.innerHTML = '<p style="color:#ef4444;">❌ Connection failed!</p><p>Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Test signup
+        async function testSignup() {
+            const resultDiv = document.getElementById('result');
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+
+            if (!email || !password) {
+                resultDiv.innerHTML = '<p style="color:#f59e0b;">⚠️ Please enter email and password</p>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>Creating account...</p>';
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: 'Test User'
+                        }
+                    }
+                });
+
+                if (error) throw error;
+
+                console.log('Signup response:', data);
+
+                resultDiv.innerHTML = `
+                    <p style="color:#10b981;">✅ Account created successfully!</p>
+                    <p>User ID: ${data.user?.id}</p>
+                    <p>Email: ${data.user?.email}</p>
+                    <p style="color:#f59e0b; margin-top:10px;">
+                        ${data.user?.confirmed_at ? 'Email confirmed ✅' : 'Check email for confirmation link 📧'}
+                    </p>
+                `;
+
+                // Check if profile was created
+                setTimeout(async () => {
+                    const { data: profile, error: profileError } = await supabase
+                        .from('user_profiles')
+                        .select('*')
+                        .eq('user_id', data.user.id)
+                        .single();
+
+                    if (profile) {
+                        resultDiv.innerHTML += '<p style="color:#10b981;">✅ User profile created in database!</p>';
+                    } else {
+                        resultDiv.innerHTML += '<p style="color:#ef4444;">❌ Profile not created. Error: ' + (profileError?.message || 'Unknown') + '</p>';
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error('Signup error:', error);
+                resultDiv.innerHTML = '<p style="color:#ef4444;">❌ Signup failed!</p><p>' + error.message + '</p>';
+            }
+        }
+
+        // Run connection test on load
+        testConnection();
+    </script>
+</body>
+</html>
