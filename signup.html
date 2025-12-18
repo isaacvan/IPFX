@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Create Account</title>
+    <title>IPFX Capital | Coming Soon</title>
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,12 +13,8 @@
             --bg: #0a0a0c;
             --fg: #ffffff;
             --muted: #a0a0a0;
-            --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
-            --success: #10b981;
-            --error: #ef4444;
-            --radius: 12px;
         }
 
         * {
@@ -32,7 +28,7 @@
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: var(--fg);
             background: var(--bg);
             display: flex;
@@ -41,552 +37,69 @@
             padding: 20px;
         }
 
-        .signup-container {
-            max-width: 500px;
-            width: 100%;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 40px;
-            transition: color 0.3s ease;
-        }
-
-        .back-link:hover {
-            color: var(--cobalt);
-        }
-
-        .signup-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 3rem 2.5rem;
+        .container {
+            max-width: 600px;
             text-align: center;
         }
 
-        .logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 1.5rem;
+        .icon {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            animation: float 3s ease-in-out infinite;
         }
 
-        .logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
         }
 
         h1 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.75rem;
-            margin-bottom: 0.5rem;
+            font-size: clamp(2rem, 6vw, 3rem);
+            margin-bottom: 1rem;
         }
 
-        .subtitle {
-            color: var(--muted);
-            font-size: 0.95rem;
-            margin-bottom: 2rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--fg);
-            margin-bottom: 0.5rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            color: var(--fg);
-            font-size: 0.95rem;
-            font-family: 'Inter', system-ui;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--cobalt);
-            background: rgba(37, 99, 235, 0.05);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        input.error {
-            border-color: var(--error);
-            background: rgba(239, 68, 68, 0.05);
-        }
-
-        input.success {
-            border-color: var(--success);
-        }
-
-        input::placeholder {
-            color: var(--muted);
-        }
-
-        .error-message {
-            color: var(--error);
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        .password-strength {
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        .strength-bar {
-            height: 4px;
-            background: var(--line);
-            border-radius: 2px;
-            margin-top: 0.5rem;
-            overflow: hidden;
-        }
-
-        .strength-fill {
-            height: 100%;
-            width: 0;
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-
-        .strength-weak { width: 33%; background: var(--error); }
-        .strength-medium { width: 66%; background: #f59e0b; }
-        .strength-strong { width: 100%; background: var(--success); }
-
-        .password-requirements {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            text-align: left;
-        }
-
-        .password-requirements h4 {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 0.75rem;
-        }
-
-        .requirement {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .requirement::before {
-            content: '○';
-            font-size: 0.7rem;
-        }
-
-        .requirement.met {
-            color: var(--success);
-        }
-
-        .requirement.met::before {
-            content: '✓';
-        }
-
-        .btn-signup {
-            width: 100%;
-            padding: 14px;
+        .gradient-text {
             background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Inter', system-ui;
-            margin-top: 1.5rem;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .btn-signup:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-        }
-
-        .btn-signup:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin: 2rem 0;
+        p {
             color: var(--muted);
-            font-size: 0.85rem;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--line);
-        }
-
-        .login-link {
-            color: var(--muted);
-            font-size: 0.95rem;
-        }
-
-        .login-link a {
-            color: var(--cobalt);
-            text-decoration: none;
-            font-weight: 600;
-            transition: opacity 0.3s ease;
-        }
-
-        .login-link a:hover {
-            opacity: 0.8;
-        }
-
-        .terms-notice {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1.5rem;
-            font-size: 0.85rem;
-            color: var(--muted);
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
             line-height: 1.6;
         }
 
-        .terms-notice a {
-            color: var(--cobalt);
+        .btn {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
             text-decoration: none;
-        }
-
-        .terms-notice a:hover {
-            text-decoration: underline;
-        }
-
-        .alert {
-            padding: 1rem;
             border-radius: 8px;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-            display: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
         }
 
-        .alert.show {
-            display: block;
-        }
-
-        .alert-success {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: var(--success);
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: var(--error);
-        }
-
-        @media (max-width: 480px) {
-            .signup-card {
-                padding: 2rem 1.5rem;
-            }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="signup-container">
-        <a href="index.html" class="back-link">← Back to Home</a>
-
-        <div class="signup-card">
-            <div class="logo">
-                <img src="assets/images/favicon.ico" alt="IPFX Capital">
-            </div>
-
-            <h1>Create Your Account</h1>
-            <p class="subtitle">Start your journey to funded trading</p>
-
-            <div id="alertBox" class="alert"></div>
-
-            <form id="signupForm">
-                <div class="form-group">
-                    <label for="fullName">Full Name</label>
-                    <input type="text" id="fullName" placeholder="John Doe" required>
-                    <div class="error-message" id="nameError">Please enter your full name</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="john.doe@example.com" required>
-                    <div class="error-message" id="emailError">Please enter a valid email address</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Create a strong password" required>
-                    <div class="password-strength">
-                        <div class="strength-bar">
-                            <div class="strength-fill" id="strengthFill"></div>
-                        </div>
-                    </div>
-                    <div class="error-message" id="passwordError">Password does not meet requirements</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" placeholder="Re-enter your password" required>
-                    <div class="error-message" id="confirmError">Passwords do not match</div>
-                </div>
-
-                <div class="password-requirements">
-                    <h4>Password Requirements:</h4>
-                    <div class="requirement" id="req-length">At least 8 characters</div>
-                    <div class="requirement" id="req-uppercase">One uppercase letter</div>
-                    <div class="requirement" id="req-lowercase">One lowercase letter</div>
-                    <div class="requirement" id="req-number">One number</div>
-                </div>
-
-                <button type="submit" class="btn-signup" id="submitBtn">Create Account</button>
-            </form>
-
-            <div class="divider">or</div>
-
-            <p class="login-link">Already have an account? <a href="login.html">Login here</a></p>
-
-            <div class="terms-notice">
-                By creating an account, you agree to our <a href="#terms">Terms of Service</a> and <a href="#privacy">Privacy Policy</a>.
-            </div>
-        </div>
+    <div class="container">
+        <div class="icon">🚀</div>
+        <h1><span class="gradient-text">Coming Soon</span></h1>
+        <p>
+            We're putting the finishing touches on this feature.
+            Check back soon or return to our homepage.
+        </p>
+        <a href="index.html" class="btn">← Back to Home</a>
     </div>
-
-    <script>
-        // ============================================
-        // SUPABASE CONFIGURATION
-        // ============================================
-        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-        const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ============================================
-        // FORM ELEMENTS
-        // ============================================
-        const form = document.getElementById('signupForm');
-        const fullNameInput = document.getElementById('fullName');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const confirmPasswordInput = document.getElementById('confirmPassword');
-        const submitBtn = document.getElementById('submitBtn');
-        const alertBox = document.getElementById('alertBox');
-        const strengthFill = document.getElementById('strengthFill');
-
-        // ============================================
-        // PASSWORD STRENGTH CHECKER
-        // ============================================
-        const requirements = {
-            length: { regex: /.{8,}/, element: document.getElementById('req-length') },
-            uppercase: { regex: /[A-Z]/, element: document.getElementById('req-uppercase') },
-            lowercase: { regex: /[a-z]/, element: document.getElementById('req-lowercase') },
-            number: { regex: /[0-9]/, element: document.getElementById('req-number') }
-        };
-
-        passwordInput.addEventListener('input', function() {
-            const password = this.value;
-            let metCount = 0;
-
-            // Check each requirement
-            Object.values(requirements).forEach(req => {
-                if (req.regex.test(password)) {
-                    req.element.classList.add('met');
-                    metCount++;
-                } else {
-                    req.element.classList.remove('met');
-                }
-            });
-
-            // Update strength bar
-            strengthFill.className = 'strength-fill';
-            if (metCount === 0) {
-                strengthFill.style.width = '0';
-            } else if (metCount <= 2) {
-                strengthFill.classList.add('strength-weak');
-            } else if (metCount === 3) {
-                strengthFill.classList.add('strength-medium');
-            } else {
-                strengthFill.classList.add('strength-strong');
-            }
-
-            // Validate password
-            if (password.length > 0) {
-                validatePassword();
-            }
-        });
-
-        // ============================================
-        // REAL-TIME VALIDATION
-        // ============================================
-        confirmPasswordInput.addEventListener('input', validatePasswordMatch);
-        emailInput.addEventListener('blur', validateEmail);
-
-        function validatePassword() {
-            const password = passwordInput.value;
-            const isValid = Object.values(requirements).every(req => req.regex.test(password));
-
-            if (password.length > 0 && !isValid) {
-                passwordInput.classList.add('error');
-                passwordInput.classList.remove('success');
-                document.getElementById('passwordError').classList.add('show');
-                return false;
-            } else if (isValid) {
-                passwordInput.classList.remove('error');
-                passwordInput.classList.add('success');
-                document.getElementById('passwordError').classList.remove('show');
-                return true;
-            }
-            return false;
-        }
-
-        function validatePasswordMatch() {
-            const password = passwordInput.value;
-            const confirmPassword = confirmPasswordInput.value;
-
-            if (confirmPassword.length > 0) {
-                if (password !== confirmPassword) {
-                    confirmPasswordInput.classList.add('error');
-                    confirmPasswordInput.classList.remove('success');
-                    document.getElementById('confirmError').classList.add('show');
-                    return false;
-                } else {
-                    confirmPasswordInput.classList.remove('error');
-                    confirmPasswordInput.classList.add('success');
-                    document.getElementById('confirmError').classList.remove('show');
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function validateEmail() {
-            const email = emailInput.value;
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-            if (email.length > 0 && !emailRegex.test(email)) {
-                emailInput.classList.add('error');
-                emailInput.classList.remove('success');
-                document.getElementById('emailError').classList.add('show');
-                return false;
-            } else if (emailRegex.test(email)) {
-                emailInput.classList.remove('error');
-                emailInput.classList.add('success');
-                document.getElementById('emailError').classList.remove('show');
-                return true;
-            }
-            return false;
-        }
-
-        function validateFullName() {
-            const name = fullNameInput.value.trim();
-
-            if (name.length < 2) {
-                fullNameInput.classList.add('error');
-                document.getElementById('nameError').classList.add('show');
-                return false;
-            } else {
-                fullNameInput.classList.remove('error');
-                fullNameInput.classList.add('success');
-                document.getElementById('nameError').classList.remove('show');
-                return true;
-            }
-        }
-
-        // ============================================
-        // ALERT HELPERS
-        // ============================================
-        function showAlert(message, type) {
-            alertBox.textContent = message;
-            alertBox.className = `alert alert-${type} show`;
-            setTimeout(() => {
-                alertBox.classList.remove('show');
-            }, 5000);
-        }
-
-        // ============================================
-        // FORM SUBMISSION
-        // ============================================
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            // Validate all fields
-            const isNameValid = validateFullName();
-            const isEmailValid = validateEmail();
-            const isPasswordValid = validatePassword();
-            const isPasswordMatchValid = validatePasswordMatch();
-
-            if (!isNameValid || !isEmailValid || !isPasswordValid || !isPasswordMatchValid) {
-                showAlert('Please fix the errors before submitting', 'error');
-                return;
-            }
-
-            // Disable submit button
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Creating Account...';
-
-            try {
-                // ============================================
-                // SUPABASE SIGNUP
-                // ============================================
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email: emailInput.value,
-                    password: passwordInput.value,
-                    options: {
-                        data: {
-                            full_name: fullNameInput.value
-                        }
-                    }
-                });
-
-                if (error) throw error;
-
-                showAlert('Account created! Check your email to verify your account.', 'success');
-
-                // Redirect to login after 2 seconds
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
-
-            } catch (error) {
-                console.error('Signup error:', error);
-                showAlert(error.message || 'An error occurred during signup. Please try again.', 'error');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Create Account';
-            }
-        });
-    </script>
 </body>
 </html>

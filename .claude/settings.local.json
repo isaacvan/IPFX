@@ -38,7 +38,9 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(move:*)",
-      "Bash(ren \"C:\\Users\\isaac\\RiderProjects\\IPFX\\signup.html\" \"start-challenge.html\")"
+      "Bash(ren \"C:\\Users\\isaac\\RiderProjects\\IPFX\\signup.html\" \"start-challenge.html\")",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

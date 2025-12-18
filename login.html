@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Trader Login</title>
+    <title>IPFX Capital | Coming Soon</title>
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,10 +13,8 @@
             --bg: #0a0a0c;
             --fg: #ffffff;
             --muted: #a0a0a0;
-            --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
-            --radius: 12px;
         }
 
         * {
@@ -30,7 +28,7 @@
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: var(--fg);
             background: var(--bg);
             display: flex;
@@ -39,276 +37,69 @@
             padding: 20px;
         }
 
-        .login-container {
-            max-width: 450px;
-            width: 100%;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 40px;
-            transition: color 0.3s ease;
-        }
-
-        .back-link:hover {
-            color: var(--cobalt);
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 3rem 2.5rem;
+        .container {
+            max-width: 600px;
             text-align: center;
         }
 
-        .logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 1.5rem;
+        .icon {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            animation: float 3s ease-in-out infinite;
         }
 
-        .logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
         }
 
         h1 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.75rem;
-            margin-bottom: 0.5rem;
+            font-size: clamp(2rem, 6vw, 3rem);
+            margin-bottom: 1rem;
         }
 
-        .subtitle {
-            color: var(--muted);
-            font-size: 0.95rem;
-            margin-bottom: 2rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--fg);
-            margin-bottom: 0.5rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            color: var(--fg);
-            font-size: 0.95rem;
-            font-family: 'Inter', system-ui;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--cobalt);
-            background: rgba(37, 99, 235, 0.05);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        input::placeholder {
-            color: var(--muted);
-        }
-
-        .forgot-password {
-            text-align: right;
-            margin-bottom: 1.5rem;
-        }
-
-        .forgot-password a {
-            color: var(--cobalt);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: opacity 0.3s ease;
-        }
-
-        .forgot-password a:hover {
-            opacity: 0.8;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 14px;
+        .gradient-text {
             background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Inter', system-ui;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin: 2rem 0;
+        p {
             color: var(--muted);
-            font-size: 0.85rem;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--line);
-        }
-
-        .signup-link {
-            color: var(--muted);
-            font-size: 0.95rem;
-        }
-
-        .signup-link a {
-            color: var(--cobalt);
-            text-decoration: none;
-            font-weight: 600;
-            transition: opacity 0.3s ease;
-        }
-
-        .signup-link a:hover {
-            opacity: 0.8;
-        }
-
-        .demo-credentials {
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 2rem;
-            text-align: left;
-        }
-
-        .demo-credentials h4 {
-            color: var(--cobalt);
-            font-size: 0.9rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .demo-credentials p {
-            color: var(--muted);
-            font-size: 0.85rem;
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
             line-height: 1.6;
         }
 
-        .demo-credentials code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            color: var(--fg);
+        .btn {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
         }
 
-        @media (max-width: 480px) {
-            .login-card {
-                padding: 2rem 1.5rem;
-            }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="login-container">
-        <a href="index.html" class="back-link">← Back to Home</a>
-
-        <div class="login-card">
-            <div class="logo">
-                <img src="assets/images/favicon.ico" alt="IPFX Capital">
-            </div>
-
-            <h1>Welcome Back</h1>
-            <p class="subtitle">Login to access your trader dashboard</p>
-
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="john.doe@example.com" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter your password" required>
-                </div>
-
-                <div class="forgot-password">
-                    <a href="#forgot">Forgot password?</a>
-                </div>
-
-                <button type="submit" class="btn-login">Login</button>
-            </form>
-
-            <div class="divider">or</div>
-
-            <p class="signup-link">Don't have an account? <a href="signup.html">Sign up now</a></p>
-        </div>
+    <div class="container">
+        <div class="icon">🚀</div>
+        <h1><span class="gradient-text">Coming Soon</span></h1>
+        <p>
+            We're putting the finishing touches on this feature.
+            Check back soon or return to our homepage.
+        </p>
+        <a href="index.html" class="btn">← Back to Home</a>
     </div>
-
-    <script>
-        // ============================================
-        // SUPABASE CONFIGURATION
-        // ============================================
-        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-        const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ============================================
-        // LOGIN FORM HANDLER
-        // ============================================
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-
-            // Disable button and show loading state
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Logging in...';
-
-            try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                // Login successful - redirect to dashboard
-                window.location.href = 'dashboard.html';
-
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Login failed: ' + error.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Login';
-            }
-        });
-    </script>
 </body>
 </html>
