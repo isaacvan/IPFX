@@ -3,121 +3,103 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Infinity Challenge</title>
+    <title>IPFX Capital | Coming Soon</title>
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
-            --muted: #9ea0a6;
-            --line: #2b2d34;
+            --muted: #a0a0a0;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: var(--fg);
             background: var(--bg);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
             padding: 20px;
         }
 
-        .container { max-width: 600px; }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 40px;
-            transition: color 0.3s ease;
+        .container {
+            max-width: 600px;
+            text-align: center;
         }
-        .back-link:hover { color: var(--cobalt); }
 
-        .icon { font-size: 4rem; margin-bottom: 20px; }
+        .icon {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
 
         h1 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2rem, 5vw, 3rem);
-            margin: 0 0 16px;
-            color: var(--cobalt);
+            font-size: clamp(2rem, 6vw, 3rem);
+            margin-bottom: 1rem;
         }
 
-        .tagline {
-            font-size: 1.2rem;
-            color: var(--fg);
-            margin-bottom: 30px;
-            font-weight: 500;
-        }
-
-        .coming-soon-badge {
-            display: inline-block;
+        .gradient-text {
             background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            padding: 10px 24px;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 16px;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-
-        .launch-date {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--fg);
-            margin-bottom: 30px;
-        }
-        .launch-date span { color: var(--cobalt); }
 
         p {
-            font-size: 1rem;
             color: var(--muted);
-            line-height: 1.7;
-            margin-bottom: 30px;
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            line-height: 1.6;
         }
 
-        .home-btn {
+        .btn {
             display: inline-block;
-            padding: 14px 32px;
-            background: var(--cobalt);
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
             color: white;
             text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
+            font-size: 1rem;
             transition: all 0.3s ease;
         }
-        .home-btn:hover {
-            background: var(--deep-blue);
+
+        .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="index.html" class="back-link">&larr; Back to Home</a>
-        <div class="icon">&#8734;</div>
-        <h1>Infinity Challenge</h1>
-        <p class="tagline">Start free. Scale with performance.</p>
-        <div class="coming-soon-badge">Coming Soon</div>
-        <p class="launch-date">Launching <span>1st January 2026</span></p>
+        <div class="icon">🚀</div>
+        <h1><span class="gradient-text">Coming Soon</span></h1>
         <p>
-            Zero buy-in, unlimited potential. Begin your trading journey with no upfront cost
-            and watch your capital grow as you prove your skills. The future of prop trading starts here.
+            We're putting the finishing touches on this feature.
+            Check back soon or return to our homepage.
         </p>
-        <a href="index.html" class="home-btn">Return to Home</a>
+        <a href="index.html" class="btn">← Back to Home</a>
     </div>
 </body>
 </html>
