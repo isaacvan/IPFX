@@ -791,15 +791,152 @@
                     var fullName = profile.full_name;
                 }
 
+                const firstName = fullName.split(' ')[0];
                 const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 
                 // Update user display
                 document.querySelector('.user-avatar').textContent = initials;
                 document.querySelector('.user-name').textContent = fullName;
-                document.querySelector('.page-title').textContent = `Welcome back, ${fullName.split(' ')[0]}! 👋`;
+                document.querySelector('.page-title').textContent = `Welcome back, ${firstName}! 👋`;
+
+                // Load user's challenge enrollments
+                const { data: enrollments, error: enrollmentError } = await supabaseClient
+                    .from('challenge_enrollments')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (enrollmentError) {
+                    console.error('Error loading enrollments:', error);
+                }
+
+                // Update dashboard based on enrollment status
+                if (!enrollments || enrollments.length === 0) {
+                    showEmptyState(firstName);
+                } else {
+                    showEnrollmentData(enrollments, firstName);
+                }
 
             } catch (error) {
                 console.error('Error in checkAuth:', error);
+            }
+        }
+
+        // ============================================
+        // SHOW EMPTY STATE (No Challenges)
+        // ============================================
+        function showEmptyState(firstName) {
+            // Update alert to welcome new user
+            document.querySelector('.alert h4').textContent = `Welcome to IPFX Capital, ${firstName}!`;
+            document.querySelector('.alert p').textContent = 'You\'re all set! Choose your challenge size and start trading immediately. No waiting, no delays - begin your journey to funded trading right now.';
+
+            // Update stats to show zero state
+            const statValues = document.querySelectorAll('.stat-value');
+            statValues[0].textContent = '£0';
+            statValues[1].textContent = '£0 / £0';
+            statValues[2].textContent = '£0 / £0';
+            statValues[3].textContent = '0';
+
+            const statChanges = document.querySelectorAll('.stat-change');
+            statChanges[0].innerHTML = '<span>Start your first challenge</span>';
+            statChanges[0].className = 'stat-change';
+            statChanges[1].innerHTML = '<span>No active challenge</span>';
+            statChanges[1].className = 'stat-change';
+            statChanges[2].innerHTML = '<span>Ready to begin</span>';
+            statChanges[2].className = 'stat-change';
+            statChanges[3].innerHTML = '<span>0% win rate</span>';
+            statChanges[3].className = 'stat-change';
+
+            // Update challenge progress section
+            document.querySelector('.section-title').textContent = 'Ready to Start?';
+            const progressCard = document.querySelector('.card');
+            progressCard.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+                    <h3 style="margin-bottom: 1rem; font-size: 1.5rem;">No Active Challenges</h3>
+                    <p style="color: var(--muted); margin-bottom: 2rem;">Start your first trading challenge to unlock your dashboard and begin your path to funded trading.</p>
+                    <a href="start-challenge.html" class="btn" style="display: inline-block;">Start Your First Challenge</a>
+                </div>
+            `;
+
+            // Hide recent trades section
+            document.querySelector('.grid-2').style.display = 'none';
+        }
+
+        // ============================================
+        // SHOW ENROLLMENT DATA (Has Challenges)
+        // ============================================
+        function showEnrollmentData(enrollments, firstName) {
+            const activeEnrollment = enrollments.find(e => e.status === 'active') || enrollments[0];
+
+            // Update alert based on status
+            if (activeEnrollment.status === 'active') {
+                document.querySelector('.alert h4').textContent = `You're doing great, ${firstName}!`;
+                document.querySelector('.alert p').textContent = 'Keep up the good work! Stay within your risk limits and focus on hitting your profit targets.';
+            } else if (activeEnrollment.status === 'pending') {
+                document.querySelector('.alert h4').textContent = 'Challenge Starting Soon!';
+                document.querySelector('.alert p').textContent = 'Your challenge is being set up. You\'ll receive your trading credentials via email shortly.';
+            }
+
+            // Update stats with real data
+            const currentBalance = activeEnrollment.current_balance || activeEnrollment.account_size;
+            const profitLoss = currentBalance - activeEnrollment.account_size;
+            const profitPercent = ((profitLoss / activeEnrollment.account_size) * 100).toFixed(2);
+
+            document.querySelectorAll('.stat-value')[0].textContent = `£${(currentBalance / 100).toLocaleString()}`;
+            document.querySelectorAll('.stat-value')[1].textContent = `£${(activeEnrollment.current_profit || 0) / 100} / £${activeEnrollment.profit_target / 100}`;
+            document.querySelectorAll('.stat-value')[2].textContent = `£0 / £${activeEnrollment.daily_loss_limit / 100}`;
+            document.querySelectorAll('.stat-value')[3].textContent = activeEnrollment.trades_count || 0;
+
+            const statChanges = document.querySelectorAll('.stat-change');
+            statChanges[0].innerHTML = profitLoss >= 0 ?
+                `<span>↗</span><span>+${profitPercent}% this week</span>` :
+                `<span>↘</span><span>${profitPercent}% this week</span>`;
+            statChanges[0].className = profitLoss >= 0 ? 'stat-change positive' : 'stat-change negative';
+
+            const progressPercent = Math.min(100, ((activeEnrollment.current_profit || 0) / activeEnrollment.profit_target * 100)).toFixed(0);
+            statChanges[1].innerHTML = `<span>↗</span><span>${progressPercent}% complete</span>`;
+            statChanges[1].className = 'stat-change positive';
+
+            statChanges[2].innerHTML = '<span>Safe zone - within limits</span>';
+            statChanges[3].innerHTML = `<span>${activeEnrollment.win_rate || 0}% win rate</span>`;
+
+            // Update challenge progress
+            const daysRemaining = activeEnrollment.end_date ?
+                Math.max(0, Math.ceil((new Date(activeEnrollment.end_date) - new Date()) / (1000 * 60 * 60 * 24))) :
+                30;
+
+            document.querySelector('.section-title').textContent = 'Challenge Progress';
+            document.querySelector('.card h3').textContent = `${activeEnrollment.challenge_tier.toUpperCase()} Challenge`;
+            document.querySelector('.status-badge').textContent = activeEnrollment.status.charAt(0).toUpperCase() + activeEnrollment.status.slice(1);
+            document.querySelector('.status-badge').className = `status-badge ${activeEnrollment.status}`;
+
+            const daysRemainingEl = document.querySelector('[style*="font-size: 1.5rem"]');
+            if (daysRemainingEl) daysRemainingEl.textContent = daysRemaining;
+
+            // Update progress bars
+            document.querySelectorAll('.progress-value')[0].textContent = `£${(activeEnrollment.current_profit || 0) / 100} / £${activeEnrollment.profit_target / 100} (${progressPercent}%)`;
+            document.querySelectorAll('.progress-fill')[0].style.width = `${progressPercent}%`;
+
+            // Update progress info
+            const infoValues = document.querySelectorAll('.progress-info-value');
+            infoValues[0].textContent = `£${(activeEnrollment.account_size / 100).toLocaleString()}`;
+            infoValues[1].textContent = `£${(currentBalance / 100).toLocaleString()}`;
+            infoValues[2].textContent = `£0 / £${activeEnrollment.total_loss_limit / 100}`;
+            infoValues[3].textContent = `${activeEnrollment.trades_count || 0} trades`;
+
+            // Show trades section but with message if no trades yet
+            if (!activeEnrollment.trades_count || activeEnrollment.trades_count === 0) {
+                const tradesCard = document.querySelectorAll('.card')[1];
+                if (tradesCard) {
+                    tradesCard.innerHTML = `
+                        <div style="text-align: center; padding: 3rem 2rem;">
+                            <div style="font-size: 2.5rem; margin-bottom: 1rem;">📊</div>
+                            <h4 style="margin-bottom: 0.5rem;">No Trades Yet</h4>
+                            <p style="color: var(--muted);">Your trades will appear here once you start trading</p>
+                        </div>
+                    `;
+                }
             }
         }
 

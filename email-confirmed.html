@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>IPFX | Email Confirmed</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --fg: #ffffff;
+            --muted: #a0a0a0;
+            --line: #2a2a2c;
+            --cobalt: #2563eb;
+            --deep-blue: #1e3a8a;
+            --success: #10b981;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            color: var(--fg);
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 3rem 2.5rem;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--success), #059669);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            font-size: 2.5rem;
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .info-box {
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        #countdown {
+            font-weight: 700;
+            color: var(--cobalt);
+        }
+
+        .loading {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--line);
+            border-top-color: var(--cobalt);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="success-icon">✓</div>
+
+            <h1>Email Confirmed!</h1>
+
+            <p id="message">
+                Your email has been successfully verified. You can now access all features of your IPFX Capital account.
+            </p>
+
+            <a href="login.html" class="btn" id="loginBtn">Continue to Login</a>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+            </div>
+
+            <div class="info-box">
+                Redirecting to login in <span id="countdown">5</span> seconds...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // SUPABASE CONFIGURATION
+        // ============================================
+        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+        const { createClient } = window.supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================
+        // HANDLE EMAIL CONFIRMATION
+        // ============================================
+        async function handleEmailConfirmation() {
+            // Check if there's a session (user just confirmed email)
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+            if (session) {
+                // User is now logged in after confirmation
+                console.log('User confirmed and logged in:', session.user.email);
+
+                // Update message
+                document.getElementById('message').textContent =
+                    `Welcome ${session.user.email}! Your account is ready to use.`;
+            }
+
+            // Check URL hash for confirmation token
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const type = hashParams.get('type');
+
+            if (type === 'signup' && accessToken) {
+                // Email was confirmed via link
+                document.getElementById('message').textContent =
+                    'Your email has been successfully verified. You can now login to your account.';
+            }
+
+            // Auto-redirect countdown
+            let countdown = 5;
+            const countdownEl = document.getElementById('countdown');
+
+            const timer = setInterval(() => {
+                countdown--;
+                countdownEl.textContent = countdown;
+
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    window.location.href = 'login.html';
+                }
+            }, 1000);
+
+            // Manual login button
+            document.getElementById('loginBtn').addEventListener('click', () => {
+                clearInterval(timer);
+            });
+        }
+
+        // Run on page load
+        handleEmailConfirmation();
+    </script>
+</body>
+</html>
