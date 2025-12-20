@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Create Account</title>
+    <title>IPFX | Pre-Register for Launch</title>
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,6 +81,20 @@
             object-fit: contain;
         }
 
+        .launch-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--cobalt);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1.5rem;
+        }
+
         h1 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: 1.75rem;
@@ -90,7 +104,14 @@
         .subtitle {
             color: var(--muted);
             font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .pre-register-info {
+            color: var(--muted);
+            font-size: 0.875rem;
             margin-bottom: 2rem;
+            line-height: 1.6;
         }
 
         .form-group {
@@ -329,8 +350,10 @@
                 <img src="assets/images/favicon.ico" alt="IPFX Capital">
             </div>
 
-            <h1>Create Your Account</h1>
-            <p class="subtitle">Start your journey to funded trading</p>
+            <div class="launch-badge">Launching March 2026</div>
+            <h1>Pre-Register for Launch</h1>
+            <p class="subtitle">Secure your spot for our March 2026 launch</p>
+            <p class="pre-register-info">Be among the first to access our platform and start your funded trading journey when we go live.</p>
 
             <div id="alertBox" class="alert"></div>
 
@@ -372,7 +395,7 @@
                     <div class="requirement" id="req-number">One number</div>
                 </div>
 
-                <button type="submit" class="btn-signup" id="submitBtn">Create Account</button>
+                <button type="submit" class="btn-signup" id="submitBtn">Pre-Register Now</button>
             </form>
 
             <div class="divider">or</div>
@@ -555,7 +578,7 @@
 
             // Disable submit button
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Creating Account...';
+            submitBtn.textContent = 'Pre-Registering...';
 
             try {
                 // ============================================
@@ -582,9 +605,9 @@
 
             } catch (error) {
                 console.error('Signup error:', error);
-                showAlert(error.message || 'An error occurred during signup. Please try again.', 'error');
+                showAlert(error.message || 'An error occurred during pre-registration. Please try again.', 'error');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Create Account';
+                submitBtn.textContent = 'Pre-Register Now';
             }
         });
     </script>
