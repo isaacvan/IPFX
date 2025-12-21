@@ -348,6 +348,10 @@
                 display: none;
             }
 
+            ul[style*="column-count"] {
+                column-count: 1 !important;
+            }
+
             .hero {
                 padding: 4rem 1.5rem 3rem;
             }
@@ -397,7 +401,7 @@
     <!-- Hero Section -->
     <section class="hero">
         <h1><span>Press & Media</span></h1>
-        <p>IPFX Capital is a UK-based fintech startup preparing to launch a new, algorithm-driven proprietary trading funding model in March 2026. The company aims to address structural issues in the prop-trading industry by replacing pay-to-play challenges and rigid rule-sets with data-led capital allocation based on real trading behaviour.</p>
+        <p>IPFX Capital is a UK-based fintech company launching a new, data-driven proprietary trading funding model in March 2026. We aim to solve long-standing structural problems in the prop-trading industry by replacing fee-based challenges and rigid rule-sets with a fully algorithmic, behaviour-led capital allocation engine. Our approach is built around risk intelligence, consistency profiling, and real performance data — not arbitrary limits or fee-farm incentives.</p>
     </section>
 
     <!-- Key Facts -->
@@ -430,6 +434,51 @@
 
     <div class="divider"></div>
 
+    <!-- Key Metrics -->
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">Key Metrics</h2>
+            <p class="section-subtitle" style="font-style: italic; font-size: 0.95rem; margin-top: 0.5rem;">(As of 2026 — placeholders to be updated before launch)</p>
+        </div>
+        <div class="why-matters">
+            <ul>
+                <li>2,000+ traders on the waitlist</li>
+                <li>Users from 20+ countries</li>
+                <li>£300,000+ total pre-launch payouts/tests</li>
+                <li>Over 50,000 hours of trader performance data collected through internal pilots</li>
+                <li>Capital allocation framework built on 20+ behavioural risk variables</li>
+            </ul>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- The Problem -->
+    <section class="section">
+        <div class="why-matters">
+            <h3>The Problem</h3>
+            <p style="color: var(--muted); margin-bottom: 1.5rem; line-height: 1.8;">Conventional prop firms monetise trader failure. Their business model depends on high-fee challenges where most traders never receive funding or payouts. This leads to:</p>
+            <ul>
+                <li>Structural misalignment</li>
+                <li>Incentives to fail rather than to fund</li>
+                <li>Rigid, arbitrary rule-sets</li>
+                <li>Limited trust and poor trader outcomes</li>
+            </ul>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- The Solution -->
+    <section class="section">
+        <div class="why-matters">
+            <h3>The Solution</h3>
+            <p style="color: var(--muted); line-height: 1.8;">IPFX uses a data-led allocation engine that measures consistency, psychological discipline, drawdown behaviour, and risk-adjusted performance. This approach rewards long-term skill, not short-term volatility or challenge retries.</p>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
     <!-- What We're Building -->
     <section class="section">
         <div class="section-header">
@@ -440,19 +489,41 @@
             <div class="product-card">
                 <div class="product-badge">Launching March 2026</div>
                 <h3>Infinity Challenge</h3>
-                <p>A free, multi-stage trading challenge designed to pay traders as they scale through increasing account sizes. Capital allocation and post-challenge funding are informed by algorithmic analysis of trading performance, consistency, and risk management.</p>
+                <p>A 100% free, multi-stage funding challenge that pays traders as they scale.</p>
+                <ul style="text-align: left; color: var(--muted); margin-top: 1rem; line-height: 1.8;">
+                    <li>No fees</li>
+                    <li>Dynamic account scaling up to £200,000</li>
+                    <li>Payouts at each successful stage</li>
+                    <li>Capital allocation based on algorithmic behaviour analysis</li>
+                    <li>Designed to reward consistency, discipline, and risk-adjusted performance</li>
+                </ul>
+                <p style="margin-top: 1rem;">This model eliminates the traditional "pay and fail" prop-firm structure.</p>
             </div>
 
             <div class="product-card">
                 <div class="product-badge">Planned</div>
                 <h3>PAC Challenge</h3>
-                <p>A direct capital allocation pathway where traders submit verified trading history. IPFX's algorithm assesses strategy characteristics and risk appetite to determine a suitable account size.</p>
+                <p>A direct capital allocation route for traders with verified performance history.</p>
+                <p style="margin-top: 1rem;">Our algorithms analyse:</p>
+                <ul style="text-align: left; color: var(--muted); margin-top: 0.5rem; line-height: 1.8;">
+                    <li>Strategy characteristics</li>
+                    <li>Win/loss distribution</li>
+                    <li>Risk tolerance</li>
+                    <li>Drawdown behaviour</li>
+                    <li>Consistency metrics</li>
+                </ul>
+                <p style="margin-top: 1rem;">From this, a tailored funding level is assigned.</p>
             </div>
 
             <div class="product-card">
                 <div class="product-badge">Planned</div>
                 <h3>Trading Pool</h3>
-                <p>A model allowing experienced traders to monetise their strategies by making them available within a shared trading pool, with compensation designed to exceed traditional prop-firm payouts.</p>
+                <p>A performance-driven strategy marketplace where traders can:</p>
+                <ul style="text-align: left; color: var(--muted); margin-top: 1rem; line-height: 1.8;">
+                    <li>Monetise their strategy by contributing it to a shared pool</li>
+                    <li>Earn compensation exceeding traditional prop-firm splits</li>
+                    <li>Access a dynamic, data-backed allocation engine</li>
+                </ul>
             </div>
         </div>
     </section>
@@ -463,11 +534,56 @@
     <section class="section">
         <div class="why-matters">
             <h3>Why This Matters</h3>
-            <p style="color: var(--muted); margin-bottom: 1.5rem; line-height: 1.8;">Most prop firms rely on upfront fees and evaluation models where the majority of traders fail without compensation. IPFX Capital is exploring an alternative approach focused on:</p>
+            <p style="color: var(--muted); margin-bottom: 1.5rem; line-height: 1.8;">Traditional prop firms rely heavily on upfront fees and high fail rates to generate revenue. Most traders never receive funding or payouts. IPFX Capital proposes a different path:</p>
             <ul>
-                <li>Reducing pay-to-fail incentives</li>
-                <li>Rewarding consistency rather than short-term risk</li>
-                <li>Using data, not arbitrary rules, to allocate capital</li>
+                <li>No monetisation of trader failure</li>
+                <li>Capital allocated based on real data, not arbitrary rules</li>
+                <li>Rewards for consistency over short-term risk-taking</li>
+                <li>Long-term alignment between capital provider and trader</li>
+            </ul>
+            <p style="color: var(--muted); margin-top: 1.5rem; line-height: 1.8;">This aligns incentives in a way that has been missing in the industry.</p>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Key Differentiators -->
+    <section class="section">
+        <div class="why-matters">
+            <h3>Key Differentiators</h3>
+            <ul>
+                <li>Zero-fee funding challenges</li>
+                <li>Behavioural risk engine</li>
+                <li>Real data replaces arbitrary rules</li>
+                <li>Funding aligned with trader success</li>
+                <li>Modern execution tech + transparency</li>
+            </ul>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Mission -->
+    <section class="section">
+        <div class="why-matters">
+            <h3>Mission</h3>
+            <p style="color: var(--muted); line-height: 1.8; font-size: 1.1rem;">To build a sustainable prop funding model that grows because traders succeed — not because they fail.</p>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Regulatory & Operational Transparency -->
+    <section class="section">
+        <div class="why-matters">
+            <h3>Regulatory & Operational Transparency</h3>
+            <p style="color: var(--muted); margin-bottom: 1.5rem; line-height: 1.8;">To support journalists and industry observers:</p>
+            <ul>
+                <li>IPFX Capital does not hold client deposits</li>
+                <li>All challenges involve performance-based funding, not leveraged financial products</li>
+                <li>All trader evaluations and allocations are based on risk-engine analysis, not fee collection</li>
+                <li>Full compliance and operational documentation is available on request</li>
+                <li>Brokerage/liquidity partners are disclosed to media privately</li>
             </ul>
         </div>
     </section>
@@ -478,8 +594,46 @@
     <section class="section">
         <div class="section-header">
             <h2 class="section-title">Founders</h2>
-            <p class="section-subtitle">IPFX Capital was founded by UK-based entrepreneurs with backgrounds in trading, technology, and quantitative analysis. The founding team is focused on long-term alignment between traders and capital providers.</p>
-            <p class="section-subtitle" style="margin-top: 1rem; font-style: italic;">(Founder bios available upon request.)</p>
+        </div>
+        <div class="why-matters" style="margin-bottom: 2rem;">
+            <h3>Paul — Co-Founder & CEO</h3>
+            <p style="color: var(--muted); line-height: 1.8;">Paul brings a background in quantitative analysis, trading system design, and fintech product architecture. He is responsible for shaping IPFX Capital's strategic direction, with a focus on developing risk-intelligent trading infrastructure and transparent, data-driven evaluation frameworks.</p>
+        </div>
+        <div class="why-matters">
+            <h3>Isaac — Co-Founder & CTO</h3>
+            <p style="color: var(--muted); line-height: 1.8;">With expertise in algorithmic systems, data engineering, and behavioural modelling, Isaac leads the firm's technology and quantitative development. He oversees the design of IPFX Capital's proprietary evaluation algorithms, risk-engine architecture, and systematic capital-allocation technology.</p>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Founder Quote -->
+    <section class="section">
+        <div class="why-matters" style="background: rgba(37, 99, 235, 0.05); border-left: 3px solid var(--cobalt); padding: 2rem;">
+            <p style="color: var(--fg); line-height: 1.8; font-size: 1.15rem; font-style: italic; margin-bottom: 1rem;">"Evaluations shouldn't be a revenue model. We fund traders based on skill, consistency, and data — not on how many times they pay to retry."</p>
+            <p style="color: var(--muted); font-size: 0.95rem;">— Paul, Founder & CEO</p>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Media-Ready Angles -->
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">Media-Ready Angles</h2>
+            <p class="section-subtitle">IPFX Capital can contribute expert insight on:</p>
+        </div>
+        <div class="why-matters">
+            <ul style="column-count: 2; column-gap: 2rem;">
+                <li>Evolution of proprietary trading</li>
+                <li>Why the traditional prop-firm fee model is breaking</li>
+                <li>Behaviour-based trader assessment</li>
+                <li>AI & ML in trading evaluation</li>
+                <li>Retail trading trends (2025–2027)</li>
+                <li>Sustainable prop funding models</li>
+                <li>Financial risk psychology</li>
+                <li>Regulatory pressures on prop firms</li>
+            </ul>
         </div>
     </section>
 
