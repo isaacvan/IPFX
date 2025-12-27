@@ -41,7 +41,10 @@
       "Bash(ren \"C:\\Users\\isaac\\RiderProjects\\IPFX\\signup.html\" \"start-challenge.html\")",
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(signup_temp.html)",
+      "Bash(signup.html)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
