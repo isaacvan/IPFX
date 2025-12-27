@@ -596,12 +596,59 @@
 
                 if (error) throw error;
 
-                showAlert('Account created! Check your email to verify your account.', 'success');
+                // Hide the form and show success message
+                document.getElementById('signupForm').style.display = 'none';
+                document.querySelector('.launch-badge').style.display = 'none';
+                document.querySelector('h1').style.display = 'none';
+                document.querySelector('.subtitle').style.display = 'none';
+                document.querySelector('.pre-register-info').style.display = 'none';
+                document.querySelector('.divider').style.display = 'none';
+                document.querySelector('.login-link').style.display = 'none';
+                document.querySelector('.terms-notice').style.display = 'none';
 
-                // Redirect to login after 2 seconds
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                // Show success message
+                alertBox.innerHTML = `
+                    <div style="text-align: center; padding: 2rem 0;">
+                        <div style="font-size: 4rem; margin-bottom: 1.5rem;">✅</div>
+                        <h2 style="font-size: 1.75rem; margin-bottom: 1rem; color: var(--fg);">Pre-Registration Successful!</h2>
+                        <p style="color: var(--muted); font-size: 1rem; line-height: 1.8; margin-bottom: 1.5rem;">
+                            Thank you for pre-registering for IPFX Capital's March 2026 launch!
+                        </p>
+                        <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+                            <h3 style="color: var(--cobalt); font-size: 1.1rem; margin-bottom: 1rem;">📧 Check Your Email</h3>
+                            <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.6;">
+                                We've sent a verification email to <strong style="color: var(--fg);">${emailInput.value}</strong>.<br>
+                                Please verify your email address to complete your pre-registration.
+                            </p>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--line); border-radius: 12px; padding: 1.5rem; text-align: left;">
+                            <h4 style="color: var(--fg); font-size: 1rem; margin-bottom: 1rem;">What happens next?</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li style="color: var(--muted); padding: 0.5rem 0; padding-left: 1.5rem; position: relative;">
+                                    <span style="position: absolute; left: 0; color: var(--cobalt);">→</span>
+                                    You'll receive updates about our March 2026 launch
+                                </li>
+                                <li style="color: var(--muted); padding: 0.5rem 0; padding-left: 1.5rem; position: relative;">
+                                    <span style="position: absolute; left: 0; color: var(--cobalt);">→</span>
+                                    Get early access to platform features and resources
+                                </li>
+                                <li style="color: var(--muted); padding: 0.5rem 0; padding-left: 1.5rem; position: relative;">
+                                    <span style="position: absolute; left: 0; color: var(--cobalt);">→</span>
+                                    Be first in line when we officially launch
+                                </li>
+                            </ul>
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <a href="index.html" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, var(--cobalt), var(--deep-blue)); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.3s ease;">
+                                Return to Home
+                            </a>
+                        </div>
+                    </div>
+                `;
+                alertBox.className = 'alert show';
+                alertBox.style.background = 'transparent';
+                alertBox.style.border = 'none';
+                alertBox.style.padding = '0';
 
             } catch (error) {
                 console.error('Signup error:', error);
