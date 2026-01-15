@@ -1,0 +1,18 @@
+{
+  "name": "ipfx-market-data-server",
+  "version": "1.0.0",
+  "description": "Real-time market data WebSocket server for IPFX",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
