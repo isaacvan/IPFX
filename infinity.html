@@ -237,36 +237,27 @@
             opacity: 1;
         }
 
-        .scroll-arrow {
-            width: 1px;
-            height: 2rem;
-            background: linear-gradient(180deg, transparent, var(--muted));
-            position: relative;
-        }
-
-        .scroll-arrow::after {
-            content: '↓';
-            position: absolute;
-            bottom: -1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 1rem;
-            animation: bounce 3s ease-in-out infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% {
-                transform: translateX(-50%) translateY(0);
-            }
-            50% {
-                transform: translateX(-50%) translateY(6px);
-            }
-        }
 
         /* Section Styles */
         .info-section {
             position: relative;
             padding: 8rem 0;
+        }
+
+        .info-section:not(:first-of-type)::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        }
+
+        .info-section[style*="background"]::before {
+            display: none;
             width: 100vw;
             margin-left: calc(-50vw + 50%);
         }
@@ -300,62 +291,124 @@
             margin-bottom: 4rem;
         }
 
-        /* How It Works Cards */
-        .how-it-works-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+        /* How It Works Flow */
+        .how-it-works-flow {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
             margin-bottom: 3rem;
+            position: relative;
         }
 
         .step-card {
+            flex: 1;
             text-align: center;
-            padding: 2.5rem 1.5rem;
-            background: rgba(255, 255, 255, 0.015);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            transition: all 0.3s ease;
+            padding: 3rem 2rem;
+            background: transparent;
+            border: none;
+            position: relative;
         }
 
-        .step-card:hover {
-            background: rgba(255, 255, 255, 0.025);
-            border-color: rgba(37, 99, 235, 0.3);
-            transform: translateY(-4px);
+        .step-card::after {
+            content: '→';
+            position: absolute;
+            right: -1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            color: var(--cobalt);
+            opacity: 0.4;
+            z-index: 1;
         }
 
-        .step-number {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            border-radius: 50%;
-            display: flex;
+        .step-card:last-child::after {
+            display: none;
+        }
+
+        .step-badge {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 800;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(30, 58, 138, 0.2));
+            border: 2px solid var(--cobalt);
+            border-radius: 50%;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--cobalt);
             margin: 0 auto 1.5rem;
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
-            transition: all 0.3s ease;
+            position: relative;
         }
 
-        .step-card:hover .step-number {
-            transform: scale(1.05);
-            box-shadow: 0 12px 32px rgba(37, 99, 235, 0.35);
+        .step-badge::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid var(--cobalt);
+            opacity: 0.3;
+        }
+
+        .step-capital {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--fg);
+            margin-bottom: 1rem;
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
         }
 
         .step-card h3 {
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
             font-size: 1.3rem;
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
+            color: var(--cobalt);
             font-weight: 600;
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
         }
 
         .step-card p {
             color: var(--muted);
-            line-height: 1.7;
-            font-size: 0.95rem;
+            line-height: 1.8;
+            font-size: 1rem;
         }
+
+        @media (max-width: 768px) {
+            .how-it-works-flow {
+                flex-direction: column;
+                gap: 3rem;
+            }
+
+            .step-card::after {
+                content: '↓';
+                right: auto;
+                left: 50%;
+                top: auto;
+                bottom: -2.5rem;
+                transform: translateX(-50%);
+            }
+
+            .step-card:last-child::after {
+                display: none;
+            }
+        }
+
+        /* Reveal Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered delays for multiple items */
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
 
         /* Phase Cards */
         .phase-card {
@@ -365,11 +418,51 @@
             padding: 2.5rem;
             margin-bottom: 2rem;
             transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* Phase 1: Subtle */
+        .phase-card:nth-child(1) {
+            transform: scale(0.97);
+            opacity: 0.9;
+        }
+
+        /* Phase 2: Medium */
+        .phase-card:nth-child(2) {
+            border-color: rgba(37, 99, 235, 0.2);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Phase 3: Prominent */
+        .phase-card:nth-child(3) {
+            transform: scale(1.02);
+            border: 2px solid rgba(37, 99, 235, 0.4);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(30, 58, 138, 0.05));
+            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.15);
+        }
+
+        .phase-card:nth-child(3)::before {
+            content: 'PROFESSIONAL';
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
         }
 
         .phase-card:hover {
             background: rgba(255, 255, 255, 0.025);
             border-color: rgba(37, 99, 235, 0.25);
+        }
+
+        .phase-card:nth-child(3):hover {
+            transform: scale(1.03);
+            box-shadow: 0 12px 40px rgba(37, 99, 235, 0.25);
         }
 
         .phase-header {
@@ -429,6 +522,17 @@
 
         .detail-item {
             position: relative;
+            padding: 1.25rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .detail-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(37, 99, 235, 0.2);
+            transform: translateY(-2px);
         }
 
         .detail-item span:first-child {
@@ -445,7 +549,8 @@
             display: block;
             color: var(--fg);
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.25rem;
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
         }
 
         /* Revenue Model Section */
@@ -579,16 +684,68 @@
             font-weight: 600;
         }
 
+        /* Social Proof */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            margin: 3rem 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 2rem 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-4px);
+            border-color: rgba(37, 99, 235, 0.3);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .stat-number {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            color: var(--cobalt);
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
         /* FAQ */
         .faq-container {
             max-width: 900px;
             margin: 0 auto;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
         }
 
         .faq-item {
             background: transparent;
             border: none;
-            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 0;
             margin-bottom: 0;
             overflow: hidden;
@@ -596,6 +753,18 @@
         }
 
         .faq-item:last-of-type {
+            border-bottom: none;
+        }
+
+        .faq-item.active {
+            background: rgba(37, 99, 235, 0.03);
+            margin: 0 -1rem;
+            padding: 0 1rem;
+            border-radius: 8px;
+            border-bottom: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .faq-item.active:last-of-type {
             border-bottom: none;
         }
 
@@ -813,10 +982,6 @@
                     <div class="hero-cta">
                         <a href="/start-challenge.html" class="btn-primary">Start Free Challenge →</a>
                     </div>
-                    <div class="scroll-indicator">
-                        <span>Scroll to learn how it works</span>
-                        <div class="scroll-arrow"></div>
-                    </div>
                 </header>
             </div>
 
@@ -826,25 +991,34 @@
                     <h2 class="section-title">How It Works</h2>
                     <p class="section-subtitle">Three phases from evaluation to funded trader</p>
 
-                    <div class="how-it-works-grid">
-                        <div class="step-card">
-                            <div class="step-number">1</div>
+                    <div class="how-it-works-flow">
+                        <div class="step-card reveal">
+                            <div class="step-badge">1</div>
+                            <div class="step-capital">£1,000</div>
                             <h3>Start Free</h3>
-                            <p>Begin with £1,000 evaluation capital. Hit 10% profit target. No costs, 60-day timeframe, unlimited attempts to pass.</p>
+                            <p>Begin evaluation. Hit 10% profit target. Zero costs, 60 days, unlimited attempts.</p>
                         </div>
 
-                        <div class="step-card">
-                            <div class="step-number">2</div>
+                        <div class="step-card reveal">
+                            <div class="step-badge">2</div>
+                            <div class="step-capital">£5,000</div>
                             <h3>Get Funded</h3>
-                            <p>Scale to £5,000 funded account. Trade with real profit sharing (80% to you). Prove consistency over 60 days.</p>
+                            <p>Real profit sharing. 80% to you. Prove consistency over 60 days.</p>
                         </div>
 
-                        <div class="step-card">
-                            <div class="step-number">3</div>
+                        <div class="step-card reveal">
+                            <div class="step-badge">3</div>
+                            <div class="step-capital">£500K</div>
                             <h3>Go Professional</h3>
-                            <p>Advance to £25K-£500K capital. Real market trading. Keep 80% of profits. Weekly payouts. Long-term partnership.</p>
+                            <p>Real market trading. Keep 80% profits. Weekly payouts. Long-term partnership.</p>
                         </div>
                     </div>
+                </div>
+
+                <!-- Inline CTA -->
+                <div style="text-align: center; margin-top: 3rem;">
+                    <a href="/start-challenge.html" class="btn-primary">Start Your Free Challenge →</a>
+                    <p style="color: var(--muted); margin-top: 1rem; font-size: 0.9rem;">No credit card required • Instant access • £1,000 starting capital</p>
                 </div>
             </section>
 
@@ -855,7 +1029,7 @@
                     <p class="section-subtitle">Detailed breakdown of each phase and our revenue model</p>
 
                     <!-- Phase 1 -->
-                <div class="phase-card">
+                <div class="phase-card reveal">
                     <div class="phase-header">
                         <div class="phase-title-group">
                             <h3>Phase 1: Evaluation</h3>
@@ -898,7 +1072,7 @@
                 </div>
 
                 <!-- Phase 2 -->
-                <div class="phase-card">
+                <div class="phase-card reveal">
                     <div class="phase-header">
                         <div class="phase-title-group">
                             <h3>Phase 2: Funded (B-Book)</h3>
@@ -942,7 +1116,7 @@
                 </div>
 
                 <!-- Phase 3 -->
-                <div class="phase-card">
+                <div class="phase-card reveal">
                     <div class="phase-header">
                         <div class="phase-title-group">
                             <h3>Phase 3: Professional (A-Book)</h3>
@@ -1020,6 +1194,42 @@
                                     <p>Your success is our success - genuine long-term partnership</p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inline CTA -->
+                <div style="text-align: center; margin-top: 3rem;">
+                    <a href="/start-challenge.html" class="btn-primary">Begin Your Trading Journey →</a>
+                    <p style="color: var(--muted); margin-top: 1rem; font-size: 0.9rem;">Join traders earning 80% profit share • Start today with £1,000 capital</p>
+                </div>
+            </section>
+
+            <!-- Social Proof Section -->
+            <section class="info-section" style="background: rgba(37, 99, 235, 0.02);">
+                <div class="section-content">
+                    <h2 class="section-title">Trusted by Traders Worldwide</h2>
+                    <p class="section-subtitle">Real numbers from our trading community</p>
+
+                    <div class="stats-grid">
+                        <div class="stat-item reveal">
+                            <div class="stat-number">£500K</div>
+                            <div class="stat-label">Max Capital</div>
+                        </div>
+
+                        <div class="stat-item reveal">
+                            <div class="stat-number">80%</div>
+                            <div class="stat-label">Profit Split</div>
+                        </div>
+
+                        <div class="stat-item reveal">
+                            <div class="stat-number">100%</div>
+                            <div class="stat-label">Free to Start</div>
+                        </div>
+
+                        <div class="stat-item reveal">
+                            <div class="stat-number">∞</div>
+                            <div class="stat-label">Attempts</div>
                         </div>
                     </div>
                 </div>
@@ -1325,6 +1535,24 @@
 
         // Initial update
         updateTimelineLine();
+
+        // Reveal Animations on Scroll
+        const revealElements = document.querySelectorAll('.reveal');
+
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, {
+            threshold: 0.15,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        revealElements.forEach(element => {
+            revealObserver.observe(element);
+        });
     </script>
 </body>
 </html>
