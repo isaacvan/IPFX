@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Free - Infinity Challenge | IPFX Capital</title>
+    <meta name="description" content="Begin your trading career with zero risk. £1,000 free capital, unlimited attempts, scale to £500K+. Start the Infinity Challenge now.">
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Light, clean, conversion-focused palette */
+            --bg: #ffffff;
+            --bg-soft: #f9fafb;
+            --bg-accent: #eff6ff;
+            --fg: #111827;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --cobalt: #2563eb;
+            --cobalt-hover: #1d4ed8;
+            --success: #10b981;
+            --radius: 12px;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Simple Top Bar */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--bg);
+            border-bottom: 1px solid var(--line);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-simple {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--fg);
+            text-decoration: none;
+        }
+
+        .back-link {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--cobalt);
+        }
+
+        /* HERO - CONVERSION FOCUSED */
+        .hero-conversion {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f9fafb 100%);
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+        }
+
+        .hero-content-box {
+            max-width: 700px;
+        }
+
+        .badge-free {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            background: var(--success);
+            color: white;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-conversion h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: var(--fg);
+        }
+
+        .hero-conversion .highlight {
+            color: var(--cobalt);
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .hero-conversion p {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            color: var(--muted);
+            margin-bottom: 3rem;
+            line-height: 1.7;
+        }
+
+        /* BIG CTA Button */
+        .cta-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.5rem 3rem;
+            background: var(--cobalt);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+        }
+
+        .cta-primary:hover {
+            background: var(--cobalt-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(37, 99, 235, 0.4);
+        }
+
+        .cta-secondary {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--muted);
+            font-size: 0.95rem;
+            text-decoration: underline;
+        }
+
+        /* Trust Signals */
+        .trust-signals {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .trust-item::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        /* 3-Step How It Works */
+        .how-it-works-simple {
+            padding: 5rem 2rem;
+            background: var(--bg-soft);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title-center {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title-center h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .section-title-center p {
+            font-size: 1.2rem;
+            color: var(--muted);
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 3rem;
+            margin-bottom: 4rem;
+        }
+
+        .step-card {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: var(--cobalt);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 auto 1.5rem;
+        }
+
+        .step-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-card p {
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        /* Transparency Section */
+        .transparency-section {
+            padding: 6rem 2rem;
+            background: var(--bg);
+        }
+
+        .phases-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .phase-card {
+            background: var(--bg-soft);
+            border: 2px solid var(--line);
+            border-radius: var(--radius);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .phase-card:hover {
+            border-color: var(--cobalt);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .phase-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .phase-capital {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--cobalt);
+        }
+
+        .phase-description {
+            color: var(--muted);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .phase-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+
+        .detail-item {
+            font-size: 0.9rem;
+        }
+
+        .detail-label {
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: var(--fg);
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+
+        /* Revenue Model Section */
+        .revenue-model {
+            background: var(--bg-accent);
+            padding: 3rem;
+            border-radius: var(--radius);
+            border: 2px solid rgba(37, 99, 235, 0.2);
+            margin-top: 3rem;
+        }
+
+        .revenue-model h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            color: var(--cobalt);
+        }
+
+        .revenue-model p {
+            color: var(--muted);
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        /* FAQ Minimal */
+        .faq-minimal {
+            padding: 5rem 2rem;
+            background: var(--bg-soft);
+        }
+
+        .faq-list {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item-minimal {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .faq-q {
+            padding: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-q:hover {
+            background: var(--bg-soft);
+        }
+
+        .faq-icon-minimal {
+            font-size: 1.2rem;
+            color: var(--cobalt);
+            transition: transform 0.3s;
+        }
+
+        .faq-item-minimal.active .faq-icon-minimal {
+            transform: rotate(45deg);
+        }
+
+        .faq-a {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .faq-item-minimal.active .faq-a {
+            max-height: 300px;
+        }
+
+        .faq-a-content {
+            padding: 0 1.5rem 1.5rem;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        /* Final Conversion CTA */
+        .final-cta-big {
+            padding: 6rem 2rem;
+            background: var(--fg);
+            color: white;
+            text-align: center;
+        }
+
+        .final-cta-big h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .final-cta-big p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 3rem;
+        }
+
+        .cta-white {
+            background: white;
+            color: var(--fg);
+        }
+
+        .cta-white:hover {
+            background: var(--bg-soft);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .top-bar {
+                padding: 1rem;
+            }
+
+            .hero-conversion {
+                padding: 6rem 1.5rem 3rem;
+            }
+
+            .trust-signals {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .phase-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .cta-primary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple Top Bar -->
+    <div class="top-bar">
+        <a href="/" class="logo-simple">IPFX Capital</a>
+        <a href="/" class="back-link">← Back</a>
+    </div>
+
+    <!-- HERO - Above the Fold CTA -->
+    <section class="hero-conversion">
+        <div class="hero-content-box">
+            <div class="badge-free">✦ 100% FREE TO START</div>
+
+            <h1>
+                Start Trading with <span class="highlight">£1,000 Free Capital</span>
+            </h1>
+
+            <p>
+                No fees. No time pressure. Unlimited attempts. Scale to £500K+ as you prove your skills.
+                The only prop firm that wants you to succeed long-term.
+            </p>
+
+            <a href="/signup.html" class="cta-primary">
+                Start Free Challenge →
+            </a>
+
+            <a href="#how-it-works" class="cta-secondary">
+                See how it works ↓
+            </a>
+
+            <div class="trust-signals">
+                <div class="trust-item">No credit card required</div>
+                <div class="trust-item">Instant account activation</div>
+                <div class="trust-item">Unlimited retries</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works - 3 Simple Steps -->
+    <section class="how-it-works-simple" id="how-it-works">
+        <div class="container">
+            <div class="section-title-center">
+                <h2>How It Works</h2>
+                <p>Three phases from evaluation to funded trader</p>
+            </div>
+
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Start Free</h3>
+                    <p>Begin with £1,000 evaluation capital. Hit 10% profit target. No costs, no time limits, unlimited attempts.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Get Funded</h3>
+                    <p>Scale to £5,000 funded account. Trade with real profit sharing. Prove consistency for 60 days.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Go Pro</h3>
+                    <p>Advance to £25K-£500K professional capital. Trade real markets. Keep 80% of all profits. Weekly payouts.</p>
+                </div>
+            </div>
+
+            <div class="cta-section">
+                <a href="/signup.html" class="cta-primary">
+                    Start Your Journey Now →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Detailed Phase Breakdown + Transparency -->
+    <section class="transparency-section">
+        <div class="container">
+            <div class="section-title-center">
+                <h2>Full Transparency: How We Both Win</h2>
+                <p>We're different. Here's exactly how the Infinity Challenge works and how we generate revenue.</p>
+            </div>
+
+            <div class="phases-container">
+                <!-- Phase 1 -->
+                <div class="phase-card">
+                    <div class="phase-header">
+                        <div>
+                            <div class="phase-title">Phase 1: Evaluation</div>
+                            <div style="color: var(--muted); font-size: 0.95rem;">START HERE</div>
+                        </div>
+                        <div class="phase-capital">£1,000</div>
+                    </div>
+
+                    <p class="phase-description">
+                        Begin with a £1,000 evaluation account. This is your chance to prove your trading skills in a risk-free environment.
+                        Hit 10% profit (£100) to advance. We don't make money here - this is pure evaluation.
+                    </p>
+
+                    <div class="phase-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Profit Target</div>
+                            <div class="detail-value">£100 (10%)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Daily Loss Limit</div>
+                            <div class="detail-value">£50 (5%)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Total Loss Limit</div>
+                            <div class="detail-value">£100 (10%)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Time Limit</div>
+                            <div class="detail-value">60 days</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Attempts</div>
+                            <div class="detail-value">Unlimited</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Cost</div>
+                            <div class="detail-value" style="color: var(--success);">FREE</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="phase-card">
+                    <div class="phase-header">
+                        <div>
+                            <div class="phase-title">Phase 2: Funded (B-Book)</div>
+                            <div style="color: var(--muted); font-size: 0.95rem;">SIMULATED FUNDED TRADING</div>
+                        </div>
+                        <div class="phase-capital">£5,000</div>
+                    </div>
+
+                    <p class="phase-description">
+                        <strong>You're funded!</strong> Trade on our proprietary platform with real profit sharing (80% to you).
+                        This uses a B-book model - we manage risk internally through our simulated environment.
+                        Hit 10% profit (£500) to advance to Phase 3. Your profits here are tracked for future payout.
+                    </p>
+
+                    <div class="phase-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Profit Target</div>
+                            <div class="detail-value">£500 (10%)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Profit Split</div>
+                            <div class="detail-value">80% to you</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Daily Loss Limit</div>
+                            <div class="detail-value">£250 (5%)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Model</div>
+                            <div class="detail-value">B-Book (Simulated)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Time Limit</div>
+                            <div class="detail-value">60 days</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Payouts</div>
+                            <div class="detail-value">After Phase 3</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="phase-card">
+                    <div class="phase-header">
+                        <div>
+                            <div class="phase-title">Phase 3: Professional (A-Book)</div>
+                            <div style="color: var(--muted); font-size: 0.95rem;">REAL MARKET TRADING</div>
+                        </div>
+                        <div class="phase-capital">£25K - £500K</div>
+                    </div>
+
+                    <p class="phase-description">
+                        <strong>This is where we both profit.</strong> Your orders are routed to real markets (A-book model).
+                        We earn from trading volume and market spreads. You earn 80% of all profits.
+                        Weekly payouts. Scale based on consistent performance. This is a genuine long-term partnership.
+                    </p>
+
+                    <div class="phase-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Starting Capital</div>
+                            <div class="detail-value">£25,000</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Profit Split</div>
+                            <div class="detail-value">80% to you</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Scaling</div>
+                            <div class="detail-value">Up to £500K</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Model</div>
+                            <div class="detail-value">A-Book (Real Market)</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Payouts</div>
+                            <div class="detail-value">Weekly</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Duration</div>
+                            <div class="detail-value">Ongoing</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue Model Explanation -->
+                <div class="revenue-model">
+                    <h3>🤝 Why We Want You to Succeed</h3>
+                    <p>
+                        <strong>Other prop firms profit when you fail.</strong> They charge upfront fees and hope you don't pass.
+                        We're different. We only profit when you reach Phase 3 and trade successfully on real markets.
+                    </p>
+                    <p>
+                        <strong>Phase 1:</strong> Pure evaluation. No cost to you, no revenue for us. Just filtering for skill.
+                    </p>
+                    <p>
+                        <strong>Phase 2:</strong> B-book simulation. We manage risk internally. This proves your consistency
+                        without real market exposure for either of us.
+                    </p>
+                    <p>
+                        <strong>Phase 3:</strong> A-book real trading. We route your orders to real markets and earn from
+                        trading volume and spreads. You earn from your trading profits. The better you trade, the more we both earn.
+                    </p>
+                    <p style="margin-top: 1.5rem; font-weight: 600; color: var(--cobalt);">
+                        This hybrid model aligns our incentives perfectly. Your long-term success is our business model.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick FAQ -->
+    <section class="faq-minimal">
+        <div class="container">
+            <div class="section-title-center">
+                <h2>Common Questions</h2>
+            </div>
+
+            <div class="faq-list">
+                <div class="faq-item-minimal">
+                    <div class="faq-q">
+                        <span>Is it really 100% free?</span>
+                        <span class="faq-icon-minimal">+</span>
+                    </div>
+                    <div class="faq-a">
+                        <div class="faq-a-content">
+                            Yes. No payment required. No credit card. No hidden fees. You get instant access to £1,000 evaluation capital. The only "cost" is your time and trading skill.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item-minimal">
+                    <div class="faq-q">
+                        <span>When do I get paid?</span>
+                        <span class="faq-icon-minimal">+</span>
+                    </div>
+                    <div class="faq-a">
+                        <div class="faq-a-content">
+                            Payouts start once you reach Phase 3 (A-book funded status). Your Phase 2 profits are tracked and added to your Phase 3 balance. Once in Phase 3, you receive weekly payouts.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item-minimal">
+                    <div class="faq-q">
+                        <span>What if I fail?</span>
+                        <span class="faq-icon-minimal">+</span>
+                    </div>
+                    <div class="faq-a">
+                        <div class="faq-a-content">
+                            Restart immediately with unlimited attempts. Fail Phase 1? Restart Phase 1. Fail Phase 2 or 3? Restart from Phase 1. This ensures consistent performance at all levels.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item-minimal">
+                    <div class="faq-q">
+                        <span>What's the catch?</span>
+                        <span class="faq-icon-minimal">+</span>
+                    </div>
+                    <div class="faq-a">
+                        <div class="faq-a-content">
+                            No catch. It's slower than buying a Traditional Challenge with upfront capital. But it's zero risk. Our revenue comes from Phase 3 when you trade real markets successfully. We profit when you profit.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final Big CTA -->
+    <section class="final-cta-big">
+        <div class="container">
+            <h2>Ready to Begin?</h2>
+            <p>Start with zero risk. Build your trading career with IPFX Capital.</p>
+            <a href="/signup.html" class="cta-primary cta-white">
+                Start Free Challenge →
+            </a>
+            <p style="margin-top: 2rem; opacity: 0.7; font-size: 0.95rem;">
+                No credit card required • Instant activation • Unlimited attempts
+            </p>
+        </div>
+    </section>
+
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-item-minimal').forEach(item => {
+            const question = item.querySelector('.faq-q');
+            question.addEventListener('click', () => {
+                const isActive = item.classList.contains('active');
+
+                // Close all
+                document.querySelectorAll('.faq-item-minimal').forEach(i => {
+                    i.classList.remove('active');
+                });
+
+                // Open clicked if wasn't active
+                if (!isActive) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
