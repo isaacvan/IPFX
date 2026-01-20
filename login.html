@@ -245,6 +245,23 @@
             <p class="subtitle">Login to access your trader dashboard</p>
 
             <form id="loginForm">
+                <div id="errorMessage" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                    <p style="color: #ef4444; font-size: 14px; margin-bottom: 12px;" id="errorText"></p>
+                    <button type="button" id="resendBtn" style="display: none; background: var(--cobalt); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">
+                        Resend Confirmation Email
+                    </button>
+                    <style>
+                        #resendBtn:hover:not(:disabled) {
+                            background: #1d4ed8;
+                            transform: translateY(-1px);
+                        }
+                        #resendBtn:disabled {
+                            opacity: 0.6;
+                            cursor: not-allowed;
+                        }
+                    </style>
+                </div>
+
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" placeholder="john.doe@example.com" required>
@@ -333,9 +350,70 @@
 
             } catch (error) {
                 console.error('Login error:', error);
-                alert('Login failed: ' + error.message);
+
+                // Show error message
+                const errorMessage = document.getElementById('errorMessage');
+                const errorText = document.getElementById('errorText');
+                const resendBtn = document.getElementById('resendBtn');
+
+                errorMessage.style.display = 'block';
+
+                // Check if error is due to unconfirmed email
+                if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+                    errorText.textContent = '⚠️ Your email address has not been confirmed yet. Please check your inbox and click the confirmation link, or request a new one below.';
+                    resendBtn.style.display = 'inline-block';
+                } else {
+                    errorText.textContent = '❌ Login failed: ' + error.message;
+                    resendBtn.style.display = 'none';
+                }
+
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Login';
+            }
+        });
+
+        // ============================================
+        // RESEND CONFIRMATION EMAIL
+        // ============================================
+        document.getElementById('resendBtn').addEventListener('click', async function() {
+            const email = document.getElementById('email').value;
+            const resendBtn = document.getElementById('resendBtn');
+            const originalText = resendBtn.textContent;
+
+            if (!email) {
+                alert('Please enter your email address');
+                return;
+            }
+
+            // Disable button and show loading state
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
+
+            try {
+                const { error } = await supabaseClient.auth.resend({
+                    type: 'signup',
+                    email: email
+                });
+
+                if (error) throw error;
+
+                // Show success message
+                document.getElementById('errorText').textContent = '✅ Confirmation email sent! Please check your inbox and spam folder.';
+                resendBtn.style.display = 'none';
+
+                // Re-enable button after delay
+                setTimeout(() => {
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = originalText;
+                }, 3000);
+
+            } catch (error) {
+                console.error('Resend error:', error);
+                alert('Failed to resend email: ' + error.message);
+
+                // Re-enable button
+                resendBtn.disabled = false;
+                resendBtn.textContent = originalText;
             }
         });
     </script>
