@@ -867,17 +867,18 @@
             <div class="form-section">
                 <div class="success-icon">✓</div>
                 <div class="success-content">
-                    <h2>Registration Complete!</h2>
-                    <p>Thank you for joining IPFX Capital. Your challenge account is being prepared.</p>
-                    <p>We've sent a confirmation email to <strong id="confirmEmail">-</strong> with your login credentials and next steps.</p>
+                    <h2>Check Your Email!</h2>
+                    <p>Thank you for joining IPFX Capital. We've sent a confirmation email to <strong id="confirmEmail">-</strong></p>
+                    <p style="color: var(--cobalt); font-weight: 600; margin-top: 1rem;">⚠️ Please click the confirmation link in your email to activate your account before logging in.</p>
 
                     <div class="info-box">
                         <h3>What Happens Next?</h3>
                         <ul>
-                            <li>Check your email for login credentials</li>
-                            <li>Access your trader dashboard to view challenge details</li>
-                            <li>Download your trading platform and connect your account</li>
-                            <li>Start trading and hit your profit targets!</li>
+                            <li><strong>Step 1:</strong> Check your email inbox (and spam folder)</li>
+                            <li><strong>Step 2:</strong> Click the confirmation link to verify your email</li>
+                            <li><strong>Step 3:</strong> Set your password using the link in the email</li>
+                            <li><strong>Step 4:</strong> Log in to your trader dashboard</li>
+                            <li><strong>Step 5:</strong> Start trading and hit your profit targets!</li>
                         </ul>
                     </div>
 
@@ -890,7 +891,18 @@
         </div>
     </div>
 
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
+        // ============================================
+        // SUPABASE CONFIGURATION
+        // ============================================
+        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+        const { createClient } = window.supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // State management
         let currentStep = 1;
         let selectedTier = null;
@@ -1006,13 +1018,59 @@
         });
 
         document.getElementById('step4Back').addEventListener('click', () => goToStep(3));
-        document.getElementById('step4Submit').addEventListener('click', () => {
-            document.getElementById('confirmEmail').textContent = document.getElementById('email').value;
-            goToStep(5);
+        document.getElementById('step4Submit').addEventListener('click', async () => {
+            const submitBtn = document.getElementById('step4Submit');
+            const originalText = submitBtn.textContent;
 
-            // Update progress to 100%
-            document.getElementById('progressFill').style.width = '100%';
-            document.querySelectorAll('.step').forEach(step => step.classList.add('completed'));
+            // Disable button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+
+            try {
+                const email = document.getElementById('email').value;
+                const name = document.getElementById('fullName').value;
+
+                // Generate a random password
+                const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '!1';
+
+                // Create account with Supabase
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: tempPassword,
+                    options: {
+                        data: {
+                            name: name,
+                            challenge_tier: selectedTier,
+                            challenge_price: selectedPrice
+                        },
+                        emailRedirectTo: window.location.origin + '/trading.html'
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Show success message
+                document.getElementById('confirmEmail').textContent = email;
+                goToStep(5);
+
+                // Update progress to 100%
+                document.getElementById('progressFill').style.width = '100%';
+                document.querySelectorAll('.step').forEach(step => step.classList.add('completed'));
+
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+
+            } catch (error) {
+                console.error('Signup error:', error);
+                alert('Error creating account: ' + error.message);
+
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
         });
 
         // Auto-format card number
