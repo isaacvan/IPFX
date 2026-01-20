@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPFX Trading Platform</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #131722;
+            --bg-secondary: #1e222d;
+            --bg-tertiary: #2a2e39;
+            --border-color: #2a2e39;
+            --text-primary: #d1d4dc;
+            --text-secondary: #787b86;
+            --blue: #2962ff;
+            --green: #089981;
+            --red: #f23645;
+            --hover-bg: #2a2e39;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Main Layout */
+        .trading-container {
+            display: grid;
+            grid-template-columns: 250px 1fr 320px;
+            grid-template-rows: 48px 1fr 200px;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .symbol-search {
+            display: flex;
+            align-items: center;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            padding: 8px 12px;
+            gap: 8px;
+            min-width: 200px;
+        }
+
+        .symbol-search input {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+        }
+
+        .symbol-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .symbol-price {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .price-up {
+            color: var(--green);
+        }
+
+        .price-down {
+            color: var(--red);
+        }
+
+        .timeframes {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .timeframe-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .timeframe-btn:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .timeframe-btn.active {
+            background: var(--blue);
+            color: white;
+        }
+
+        .logout-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            margin-left: 16px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: var(--red);
+            border-color: var(--red);
+            color: white;
+        }
+
+        /* Left Sidebar - Watchlist */
+        .left-sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .watchlist {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .watchlist-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .watchlist-item:hover {
+            background: var(--hover-bg);
+        }
+
+        .watchlist-item.active {
+            background: var(--bg-tertiary);
+        }
+
+        .watchlist-symbol {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .watchlist-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .watchlist-price {
+            color: var(--text-primary);
+        }
+
+        .watchlist-change {
+            font-weight: 600;
+        }
+
+        /* Chart Area */
+        .chart-area {
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .chart-toolbar {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            gap: 8px;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 4px;
+            padding: 0 8px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .toolbar-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .toolbar-btn.active {
+            background: var(--blue);
+            color: white;
+        }
+
+        #tradingview-chart {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Right Sidebar - Order Entry */
+        .right-sidebar {
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .order-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .order-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .order-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .order-tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--blue);
+        }
+
+        .order-panel {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .order-type-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .order-type-btn {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .order-type-btn.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: white;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .input-field {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: var(--blue);
+        }
+
+        .order-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .order-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .order-btn-buy {
+            background: var(--green);
+            color: white;
+        }
+
+        .order-btn-buy:hover {
+            background: #0ab991;
+        }
+
+        .order-btn-sell {
+            background: var(--red);
+            color: white;
+        }
+
+        .order-btn-sell:hover {
+            background: #ff4757;
+        }
+
+        .account-info {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            margin: 0 16px 16px;
+            border-radius: 4px;
+        }
+
+        .account-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .account-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .account-label {
+            color: var(--text-secondary);
+        }
+
+        .account-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Bottom Panel */
+        .bottom-panel {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tabs {
+            display: flex;
+            gap: 16px;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-tab {
+            padding: 12px 0;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .panel-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .panel-tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--blue);
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .positions-table {
+            width: 100%;
+            font-size: 13px;
+        }
+
+        .positions-table thead {
+            background: var(--bg-tertiary);
+            position: sticky;
+            top: 0;
+        }
+
+        .positions-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .positions-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .positions-table tr:hover {
+            background: var(--hover-bg);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            padding: 32px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-bg);
+        }
+    </style>
+</head>
+<body>
+    <div class="trading-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="logo">
+                💎 IPFX Capital
+            </div>
+            <div class="symbol-search">
+                <span>🔍</span>
+                <input type="text" placeholder="Search symbols..." id="symbol-search-input">
+            </div>
+            <div class="symbol-name">EUR/USD</div>
+            <div class="symbol-price price-up">1.0892 <span style="font-size: 12px;">+0.0023 (+0.21%)</span></div>
+            <div class="timeframes">
+                <button class="timeframe-btn">1m</button>
+                <button class="timeframe-btn">5m</button>
+                <button class="timeframe-btn active">15m</button>
+                <button class="timeframe-btn">1H</button>
+                <button class="timeframe-btn">4H</button>
+                <button class="timeframe-btn">D</button>
+                <button class="timeframe-btn">W</button>
+            </div>
+            <button class="logout-btn" id="logout-btn">Logout</button>
+        </div>
+
+        <!-- Left Sidebar - Watchlist -->
+        <div class="left-sidebar">
+            <div class="sidebar-header">Watchlist</div>
+            <div class="watchlist">
+                <div class="watchlist-item active">
+                    <div class="watchlist-symbol">EUR/USD</div>
+                    <div class="watchlist-details">
+                        <span class="watchlist-price">1.0892</span>
+                        <span class="watchlist-change price-up">+0.21%</span>
+                    </div>
+                </div>
+                <div class="watchlist-item">
+                    <div class="watchlist-symbol">GBP/USD</div>
+                    <div class="watchlist-details">
+                        <span class="watchlist-price">1.2634</span>
+                        <span class="watchlist-change price-down">-0.15%</span>
+                    </div>
+                </div>
+                <div class="watchlist-item">
+                    <div class="watchlist-symbol">USD/JPY</div>
+                    <div class="watchlist-details">
+                        <span class="watchlist-price">148.92</span>
+                        <span class="watchlist-change price-up">+0.08%</span>
+                    </div>
+                </div>
+                <div class="watchlist-item">
+                    <div class="watchlist-symbol">US30</div>
+                    <div class="watchlist-details">
+                        <span class="watchlist-price">37,891</span>
+                        <span class="watchlist-change price-up">+0.54%</span>
+                    </div>
+                </div>
+                <div class="watchlist-item">
+                    <div class="watchlist-symbol">XAUUSD</div>
+                    <div class="watchlist-details">
+                        <span class="watchlist-price">2,034.50</span>
+                        <span class="watchlist-change price-down">-0.32%</span>
+                    </div>
+                </div>
+                <div class="watchlist-item">
+                    <div class="watchlist-symbol">US500</div>
+                    <div class="watchlist-details">
+                        <span class="watchlist-price">4,783.45</span>
+                        <span class="watchlist-change price-up">+0.42%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Area -->
+        <div class="chart-area">
+            <div class="chart-toolbar">
+                <div class="toolbar-group">
+                    <button class="toolbar-btn active">📈 Candles</button>
+                    <button class="toolbar-btn">📊 Bars</button>
+                    <button class="toolbar-btn">📉 Line</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn">✏️ Draw</button>
+                    <button class="toolbar-btn">➖ Trend Line</button>
+                    <button class="toolbar-btn">↔️ Horizontal</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn">📊 Indicators</button>
+                    <button class="toolbar-btn">⚙️ Settings</button>
+                </div>
+            </div>
+            <div id="tradingview-chart"></div>
+        </div>
+
+        <!-- Right Sidebar - Order Entry -->
+        <div class="right-sidebar">
+            <div class="order-tabs">
+                <button class="order-tab active">Order</button>
+                <button class="order-tab">Calculator</button>
+            </div>
+            <div class="order-panel">
+                <div class="order-type-selector">
+                    <button class="order-type-btn active">Market</button>
+                    <button class="order-type-btn">Limit</button>
+                    <button class="order-type-btn">Stop</button>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Volume (Lots)</label>
+                    <input type="number" class="input-field" value="0.01" step="0.01" min="0.01">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Stop Loss</label>
+                    <input type="number" class="input-field" placeholder="Optional">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Take Profit</label>
+                    <input type="number" class="input-field" placeholder="Optional">
+                </div>
+
+                <div class="order-buttons">
+                    <button class="order-btn order-btn-buy">BUY</button>
+                    <button class="order-btn order-btn-sell">SELL</button>
+                </div>
+            </div>
+
+            <div class="account-info">
+                <div class="account-row">
+                    <span class="account-label">Balance</span>
+                    <span class="account-value">$5,000.00</span>
+                </div>
+                <div class="account-row">
+                    <span class="account-label">Equity</span>
+                    <span class="account-value">$5,000.00</span>
+                </div>
+                <div class="account-row">
+                    <span class="account-label">Margin</span>
+                    <span class="account-value">$0.00</span>
+                </div>
+                <div class="account-row">
+                    <span class="account-label">Free Margin</span>
+                    <span class="account-value">$5,000.00</span>
+                </div>
+                <div class="account-row">
+                    <span class="account-label">Profit/Loss</span>
+                    <span class="account-value price-up">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Panel -->
+        <div class="bottom-panel">
+            <div class="panel-tabs">
+                <button class="panel-tab active">Positions</button>
+                <button class="panel-tab">Orders</button>
+                <button class="panel-tab">History</button>
+            </div>
+            <div class="panel-content">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <div>No open positions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TradingView Widget -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        // Auto-login check
+        (function checkAuth() {
+            const authToken = localStorage.getItem('ipfx_auth_token');
+            const userSession = sessionStorage.getItem('ipfx_user_session');
+
+            // If no authentication found, redirect to login
+            if (!authToken && !userSession) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Optional: Load user data from stored session
+            if (authToken) {
+                const userData = JSON.parse(localStorage.getItem('ipfx_user_data') || '{}');
+
+                // Update account info if available
+                if (userData.balance) {
+                    document.querySelector('.account-info').innerHTML = `
+                        <div class="account-row">
+                            <span class="account-label">Balance</span>
+                            <span class="account-value">$${parseFloat(userData.balance).toFixed(2)}</span>
+                        </div>
+                        <div class="account-row">
+                            <span class="account-label">Equity</span>
+                            <span class="account-value">$${parseFloat(userData.equity || userData.balance).toFixed(2)}</span>
+                        </div>
+                        <div class="account-row">
+                            <span class="account-label">Margin</span>
+                            <span class="account-value">$${parseFloat(userData.margin || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="account-row">
+                            <span class="account-label">Free Margin</span>
+                            <span class="account-value">$${parseFloat(userData.freeMargin || userData.balance).toFixed(2)}</span>
+                        </div>
+                        <div class="account-row">
+                            <span class="account-label">Profit/Loss</span>
+                            <span class="account-value ${(userData.pnl || 0) >= 0 ? 'price-up' : 'price-down'}">$${parseFloat(userData.pnl || 0).toFixed(2)}</span>
+                        </div>
+                    `;
+                }
+
+                // Update logo/username if available
+                if (userData.name || userData.email) {
+                    const displayName = userData.name || userData.email.split('@')[0];
+                    document.querySelector('.logo').innerHTML = `💎 IPFX Capital <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-left: 8px;">• ${displayName}</span>`;
+                }
+            }
+        })();
+
+        // Initialize TradingView Chart
+        new TradingView.widget({
+            "container_id": "tradingview-chart",
+            "autosize": true,
+            "symbol": "FX:EURUSD",
+            "interval": "15",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#131722",
+            "enable_publishing": false,
+            "hide_top_toolbar": true,
+            "hide_legend": true,
+            "save_image": false,
+            "backgroundColor": "#131722",
+            "gridColor": "#1e222d",
+            "hide_volume": false,
+            "support_host": "https://www.tradingview.com"
+        });
+
+        // Tab switching logic
+        document.querySelectorAll('.order-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.order-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.panel-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.order-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.order-type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.timeframe-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Watchlist item switching
+        document.querySelectorAll('.watchlist-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.watchlist-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            // Clear all authentication data
+            localStorage.removeItem('ipfx_auth_token');
+            localStorage.removeItem('ipfx_user_data');
+            sessionStorage.removeItem('ipfx_user_session');
+
+            // Redirect to login page
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>

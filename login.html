@@ -278,6 +278,19 @@
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================
+        // AUTO-REDIRECT IF ALREADY LOGGED IN
+        // ============================================
+        (function checkExistingSession() {
+            const authToken = localStorage.getItem('ipfx_auth_token');
+            const userSession = sessionStorage.getItem('ipfx_user_session');
+
+            // If already logged in, redirect to trading platform
+            if (authToken || userSession) {
+                window.location.href = 'trading.html';
+            }
+        })();
+
+        // ============================================
         // LOGIN FORM HANDLER
         // ============================================
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -298,6 +311,22 @@
                 });
 
                 if (error) throw error;
+
+                // Store authentication token and user data
+                localStorage.setItem('ipfx_auth_token', data.session.access_token);
+                sessionStorage.setItem('ipfx_user_session', 'active');
+
+                // Store user data for the trading platform
+                const userData = {
+                    email: data.user.email,
+                    name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+                    balance: 5000.00, // Default starting balance
+                    equity: 5000.00,
+                    margin: 0,
+                    freeMargin: 5000.00,
+                    pnl: 0
+                };
+                localStorage.setItem('ipfx_user_data', JSON.stringify(userData));
 
                 // Login successful - redirect to dashboard
                 window.location.href = 'dashboard.html';
