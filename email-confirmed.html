@@ -16,7 +16,6 @@
             --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
-            --success: #10b981;
             --radius: 12px;
         }
 
@@ -40,126 +39,142 @@
             padding: 20px;
         }
 
-        .container {
+        .confirmation-container {
             max-width: 500px;
             width: 100%;
             text-align: center;
         }
 
-        .card {
+        .confirmation-card {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--line);
             border-radius: var(--radius);
             padding: 3rem 2.5rem;
         }
 
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--success), #059669);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 2rem;
-            font-size: 2.5rem;
-            animation: scaleIn 0.5s ease;
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.5rem;
         }
 
-        @keyframes scaleIn {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
-        }
-
-        h1 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        p {
-            color: var(--muted);
-            font-size: 1rem;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-        }
-
-        .info-box {
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 2rem;
-            font-size: 0.9rem;
-            color: var(--muted);
-        }
-
-        #countdown {
-            font-weight: 700;
-            color: var(--cobalt);
-        }
-
-        .loading {
-            display: none;
-            margin-top: 1rem;
-        }
-
-        .loading.show {
-            display: block;
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .spinner {
-            width: 24px;
-            height: 24px;
-            border: 3px solid var(--line);
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 1.5rem;
+            border: 4px solid rgba(37, 99, 235, 0.2);
             border-top-color: var(--cobalt);
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto;
+            animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.5rem;
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .error-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .btn-login {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', system-ui;
+            text-decoration: none;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .confirmation-card {
+                padding: 2rem 1.5rem;
+            }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="success-icon">✓</div>
-
-            <h1>Email Confirmed!</h1>
-
-            <p id="message">
-                Your email has been successfully verified. You can now access all features of your IPFX Capital account.
-            </p>
-
-            <a href="login.html" class="btn" id="loginBtn">Continue to Login</a>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
+    <div class="confirmation-container">
+        <div class="confirmation-card">
+            <div class="logo">
+                <img src="assets/images/favicon.ico" alt="IPFX Capital">
             </div>
 
-            <div class="info-box">
-                Redirecting to login in <span id="countdown">5</span> seconds...
+            <!-- Loading State -->
+            <div id="loadingState">
+                <div class="spinner"></div>
+                <h1>Confirming Your Email</h1>
+                <p class="subtitle">Please wait while we verify your email address...</p>
+            </div>
+
+            <!-- Success State -->
+            <div id="successState" class="hidden">
+                <div class="success-icon"></div>
+                <h1>Email Confirmed!</h1>
+                <p class="subtitle">Your email has been successfully verified. You can now log in to your IPFX Capital account.</p>
+                <a href="login.html" class="btn-login">Continue to Login</a>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden">
+                <div class="error-icon"></div>
+                <h1>Confirmation Failed</h1>
+                <p class="subtitle" id="errorMessage">We couldn't verify your email. The link may have expired or already been used.</p>
+                <a href="login.html" class="btn-login">Back to Login</a>
             </div>
         </div>
     </div>
@@ -177,50 +192,92 @@
         // HANDLE EMAIL CONFIRMATION
         // ============================================
         async function handleEmailConfirmation() {
-            // Check if there's a session (user just confirmed email)
-            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            try {
+                // Parse URL parameters (both hash and query)
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const queryParams = new URLSearchParams(window.location.search);
 
-            if (session) {
-                // User is now logged in after confirmation
-                console.log('User confirmed and logged in:', session.user.email);
+                // Get token_hash and type from URL
+                const token_hash = hashParams.get('token_hash') || queryParams.get('token_hash');
+                const type = hashParams.get('type') || queryParams.get('type');
 
-                // Update message
-                document.getElementById('message').textContent =
-                    `Welcome ${session.user.email}! Your account is ready to use.`;
-            }
+                console.log('Confirmation URL params:', { token_hash, type });
 
-            // Check URL hash for confirmation token
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            const accessToken = hashParams.get('access_token');
-            const type = hashParams.get('type');
+                if (token_hash && type === 'email') {
+                    // Verify the email confirmation OTP
+                    const { data, error } = await supabaseClient.auth.verifyOtp({
+                        token_hash,
+                        type: 'email'
+                    });
 
-            if (type === 'signup' && accessToken) {
-                // Email was confirmed via link
-                document.getElementById('message').textContent =
-                    'Your email has been successfully verified. You can now login to your account.';
-            }
+                    if (error) throw error;
 
-            // Auto-redirect countdown
-            let countdown = 5;
-            const countdownEl = document.getElementById('countdown');
+                    if (data.session && data.user) {
+                        console.log('Email confirmed successfully for:', data.user.email);
 
-            const timer = setInterval(() => {
-                countdown--;
-                countdownEl.textContent = countdown;
+                        // Show success state
+                        document.getElementById('loadingState').classList.add('hidden');
+                        document.getElementById('successState').classList.remove('hidden');
 
-                if (countdown <= 0) {
-                    clearInterval(timer);
-                    window.location.href = 'login.html';
+                        // Auto-redirect after 3 seconds
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 3000);
+                    } else {
+                        throw new Error('Email confirmation succeeded but no session created');
+                    }
+                } else if (token_hash && type === 'signup') {
+                    // Alternative: handle signup confirmation
+                    const { data, error } = await supabaseClient.auth.verifyOtp({
+                        token_hash,
+                        type: 'signup'
+                    });
+
+                    if (error) throw error;
+
+                    console.log('Signup confirmed for:', data.user.email);
+
+                    // Show success state
+                    document.getElementById('loadingState').classList.add('hidden');
+                    document.getElementById('successState').classList.remove('hidden');
+
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                } else {
+                    // No tokens found, check if there's already a session (fallback)
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+                    if (error) throw error;
+
+                    if (session && session.user) {
+                        console.log('Existing session found:', session.user.email);
+
+                        document.getElementById('loadingState').classList.add('hidden');
+                        document.getElementById('successState').classList.remove('hidden');
+
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 3000);
+                    } else {
+                        throw new Error('No confirmation tokens found in URL and no existing session');
+                    }
                 }
-            }, 1000);
 
-            // Manual login button
-            document.getElementById('loginBtn').addEventListener('click', () => {
-                clearInterval(timer);
-            });
+            } catch (error) {
+                console.error('Email confirmation error:', error);
+                console.error('Error details:', JSON.stringify(error, null, 2));
+
+                // Show error state
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('errorState').classList.remove('hidden');
+
+                const errorMsg = error.message || 'Unknown error occurred';
+                document.getElementById('errorMessage').textContent = errorMsg;
+            }
         }
 
-        // Run on page load
+        // Run confirmation handler on page load
         handleEmailConfirmation();
     </script>
 </body>

@@ -350,6 +350,7 @@
 
             } catch (error) {
                 console.error('Login error:', error);
+                console.error('Error details:', JSON.stringify(error));
 
                 // Show error message
                 const errorMessage = document.getElementById('errorMessage');
@@ -359,7 +360,14 @@
                 errorMessage.style.display = 'block';
 
                 // Check if error is due to unconfirmed email
-                if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+                const errorStr = error.message ? error.message.toLowerCase() : '';
+                const isEmailNotConfirmed =
+                    errorStr.includes('email not confirmed') ||
+                    errorStr.includes('email_not_confirmed') ||
+                    errorStr.includes('email confirmation required') ||
+                    error.status === 400;
+
+                if (isEmailNotConfirmed) {
                     errorText.textContent = '⚠️ Your email address has not been confirmed yet. Please check your inbox and click the confirmation link, or request a new one below.';
                     resendBtn.style.display = 'inline-block';
                 } else {
