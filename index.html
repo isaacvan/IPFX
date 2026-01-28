@@ -2495,6 +2495,530 @@
         }
 
         /* Reduced Motion */
+        /* Program Specifications Section */
+        .program-specs-section {
+            padding: 8rem 2rem;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .program-specs-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .specs-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .specs-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .specs-label {
+            display: inline-block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 1rem;
+            padding: 0.5rem 1.25rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+        }
+
+        .specs-header h2 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2.25rem, 5vw, 3rem);
+            font-weight: 700;
+            color: var(--fg);
+            letter-spacing: -0.02em;
+        }
+
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .spec-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            transition: all 0.4s ease;
+        }
+
+        .spec-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(139, 92, 246, 0.4);
+            transform: translateY(-4px);
+        }
+
+        .spec-card h3 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--fg);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .spec-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spec-list li {
+            display: flex;
+            gap: 0.875rem;
+            align-items: flex-start;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+        }
+
+        .check-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            color: #a78bfa;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 1024px) {
+            .specs-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .program-specs-section {
+                padding: 6rem 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .spec-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .spec-card h3 {
+                font-size: 1.25rem;
+            }
+
+            .program-specs-section {
+                padding: 5rem 1.5rem;
+            }
+        }
+
+        /* Pricing Detail Modal */
+        .pricing-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .pricing-modal.active {
+            display: flex;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: #0e0e10;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 3rem 2.5rem;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 2rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--fg);
+            border-color: var(--cobalt);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .modal-header h2 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(1.75rem, 4vw, 2.25rem);
+            font-weight: 700;
+            color: var(--fg);
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-header p {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        .modal-table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 2.5rem;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .comparison-table thead tr {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .comparison-table th {
+            padding: 1.25rem 1rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .comparison-table th:first-child {
+            text-align: left;
+        }
+
+        .stage-label {
+            display: inline-block;
+            padding: 0.375rem 0.875rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-size: 0.8125rem;
+        }
+
+        .stage-label.funded {
+            background: rgba(37, 99, 235, 0.15);
+            color: var(--cobalt);
+        }
+
+        .comparison-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comparison-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .comparison-table td {
+            padding: 1.125rem 1rem;
+            text-align: center;
+            color: var(--fg);
+            font-size: 0.9375rem;
+        }
+
+        .row-label {
+            font-weight: 600;
+            text-align: left !important;
+            color: var(--muted) !important;
+            white-space: nowrap;
+        }
+
+        .modal-features {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .feature-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 8px;
+            color: var(--cobalt);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .feature-badge svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--line);
+        }
+
+        .modal-price-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-challenge-name {
+            font-size: 1rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .modal-price-container {
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+        }
+
+        .modal-price-label {
+            font-size: 0.875rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .modal-price {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--fg);
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+        }
+
+        .modal-cta-button {
+            padding: 1.125rem 2.5rem;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .modal-cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                padding: 2rem 1.5rem;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .modal-cta-button {
+                width: 100%;
+                text-align: center;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 0.875rem 0.5rem;
+                font-size: 0.8125rem;
+            }
+
+            .row-label {
+                font-size: 0.75rem;
+            }
+
+            .feature-badge {
+                font-size: 0.8125rem;
+                padding: 0.625rem 1rem;
+            }
+        }
+
+        /* What Makes Us Different Section */
+        .differentiators-section {
+            padding: 8rem 2rem;
+            background: var(--bg);
+            position: relative;
+        }
+
+        .differentiators-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .differentiators-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .differentiators-header h2 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2.25rem, 5vw, 3rem);
+            font-weight: 700;
+            color: var(--fg);
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        .differentiators-header p {
+            color: var(--muted);
+            font-size: 1.125rem;
+        }
+
+        .differentiators-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .diff-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            transition: all 0.4s ease;
+            text-align: center;
+        }
+
+        .diff-card.highlight {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(30, 58, 138, 0.1));
+            border-color: rgba(37, 99, 235, 0.3);
+        }
+
+        .diff-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--cobalt);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
+        }
+
+        .diff-card.highlight:hover {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(30, 58, 138, 0.15));
+        }
+
+        .diff-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            line-height: 1;
+        }
+
+        .diff-card h3 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.375rem;
+            font-weight: 600;
+            color: var(--fg);
+            margin-bottom: 1rem;
+        }
+
+        .diff-card p {
+            color: var(--muted);
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 1024px) {
+            .differentiators-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .differentiators-section {
+                padding: 6rem 1.5rem;
+            }
+
+            .differentiators-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .diff-card {
+                padding: 2rem 1.5rem;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -2539,6 +3063,7 @@
             </div>
         </li>
         <li><a href="about.html">About us</a></li>
+        <li><a href="press.html">Press</a></li>
         <li class="nav-separator"></li>
         <li><a href="login.html">Login</a></li>
     </ul>
@@ -2862,7 +3387,7 @@
                     <li><span>Profit Target</span><span>£800 (8%)</span></li>
                     <li><span>Profit Split</span><span>80%</span></li>
                 </ul>
-                <a href="/signup.html#10k" class="card-button">Get Started</a>
+                <button class="card-button" onclick="openPricingModal('10k')">Get Started</button>
             </div>
 
             <div class="pricing-card">
@@ -2876,7 +3401,7 @@
                     <li><span>Profit Target</span><span>£2,000 (8%)</span></li>
                     <li><span>Profit Split</span><span>80%</span></li>
                 </ul>
-                <a href="/signup.html#25k" class="card-button">Get Started</a>
+                <button class="card-button" onclick="openPricingModal('25k')">Get Started</button>
             </div>
 
             <div class="pricing-card featured">
@@ -2890,7 +3415,7 @@
                     <li><span>Profit Target</span><span>£4,000 (8%)</span></li>
                     <li><span>Profit Split</span><span>85%</span></li>
                 </ul>
-                <a href="/signup.html#50k" class="card-button">Get Started</a>
+                <button class="card-button" onclick="openPricingModal('50k')">Get Started</button>
             </div>
 
             <div class="pricing-card">
@@ -2904,7 +3429,328 @@
                     <li><span>Profit Target</span><span>£8,000 (8%)</span></li>
                     <li><span>Profit Split</span><span>85%</span></li>
                 </ul>
-                <a href="/signup.html#100k" class="card-button">Get Started</a>
+                <button class="card-button" onclick="openPricingModal('100k')">Get Started</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing Detail Modal -->
+<div id="pricingModal" class="pricing-modal">
+    <div class="modal-overlay" onclick="closePricingModal()"></div>
+    <div class="modal-content">
+        <button class="modal-close" onclick="closePricingModal()" aria-label="Close">×</button>
+
+        <div class="modal-header">
+            <h2 id="modalTitle">£50K - 2-Step Challenge</h2>
+            <p id="modalSubtitle">Complete two evaluation phases and get funded</p>
+        </div>
+
+        <div class="modal-table-wrapper">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th><span class="stage-label">Step 1</span></th>
+                        <th><span class="stage-label">Step 2</span></th>
+                        <th><span class="stage-label funded">Funded Stage</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="row-label">Trading Period</td>
+                        <td id="step1-period">Unlimited</td>
+                        <td id="step2-period">Unlimited</td>
+                        <td id="funded-period">Indefinite</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Min Trading Days</td>
+                        <td id="step1-mindays">5 Days</td>
+                        <td id="step2-mindays">5 Days</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Max Daily Loss</td>
+                        <td id="step1-daily">£2,500 (5%)</td>
+                        <td id="step2-daily">£2,500 (5%)</td>
+                        <td id="funded-daily">£2,500 (5%)</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Max Overall Loss</td>
+                        <td id="step1-overall">£5,000 (10%)</td>
+                        <td id="step2-overall">£5,000 (10%)</td>
+                        <td id="funded-overall">£5,000 (10%)</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Profit Target</td>
+                        <td id="step1-target">£4,000 (8%)</td>
+                        <td id="step2-target">£2,500 (5%)</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Refundable Fee</td>
+                        <td id="step1-fee">£399</td>
+                        <td>Free</td>
+                        <td>Free</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Profit Split</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td id="funded-split">85%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="modal-features">
+            <div class="feature-badge">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span>No Consistency Rules</span>
+            </div>
+            <div class="feature-badge">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span>MetaTrader 5 Available</span>
+            </div>
+            <div class="feature-badge">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span>24/7 Live Fast Support</span>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <div class="modal-price-section">
+                <div class="modal-challenge-name" id="modalChallengeName">£50,000 - 2-Step Challenge</div>
+                <div class="modal-price-container">
+                    <span class="modal-price-label">Price</span>
+                    <span class="modal-price" id="modalPrice">£399</span>
+                </div>
+            </div>
+            <a href="/start-challenge.html" class="modal-cta-button" id="modalCTAButton">Get Funded →</a>
+        </div>
+    </div>
+</div>
+
+<!-- Program Specifications Section -->
+<section class="program-specs-section">
+    <div class="specs-container">
+        <div class="specs-header reveal-section">
+            <span class="specs-label">Comprehensive Program Overview</span>
+            <h2>Program Specifications</h2>
+        </div>
+
+        <div class="specs-grid reveal-stagger">
+            <!-- Trading Rules -->
+            <div class="spec-card">
+                <h3>Trading Rules</h3>
+                <ul class="spec-list">
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Unlimited trading period - take your time to hit targets</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Minimum 5 trading days required to complete evaluation</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Leverage 1:100 on all trading instruments</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Holding trades overnight and over the weekend is allowed</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>No restrictions on news trading - trade through high-impact events</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Expert Advisors (EAs) and copy trading allowed</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Assets available: Forex, Indices, Commodities, Metals, and Crypto</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Platforms: MT4, MT5, cTrader, TradingView, and MatchTrader</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Funding And Payouts -->
+            <div class="spec-card">
+                <h3>Funding And Payouts</h3>
+                <ul class="spec-list">
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Account sizes: £10K, £25K, £50K, £100K, up to £200K</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Profit split: 80% to 90% depending on account size</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>100% refundable challenge fee upon passing evaluation</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>25% bonus on all payouts over £3,000</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Bi-weekly payout schedule - get paid every 14 days</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>First payout available after 30 days of funded trading</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Multiple payout methods: Bank transfer, PayPal, Crypto, Wise</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Automatic capital scaling based on consistent performance</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>No withdrawal fees - keep 100% of your profit split</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Risk Management -->
+            <div class="spec-card">
+                <h3>Risk Management</h3>
+                <ul class="spec-list">
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Maximum daily loss: 5% of initial balance</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Maximum overall loss: 10% of initial balance</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Minimum 5 trading days required in evaluation phase</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>No consistency rules - trade your way</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Copy trading and EAs allowed</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Unlimited trading period during evaluation</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works & What Makes Us Different -->
+<section class="differentiators-section">
+    <div class="differentiators-container">
+        <div class="differentiators-header reveal-section">
+            <h2>What Makes IPFX Different</h2>
+            <p>We're not like other prop firms. Here's what sets us apart.</p>
+        </div>
+
+        <div class="differentiators-grid reveal-stagger">
+            <div class="diff-card">
+                <div class="diff-icon">💰</div>
+                <h3>100% Refundable Fees</h3>
+                <p>Pass the challenge and we refund your entire registration fee. No tricks, no hidden conditions. You get every penny back.</p>
+            </div>
+
+            <div class="diff-card highlight">
+                <div class="diff-icon">🎁</div>
+                <h3>25% Bonus on Big Payouts</h3>
+                <p>Earn over £3,000 in a payout? We add a 25% bonus on top. Your £4,000 payout becomes £5,000. Reward your excellence.</p>
+            </div>
+
+            <div class="diff-card">
+                <div class="diff-icon">⚡</div>
+                <h3>Unlimited Time to Pass</h3>
+                <p>No time pressure. Take as long as you need to hit your targets. We believe in patience, not panic trading.</p>
+            </div>
+
+            <div class="diff-card">
+                <div class="diff-icon">📈</div>
+                <h3>Automatic Scaling</h3>
+                <p>Consistent performance? We automatically increase your capital. Start at £50K, scale to £200K+. No applications, no waiting.</p>
+            </div>
+
+            <div class="diff-card">
+                <div class="diff-icon">🔓</div>
+                <h3>No Consistency Rules</h3>
+                <p>Hit a big winner? Take it. No artificial limits on how much you can make in a day. Trade your way, not ours.</p>
+            </div>
+
+            <div class="diff-card">
+                <div class="diff-icon">💳</div>
+                <h3>Bi-Weekly Payouts</h3>
+                <p>Get paid every 14 days. No waiting months for withdrawals. Multiple methods: Bank, PayPal, Crypto, Wise. Zero fees.</p>
             </div>
         </div>
     </div>
@@ -4223,6 +5069,164 @@
     // Observe all reveal elements
     document.querySelectorAll('.reveal-section, .reveal-stagger').forEach(element => {
         revealObserver.observe(element);
+    });
+
+    // ==================== PRICING MODAL ====================
+    const pricingData = {
+        '10k': {
+            size: '£10,000',
+            fee: '£99',
+            step1: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£500 (5%)',
+                overall: '£1,000 (10%)',
+                target: '£800 (8%)',
+                fee: '£99'
+            },
+            step2: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£500 (5%)',
+                overall: '£1,000 (10%)',
+                target: '£500 (5%)'
+            },
+            funded: {
+                period: 'Indefinite',
+                daily: '£500 (5%)',
+                overall: '£1,000 (10%)',
+                split: '80%'
+            }
+        },
+        '25k': {
+            size: '£25,000',
+            fee: '£249',
+            step1: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£1,250 (5%)',
+                overall: '£2,500 (10%)',
+                target: '£2,000 (8%)',
+                fee: '£249'
+            },
+            step2: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£1,250 (5%)',
+                overall: '£2,500 (10%)',
+                target: '£1,250 (5%)'
+            },
+            funded: {
+                period: 'Indefinite',
+                daily: '£1,250 (5%)',
+                overall: '£2,500 (10%)',
+                split: '80%'
+            }
+        },
+        '50k': {
+            size: '£50,000',
+            fee: '£399',
+            step1: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£2,500 (5%)',
+                overall: '£5,000 (10%)',
+                target: '£4,000 (8%)',
+                fee: '£399'
+            },
+            step2: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£2,500 (5%)',
+                overall: '£5,000 (10%)',
+                target: '£2,500 (5%)'
+            },
+            funded: {
+                period: 'Indefinite',
+                daily: '£2,500 (5%)',
+                overall: '£5,000 (10%)',
+                split: '85%'
+            }
+        },
+        '100k': {
+            size: '£100,000',
+            fee: '£599',
+            step1: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£5,000 (5%)',
+                overall: '£10,000 (10%)',
+                target: '£8,000 (8%)',
+                fee: '£599'
+            },
+            step2: {
+                period: 'Unlimited',
+                mindays: '5 Days',
+                daily: '£5,000 (5%)',
+                overall: '£10,000 (10%)',
+                target: '£5,000 (5%)'
+            },
+            funded: {
+                period: 'Indefinite',
+                daily: '£5,000 (5%)',
+                overall: '£10,000 (10%)',
+                split: '85%'
+            }
+        }
+    };
+
+    function openPricingModal(tier) {
+        const modal = document.getElementById('pricingModal');
+        const data = pricingData[tier];
+
+        if (!data) return;
+
+        // Update modal content
+        document.getElementById('modalTitle').textContent = `${data.size} - 2-Step Challenge`;
+        document.getElementById('modalSubtitle').textContent = 'Complete two evaluation phases and get funded';
+        document.getElementById('modalChallengeName').textContent = `${data.size} - 2-Step Challenge`;
+        document.getElementById('modalPrice').textContent = data.fee;
+
+        // Update Step 1
+        document.getElementById('step1-period').textContent = data.step1.period;
+        document.getElementById('step1-mindays').textContent = data.step1.mindays;
+        document.getElementById('step1-daily').textContent = data.step1.daily;
+        document.getElementById('step1-overall').textContent = data.step1.overall;
+        document.getElementById('step1-target').textContent = data.step1.target;
+        document.getElementById('step1-fee').textContent = data.step1.fee;
+
+        // Update Step 2
+        document.getElementById('step2-period').textContent = data.step2.period;
+        document.getElementById('step2-mindays').textContent = data.step2.mindays;
+        document.getElementById('step2-daily').textContent = data.step2.daily;
+        document.getElementById('step2-overall').textContent = data.step2.overall;
+        document.getElementById('step2-target').textContent = data.step2.target;
+
+        // Update Funded Stage
+        document.getElementById('funded-period').textContent = data.funded.period;
+        document.getElementById('funded-daily').textContent = data.funded.daily;
+        document.getElementById('funded-overall').textContent = data.funded.overall;
+        document.getElementById('funded-split').textContent = data.funded.split;
+
+        // Update CTA button link
+        document.getElementById('modalCTAButton').href = `/start-challenge.html#${tier}`;
+
+        // Show modal
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePricingModal() {
+        const modal = document.getElementById('pricingModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePricingModal();
+        }
     });
 </script>
 
