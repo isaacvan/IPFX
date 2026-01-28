@@ -2916,108 +2916,6 @@
             }
         }
 
-        /* What Makes Us Different Section */
-        .differentiators-section {
-            padding: 8rem 2rem;
-            background: var(--bg);
-            position: relative;
-        }
-
-        .differentiators-container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .differentiators-header {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
-        .differentiators-header h2 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2.25rem, 5vw, 3rem);
-            font-weight: 700;
-            color: var(--fg);
-            letter-spacing: -0.02em;
-            margin-bottom: 1rem;
-        }
-
-        .differentiators-header p {
-            color: var(--muted);
-            font-size: 1.125rem;
-        }
-
-        .differentiators-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-        }
-
-        .diff-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 2.5rem 2rem;
-            transition: all 0.4s ease;
-            text-align: center;
-        }
-
-        .diff-card.highlight {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(30, 58, 138, 0.1));
-            border-color: rgba(37, 99, 235, 0.3);
-        }
-
-        .diff-card:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: var(--cobalt);
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
-        }
-
-        .diff-card.highlight:hover {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(30, 58, 138, 0.15));
-        }
-
-        .diff-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            line-height: 1;
-        }
-
-        .diff-card h3 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.375rem;
-            font-weight: 600;
-            color: var(--fg);
-            margin-bottom: 1rem;
-        }
-
-        .diff-card p {
-            color: var(--muted);
-            font-size: 0.9375rem;
-            line-height: 1.7;
-        }
-
-        @media (max-width: 1024px) {
-            .differentiators-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .differentiators-section {
-                padding: 6rem 1.5rem;
-            }
-
-            .differentiators-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .diff-card {
-                padding: 2rem 1.5rem;
-            }
-        }
 
         @media (prefers-reduced-motion: reduce) {
             * {
@@ -3708,54 +3606,6 @@
     </div>
 </section>
 
-<!-- How It Works & What Makes Us Different -->
-<section class="differentiators-section">
-    <div class="differentiators-container">
-        <div class="differentiators-header reveal-section">
-            <h2>What Makes IPFX Different</h2>
-            <p>We're not like other prop firms. Here's what sets us apart.</p>
-        </div>
-
-        <div class="differentiators-grid reveal-stagger">
-            <div class="diff-card">
-                <div class="diff-icon">💰</div>
-                <h3>100% Refundable Fees</h3>
-                <p>Pass the challenge and we refund your entire registration fee. No tricks, no hidden conditions. You get every penny back.</p>
-            </div>
-
-            <div class="diff-card highlight">
-                <div class="diff-icon">🎁</div>
-                <h3>25% Bonus on Big Payouts</h3>
-                <p>Earn over £3,000 in a payout? We add a 25% bonus on top. Your £4,000 payout becomes £5,000. Reward your excellence.</p>
-            </div>
-
-            <div class="diff-card">
-                <div class="diff-icon">⚡</div>
-                <h3>Unlimited Time to Pass</h3>
-                <p>No time pressure. Take as long as you need to hit your targets. We believe in patience, not panic trading.</p>
-            </div>
-
-            <div class="diff-card">
-                <div class="diff-icon">📈</div>
-                <h3>Automatic Scaling</h3>
-                <p>Consistent performance? We automatically increase your capital. Start at £50K, scale to £200K+. No applications, no waiting.</p>
-            </div>
-
-            <div class="diff-card">
-                <div class="diff-icon">🔓</div>
-                <h3>No Consistency Rules</h3>
-                <p>Hit a big winner? Take it. No artificial limits on how much you can make in a day. Trade your way, not ours.</p>
-            </div>
-
-            <div class="diff-card">
-                <div class="diff-icon">💳</div>
-                <h3>Bi-Weekly Payouts</h3>
-                <p>Get paid every 14 days. No waiting months for withdrawals. Multiple methods: Bank, PayPal, Crypto, Wise. Zero fees.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- Profit Calculator Section -->
 <section class="profit-calculator-section" id="profit-calculator">
     <div class="calculator-container">
@@ -3906,76 +3756,25 @@
         <p class="testimonials-subheading reveal">Real experiences from funded traders in our community</p>
 
         <div class="testimonials-grid">
-            <div class="testimonial-card reveal">
-                <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"IPFX gave me the opportunity I needed to prove my trading skills. The evaluation was fair, and I got funded within 3 weeks. The profit split is generous, and payouts are always on time. Best prop firm I've worked with!"</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">JM</div>
-                    <div class="testimonial-info">
-                        <h4>James Mitchell</h4>
-                        <p>Funded Trader • UK</p>
-                    </div>
+            <div class="testimonial-card reveal" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;">
+                <h3 style="font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 1.75rem; margin-bottom: 1.5rem; color: var(--fg);">Share Your Experience</h3>
+                <p style="color: var(--muted); font-size: 1.1rem; line-height: 1.8; margin-bottom: 2rem; max-width: 700px; margin-left: auto; margin-right: auto;">
+                    We'd love to hear about your experience with IPFX Capital. Your feedback helps us improve and helps other traders make informed decisions.
+                </p>
+                <p style="color: var(--fg); font-size: 1rem; margin-bottom: 2.5rem;">
+                    <strong>Email us:</strong> <a href="mailto:enquiries@ipfxcapital.com" style="color: var(--cobalt); text-decoration: none; font-weight: 600; transition: opacity 0.3s ease;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">enquiries@ipfxcapital.com</a>
+                </p>
+                <div style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <a href="https://www.trustpilot.com/review/ipfxcapital.com" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 0.75rem; padding: 1rem 2rem; background: linear-gradient(135deg, var(--cobalt), var(--deep-blue)); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1rem; transition: all 0.3s ease; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(37, 99, 235, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(37, 99, 235, 0.3)'">
+                        <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                        </svg>
+                        Leave a Review on Trustpilot
+                    </a>
                 </div>
-            </div>
-
-            <div class="testimonial-card reveal">
-                <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"Finally, a prop firm with transparent rules and no hidden surprises. I passed both phases of the Traditional Challenge and I'm now trading a £50K account. The support team is incredibly responsive too."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">SC</div>
-                    <div class="testimonial-info">
-                        <h4>Sarah Chen</h4>
-                        <p>Funded Trader • Singapore</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal">
-                <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"The Infinity Challenge is a game-changer. Starting with no upfront cost let me prove my skills without financial risk. Now I'm managing a £25K account and scaling up. IPFX truly cares about trader success."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">MR</div>
-                    <div class="testimonial-info">
-                        <h4>Marcus Rodriguez</h4>
-                        <p>Funded Trader • Spain</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal">
-                <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"As a beginner, I was nervous about prop trading. IPFX's educational resources and clear guidelines made the whole process smooth. I failed my first attempt but learned so much, and passed on my second try!"</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">AN</div>
-                    <div class="testimonial-info">
-                        <h4>Alex Nguyen</h4>
-                        <p>Funded Trader • Canada</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal">
-                <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"I've tried multiple prop firms, and IPFX stands out. The dashboard is clean, the rules are fair, and most importantly - they actually pay out. Already received 3 payouts without any issues. Highly recommend!"</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">LP</div>
-                    <div class="testimonial-info">
-                        <h4>Lisa Patel</h4>
-                        <p>Funded Trader • India</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="testimonial-card reveal">
-                <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"The Application Challenge allowed me to customize my evaluation to match my trading style. Got funded with a £100K account and the 90% profit split is industry-leading. This is the real deal."</p>
-                <div class="testimonial-author">
-                    <div class="testimonial-avatar">DW</div>
-                    <div class="testimonial-info">
-                        <h4>David Williams</h4>
-                        <p>Funded Trader • Australia</p>
-                    </div>
-                </div>
+                <p style="color: var(--muted); font-size: 0.9rem; margin-top: 2rem; font-style: italic;">
+                    Thank you for helping us build a transparent and trustworthy trading community.
+                </p>
             </div>
         </div>
     </div>
