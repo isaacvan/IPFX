@@ -387,6 +387,12 @@
                     <div class="error-message" id="confirmError">Passwords do not match</div>
                 </div>
 
+                <div class="form-group">
+                    <label for="referralCode">Referral Code (Optional)</label>
+                    <input type="text" id="referralCode" placeholder="Enter referral code if you have one" maxlength="10" style="text-transform: uppercase;">
+                    <div class="error-message" id="referralError">Invalid referral code format</div>
+                </div>
+
                 <div class="password-requirements">
                     <h4>Password Requirements:</h4>
                     <div class="requirement" id="req-length">At least 8 characters</div>
@@ -425,9 +431,22 @@
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const confirmPasswordInput = document.getElementById('confirmPassword');
+        const referralCodeInput = document.getElementById('referralCode');
         const submitBtn = document.getElementById('submitBtn');
         const alertBox = document.getElementById('alertBox');
         const strengthFill = document.getElementById('strengthFill');
+
+        // ============================================
+        // CHECK URL FOR REFERRAL CODE
+        // ============================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlReferralCode = urlParams.get('ref');
+        if (urlReferralCode) {
+            referralCodeInput.value = urlReferralCode.toUpperCase();
+            referralCodeInput.readOnly = true;
+            referralCodeInput.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
+            referralCodeInput.style.borderColor = 'var(--cobalt)';
+        }
 
         // ============================================
         // PASSWORD STRENGTH CHECKER
@@ -548,6 +567,27 @@
             }
         }
 
+        function validateReferralCode() {
+            const code = referralCodeInput.value.trim();
+
+            // Empty is valid (optional field)
+            if (code === '') return true;
+
+            // Check format: 8 alphanumeric characters
+            const isValid = /^[A-Z0-9]{8}$/.test(code.toUpperCase());
+
+            if (!isValid) {
+                referralCodeInput.classList.add('error');
+                document.getElementById('referralError').classList.add('show');
+                return false;
+            } else {
+                referralCodeInput.classList.remove('error');
+                referralCodeInput.classList.add('success');
+                document.getElementById('referralError').classList.remove('show');
+                return true;
+            }
+        }
+
         // ============================================
         // ALERT HELPERS
         // ============================================
@@ -570,8 +610,9 @@
             const isEmailValid = validateEmail();
             const isPasswordValid = validatePassword();
             const isPasswordMatchValid = validatePasswordMatch();
+            const isReferralCodeValid = validateReferralCode();
 
-            if (!isNameValid || !isEmailValid || !isPasswordValid || !isPasswordMatchValid) {
+            if (!isNameValid || !isEmailValid || !isPasswordValid || !isPasswordMatchValid || !isReferralCodeValid) {
                 showAlert('Please fix the errors before submitting', 'error');
                 return;
             }
@@ -589,7 +630,8 @@
                     password: passwordInput.value,
                     options: {
                         data: {
-                            full_name: fullNameInput.value
+                            full_name: fullNameInput.value,
+                            referral_code: referralCodeInput.value.trim().toUpperCase() || null
                         }
                     }
                 });

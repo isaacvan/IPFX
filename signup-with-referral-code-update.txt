@@ -1,0 +1,206 @@
+INSTRUCTIONS TO UPDATE signup.html WITH REFERRAL CODE SUPPORT
+================================================================
+
+1. ADD REFERRAL CODE INPUT FIELD
+---------------------------------
+After the "Confirm Password" field (around line 388), add this HTML:
+
+                <div class="form-group">
+                    <label for="referralCode">Referral Code (Optional)</label>
+                    <input type="text" id="referralCode" placeholder="Enter referral code if you have one" maxlength="10" style="text-transform: uppercase;">
+                    <div class="error-message" id="referralError">Invalid referral code</div>
+                </div>
+
+
+2. UPDATE JAVASCRIPT - ADD REFERRAL CODE INPUT
+-----------------------------------------------
+Around line 424, after the other input element declarations, add:
+
+        const referralCodeInput = document.getElementById('referralCode');
+
+
+3. CHECK URL FOR REFERRAL CODE ON PAGE LOAD
+--------------------------------------------
+Add this code right after the Supabase client initialization (around line 418):
+
+        // Check for referral code in URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlReferralCode = urlParams.get('ref');
+        if (urlReferralCode) {
+            // Pre-fill the referral code field
+            if (referralCodeInput) {
+                referralCodeInput.value = urlReferralCode.toUpperCase();
+                referralCodeInput.readOnly = true; // Make it readonly so user can't change it
+            }
+        }
+
+
+4. UPDATE THE SIGNUP FUNCTION
+------------------------------
+Find the form submit handler (around line 550-570) and update the signUp call to include referral code:
+
+Replace this:
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: emailInput.value,
+            password: passwordInput.value,
+            options: {
+                data: {
+                    full_name: fullNameInput.value
+                }
+            }
+        });
+
+With this:
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: emailInput.value,
+            password: passwordInput.value,
+            options: {
+                data: {
+                    full_name: fullNameInput.value,
+                    referral_code: referralCodeInput.value.trim().toUpperCase() || null
+                }
+            }
+        });
+
+
+5. ADD REFERRAL CODE VALIDATION (OPTIONAL)
+-------------------------------------------
+Add this validation function before the form submit handler:
+
+        // Validate referral code format
+        function validateReferralCode(code) {
+            if (!code || code.trim() === '') return true; // Empty is valid (optional field)
+            const trimmedCode = code.trim().toUpperCase();
+            // Check format: 8 alphanumeric characters
+            return /^[A-Z0-9]{8}$/.test(trimmedCode);
+        }
+
+Then in the form submit handler, add validation before the signup call:
+
+        // Validate referral code format if provided
+        if (referralCodeInput.value.trim() !== '') {
+            if (!validateReferralCode(referralCodeInput.value)) {
+                showError('referralError', 'Referral code must be 8 characters');
+                return;
+            }
+        }
+
+
+COMPLETE UPDATED FORM SUBMIT HANDLER EXAMPLE:
+----------------------------------------------
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Clear previous errors
+            clearErrors();
+
+            // Validate all fields
+            let isValid = true;
+
+            if (!fullNameInput.value.trim()) {
+                showError('nameError');
+                isValid = false;
+            }
+
+            if (!validateEmail(emailInput.value)) {
+                showError('emailError');
+                isValid = false;
+            }
+
+            if (!passwordIsValid) {
+                showError('passwordError');
+                isValid = false;
+            }
+
+            if (passwordInput.value !== confirmPasswordInput.value) {
+                showError('confirmError');
+                isValid = false;
+            }
+
+            // Validate referral code format if provided
+            if (referralCodeInput.value.trim() !== '') {
+                if (!validateReferralCode(referralCodeInput.value)) {
+                    showError('referralError', 'Referral code must be 8 characters');
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) return;
+
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: emailInput.value,
+                    password: passwordInput.value,
+                    options: {
+                        data: {
+                            full_name: fullNameInput.value,
+                            referral_code: referralCodeInput.value.trim().toUpperCase() || null
+                        }
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Show success message
+                showAlert('Success! Please check your email to confirm your account.', 'success');
+
+                // Redirect to login after 2 seconds
+                setTimeout(() => {
+                    window.location.href = 'login.html?verified=pending';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Signup error:', error);
+                showAlert(error.message || 'An error occurred during signup. Please try again.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Pre-Register Now';
+            }
+        });
+
+
+SUMMARY OF CHANGES:
+-------------------
+1. ✅ Added referral code input field (optional)
+2. ✅ Auto-populate from URL parameter (?ref=ABCD1234)
+3. ✅ Validate referral code format (8 alphanumeric chars)
+4. ✅ Pass referral code to Supabase in user metadata
+5. ✅ Database trigger will handle incrementing referrer's count
+
+TESTING THE REFERRAL SYSTEM:
+-----------------------------
+1. User signs up normally → Gets assigned a unique referral code
+2. User shares link: https://ipfxcapital.com/signup.html?ref=ABCD1234
+3. New user clicks link → Referral code pre-filled
+4. New user signs up → Database tracks the referral relationship
+5. Original user's referral_count increments automatically
+
+ACCESSING USER'S REFERRAL CODE:
+--------------------------------
+In dashboard.html or any authenticated page, get the user's referral code like this:
+
+        const { data: session } = await supabaseClient.auth.getSession();
+        if (session?.session) {
+            const { data: profile } = await supabaseClient
+                .from('user_profiles')
+                .select('referral_code, referral_count, referred_by_code')
+                .eq('user_id', session.session.user.id)
+                .single();
+
+            if (profile) {
+                console.log('Your referral code:', profile.referral_code);
+                console.log('People you referred:', profile.referral_count);
+                console.log('You were referred by:', profile.referred_by_code);
+
+                // Display referral link
+                const referralLink = `https://ipfxcapital.com/signup.html?ref=${profile.referral_code}`;
+                // Show this to user with copy button
+            }
+        }

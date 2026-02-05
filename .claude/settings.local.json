@@ -44,7 +44,9 @@
       "Bash(cmd /c move:*)",
       "Bash(git commit:*)",
       "Bash(git stash:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git merge:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

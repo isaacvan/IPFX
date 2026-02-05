@@ -12,20 +12,11 @@
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
-            --muted: #b8b8b8;
+            --muted: #a0a0a0;
             --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
             --radius: 12px;
-
-            /* Professional spacing scale */
-            --space-xs: 8px;
-            --space-sm: 12px;
-            --space-md: 16px;
-            --space-lg: 24px;
-            --space-xl: 32px;
-            --space-2xl: 48px;
-            --space-3xl: 64px;
         }
 
         * {
@@ -53,6 +44,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            backdrop-filter: blur(10px);
         }
 
         .nav-content {
@@ -79,12 +71,6 @@
             height: 28px;
         }
 
-        .nav-brand:focus {
-            outline: 2px solid var(--cobalt);
-            outline-offset: 4px;
-            border-radius: 4px;
-        }
-
         .nav-links {
             display: flex;
             gap: 2rem;
@@ -102,15 +88,9 @@
             color: var(--fg);
         }
 
-        .nav-links a:focus {
-            outline: 2px solid var(--cobalt);
-            outline-offset: 4px;
-            border-radius: 4px;
-        }
-
         .btn-cta {
             padding: 10px 24px;
-            background: var(--cobalt);
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
             color: white;
             text-decoration: none;
             border-radius: 6px;
@@ -122,11 +102,6 @@
         .btn-cta:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-        }
-
-        .btn-cta:focus {
-            outline: 2px solid var(--cobalt);
-            outline-offset: 4px;
         }
 
         /* Hero Section */
@@ -145,7 +120,10 @@
         }
 
         .hero h1 span {
-            color: var(--cobalt);
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .hero p {
@@ -172,7 +150,6 @@
             border-radius: 12px;
             padding: 6px;
             gap: 6px;
-            role: tablist;
         }
 
         .challenge-option {
@@ -194,13 +171,8 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
-        .challenge-option:focus {
-            outline: 2px solid var(--cobalt);
-            outline-offset: 2px;
-        }
-
         .challenge-option.active {
-            background: var(--cobalt);
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
             color: white;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
@@ -221,20 +193,20 @@
         /* Challenge Content Styles */
         .challenge-intro {
             text-align: center;
-            margin-bottom: var(--space-3xl);
+            margin-bottom: 4rem;
         }
 
         .challenge-intro h2 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: clamp(2rem, 4vw, 2.5rem);
-            margin-bottom: var(--space-md);
+            margin-bottom: 1rem;
         }
 
         .challenge-intro .subtitle {
             font-size: 1.2rem;
             color: var(--cobalt);
             font-weight: 600;
-            margin-bottom: var(--space-md);
+            margin-bottom: 1rem;
         }
 
         .challenge-intro p {
@@ -248,18 +220,18 @@
         .section-divider {
             height: 1px;
             background: var(--line);
-            margin: var(--space-3xl) 0;
+            margin: 4rem 0;
         }
 
         .section-header {
             text-align: center;
-            margin-bottom: var(--space-2xl);
+            margin-bottom: 3rem;
         }
 
         .section-header h3 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: 1.8rem;
-            margin-bottom: var(--space-sm);
+            margin-bottom: 0.75rem;
         }
 
         .section-header p {
@@ -270,18 +242,18 @@
         /* Process Steps */
         .process-steps {
             display: grid;
-            gap: var(--space-lg);
-            margin-bottom: var(--space-3xl);
+            gap: 2rem;
+            margin-bottom: 4rem;
         }
 
         .step {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            padding: var(--space-xl);
+            padding: 2rem;
             display: grid;
             grid-template-columns: auto 1fr;
-            gap: var(--space-lg);
+            gap: 1.5rem;
             align-items: start;
             transition: all 0.3s ease;
         }
@@ -295,7 +267,7 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background: var(--cobalt);
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -307,7 +279,7 @@
         .step-content h4 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: 1.3rem;
-            margin-bottom: var(--space-sm);
+            margin-bottom: 0.75rem;
         }
 
         .step-content p {
@@ -319,15 +291,15 @@
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: var(--space-lg);
-            margin-bottom: var(--space-3xl);
+            gap: 1.5rem;
+            margin-bottom: 4rem;
         }
 
         .feature-card {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            padding: var(--space-xl);
+            padding: 2rem;
             text-align: center;
             transition: all 0.3s ease;
         }
@@ -337,23 +309,15 @@
             transform: translateY(-4px);
         }
 
-        .feature-label {
-            display: inline-block;
-            padding: var(--space-xs) var(--space-md);
-            background: rgba(37, 99, 235, 0.15);
-            color: var(--cobalt);
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-bottom: var(--space-md);
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
         }
 
         .feature-card h4 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: 1.1rem;
-            margin-bottom: var(--space-sm);
+            margin-bottom: 0.75rem;
         }
 
         .feature-card p {
@@ -367,14 +331,14 @@
             background: rgba(37, 99, 235, 0.1);
             border: 1px solid rgba(37, 99, 235, 0.3);
             border-radius: var(--radius);
-            padding: var(--space-xl);
-            margin-bottom: var(--space-3xl);
+            padding: 2rem;
+            margin-bottom: 4rem;
         }
 
         .highlight-box h4 {
             color: var(--cobalt);
             font-size: 1.2rem;
-            margin-bottom: var(--space-md);
+            margin-bottom: 1rem;
         }
 
         .highlight-box p {
@@ -385,15 +349,15 @@
         .highlight-box ul {
             list-style: none;
             padding: 0;
-            margin-top: var(--space-md);
+            margin-top: 1rem;
         }
 
         .highlight-box ul li {
-            padding: var(--space-xs) 0;
+            padding: 0.5rem 0;
             color: var(--muted);
             display: flex;
             align-items: center;
-            gap: var(--space-sm);
+            gap: 0.75rem;
         }
 
         .highlight-box ul li::before {
@@ -409,7 +373,7 @@
             border: 1px solid var(--line);
             border-radius: var(--radius);
             overflow: hidden;
-            margin-bottom: var(--space-3xl);
+            margin-bottom: 4rem;
         }
 
         .account-sizes table {
@@ -445,7 +409,7 @@
         /* CTA Section */
         .challenge-cta {
             text-align: center;
-            padding: var(--space-2xl) var(--space-xl);
+            padding: 3rem 2rem;
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--line);
             border-radius: var(--radius);
@@ -454,13 +418,13 @@
         .challenge-cta h3 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: 1.8rem;
-            margin-bottom: var(--space-md);
+            margin-bottom: 1rem;
         }
 
         .challenge-cta p {
             color: var(--muted);
             font-size: 1.1rem;
-            margin-bottom: var(--space-xl);
+            margin-bottom: 2rem;
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
@@ -469,7 +433,7 @@
         .cta-button {
             display: inline-block;
             padding: 14px 32px;
-            background: var(--cobalt);
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
             color: white;
             text-decoration: none;
             border-radius: 8px;
@@ -481,66 +445,6 @@
         .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-        }
-
-        .cta-button:focus {
-            outline: 2px solid var(--cobalt);
-            outline-offset: 4px;
-        }
-
-        /* Reveal animation for sections */
-        .reveal-section {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: opacity 0.8s ease, transform 0.8s ease;
-        }
-
-        .reveal-section.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Staggered reveal for child elements */
-        .reveal-stagger > * {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(1) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.1s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(2) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.2s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(3) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.3s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(4) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.4s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(5) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.5s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(6) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.6s;
         }
 
         /* Responsive */
@@ -592,26 +496,6 @@
                 overflow-x: auto;
             }
         }
-
-        /* Reduced motion support */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-
-            .reveal-section,
-            .reveal-stagger > * {
-                opacity: 1;
-                transform: translateY(0);
-                transition: none;
-            }
-
-            html {
-                scroll-behavior: auto;
-            }
-        }
     </style>
 </head>
 <body>
@@ -634,84 +518,84 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero reveal-section">
-        <h1>About <span>IPFX Capital</span></h1>
-        <p>Access funded trading accounts from £10,000 to £200,000 with profit splits from 50% to 90%. Professional prop trading with transparent terms and fair evaluation processes.</p>
+    <section class="hero">
+        <h1>Empowering Traders, <span>Redefining Success</span></h1>
+        <p>At IPFX Capital, we believe talented traders deserve access to capital without unnecessary barriers. We're building the future of prop trading with fairness, transparency, and trader success at our core.</p>
     </section>
 
     <!-- Challenge Type Switcher -->
-    <div class="challenge-switcher-container reveal-section">
-        <div class="challenge-switcher" role="tablist" aria-label="Challenge type selection">
-            <button class="challenge-option active" data-challenge="infinity" role="tab" aria-selected="true" aria-controls="infinity-content" id="tab-infinity">Infinity Challenge</button>
-            <button class="challenge-option" data-challenge="personalised" role="tab" aria-selected="false" aria-controls="personalised-content" id="tab-personalised">Personalised Application</button>
-            <button class="challenge-option" data-challenge="traditional" role="tab" aria-selected="false" aria-controls="traditional-content" id="tab-traditional">Traditional</button>
+    <div class="challenge-switcher-container">
+        <div class="challenge-switcher">
+            <button class="challenge-option active" data-challenge="infinity">Infinity Challenge</button>
+            <button class="challenge-option" data-challenge="personalised">Personalised Application</button>
+            <button class="challenge-option" data-challenge="traditional">Traditional</button>
         </div>
     </div>
 
     <!-- Dynamic Content Container -->
     <div class="content-container">
         <!-- Infinity Challenge Content -->
-        <div id="infinity-content" class="challenge-content" role="tabpanel" aria-labelledby="tab-infinity">
+        <div id="infinity-content" class="challenge-content">
             <!-- Introduction -->
-            <div class="challenge-intro reveal-section">
+            <div class="challenge-intro">
                 <h2>The Infinity Challenge</h2>
-                <p class="subtitle">No Evaluation Fees. Instant Funding.</p>
-                <p>Start trading with real capital immediately without paying upfront evaluation fees. Account sizes range from £10,000 to £200,000 with profit splits starting at 50% and scaling to 90% based on consistent performance over 6+ months of trading activity.</p>
+                <p class="subtitle">Zero Upfront Cost. Unlimited Potential.</p>
+                <p>The Infinity Challenge revolutionizes prop trading by removing financial barriers to entry. Trade with real capital from day one with absolutely no upfront fees or evaluation costs. We believe your trading skills should speak for themselves, not your wallet.</p>
             </div>
 
             <!-- What is it Section -->
-            <div class="section-header reveal-section">
+            <div class="section-header">
                 <h3>What Makes It Different?</h3>
-                <p>Key features and requirements</p>
+                <p>A completely new approach to funded trading</p>
             </div>
 
-            <div class="feature-grid reveal-stagger">
+            <div class="feature-grid">
                 <div class="feature-card">
-                    <span class="feature-label">ACCESS</span>
+                    <div class="feature-icon">💰</div>
                     <h4>Zero Entry Cost</h4>
-                    <p>No evaluation fees or monthly subscriptions. Start trading immediately with our capital at no upfront cost.</p>
+                    <p>No evaluation fees, no monthly subscriptions. Start trading with our capital immediately at no cost to you.</p>
                 </div>
                 <div class="feature-card">
-                    <span class="feature-label">TIMELINE</span>
-                    <h4>24-48 Hour Approval</h4>
-                    <p>Application review and identity verification typically completed within 24-48 hours. Minimum 6 months trading experience required.</p>
+                    <div class="feature-icon">🚀</div>
+                    <h4>Instant Funding</h4>
+                    <p>Skip the lengthy evaluation process. Get access to trading capital from your very first day.</p>
                 </div>
                 <div class="feature-card">
-                    <span class="feature-label">GROWTH</span>
-                    <h4>Performance-Based Scaling</h4>
-                    <p>Demonstrate 3+ consecutive profitable months to unlock larger account sizes. Progress from £10k to £200k+ capital.</p>
+                    <div class="feature-icon">📈</div>
+                    <h4>Performance-Based</h4>
+                    <p>Your success determines your growth. Consistent profitability unlocks larger account sizes and higher profit splits.</p>
                 </div>
                 <div class="feature-card">
-                    <span class="feature-label">TARGETS</span>
-                    <h4>10% Profit Objective</h4>
-                    <p>Realistic 10% profit targets across all account sizes. No artificial deadlines or time pressure on achieving targets.</p>
+                    <div class="feature-icon">🎯</div>
+                    <h4>Flexible Targets</h4>
+                    <p>Realistic profit targets designed for sustainable trading, not aggressive gambling.</p>
                 </div>
                 <div class="feature-card">
-                    <span class="feature-label">SPLITS</span>
-                    <h4>50-90% Profit Share</h4>
-                    <p>Start with 50% profit share on £10k accounts. Scale up to 90% on £200k accounts based on consistent profitability.</p>
+                    <div class="feature-icon">⚖️</div>
+                    <h4>Fair Profit Splits</h4>
+                    <p>Start with 50% profit share and scale up to 90% as you prove your consistency.</p>
                 </div>
                 <div class="feature-card">
-                    <span class="feature-label">PAYOUTS</span>
-                    <h4>Weekly Withdrawals</h4>
-                    <p>Request payouts weekly after minimum £500 profit threshold. Processed within 24-48 hours via bank transfer or crypto.</p>
+                    <div class="feature-icon">🔄</div>
+                    <h4>No Time Limits</h4>
+                    <p>Trade at your own pace. No artificial deadlines or pressure to hit targets quickly.</p>
                 </div>
             </div>
 
             <div class="section-divider"></div>
 
             <!-- How It Works Section -->
-            <div class="section-header reveal-section">
+            <div class="section-header">
                 <h3>How The Process Works</h3>
                 <p>Your journey from application to funded trader</p>
             </div>
 
-            <div class="process-steps reveal-stagger">
+            <div class="process-steps">
                 <div class="step">
                     <div class="step-number">1</div>
                     <div class="step-content">
                         <h4>Apply & Verify</h4>
-                        <p>Submit application with trading history and verify identity. Requires minimum 6 months documented trading experience. Review process takes 24-48 hours.</p>
+                        <p>Submit your application with basic trading information. We'll review your experience and verify your identity. This typically takes 24-48 hours.</p>
                     </div>
                 </div>
 
@@ -719,7 +603,7 @@
                     <div class="step-number">2</div>
                     <div class="step-content">
                         <h4>Receive Trading Account</h4>
-                        <p>Once approved, receive instant access to funded account. Initial account size (£10k-£50k) determined by experience level and trading history.</p>
+                        <p>Once approved, you'll receive instant access to a funded trading account. Choose your account size based on your experience level - from £10,000 to £50,000 to start.</p>
                     </div>
                 </div>
 
@@ -727,7 +611,7 @@
                     <div class="step-number">3</div>
                     <div class="step-content">
                         <h4>Trade & Grow</h4>
-                        <p>Start trading immediately with 5% daily loss limit and 10% total drawdown limit. All strategies permitted including EAs and overnight positions.</p>
+                        <p>Start trading immediately with our capital. Focus on consistent, profitable trading while adhering to our risk management rules. Your performance is monitored in real-time.</p>
                     </div>
                 </div>
 
@@ -735,7 +619,7 @@
                     <div class="step-number">4</div>
                     <div class="step-content">
                         <h4>Earn Payouts</h4>
-                        <p>Request weekly payouts after £500 minimum profit (starter accounts). Payouts processed within 24-48 hours. Maintain 40 trading days per evaluation period.</p>
+                        <p>Request payouts weekly once you've met the minimum profit threshold (£500 for starter accounts). Payouts are processed within 24-48 hours.</p>
                     </div>
                 </div>
 
@@ -743,7 +627,7 @@
                     <div class="step-number">5</div>
                     <div class="step-content">
                         <h4>Scale Your Account</h4>
-                        <p>Achieve 3+ consecutive profitable months with consistent risk management to qualify for next tier. Progress from £10k to £200k with increasing profit splits up to 90%.</p>
+                        <p>Demonstrate consistent profitability and unlock larger account sizes. Progress from £10k to £200k+ with increasing profit splits up to 90%.</p>
                     </div>
                 </div>
             </div>
@@ -751,12 +635,12 @@
             <div class="section-divider"></div>
 
             <!-- Account Sizes Section -->
-            <div class="section-header reveal-section">
+            <div class="section-header">
                 <h3>Available Account Sizes</h3>
-                <p>Scale your capital as you demonstrate consistency</p>
+                <p>Scale your capital as you grow</p>
             </div>
 
-            <div class="account-sizes reveal-section">
+            <div class="account-sizes">
                 <table>
                     <thead>
                         <tr>
@@ -808,142 +692,89 @@
             </div>
 
             <!-- Trading Rules Highlight -->
-            <div class="highlight-box reveal-section">
+            <div class="highlight-box">
                 <h4>Trading Rules & Requirements</h4>
-                <p>Transparent rules for sustainable trading success:</p>
+                <p>Simple, transparent rules designed for your success:</p>
                 <ul>
                     <li>Daily loss limit: Maximum 5% daily drawdown from starting balance</li>
                     <li>Total loss limit: Maximum 10% total drawdown from starting balance</li>
                     <li>Minimum trading days: 10 active trading days before first payout</li>
-                    <li>Profit consistency: No single day exceeds 40% of total profits</li>
+                    <li>Profit consistency: No single day should represent more than 40% of total profits</li>
                     <li>Allowed instruments: Forex, Indices, Commodities, Cryptocurrencies</li>
                     <li>Trading style: All strategies allowed (scalping, day trading, swing trading)</li>
-                    <li>Overnight and weekend positions permitted</li>
+                    <li>No restrictions on holding trades overnight or over weekends</li>
                     <li>Expert Advisors (EAs) and copy trading permitted</li>
                 </ul>
             </div>
 
             <!-- Scaling Process -->
-            <div class="section-header reveal-section">
+            <div class="section-header">
                 <h3>Scaling Your Account</h3>
-                <p>Grow your capital and profit share over time</p>
+                <p>Grow your capital and profit share</p>
             </div>
 
-            <div class="highlight-box reveal-section">
+            <div class="highlight-box">
                 <h4>How Account Scaling Works</h4>
-                <p>After achieving your profit target and demonstrating consistent profitability over minimum 3 months, you qualify for account scaling. Requirements for each tier:</p>
+                <p>After successfully completing your profit target and demonstrating consistent profitability over at least 3 months, you become eligible for account scaling. Each scaling milestone requires:</p>
                 <ul>
                     <li>Minimum 3 consecutive profitable months</li>
-                    <li>Zero breaches of daily or total loss limits</li>
-                    <li>Consistent activity (minimum 40 trading days per evaluation period)</li>
-                    <li>Positive risk-reward ratios maintained throughout period</li>
-                    <li>Maximum 7% drawdown in any single month</li>
+                    <li>No breaches of daily or total loss limits</li>
+                    <li>Consistent trading activity (minimum 40 trading days per evaluation period)</li>
+                    <li>Positive risk-reward ratios maintained</li>
+                    <li>Maximum drawdown not exceeding 7% in any single month</li>
                 </ul>
-                <p style="margin-top: var(--space-md);">Meeting these criteria qualifies your account for the next tier with increased capital and improved profit splits. Scaling typically occurs every 3-6 months based on performance.</p>
+                <p style="margin-top: 1rem;">When you meet these criteria, your account automatically qualifies for the next tier with increased capital and improved profit splits.</p>
             </div>
 
             <!-- CTA Section -->
-            <div class="challenge-cta reveal-section">
+            <div class="challenge-cta">
                 <h3>Ready to Start Trading?</h3>
-                <p>Apply for the Infinity Challenge and access trading capital with zero upfront costs. Requires minimum 6 months trading experience.</p>
+                <p>Join the Infinity Challenge today and access trading capital with zero upfront costs. Your trading skills are all you need.</p>
                 <a href="start-challenge.html?type=infinity" class="cta-button">Apply for Infinity Challenge</a>
             </div>
         </div>
 
         <!-- Personalised Application Content -->
-        <div id="personalised-content" class="challenge-content hidden" role="tabpanel" aria-labelledby="tab-personalised">
+        <div id="personalised-content" class="challenge-content hidden">
             <p style="text-align: center; color: var(--muted); font-size: 1.1rem;">Personalised Application content will go here...</p>
         </div>
 
         <!-- Traditional Content -->
-        <div id="traditional-content" class="challenge-content hidden" role="tabpanel" aria-labelledby="tab-traditional">
+        <div id="traditional-content" class="challenge-content hidden">
             <p style="text-align: center; color: var(--muted); font-size: 1.1rem;">Traditional challenge content will go here...</p>
         </div>
     </div>
 
     <script>
-        // Challenge Type Switcher with keyboard navigation and ARIA support
+        // Challenge Type Switcher
         document.addEventListener('DOMContentLoaded', function() {
             const buttons = document.querySelectorAll('.challenge-option');
             const contentSections = document.querySelectorAll('.challenge-content');
 
-            // Handle button clicks
             buttons.forEach(button => {
                 button.addEventListener('click', function() {
-                    switchTab(this);
-                });
-            });
+                    // Remove active class from all buttons
+                    buttons.forEach(btn => btn.classList.remove('active'));
 
-            // Keyboard navigation (arrow keys)
-            buttons.forEach((button, index) => {
-                button.addEventListener('keydown', function(e) {
-                    let targetIndex;
+                    // Add active class to clicked button
+                    this.classList.add('active');
 
-                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        targetIndex = (index + 1) % buttons.length;
-                        buttons[targetIndex].focus();
-                        switchTab(buttons[targetIndex]);
-                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        targetIndex = (index - 1 + buttons.length) % buttons.length;
-                        buttons[targetIndex].focus();
-                        switchTab(buttons[targetIndex]);
-                    } else if (e.key === 'Home') {
-                        e.preventDefault();
-                        buttons[0].focus();
-                        switchTab(buttons[0]);
-                    } else if (e.key === 'End') {
-                        e.preventDefault();
-                        buttons[buttons.length - 1].focus();
-                        switchTab(buttons[buttons.length - 1]);
+                    // Get the selected challenge type
+                    const challengeType = this.getAttribute('data-challenge');
+
+                    // Hide all content sections
+                    contentSections.forEach(section => {
+                        section.classList.add('hidden');
+                    });
+
+                    // Show the selected content section
+                    const selectedContent = document.getElementById(`${challengeType}-content`);
+                    if (selectedContent) {
+                        selectedContent.classList.remove('hidden');
                     }
+
+                    console.log('Selected challenge:', challengeType);
                 });
-            });
-
-            function switchTab(selectedButton) {
-                // Remove active class and update ARIA attributes
-                buttons.forEach(btn => {
-                    btn.classList.remove('active');
-                    btn.setAttribute('aria-selected', 'false');
-                });
-
-                // Add active class to selected button
-                selectedButton.classList.add('active');
-                selectedButton.setAttribute('aria-selected', 'true');
-
-                // Get the selected challenge type
-                const challengeType = selectedButton.getAttribute('data-challenge');
-
-                // Hide all content sections
-                contentSections.forEach(section => {
-                    section.classList.add('hidden');
-                });
-
-                // Show the selected content section
-                const selectedContent = document.getElementById(`${challengeType}-content`);
-                if (selectedContent) {
-                    selectedContent.classList.remove('hidden');
-                }
-            }
-        });
-
-        // Reveal animations for all sections
-        const revealObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                }
-            });
-        }, {
-            threshold: 0.15,
-            rootMargin: '0px 0px -50px 0px'
-        });
-
-        // Observe all reveal elements
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.reveal-section, .reveal-stagger').forEach(element => {
-                revealObserver.observe(element);
             });
         });
     </script>
