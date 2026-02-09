@@ -251,13 +251,13 @@
 
             <div class="share-buttons">
                 <a href="#" class="share-btn" id="shareEmail">
-                    📧 Email
+                    Email
                 </a>
                 <a href="#" class="share-btn" id="shareTwitter" target="_blank">
-                    🐦 Twitter
+                    Twitter
                 </a>
                 <a href="#" class="share-btn" id="shareWhatsApp" target="_blank">
-                    💬 WhatsApp
+                    WhatsApp
                 </a>
             </div>
         </div>
@@ -350,7 +350,7 @@
 
             try {
                 await navigator.clipboard.writeText(linkText);
-                button.textContent = '✓ Copied!';
+                button.textContent = 'Copied!';
                 button.classList.add('copied');
 
                 setTimeout(() => {
@@ -366,7 +366,7 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                button.textContent = '✓ Copied!';
+                button.textContent = 'Copied!';
             }
         });
 

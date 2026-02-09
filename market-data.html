@@ -1063,7 +1063,7 @@
       ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
-        console.log('✅ Connected to market data server');
+        console.log('Connected to market data server');
         updateConnectionStatus(true);
       };
 
@@ -1073,12 +1073,12 @@
       };
 
       ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
+        console.error('WebSocket error:', error);
         updateConnectionStatus(false);
       };
 
       ws.onclose = () => {
-        console.log('🔌 Disconnected from server');
+        console.log('Disconnected from server');
         updateConnectionStatus(false);
         setTimeout(connect, 5000);
       };
@@ -1088,12 +1088,12 @@
     function handleMessage(message) {
       switch (message.type) {
         case 'connected':
-          console.log('📡', message.message);
+          console.log(message.message);
           initializeSymbols(message.availableSymbols);
           break;
 
         case 'historical':
-          console.log(`📊 Received ${message.data.length} historical candles for ${message.symbol}`);
+          console.log(`Received ${message.data.length} historical candles for ${message.symbol}`);
           if (message.symbol === currentSymbol) {
             chartData = message.data;
             drawChart();
@@ -1107,7 +1107,7 @@
           break;
 
         case 'error':
-          console.error('❌ Server error:', message.message);
+          console.error('Server error:', message.message);
           break;
       }
     }
@@ -1153,7 +1153,7 @@
     function subscribeToSymbol(symbol) {
       if (subscribedSymbols.has(symbol)) return;
 
-      console.log(`📈 Subscribing to ${symbol}`);
+      console.log(`Subscribing to ${symbol}`);
       subscribedSymbols.add(symbol);
 
       ws.send(JSON.stringify({

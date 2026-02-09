@@ -368,10 +368,10 @@
                     error.status === 400;
 
                 if (isEmailNotConfirmed) {
-                    errorText.textContent = '⚠️ Your email address has not been confirmed yet. Please check your inbox and click the confirmation link, or request a new one below.';
+                    errorText.textContent = 'Your email address has not been confirmed yet. Please check your inbox and click the confirmation link, or request a new one below.';
                     resendBtn.style.display = 'inline-block';
                 } else {
-                    errorText.textContent = '❌ Login failed: ' + error.message;
+                    errorText.textContent = 'Login failed: ' + error.message;
                     resendBtn.style.display = 'none';
                 }
 
@@ -406,7 +406,7 @@
                 if (error) throw error;
 
                 // Show success message
-                document.getElementById('errorText').textContent = '✅ Confirmation email sent! Please check your inbox and spam folder.';
+                document.getElementById('errorText').textContent = 'Confirmation email sent! Please check your inbox and spam folder.';
                 resendBtn.style.display = 'none';
 
                 // Re-enable button after delay
