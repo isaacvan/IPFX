@@ -1292,8 +1292,27 @@
         document.querySelector('.btn-logout').addEventListener('click', async function(e) {
             e.preventDefault();
 
-            await supabaseClient.auth.signOut();
-            window.location.href = 'login.html';
+            // Prevent multiple clicks
+            if (this.disabled) return;
+            this.disabled = true;
+            this.textContent = 'Logging out...';
+
+            try {
+                // Clear all stored auth data
+                localStorage.removeItem('ipfx_auth_token');
+                localStorage.removeItem('ipfx_user_data');
+                sessionStorage.removeItem('ipfx_user_session');
+
+                // Sign out from Supabase
+                await supabaseClient.auth.signOut();
+
+                // Redirect to login
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Still redirect even if signOut fails
+                window.location.href = 'login.html';
+            }
         });
 
         // Check auth on page load
