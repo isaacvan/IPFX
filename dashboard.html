@@ -516,6 +516,182 @@
                 flex-direction: column;
                 gap: 1rem;
             }
+
+            .referral-code-card {
+                grid-template-columns: 1fr;
+            }
+
+            .code-text {
+                font-size: 1.5rem;
+                letter-spacing: 0.15rem;
+            }
+
+            .link-container {
+                flex-direction: column;
+            }
+
+            .copy-btn {
+                width: 100%;
+            }
+
+            .share-buttons {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Referral Section Styles */
+        .referral-code-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .code-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .code-label {
+            font-size: 0.9rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .code-display {
+            background: var(--bg);
+            border: 2px solid var(--cobalt);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .code-text {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.25rem;
+            color: var(--cobalt);
+            font-family: 'Space Grotesk', monospace;
+        }
+
+        .link-container {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+        }
+
+        .link-text {
+            flex: 1;
+            font-size: 0.9rem;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            background: var(--cobalt);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: var(--deep-blue);
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .share-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            color: var(--fg);
+            text-decoration: none;
+            text-align: center;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .share-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--cobalt);
+        }
+
+        .referral-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .referral-stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .referral-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .referral-stat-label {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .referral-info {
+            grid-column: 1 / -1;
+            margin-top: 1rem;
+            padding: 1.25rem;
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 8px;
+        }
+
+        .referral-info h4 {
+            color: var(--cobalt);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .referral-info p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -644,6 +820,51 @@
                     <div class="progress-info-item">
                         <div class="progress-info-label">Trading Days</div>
                         <div class="progress-info-value">7 / 30</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referral Section -->
+        <div class="section">
+            <h2 class="section-title">Refer & Earn</h2>
+            <div class="referral-code-card">
+                <!-- Code Section -->
+                <div class="code-section">
+                    <div class="code-label">Your Unique Referral Code</div>
+                    <div class="code-display">
+                        <div class="code-text" id="referralCode">Loading...</div>
+                    </div>
+
+                    <div class="link-container">
+                        <span class="link-text" id="referralLink">Loading...</span>
+                        <button class="copy-btn" id="copyBtn">Copy Link</button>
+                    </div>
+
+                    <div class="share-buttons">
+                        <a href="#" class="share-btn" id="shareEmail">Email</a>
+                        <a href="#" class="share-btn" id="shareTwitter" target="_blank">Twitter</a>
+                        <a href="#" class="share-btn" id="shareWhatsApp" target="_blank">WhatsApp</a>
+                    </div>
+                </div>
+
+                <!-- Stats Section -->
+                <div class="referral-stats">
+                    <div class="referral-stat-card">
+                        <div class="referral-stat-value" id="referralCount">0</div>
+                        <div class="referral-stat-label">Successful Referrals</div>
+                    </div>
+                    <div class="referral-stat-card">
+                        <div class="referral-stat-value" id="totalEarned">£0</div>
+                        <div class="referral-stat-label">Total Earned</div>
+                    </div>
+
+                    <div class="referral-info">
+                        <h4>How It Works</h4>
+                        <p>
+                            Share your referral code with friends. When they sign up and complete their first funded challenge,
+                            you'll earn <strong>10% of their entry fee</strong> as a reward! There's no limit to how many people you can refer.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -941,6 +1162,73 @@
         }
 
         // ============================================
+        // REFERRAL FUNCTIONALITY
+        // ============================================
+        async function loadReferralData() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) return;
+
+                // Fetch user profile with referral data
+                const { data: profile, error } = await supabaseClient
+                    .from('user_profiles')
+                    .select('referral_code, referral_count')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error loading referral data:', error);
+                    document.getElementById('referralCode').textContent = 'ERROR';
+                    document.getElementById('referralLink').textContent = 'Unable to load referral code';
+                    return;
+                }
+
+                const referralCode = profile.referral_code;
+                const referralCount = profile.referral_count || 0;
+
+                // Display referral code
+                document.getElementById('referralCode').textContent = referralCode || 'NONE';
+
+                // Generate referral link
+                const baseUrl = window.location.origin;
+                const referralLink = `${baseUrl}/start-challenge.html?ref=${referralCode}`;
+                document.getElementById('referralLink').textContent = referralLink;
+
+                // Update stats
+                document.getElementById('referralCount').textContent = referralCount;
+                document.getElementById('totalEarned').textContent = `£${(referralCount * 10).toFixed(0)}`;
+
+                // Setup copy button
+                document.getElementById('copyBtn').addEventListener('click', async function() {
+                    try {
+                        await navigator.clipboard.writeText(referralLink);
+                        this.textContent = 'Copied!';
+                        this.classList.add('copied');
+
+                        setTimeout(() => {
+                            this.textContent = 'Copy Link';
+                            this.classList.remove('copied');
+                        }, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy:', err);
+                    }
+                });
+
+                // Setup share buttons
+                const shareMessage = `Join IPFX Capital and start trading with funded capital! Use my referral code: ${referralCode}`;
+                const encodedMessage = encodeURIComponent(shareMessage);
+                const encodedLink = encodeURIComponent(referralLink);
+
+                document.getElementById('shareEmail').href = `mailto:?subject=Join IPFX Capital&body=${encodedMessage}%0A%0A${encodedLink}`;
+                document.getElementById('shareTwitter').href = `https://twitter.com/intent/tweet?text=${encodedMessage}&url=${encodedLink}`;
+                document.getElementById('shareWhatsApp').href = `https://wa.me/?text=${encodedMessage}%20${encodedLink}`;
+
+            } catch (error) {
+                console.error('Error in loadReferralData:', error);
+            }
+        }
+
+        // ============================================
         // LOGOUT FUNCTIONALITY
         // ============================================
         document.querySelector('.btn-logout').addEventListener('click', async function(e) {
@@ -952,6 +1240,9 @@
 
         // Check auth on page load
         checkAuth();
+
+        // Load referral data
+        loadReferralData();
     </script>
 </body>
 </html>
