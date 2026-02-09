@@ -1065,7 +1065,14 @@
 
             } catch (error) {
                 console.error('Signup error:', error);
-                alert('Error creating account: ' + error.message);
+                console.error('Full error details:', JSON.stringify(error, null, 2));
+
+                // Show detailed error message
+                let errorMsg = 'Error creating account: ' + error.message;
+                if (error.status) errorMsg += ' (Status: ' + error.status + ')';
+                if (error.code) errorMsg += ' (Code: ' + error.code + ')';
+
+                alert(errorMsg + '\n\nCheck browser console for details (F12)');
 
                 // Re-enable button
                 submitBtn.disabled = false;
