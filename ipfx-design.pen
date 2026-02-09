@@ -1,0 +1,11 @@
+{
+  "version": "0.1.0",
+  "name": "IPFX Design",
+  "description": "Design file for IPFX Capital website components",
+  "canvas": {
+    "width": 1440,
+    "height": 900,
+    "backgroundColor": "#0a0a0c"
+  },
+  "layers": []
+}

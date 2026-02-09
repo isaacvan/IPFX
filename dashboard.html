@@ -10,16 +10,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0a0a0c;
-            --fg: #ffffff;
-            --muted: #a0a0a0;
-            --line: #2a2a2c;
-            --cobalt: #2563eb;
-            --deep-blue: #1e3a8a;
-            --radius: 12px;
-            --success: #10b981;
-            --error: #ef4444;
-            --warning: #f59e0b;
+            /* Professional Dark Theme */
+            --bg-page: #0B0B0E;
+            --bg-card: #16161A;
+            --bg-elevated: #1A1A1E;
+
+            /* Text Hierarchy */
+            --text-primary: #FAFAF9;
+            --text-secondary: #6B6B70;
+            --text-muted: #8E8E93;
+
+            /* Borders */
+            --border-subtle: #2A2A2E;
+            --border-strong: #3A3A40;
+
+            /* Accent Colors */
+            --accent-green: #32D583;
+            --accent-indigo: #6366F1;
+            --accent-coral: #E85A4F;
+            --accent-amber: #FFB547;
+
+            /* Legacy support */
+            --bg: #0B0B0E;
+            --fg: #FAFAF9;
+            --muted: #6B6B70;
+            --line: #2A2A2E;
+            --cobalt: #6366F1;
+            --deep-blue: #4F46E5;
+            --radius: 16px;
+            --success: #32D583;
+            --error: #E85A4F;
+            --warning: #FFB547;
         }
 
         * {
@@ -34,15 +55,15 @@
 
         body {
             font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            color: var(--fg);
-            background: var(--bg);
+            color: var(--text-primary);
+            background: var(--bg-page);
             line-height: 1.6;
         }
 
         /* Navigation */
         .nav {
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid var(--line);
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-subtle);
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
@@ -97,12 +118,13 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            background: var(--accent-indigo);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
+            color: white;
         }
 
         .user-name {
@@ -112,20 +134,20 @@
 
         .btn-logout {
             padding: 8px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--line);
-            border-radius: 6px;
-            color: var(--fg);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-primary);
             text-decoration: none;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             font-weight: 500;
             transition: all 0.3s ease;
             cursor: pointer;
         }
 
         .btn-logout:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--cobalt);
+            background: var(--bg-card);
+            border-color: var(--accent-indigo);
         }
 
         /* Main Layout */
@@ -172,14 +194,18 @@
         }
 
         .page-title {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-family: 'Inter', system-ui;
             font-size: 2rem;
+            font-weight: 600;
             margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
         }
 
         .page-subtitle {
-            color: var(--muted);
+            color: var(--text-secondary);
             font-size: 1rem;
+            font-weight: 400;
         }
 
         /* Stats Grid */
@@ -191,16 +217,18 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
             border-radius: var(--radius);
             padding: 1.5rem;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
         }
 
         .stat-card:hover {
-            border-color: var(--cobalt);
+            border-color: var(--accent-indigo);
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.3);
         }
 
         .stat-header {
@@ -211,9 +239,10 @@
         }
 
         .stat-label {
-            color: var(--muted);
-            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
             font-weight: 500;
+            letter-spacing: 0.01em;
         }
 
         .stat-icon {
@@ -243,36 +272,40 @@
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 2.25rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
         }
 
         .stat-value.success {
-            color: var(--success);
+            color: var(--accent-green);
         }
 
         .stat-value.error {
-            color: var(--error);
+            color: var(--accent-coral);
         }
 
         .stat-value.warning {
-            color: var(--warning);
+            color: var(--accent-amber);
         }
 
         .stat-change {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.85rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
         }
 
         .stat-change.positive {
-            color: var(--success);
+            color: var(--accent-green);
         }
 
         .stat-change.negative {
-            color: var(--error);
+            color: var(--accent-coral);
         }
 
         /* Progress Section */
@@ -281,16 +314,20 @@
         }
 
         .section-title {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.3rem;
+            font-family: 'Inter', system-ui;
+            font-size: 1.375rem;
+            font-weight: 600;
             margin-bottom: 1rem;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
             border-radius: var(--radius);
             padding: 2rem;
+            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
         }
 
         .progress-container {
@@ -306,35 +343,37 @@
 
         .progress-label {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9375rem;
+            color: var(--text-primary);
         }
 
         .progress-value {
-            color: var(--cobalt);
-            font-weight: 700;
+            color: var(--accent-indigo);
+            font-weight: 600;
+            font-size: 0.9375rem;
         }
 
         .progress-bar {
             width: 100%;
-            height: 8px;
+            height: 10px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
+            border-radius: 5px;
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--cobalt), var(--deep-blue));
-            border-radius: 4px;
+            background: var(--accent-indigo);
+            border-radius: 5px;
             transition: width 0.5s ease;
         }
 
         .progress-info {
             display: flex;
             gap: 2rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--line);
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-subtle);
         }
 
         .progress-info-item {
@@ -342,14 +381,16 @@
         }
 
         .progress-info-label {
-            color: var(--muted);
-            font-size: 0.85rem;
-            margin-bottom: 0.25rem;
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            margin-bottom: 0.375rem;
         }
 
         .progress-info-value {
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 1.125rem;
+            color: var(--text-primary);
         }
 
         /* Trading Activity */
@@ -362,7 +403,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 1rem;
-            border-bottom: 1px solid var(--line);
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         .activity-item:last-child {
@@ -386,21 +427,25 @@
         }
 
         .activity-icon.buy {
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(50, 213, 131, 0.15);
+            color: var(--accent-green);
         }
 
         .activity-icon.sell {
-            background: rgba(239, 68, 68, 0.1);
+            background: rgba(232, 90, 79, 0.15);
+            color: var(--accent-coral);
         }
 
         .activity-details h4 {
-            font-size: 0.95rem;
+            font-size: 0.9375rem;
+            font-weight: 600;
             margin-bottom: 0.25rem;
+            color: var(--text-primary);
         }
 
         .activity-details p {
-            font-size: 0.85rem;
-            color: var(--muted);
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
         }
 
         .activity-result {
@@ -411,26 +456,27 @@
             font-weight: 700;
             font-size: 1rem;
             margin-bottom: 0.25rem;
+            letter-spacing: -0.01em;
         }
 
         .activity-pnl.profit {
-            color: var(--success);
+            color: var(--accent-green);
         }
 
         .activity-pnl.loss {
-            color: var(--error);
+            color: var(--accent-coral);
         }
 
         .activity-time {
-            font-size: 0.85rem;
-            color: var(--muted);
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
         }
 
         /* Alert Box */
         .alert {
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
-            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 12px;
             padding: 1rem 1.5rem;
             margin-bottom: 2rem;
             display: flex;
@@ -439,13 +485,13 @@
         }
 
         .alert.success {
-            background: rgba(16, 185, 129, 0.1);
-            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(50, 213, 131, 0.1);
+            border-color: rgba(50, 213, 131, 0.25);
         }
 
         .alert.warning {
-            background: rgba(245, 158, 11, 0.1);
-            border-color: rgba(245, 158, 11, 0.3);
+            background: rgba(255, 181, 71, 0.1);
+            border-color: rgba(255, 181, 71, 0.25);
         }
 
         .alert-icon {
@@ -456,11 +502,12 @@
         .alert-content h4 {
             margin-bottom: 0.5rem;
             font-weight: 600;
+            color: var(--text-primary);
         }
 
         .alert-content p {
-            color: var(--muted);
-            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
             line-height: 1.6;
         }
 
@@ -468,12 +515,12 @@
         .btn {
             display: inline-block;
             padding: 12px 28px;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            background: var(--accent-indigo);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9375rem;
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
@@ -481,18 +528,19 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+            background: #4F46E5;
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--fg);
-            border: 1px solid var(--line);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--cobalt);
+            background: var(--bg-card);
+            border-color: var(--accent-indigo);
             box-shadow: none;
         }
 
@@ -506,25 +554,25 @@
         /* Status Badge */
         .status-badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
 
         .status-badge.active {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
+            background: rgba(50, 213, 131, 0.15);
+            color: var(--accent-green);
         }
 
         .status-badge.pending {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
+            background: rgba(255, 181, 71, 0.15);
+            color: var(--accent-amber);
         }
 
         .status-badge.completed {
-            background: rgba(37, 99, 235, 0.1);
-            color: var(--cobalt);
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-indigo);
         }
 
         /* Responsive */
@@ -582,14 +630,15 @@
 
         /* Referral Section Styles */
         .referral-code-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
             border-radius: var(--radius);
             padding: 2rem;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 2rem;
             align-items: start;
+            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
         }
 
         .code-section {
@@ -599,15 +648,15 @@
         }
 
         .code-label {
-            font-size: 0.9rem;
-            color: var(--muted);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
             font-weight: 500;
         }
 
         .code-display {
-            background: var(--bg);
-            border: 2px solid var(--cobalt);
-            border-radius: 8px;
+            background: var(--bg-page);
+            border: 2px solid var(--accent-indigo);
+            border-radius: 10px;
             padding: 1.5rem;
             text-align: center;
             margin-bottom: 1rem;
@@ -617,48 +666,49 @@
             font-size: 2rem;
             font-weight: 700;
             letter-spacing: 0.25rem;
-            color: var(--cobalt);
-            font-family: 'Space Grotesk', monospace;
+            color: var(--accent-indigo);
+            font-family: 'Inter', monospace;
         }
 
         .link-container {
             display: flex;
             gap: 0.75rem;
             align-items: center;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--bg-elevated);
             padding: 0.75rem 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--line);
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
         }
 
         .link-text {
             flex: 1;
-            font-size: 0.9rem;
-            color: var(--muted);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
         .copy-btn {
-            background: var(--cobalt);
+            background: var(--accent-indigo);
             color: white;
             border: none;
             padding: 0.5rem 1.25rem;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 600;
+            font-size: 0.875rem;
             cursor: pointer;
             transition: all 0.2s;
             white-space: nowrap;
         }
 
         .copy-btn:hover {
-            background: var(--deep-blue);
+            background: #4F46E5;
             transform: translateY(-1px);
         }
 
         .copy-btn.copied {
-            background: var(--success);
+            background: var(--accent-green);
         }
 
         .share-buttons {
@@ -670,19 +720,20 @@
         .share-btn {
             flex: 1;
             padding: 0.75rem 1rem;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--line);
-            border-radius: 6px;
-            color: var(--fg);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-primary);
             text-decoration: none;
             text-align: center;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
+            font-weight: 500;
             transition: all 0.2s;
         }
 
         .share-btn:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: var(--cobalt);
+            background: var(--bg-card);
+            border-color: var(--accent-indigo);
         }
 
         .referral-stats {
@@ -692,9 +743,9 @@
         }
 
         .referral-stat-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
             padding: 1.25rem;
             text-align: center;
         }
@@ -702,36 +753,36 @@
         .referral-stat-value {
             font-size: 2rem;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--accent-indigo);
             margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
         }
 
         .referral-stat-label {
-            color: var(--muted);
-            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            font-weight: 500;
         }
 
         .referral-info {
             grid-column: 1 / -1;
             margin-top: 1rem;
             padding: 1.25rem;
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
-            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 10px;
         }
 
         .referral-info h4 {
-            color: var(--cobalt);
+            color: var(--accent-indigo);
             margin-bottom: 0.5rem;
             font-size: 1rem;
+            font-weight: 600;
         }
 
         .referral-info p {
-            color: var(--muted);
-            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
             line-height: 1.6;
         }
     </style>
@@ -906,10 +957,15 @@
                     </div>
 
                     <div class="referral-info">
-                        <h4>How It Works</h4>
+                        <h4>Early Participant Referral Programme</h4>
                         <p>
-                            Share your referral code with friends. When they sign up and complete their first funded challenge,
-                            you'll earn <strong>10% of their entry fee</strong> as a reward! There's no limit to how many people you can refer.
+                            <strong>Earn £100 per referral</strong> when someone uses your code and starts a challenge.
+                            Credit is automatically applied to your account balance and can be withdrawn once you reach £1,000 (standard payout rules apply).
+                        </p>
+                        <p style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--muted);">
+                            <strong>Programme Details:</strong> Maximum £500 per account (5 referrals).
+                            Available exclusively to the first 10,000 preregistered participants.
+                            Referred individuals must commence a challenge for credit to apply.
                         </p>
                     </div>
                 </div>
