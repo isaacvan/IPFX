@@ -301,9 +301,9 @@
             const authToken = localStorage.getItem('ipfx_auth_token');
             const userSession = sessionStorage.getItem('ipfx_user_session');
 
-            // If already logged in, redirect to trading platform
+            // If already logged in, redirect to dashboard
             if (authToken || userSession) {
-                window.location.href = 'trading.html';
+                window.location.href = 'dashboard.html';
             }
         })();
 
