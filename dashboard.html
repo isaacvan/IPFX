@@ -1337,11 +1337,17 @@
             }
         });
 
-        // Check auth on page load
-        checkAuth();
+        // Prevent multiple simultaneous auth checks
+        let isCheckingAuth = false;
 
-        // Load referral data
-        loadReferralData();
+        // Check auth on page load
+        if (!isCheckingAuth) {
+            isCheckingAuth = true;
+            checkAuth().then(() => {
+                // Load referral data after auth is complete
+                loadReferralData();
+            });
+        }
     </script>
 </body>
 </html>
