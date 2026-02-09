@@ -100,13 +100,15 @@
 
         .notify-form {
             display: flex;
+            flex-direction: column;
             gap: 1rem;
             max-width: 500px;
             margin: 0 auto 3rem;
             animation: fadeInUp 0.8s ease 0.6s both;
         }
 
-        .notify-form input {
+        .notify-form input,
+        .notify-form select {
             flex: 1;
             padding: 16px 20px;
             background: rgba(255, 255, 255, 0.05);
@@ -118,7 +120,23 @@
             transition: all 0.3s ease;
         }
 
-        .notify-form input:focus {
+        .notify-form select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a0a0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 20px center;
+            background-size: 12px;
+            padding-right: 45px;
+        }
+
+        .notify-form select option {
+            background: var(--bg);
+            color: var(--fg);
+        }
+
+        .notify-form input:focus,
+        .notify-form select:focus {
             outline: none;
             border-color: var(--cobalt);
             background: rgba(37, 99, 235, 0.05);
@@ -127,6 +145,15 @@
 
         .notify-form input::placeholder {
             color: var(--muted);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row > * {
+            flex: 1;
         }
 
         .notify-form button {
@@ -267,6 +294,19 @@
                 placeholder="Enter your email"
                 required
             >
+            <select id="sourceInput" required>
+                <option value="" disabled selected>How did you hear about us?</option>
+                <option value="reddit">Reddit</option>
+                <option value="twitter">Twitter / X</option>
+                <option value="youtube">YouTube</option>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="google">Google Search</option>
+                <option value="friend">Friend / Referral</option>
+                <option value="discord">Discord</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="other">Other</option>
+            </select>
             <button type="submit">Notify Me</button>
         </form>
 
@@ -301,12 +341,18 @@
             e.preventDefault();
 
             const email = document.getElementById('emailInput').value;
+            const source = document.getElementById('sourceInput').value;
+
+            // Log the data (you can later send this to your backend/database)
+            console.log('Email:', email);
+            console.log('Source:', source);
 
             // You can add email collection logic here (e.g., send to your backend/database)
             // For now, just show success message
 
             document.getElementById('successMessage').classList.add('show');
             document.getElementById('emailInput').value = '';
+            document.getElementById('sourceInput').selectedIndex = 0;
 
             setTimeout(() => {
                 document.getElementById('successMessage').classList.remove('show');
