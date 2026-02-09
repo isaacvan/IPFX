@@ -535,10 +535,9 @@
         <!-- Top Bar -->
         <div class="top-bar">
             <div class="logo">
-                💎 IPFX Capital
+                IPFX Capital
             </div>
             <div class="symbol-search">
-                <span>🔍</span>
                 <input type="text" placeholder="Search symbols..." id="symbol-search-input">
             </div>
             <div class="symbol-name">EUR/USD</div>
@@ -608,18 +607,18 @@
         <div class="chart-area">
             <div class="chart-toolbar">
                 <div class="toolbar-group">
-                    <button class="toolbar-btn active">📈 Candles</button>
-                    <button class="toolbar-btn">📊 Bars</button>
-                    <button class="toolbar-btn">📉 Line</button>
+                    <button class="toolbar-btn active">Candles</button>
+                    <button class="toolbar-btn">Bars</button>
+                    <button class="toolbar-btn">Line</button>
                 </div>
                 <div class="toolbar-group">
-                    <button class="toolbar-btn">✏️ Draw</button>
-                    <button class="toolbar-btn">➖ Trend Line</button>
-                    <button class="toolbar-btn">↔️ Horizontal</button>
+                    <button class="toolbar-btn">Draw</button>
+                    <button class="toolbar-btn">Trend Line</button>
+                    <button class="toolbar-btn">Horizontal</button>
                 </div>
                 <div class="toolbar-group">
-                    <button class="toolbar-btn">📊 Indicators</button>
-                    <button class="toolbar-btn">⚙️ Settings</button>
+                    <button class="toolbar-btn">Indicators</button>
+                    <button class="toolbar-btn">Settings</button>
                 </div>
             </div>
             <div id="tradingview-chart"></div>
@@ -692,7 +691,7 @@
             </div>
             <div class="panel-content">
                 <div class="empty-state">
-                    <div class="empty-state-icon">📊</div>
+                    <div class="empty-state-icon"></div>
                     <div>No open positions</div>
                 </div>
             </div>
@@ -746,7 +745,7 @@
                 // Update logo/username if available
                 if (userData.name || userData.email) {
                     const displayName = userData.name || userData.email.split('@')[0];
-                    document.querySelector('.logo').innerHTML = `💎 IPFX Capital <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-left: 8px;">• ${displayName}</span>`;
+                    document.querySelector('.logo').innerHTML = `IPFX Capital <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-left: 8px;">• ${displayName}</span>`;
                 }
             }
         })();

@@ -33,9 +33,9 @@
             try {
                 const { data, error } = await supabase.auth.getSession();
                 if (error) throw error;
-                statusDiv.innerHTML = '<p style="color:#10b981;">✅ Connection successful!</p><p>Supabase is connected properly.</p>';
+                statusDiv.innerHTML = '<p style="color:#10b981;">Connection successful!</p><p>Supabase is connected properly.</p>';
             } catch (error) {
-                statusDiv.innerHTML = '<p style="color:#ef4444;">❌ Connection failed!</p><p>Error: ' + error.message + '</p>';
+                statusDiv.innerHTML = '<p style="color:#ef4444;">Connection failed!</p><p>Error: ' + error.message + '</p>';
             }
         }
 
@@ -46,7 +46,7 @@
             const password = document.getElementById('testPassword').value;
 
             if (!email || !password) {
-                resultDiv.innerHTML = '<p style="color:#f59e0b;">⚠️ Please enter email and password</p>';
+                resultDiv.innerHTML = '<p style="color:#f59e0b;">Please enter email and password</p>';
                 return;
             }
 
@@ -68,11 +68,11 @@
                 console.log('Signup response:', data);
 
                 resultDiv.innerHTML = `
-                    <p style="color:#10b981;">✅ Account created successfully!</p>
+                    <p style="color:#10b981;">Account created successfully!</p>
                     <p>User ID: ${data.user?.id}</p>
                     <p>Email: ${data.user?.email}</p>
                     <p style="color:#f59e0b; margin-top:10px;">
-                        ${data.user?.confirmed_at ? 'Email confirmed ✅' : 'Check email for confirmation link 📧'}
+                        ${data.user?.confirmed_at ? 'Email confirmed' : 'Check email for confirmation link'}
                     </p>
                 `;
 
@@ -85,15 +85,15 @@
                         .single();
 
                     if (profile) {
-                        resultDiv.innerHTML += '<p style="color:#10b981;">✅ User profile created in database!</p>';
+                        resultDiv.innerHTML += '<p style="color:#10b981;">User profile created in database!</p>';
                     } else {
-                        resultDiv.innerHTML += '<p style="color:#ef4444;">❌ Profile not created. Error: ' + (profileError?.message || 'Unknown') + '</p>';
+                        resultDiv.innerHTML += '<p style="color:#ef4444;">Profile not created. Error: ' + (profileError?.message || 'Unknown') + '</p>';
                     }
                 }, 2000);
 
             } catch (error) {
                 console.error('Signup error:', error);
-                resultDiv.innerHTML = '<p style="color:#ef4444;">❌ Signup failed!</p><p>' + error.message + '</p>';
+                resultDiv.innerHTML = '<p style="color:#ef4444;">Signup failed!</p><p>' + error.message + '</p>';
             }
         }
 

@@ -12,11 +12,20 @@
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
-            --muted: #a0a0a0;
+            --muted: #b8b8b8;
             --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
             --radius: 12px;
+
+            /* Professional spacing scale */
+            --space-xs: 8px;
+            --space-sm: 12px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            --space-3xl: 64px;
         }
 
         * {
@@ -37,78 +46,236 @@
         }
 
         /* Navigation */
-        .nav {
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid var(--line);
-            padding: 1.5rem 2rem;
-            position: sticky;
+        nav {
+            position: fixed;
             top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-content {
-            max-width: 1400px;
-            margin: 0 auto;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            padding: 2rem 4rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            backdrop-filter: blur(10px);
+            background: rgba(10, 10, 12, 0);
+            border-bottom: 1px solid rgba(42, 42, 44, 0);
+            transform: translateY(-100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .nav-brand {
-            display: flex;
+        nav.scrolled {
+            background: rgba(10, 10, 12, 0.8);
+            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
+            transform: translateY(0);
+        }
+
+        .logo {
+            display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.7rem;
             text-decoration: none;
             color: var(--fg);
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-weight: 700;
-            font-size: 1.1rem;
+            transition: opacity 0.3s ease;
         }
 
-        .nav-brand img {
-            width: 28px;
-            height: 28px;
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
         .nav-links {
             display: flex;
-            gap: 2rem;
-            align-items: center;
+            gap: 3rem;
+            list-style: none;
         }
 
         .nav-links a {
             color: var(--muted);
             text-decoration: none;
-            font-weight: 500;
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
             transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--cobalt);
+            transition: width 0.3s ease;
         }
 
         .nav-links a:hover {
             color: var(--fg);
         }
 
-        .btn-cta {
-            padding: 10px 24px;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
+        .nav-links a:hover::after {
+            width: 100%;
         }
 
-        .btn-cta:hover {
+        /* Social Media Icons in Nav */
+        .nav-social {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 1px solid var(--line);
+        }
+
+        .nav-social a {
+            color: var(--muted);
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-social a:hover {
+            color: var(--cobalt);
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .nav-social a svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* Dropdown Menu */
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-item > a {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.7rem;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item:hover .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 1rem);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 12, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem 0;
+            min-width: 220px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .nav-item:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            top: calc(100% + 0.5rem);
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .dropdown-menu a::after {
+            display: none;
+        }
+
+        .dropdown-menu a:hover {
+            color: var(--fg);
+            background: rgba(37, 99, 235, 0.1);
+            border-left-color: var(--cobalt);
+        }
+
+        /* Navigation Separator */
+        .nav-separator {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.15);
+            align-self: center;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1000;
+        }
+
+        .hamburger span {
+            display: block;
+            width: 28px;
+            height: 2px;
+            background: var(--fg);
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(8px, 8px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(8px, -8px);
+        }
+
+        /* Mobile Menu Dropdown */
+        .nav-links.mobile-open {
+            display: flex;
         }
 
         /* Hero Section */
         .hero {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 6rem 2rem;
+            padding: 6rem 2rem 3rem;
             text-align: center;
         }
 
@@ -120,501 +287,955 @@
         }
 
         .hero h1 span {
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--cobalt);
         }
 
         .hero p {
             font-size: 1.25rem;
             color: var(--muted);
             max-width: 700px;
-            margin: 0 auto 3rem;
+            margin: 0 auto;
             line-height: 1.8;
         }
 
-        /* Stats Section */
-        .stats {
+        /* Challenge Type Switcher */
+        .challenge-switcher-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 4rem 2rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 3rem;
+            padding: 3rem 2rem 4rem;
+            display: flex;
+            justify-content: center;
         }
 
-        .stat-item {
-            text-align: center;
+        .challenge-switcher {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 6px;
+            gap: 6px;
+            role: tablist;
         }
 
-        .stat-number {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 3.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
+        .challenge-option {
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
             color: var(--muted);
-            font-size: 1.1rem;
+            background: transparent;
+            border: none;
+            white-space: nowrap;
+            font-family: 'Inter', system-ui;
         }
 
-        /* Content Section */
-        .section {
+        .challenge-option:hover {
+            color: var(--fg);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .challenge-option:focus {
+            outline: 2px solid var(--cobalt);
+            outline-offset: 2px;
+        }
+
+        .challenge-option.active {
+            background: var(--cobalt);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Content Container */
+        .content-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 5rem 2rem;
+            padding: 2rem;
+            min-height: 400px;
+        }
+
+        /* Hidden class for content sections */
+        .hidden {
+            display: none;
+        }
+
+        /* Challenge Content Styles */
+        .challenge-intro {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .challenge-intro h2 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            margin-bottom: var(--space-md);
+        }
+
+        .challenge-intro .subtitle {
+            font-size: 1.2rem;
+            color: var(--cobalt);
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+        }
+
+        .challenge-intro p {
+            font-size: 1.1rem;
+            color: var(--muted);
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: var(--line);
+            margin: var(--space-3xl) 0;
         }
 
         .section-header {
             text-align: center;
-            margin-bottom: 4rem;
+            margin-bottom: var(--space-2xl);
         }
 
-        .section-title {
+        .section-header h3 {
             font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2rem, 4vw, 2.5rem);
-            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            margin-bottom: var(--space-sm);
         }
 
-        .section-subtitle {
-            font-size: 1.1rem;
+        .section-header p {
             color: var(--muted);
-            max-width: 600px;
-            margin: 0 auto;
+            font-size: 1rem;
         }
 
-        /* Mission/Vision Cards */
-        .cards-grid {
+        /* Process Steps */
+        .process-steps {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-3xl);
         }
 
-        .card {
+        .step {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            padding: 2.5rem;
+            padding: var(--space-xl);
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: var(--space-lg);
+            align-items: start;
             transition: all 0.3s ease;
         }
 
-        .card:hover {
+        .step:hover {
+            border-color: var(--cobalt);
+            transform: translateY(-2px);
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--cobalt);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.3rem;
+            margin-bottom: var(--space-sm);
+        }
+
+        .step-content p {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-lg);
+            margin-bottom: var(--space-3xl);
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: var(--space-xl);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
             border-color: var(--cobalt);
             transform: translateY(-4px);
         }
 
-        .card-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            background: rgba(37, 99, 235, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .card h3 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .card p {
-            color: var(--muted);
-            line-height: 1.8;
-        }
-
-        /* Values Section */
-        .values-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-        }
-
-        .value-card {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .value-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            margin: 0 auto 1.5rem;
-        }
-
-        .value-card h4 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.25rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .value-card p {
-            color: var(--muted);
-            line-height: 1.7;
-        }
-
-        /* Team Section */
-        .team-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2.5rem;
-        }
-
-        .team-member {
-            text-align: center;
-        }
-
-        .team-avatar {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            font-weight: 700;
-            margin: 0 auto 1.5rem;
-            border: 3px solid var(--line);
-            transition: all 0.3s ease;
-        }
-
-        .team-member:hover .team-avatar {
-            border-color: var(--cobalt);
-            transform: scale(1.05);
-        }
-
-        .team-name {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .team-role {
+        .feature-label {
+            display: inline-block;
+            padding: var(--space-xs) var(--space-md);
+            background: rgba(37, 99, 235, 0.15);
             color: var(--cobalt);
-            font-weight: 600;
-            margin-bottom: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: var(--space-md);
         }
 
-        .team-bio {
+        .feature-card h4 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.1rem;
+            margin-bottom: var(--space-sm);
+        }
+
+        .feature-card p {
             color: var(--muted);
             font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: var(--radius);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-3xl);
+        }
+
+        .highlight-box h4 {
+            color: var(--cobalt);
+            font-size: 1.2rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .highlight-box p {
+            color: var(--muted);
             line-height: 1.7;
         }
 
-        /* CTA Section */
-        .cta-section {
+        .highlight-box ul {
+            list-style: none;
+            padding: 0;
+            margin-top: var(--space-md);
+        }
+
+        .highlight-box ul li {
+            padding: var(--space-xs) 0;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .highlight-box ul li::before {
+            content: '✓';
+            color: var(--cobalt);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        /* Account Sizes Table */
+        .account-sizes {
             background: rgba(255, 255, 255, 0.02);
-            border-top: 1px solid var(--line);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .account-sizes table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .account-sizes th,
+        .account-sizes td {
+            padding: 1.25rem;
+            text-align: left;
             border-bottom: 1px solid var(--line);
         }
 
-        .cta-content {
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-            padding: 5rem 2rem;
+        .account-sizes th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            color: var(--cobalt);
         }
 
-        .cta-content h2 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2rem, 4vw, 2.5rem);
-            margin-bottom: 1.5rem;
-        }
-
-        .cta-content p {
-            font-size: 1.1rem;
+        .account-sizes td {
             color: var(--muted);
-            margin-bottom: 2.5rem;
-            line-height: 1.8;
         }
 
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
+        .account-sizes tr:last-child td {
+            border-bottom: none;
         }
 
-        .btn {
+        .account-sizes tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* CTA Section */
+        .challenge-cta {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-xl);
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+        }
+
+        .challenge-cta h3 {
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.8rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .challenge-cta p {
+            color: var(--muted);
+            font-size: 1.1rem;
+            margin-bottom: var(--space-xl);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            display: inline-block;
             padding: 14px 32px;
+            background: var(--cobalt);
+            color: white;
+            text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
             font-size: 1rem;
-            text-decoration: none;
             transition: all 0.3s ease;
-            display: inline-block;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-        }
-
-        .btn-primary:hover {
+        .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
         }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--fg);
-            border: 1px solid var(--line);
+        .cta-button:focus {
+            outline: 2px solid var(--cobalt);
+            outline-offset: 4px;
         }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--cobalt);
+        /* Reveal animation for sections */
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
         }
 
-        /* Divider */
-        .divider {
-            max-width: 1400px;
-            margin: 0 auto;
-            height: 1px;
-            background: var(--line);
+        .reveal-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered reveal for child elements */
+        .reveal-stagger > * {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(1) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.1s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(2) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.2s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(3) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.3s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(4) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.4s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(5) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.5s;
+        }
+
+        .reveal-stagger.is-visible > *:nth-child(6) {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.6s;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-            .nav {
-                padding: 1rem;
+            nav {
+                padding: 1.5rem 2rem;
+            }
+
+            .hamburger {
+                display: flex;
             }
 
             .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 70%;
+                max-width: 300px;
+                height: 100vh;
+                background: rgba(10, 10, 12, 0.98);
+                backdrop-filter: blur(20px);
+                flex-direction: column;
+                gap: 0;
+                padding: 6rem 2rem 2rem;
+                border-left: 1px solid rgba(37, 99, 235, 0.2);
+                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+            }
+
+            .nav-links.mobile-open {
+                right: 0;
+            }
+
+            .nav-links li {
+                width: 100%;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .nav-links a {
+                display: block;
+                padding: 1.25rem 0;
+                font-size: 1.1rem;
+                width: 100%;
+            }
+
+            .dropdown-menu {
+                position: static;
+                transform: none;
+                margin-top: 0.5rem;
+                margin-left: 1rem;
+                box-shadow: none;
+            }
+
+            .nav-separator {
                 display: none;
             }
 
+            .nav-social {
+                position: fixed;
+                bottom: 2rem;
+                left: 50%;
+                transform: translateX(-50%);
+                border: none;
+                padding: 0;
+                margin: 0;
+                justify-content: center;
+                width: auto;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+
+            .nav-links.mobile-open ~ .nav-social {
+                opacity: 1;
+                pointer-events: all;
+            }
+
             .hero {
-                padding: 4rem 1.5rem;
+                padding: 4rem 1.5rem 2rem;
             }
 
-            .section {
-                padding: 3rem 1.5rem;
+            .challenge-switcher-container {
+                padding: 2rem 1.5rem 3rem;
             }
 
-            .stats {
-                padding: 3rem 1.5rem;
-                gap: 2rem;
-            }
-
-            .cta-buttons {
+            .challenge-switcher {
                 flex-direction: column;
+                width: 100%;
             }
 
-            .btn {
+            .challenge-option {
                 width: 100%;
+                text-align: center;
+            }
+
+            .content-container {
+                padding: 1.5rem;
+            }
+
+            .step {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .step-number {
+                margin: 0 auto;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .account-sizes {
+                overflow-x: auto;
+            }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .reveal-section,
+            .reveal-stagger > * {
+                opacity: 1;
+                transform: translateY(0);
+                transition: none;
+            }
+
+            html {
+                scroll-behavior: auto;
             }
         }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="nav">
-        <div class="nav-content">
-            <a href="index.html" class="nav-brand">
-                <img src="assets/images/favicon.ico" alt="IPFX">
-                <span>IPFX Capital</span>
+    <nav>
+        <a href="index.html" class="logo">
+            <img src="assets/images/favicon.ico" alt="IPFX Logo">
+            <span class="logo-text">IPFX Capital</span>
+        </a>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item">
+                <a href="index.html#programs">
+                    Challenges
+                    <span class="dropdown-arrow">▼</span>
+                </a>
+                <div class="dropdown-menu">
+                    <a href="index.html#infinity-challenge">Infinity Challenge</a>
+                    <a href="index.html#application-challenge">Application Challenge</a>
+                    <a href="index.html#traditional-challenge">Traditional Challenge</a>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a href="index.html#resources">
+                    Resources
+                    <span class="dropdown-arrow">▼</span>
+                </a>
+                <div class="dropdown-menu">
+                    <a href="index.html#profit-calculator">Profit Calculator</a>
+                    <a href="index.html#analyst-reports">Analyst Reports</a>
+                </div>
+            </li>
+            <li><a href="about.html">About us</a></li>
+            <li><a href="press.html">Press</a></li>
+            <li class="nav-separator"></li>
+            <li><a href="login.html">Login</a></li>
+        </ul>
+        <div class="nav-social">
+            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/></svg>
             </a>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="about.html">About</a>
-                <a href="press.html">Press</a>
-                <a href="contact.html">Contact</a>
-                <a href="login.html">Login</a>
-                <a href="signup.html" class="btn-cta">Get Started</a>
-            </div>
+            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            </a>
+            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg>
+            </a>
+            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X (Twitter)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26l8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6c0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64c0 3.33 2.76 5.7 5.69 5.7c3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg>
+            </a>
+            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            </a>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
-        <h1>Empowering Traders, <span>Redefining Success</span></h1>
-        <p>At IPFX Capital, we believe talented traders deserve access to capital without unnecessary barriers. We're building the future of prop trading with fairness, transparency, and trader success at our core.</p>
+    <section class="hero reveal-section">
+        <h1>About <span>IPFX Capital</span></h1>
+        <p>Access funded trading accounts from £10,000 to £200,000 with profit splits from 50% to 90%. Professional prop trading with transparent terms and fair evaluation processes.</p>
     </section>
 
-    <!-- Stats -->
-    <section class="stats">
-        <div class="stat-item">
-            <div class="stat-number">10,000+</div>
-            <div class="stat-label">Active Traders</div>
+    <!-- Challenge Type Switcher -->
+    <div class="challenge-switcher-container reveal-section">
+        <div class="challenge-switcher" role="tablist" aria-label="Challenge type selection">
+            <button class="challenge-option active" data-challenge="infinity" role="tab" aria-selected="true" aria-controls="infinity-content" id="tab-infinity">Infinity Challenge</button>
+            <button class="challenge-option" data-challenge="personalised" role="tab" aria-selected="false" aria-controls="personalised-content" id="tab-personalised">Personalised Application</button>
+            <button class="challenge-option" data-challenge="traditional" role="tab" aria-selected="false" aria-controls="traditional-content" id="tab-traditional">Traditional</button>
         </div>
-        <div class="stat-item">
-            <div class="stat-number">£5M+</div>
-            <div class="stat-label">Capital Deployed</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-number">£2M+</div>
-            <div class="stat-label">Paid to Traders</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-number">87%</div>
-            <div class="stat-label">Trader Satisfaction</div>
-        </div>
-    </section>
+    </div>
 
-    <div class="divider"></div>
+    <!-- Dynamic Content Container -->
+    <div class="content-container">
+        <!-- Infinity Challenge Content -->
+        <div id="infinity-content" class="challenge-content" role="tabpanel" aria-labelledby="tab-infinity">
+            <!-- Introduction -->
+            <div class="challenge-intro reveal-section">
+                <h2>The Infinity Challenge</h2>
+                <p class="subtitle">No Evaluation Fees. Instant Funding.</p>
+                <p>Start trading with real capital immediately without paying upfront evaluation fees. Account sizes range from £10,000 to £200,000 with profit splits starting at 50% and scaling to 90% based on consistent performance over 6+ months of trading activity.</p>
+            </div>
 
-    <!-- Mission & Vision -->
-    <section class="section">
-        <div class="section-header">
-            <h2 class="section-title">Our Mission & Vision</h2>
-            <p class="section-subtitle">Building a prop trading firm that puts traders first</p>
-        </div>
-        <div class="cards-grid">
-            <div class="card">
-                <div class="card-icon">🎯</div>
-                <h3>Our Mission</h3>
-                <p>To democratize access to trading capital by providing talented traders worldwide with the resources, technology, and support they need to succeed in the markets.</p>
+            <!-- What is it Section -->
+            <div class="section-header reveal-section">
+                <h3>What Makes It Different?</h3>
+                <p>Key features and requirements</p>
             </div>
-            <div class="card">
-                <div class="card-icon">🚀</div>
-                <h3>Our Vision</h3>
-                <p>To become the world's most trusted proprietary trading firm, known for fair rules, transparent processes, and genuine commitment to trader success.</p>
-            </div>
-            <div class="card">
-                <div class="card-icon">💡</div>
-                <h3>Our Approach</h3>
-                <p>We combine cutting-edge technology with human-centered design to create challenges that test skill, not luck. Every rule we implement is designed with trader success in mind.</p>
-            </div>
-        </div>
-    </section>
 
-    <div class="divider"></div>
+            <div class="feature-grid reveal-stagger">
+                <div class="feature-card">
+                    <span class="feature-label">ACCESS</span>
+                    <h4>Zero Entry Cost</h4>
+                    <p>No evaluation fees or monthly subscriptions. Start trading immediately with our capital at no upfront cost.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-label">TIMELINE</span>
+                    <h4>24-48 Hour Approval</h4>
+                    <p>Application review and identity verification typically completed within 24-48 hours. Minimum 6 months trading experience required.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-label">GROWTH</span>
+                    <h4>Performance-Based Scaling</h4>
+                    <p>Demonstrate 3+ consecutive profitable months to unlock larger account sizes. Progress from £10k to £200k+ capital.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-label">TARGETS</span>
+                    <h4>10% Profit Objective</h4>
+                    <p>Realistic 10% profit targets across all account sizes. No artificial deadlines or time pressure on achieving targets.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-label">SPLITS</span>
+                    <h4>50-90% Profit Share</h4>
+                    <p>Start with 50% profit share on £10k accounts. Scale up to 90% on £200k accounts based on consistent profitability.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-label">PAYOUTS</span>
+                    <h4>Weekly Withdrawals</h4>
+                    <p>Request payouts weekly after minimum £500 profit threshold. Processed within 24-48 hours via bank transfer or crypto.</p>
+                </div>
+            </div>
 
-    <!-- Core Values -->
-    <section class="section">
-        <div class="section-header">
-            <h2 class="section-title">Our Core Values</h2>
-            <p class="section-subtitle">The principles that guide everything we do</p>
-        </div>
-        <div class="values-grid">
-            <div class="value-card">
-                <div class="value-icon">⚖️</div>
-                <h4>Fairness First</h4>
-                <p>Clear rules, no hidden fees, and evaluation criteria designed to identify genuine trading skill.</p>
-            </div>
-            <div class="value-card">
-                <div class="value-icon">🔍</div>
-                <h4>Full Transparency</h4>
-                <p>Open communication about our processes, terms, and payout structures. No surprises, ever.</p>
-            </div>
-            <div class="value-card">
-                <div class="value-icon">🤝</div>
-                <h4>Trader Success</h4>
-                <p>Your success is our success. We're invested in your growth and provide the tools to help you thrive.</p>
-            </div>
-            <div class="value-card">
-                <div class="value-icon">⚡</div>
-                <h4>Innovation</h4>
-                <p>Constantly evolving our platform and challenge structures based on trader feedback and market dynamics.</p>
-            </div>
-        </div>
-    </section>
+            <div class="section-divider"></div>
 
-    <div class="divider"></div>
+            <!-- How It Works Section -->
+            <div class="section-header reveal-section">
+                <h3>How The Process Works</h3>
+                <p>Your journey from application to funded trader</p>
+            </div>
 
-    <!-- Team Section -->
-    <section class="section">
-        <div class="section-header">
-            <h2 class="section-title">Meet Our Team</h2>
-            <p class="section-subtitle">Experienced traders and technologists dedicated to your success</p>
-        </div>
-        <div class="team-grid">
-            <div class="team-member">
-                <div class="team-avatar">MJ</div>
-                <div class="team-name">Michael Johnson</div>
-                <div class="team-role">Founder & CEO</div>
-                <p class="team-bio">15+ years trading experience across forex, equities, and derivatives. Former institutional trader passionate about democratizing capital access.</p>
-            </div>
-            <div class="team-member">
-                <div class="team-avatar">SC</div>
-                <div class="team-name">Sarah Chen</div>
-                <div class="team-role">Head of Risk</div>
-                <p class="team-bio">Ex-hedge fund risk manager with expertise in portfolio optimization and drawdown management. Ensures fair evaluation standards.</p>
-            </div>
-            <div class="team-member">
-                <div class="team-avatar">DK</div>
-                <div class="team-name">David Kumar</div>
-                <div class="team-role">CTO</div>
-                <p class="team-bio">Built trading platforms for top-tier financial institutions. Leading our technology stack to deliver best-in-class trader experience.</p>
-            </div>
-            <div class="team-member">
-                <div class="team-avatar">EP</div>
-                <div class="team-name">Emily Parker</div>
-                <div class="team-role">Head of Trader Success</div>
-                <p class="team-bio">Dedicated to supporting our traders with education, resources, and personalized guidance to maximize their funded potential.</p>
-            </div>
-        </div>
-    </section>
+            <div class="process-steps reveal-stagger">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Apply & Verify</h4>
+                        <p>Submit application with trading history and verify identity. Requires minimum 6 months documented trading experience. Review process takes 24-48 hours.</p>
+                    </div>
+                </div>
 
-    <div class="divider"></div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Receive Trading Account</h4>
+                        <p>Once approved, receive instant access to funded account. Initial account size (£10k-£50k) determined by experience level and trading history.</p>
+                    </div>
+                </div>
 
-    <!-- Why Choose Us -->
-    <section class="section">
-        <div class="section-header">
-            <h2 class="section-title">Why Choose IPFX?</h2>
-            <p class="section-subtitle">What makes us different from other prop firms</p>
-        </div>
-        <div class="cards-grid">
-            <div class="card">
-                <div class="card-icon">💰</div>
-                <h3>Fair Profit Splits</h3>
-                <p>Industry-leading profit splits up to 90%. Keep more of what you earn with transparent payout structures and no hidden deductions.</p>
-            </div>
-            <div class="card">
-                <div class="card-icon">🎓</div>
-                <h3>Trader Education</h3>
-                <p>Access to exclusive webinars, trading strategies, and mentorship programs to continuously improve your edge in the markets.</p>
-            </div>
-            <div class="card">
-                <div class="card-icon">⚙️</div>
-                <h3>Flexible Challenges</h3>
-                <p>Multiple challenge types to suit your trading style - from traditional evaluations to our unique Infinity Challenge with zero upfront cost.</p>
-            </div>
-            <div class="card">
-                <div class="card-icon">⏱️</div>
-                <h3>Fast Payouts</h3>
-                <p>Weekly payout cycles once funded. Your profits, delivered reliably and on time, every time.</p>
-            </div>
-            <div class="card">
-                <div class="card-icon">📊</div>
-                <h3>Advanced Analytics</h3>
-                <p>Comprehensive dashboard with detailed performance metrics, risk analysis, and insights to refine your trading strategy.</p>
-            </div>
-            <div class="card">
-                <div class="card-icon">🌍</div>
-                <h3>Global Community</h3>
-                <p>Join thousands of traders worldwide. Share strategies, learn from peers, and grow together in our supportive community.</p>
-            </div>
-        </div>
-    </section>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Trade & Grow</h4>
+                        <p>Start trading immediately with 5% daily loss limit and 10% total drawdown limit. All strategies permitted including EAs and overnight positions.</p>
+                    </div>
+                </div>
 
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="cta-content">
-            <h2>Ready to Trade with Us?</h2>
-            <p>Join thousands of traders who have chosen IPFX Capital to fund their trading career. Start your journey today with our flexible challenge options.</p>
-            <div class="cta-buttons">
-                <a href="signup.html" class="btn btn-primary">Start Your Challenge</a>
-                <a href="contact.html" class="btn btn-secondary">Get in Touch</a>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Earn Payouts</h4>
+                        <p>Request weekly payouts after £500 minimum profit (starter accounts). Payouts processed within 24-48 hours. Maintain 40 trading days per evaluation period.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Scale Your Account</h4>
+                        <p>Achieve 3+ consecutive profitable months with consistent risk management to qualify for next tier. Progress from £10k to £200k with increasing profit splits up to 90%.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <!-- Account Sizes Section -->
+            <div class="section-header reveal-section">
+                <h3>Available Account Sizes</h3>
+                <p>Scale your capital as you demonstrate consistency</p>
+            </div>
+
+            <div class="account-sizes reveal-section">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Account Size</th>
+                            <th>Profit Target</th>
+                            <th>Daily Loss Limit</th>
+                            <th>Total Loss Limit</th>
+                            <th>Profit Split</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>£10,000</td>
+                            <td>£1,000 (10%)</td>
+                            <td>£500 (5%)</td>
+                            <td>£1,000 (10%)</td>
+                            <td>50%</td>
+                        </tr>
+                        <tr>
+                            <td>£25,000</td>
+                            <td>£2,500 (10%)</td>
+                            <td>£1,250 (5%)</td>
+                            <td>£2,500 (10%)</td>
+                            <td>60%</td>
+                        </tr>
+                        <tr>
+                            <td>£50,000</td>
+                            <td>£5,000 (10%)</td>
+                            <td>£2,500 (5%)</td>
+                            <td>£5,000 (10%)</td>
+                            <td>70%</td>
+                        </tr>
+                        <tr>
+                            <td>£100,000</td>
+                            <td>£10,000 (10%)</td>
+                            <td>£5,000 (5%)</td>
+                            <td>£10,000 (10%)</td>
+                            <td>80%</td>
+                        </tr>
+                        <tr>
+                            <td>£200,000</td>
+                            <td>£20,000 (10%)</td>
+                            <td>£10,000 (5%)</td>
+                            <td>£20,000 (10%)</td>
+                            <td>90%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Trading Rules Highlight -->
+            <div class="highlight-box reveal-section">
+                <h4>Trading Rules & Requirements</h4>
+                <p>Transparent rules for sustainable trading success:</p>
+                <ul>
+                    <li>Daily loss limit: Maximum 5% daily drawdown from starting balance</li>
+                    <li>Total loss limit: Maximum 10% total drawdown from starting balance</li>
+                    <li>Minimum trading days: 10 active trading days before first payout</li>
+                    <li>Profit consistency: No single day exceeds 40% of total profits</li>
+                    <li>Allowed instruments: Forex, Indices, Commodities, Cryptocurrencies</li>
+                    <li>Trading style: All strategies allowed (scalping, day trading, swing trading)</li>
+                    <li>Overnight and weekend positions permitted</li>
+                    <li>Expert Advisors (EAs) and copy trading permitted</li>
+                </ul>
+            </div>
+
+            <!-- Scaling Process -->
+            <div class="section-header reveal-section">
+                <h3>Scaling Your Account</h3>
+                <p>Grow your capital and profit share over time</p>
+            </div>
+
+            <div class="highlight-box reveal-section">
+                <h4>How Account Scaling Works</h4>
+                <p>After achieving your profit target and demonstrating consistent profitability over minimum 3 months, you qualify for account scaling. Requirements for each tier:</p>
+                <ul>
+                    <li>Minimum 3 consecutive profitable months</li>
+                    <li>Zero breaches of daily or total loss limits</li>
+                    <li>Consistent activity (minimum 40 trading days per evaluation period)</li>
+                    <li>Positive risk-reward ratios maintained throughout period</li>
+                    <li>Maximum 7% drawdown in any single month</li>
+                </ul>
+                <p style="margin-top: var(--space-md);">Meeting these criteria qualifies your account for the next tier with increased capital and improved profit splits. Scaling typically occurs every 3-6 months based on performance.</p>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="challenge-cta reveal-section">
+                <h3>Ready to Start Trading?</h3>
+                <p>Apply for the Infinity Challenge and access trading capital with zero upfront costs. Requires minimum 6 months trading experience.</p>
+                <a href="start-challenge.html?type=infinity" class="cta-button">Apply for Infinity Challenge</a>
             </div>
         </div>
-    </section>
+
+        <!-- Personalised Application Content -->
+        <div id="personalised-content" class="challenge-content hidden" role="tabpanel" aria-labelledby="tab-personalised">
+            <p style="text-align: center; color: var(--muted); font-size: 1.1rem;">Personalised Application content will go here...</p>
+        </div>
+
+        <!-- Traditional Content -->
+        <div id="traditional-content" class="challenge-content hidden" role="tabpanel" aria-labelledby="tab-traditional">
+            <p style="text-align: center; color: var(--muted); font-size: 1.1rem;">Traditional challenge content will go here...</p>
+        </div>
+    </div>
+
+    <script>
+        // Navigation scroll behavior
+        const nav = document.querySelector('nav');
+        let ticking = false;
+
+        function updateScroll() {
+            const scrolled = window.pageYOffset;
+
+            // Show nav after scrolling starts
+            if (scrolled > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                window.requestAnimationFrame(updateScroll);
+                ticking = true;
+            }
+        }, { passive: true });
+
+        // Hamburger Menu Toggle
+        const hamburger = document.querySelector('.hamburger');
+        const navLinks = document.querySelector('.nav-links');
+
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('mobile-open');
+        });
+
+        // Close menu when clicking a link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navLinks.classList.remove('mobile-open');
+            });
+        });
+
+        // Challenge Type Switcher with keyboard navigation and ARIA support
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.challenge-option');
+            const contentSections = document.querySelectorAll('.challenge-content');
+
+            // Handle button clicks
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    switchTab(this);
+                });
+            });
+
+            // Keyboard navigation (arrow keys)
+            buttons.forEach((button, index) => {
+                button.addEventListener('keydown', function(e) {
+                    let targetIndex;
+
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        targetIndex = (index + 1) % buttons.length;
+                        buttons[targetIndex].focus();
+                        switchTab(buttons[targetIndex]);
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        targetIndex = (index - 1 + buttons.length) % buttons.length;
+                        buttons[targetIndex].focus();
+                        switchTab(buttons[targetIndex]);
+                    } else if (e.key === 'Home') {
+                        e.preventDefault();
+                        buttons[0].focus();
+                        switchTab(buttons[0]);
+                    } else if (e.key === 'End') {
+                        e.preventDefault();
+                        buttons[buttons.length - 1].focus();
+                        switchTab(buttons[buttons.length - 1]);
+                    }
+                });
+            });
+
+            function switchTab(selectedButton) {
+                // Remove active class and update ARIA attributes
+                buttons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                });
+
+                // Add active class to selected button
+                selectedButton.classList.add('active');
+                selectedButton.setAttribute('aria-selected', 'true');
+
+                // Get the selected challenge type
+                const challengeType = selectedButton.getAttribute('data-challenge');
+
+                // Hide all content sections
+                contentSections.forEach(section => {
+                    section.classList.add('hidden');
+                });
+
+                // Show the selected content section
+                const selectedContent = document.getElementById(`${challengeType}-content`);
+                if (selectedContent) {
+                    selectedContent.classList.remove('hidden');
+                }
+            }
+        });
+
+        // Reveal animations for all sections
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, {
+            threshold: 0.15,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        // Observe all reveal elements
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.reveal-section, .reveal-stagger').forEach(element => {
+                revealObserver.observe(element);
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referral Dashboard Component</title>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --fg: #ffffff;
+            --muted: #a0a0a0;
+            --line: #2a2a2c;
+            --cobalt: #2563eb;
+            --deep-blue: #1e3a8a;
+            --radius: 12px;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            padding: 2rem;
+        }
+
+        .referral-section {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .referral-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .referral-header h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .referral-header p {
+            color: var(--muted);
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .referral-code-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .code-label {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .code-display {
+            background: var(--bg);
+            border: 2px solid var(--cobalt);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .code-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.3rem;
+            color: var(--cobalt);
+            font-family: 'Courier New', monospace;
+        }
+
+        .link-container {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .link-text {
+            flex: 1;
+            color: var(--muted);
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .share-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            color: var(--fg);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .share-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--cobalt);
+        }
+
+        .rewards-info {
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .rewards-info h3 {
+            margin-bottom: 0.5rem;
+            color: var(--cobalt);
+        }
+
+        .rewards-info p {
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .code-text {
+                font-size: 1.8rem;
+                letter-spacing: 0.2rem;
+            }
+
+            .link-container {
+                flex-direction: column;
+            }
+
+            .copy-btn {
+                width: 100%;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="referral-section">
+        <div class="referral-header">
+            <h2>Refer & Earn</h2>
+            <p>Share your unique referral code and earn rewards</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="referralCount">0</div>
+                <div class="stat-label">Successful Referrals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalEarned">£0</div>
+                <div class="stat-label">Total Earned</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="pendingRewards">£0</div>
+                <div class="stat-label">Pending Rewards</div>
+            </div>
+        </div>
+
+        <!-- Referral Code Card -->
+        <div class="referral-code-card">
+            <div class="code-label">Your Unique Referral Code</div>
+            <div class="code-display">
+                <div class="code-text" id="referralCode">LOADING...</div>
+            </div>
+
+            <div class="link-container">
+                <span class="link-text" id="referralLink">Loading...</span>
+                <button class="copy-btn" id="copyBtn">Copy Link</button>
+            </div>
+
+            <div class="share-buttons">
+                <a href="#" class="share-btn" id="shareEmail">
+                    Email
+                </a>
+                <a href="#" class="share-btn" id="shareTwitter" target="_blank">
+                    Twitter
+                </a>
+                <a href="#" class="share-btn" id="shareWhatsApp" target="_blank">
+                    WhatsApp
+                </a>
+            </div>
+        </div>
+
+        <!-- Rewards Info -->
+        <div class="rewards-info">
+            <h3>How It Works</h3>
+            <p>
+                Share your referral code with friends. When they sign up and complete their first funded challenge,
+                you'll earn <strong>10% of their entry fee</strong> as a reward! There's no limit to how many people you can refer.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+        const { createClient } = window.supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function loadReferralData() {
+            try {
+                // Get current session
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+                if (sessionError || !session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Fetch user profile with referral data
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('user_profiles')
+                    .select('referral_code, referral_count, referred_by_code')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (profileError) {
+                    console.error('Error fetching profile:', profileError);
+                    return;
+                }
+
+                // Display referral code
+                const referralCode = profile.referral_code;
+                document.getElementById('referralCode').textContent = referralCode;
+
+                // Create referral link
+                const referralLink = `${window.location.origin}/signup.html?ref=${referralCode}`;
+                document.getElementById('referralLink').textContent = referralLink;
+
+                // Display stats
+                document.getElementById('referralCount').textContent = profile.referral_count || 0;
+
+                // Calculate earnings (example: £10 per referral)
+                const earningsPerReferral = 10;
+                const totalEarned = (profile.referral_count || 0) * earningsPerReferral;
+                document.getElementById('totalEarned').textContent = `£${totalEarned}`;
+
+                // Setup share links
+                setupShareLinks(referralCode, referralLink);
+
+            } catch (error) {
+                console.error('Error loading referral data:', error);
+            }
+        }
+
+        function setupShareLinks(code, link) {
+            const shareMessage = `Join IPFX Capital and start your funded trading journey! Use my referral code: ${code}`;
+            const encodedLink = encodeURIComponent(link);
+            const encodedMessage = encodeURIComponent(shareMessage);
+
+            // Email
+            document.getElementById('shareEmail').href =
+                `mailto:?subject=Join IPFX Capital&body=${encodedMessage}%0A%0A${encodedLink}`;
+
+            // Twitter
+            document.getElementById('shareTwitter').href =
+                `https://twitter.com/intent/tweet?text=${encodedMessage}&url=${encodedLink}`;
+
+            // WhatsApp
+            document.getElementById('shareWhatsApp').href =
+                `https://wa.me/?text=${encodedMessage}%20${encodedLink}`;
+        }
+
+        // Copy to clipboard functionality
+        document.getElementById('copyBtn').addEventListener('click', async function() {
+            const linkText = document.getElementById('referralLink').textContent;
+            const button = this;
+
+            try {
+                await navigator.clipboard.writeText(linkText);
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+
+                setTimeout(() => {
+                    button.textContent = 'Copy Link';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = linkText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                button.textContent = 'Copied!';
+            }
+        });
+
+        // Load data on page load
+        loadReferralData();
+    </script>
+</body>
+</html>

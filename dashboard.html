@@ -540,13 +540,13 @@
     <div class="container">
         <!-- Header -->
         <div class="page-header">
-            <h1 class="page-title">Welcome back, John! 👋</h1>
+            <h1 class="page-title">Welcome back, John!</h1>
             <p class="page-subtitle">Here's your trading performance overview</p>
         </div>
 
         <!-- Alert -->
         <div class="alert success">
-            <div class="alert-icon">🎉</div>
+            <div class="alert-icon"></div>
             <div class="alert-content">
                 <h4>Account Created Successfully!</h4>
                 <p>You're all set! Choose your challenge size below and start trading immediately. No waiting, no delays - begin your journey to funded trading right now.</p>
@@ -558,7 +558,7 @@
             <div class="stat-card">
                 <div class="stat-header">
                     <span class="stat-label">Account Balance</span>
-                    <div class="stat-icon primary">💰</div>
+                    <div class="stat-icon primary"></div>
                 </div>
                 <div class="stat-value">£10,576</div>
                 <div class="stat-change positive">
@@ -570,7 +570,7 @@
             <div class="stat-card">
                 <div class="stat-header">
                     <span class="stat-label">Profit Target Progress</span>
-                    <div class="stat-icon success">🎯</div>
+                    <div class="stat-icon success"></div>
                 </div>
                 <div class="stat-value success">£576 / £800</div>
                 <div class="stat-change positive">
@@ -593,7 +593,7 @@
             <div class="stat-card">
                 <div class="stat-header">
                     <span class="stat-label">Total Trades</span>
-                    <div class="stat-icon primary">📊</div>
+                    <div class="stat-icon primary"></div>
                 </div>
                 <div class="stat-value">47</div>
                 <div class="stat-change positive">
@@ -658,7 +658,7 @@
                     <ul class="activity-list">
                         <li class="activity-item">
                             <div class="activity-info">
-                                <div class="activity-icon buy">📈</div>
+                                <div class="activity-icon buy">▲</div>
                                 <div class="activity-details">
                                     <h4>EUR/USD</h4>
                                     <p>Buy • 0.5 lots</p>
@@ -671,7 +671,7 @@
                         </li>
                         <li class="activity-item">
                             <div class="activity-info">
-                                <div class="activity-icon sell">📉</div>
+                                <div class="activity-icon sell">▼</div>
                                 <div class="activity-details">
                                     <h4>GBP/USD</h4>
                                     <p>Sell • 0.3 lots</p>
@@ -684,7 +684,7 @@
                         </li>
                         <li class="activity-item">
                             <div class="activity-info">
-                                <div class="activity-icon buy">📈</div>
+                                <div class="activity-icon buy">▲</div>
                                 <div class="activity-details">
                                     <h4>XAU/USD</h4>
                                     <p>Buy • 0.2 lots</p>
@@ -697,7 +697,7 @@
                         </li>
                         <li class="activity-item">
                             <div class="activity-info">
-                                <div class="activity-icon buy">📈</div>
+                                <div class="activity-icon buy">▲</div>
                                 <div class="activity-details">
                                     <h4>US30</h4>
                                     <p>Buy • 1.0 lots</p>
@@ -710,7 +710,7 @@
                         </li>
                         <li class="activity-item">
                             <div class="activity-info">
-                                <div class="activity-icon sell">📉</div>
+                                <div class="activity-icon sell">▼</div>
                                 <div class="activity-details">
                                     <h4>BTC/USD</h4>
                                     <p>Sell • 0.1 lots</p>
@@ -797,7 +797,7 @@
                 // Update user display
                 document.querySelector('.user-avatar').textContent = initials;
                 document.querySelector('.user-name').textContent = fullName;
-                document.querySelector('.page-title').textContent = `Welcome back, ${firstName}! 👋`;
+                document.querySelector('.page-title').textContent = `Welcome back, ${firstName}!`;
 
                 // Load user's challenge enrollments
                 const { data: enrollments, error: enrollmentError } = await supabaseClient
@@ -852,7 +852,7 @@
             const progressCard = document.querySelector('.card');
             progressCard.innerHTML = `
                 <div style="text-align: center; padding: 2rem;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+                    <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
                     <h3 style="margin-bottom: 1rem; font-size: 1.5rem;">No Active Challenges</h3>
                     <p style="color: var(--muted); margin-bottom: 2rem;">Start your first trading challenge to unlock your dashboard and begin your path to funded trading.</p>
                     <a href="start-challenge.html" class="btn" style="display: inline-block;">Start Your First Challenge</a>
@@ -931,7 +931,7 @@
                 if (tradesCard) {
                     tradesCard.innerHTML = `
                         <div style="text-align: center; padding: 3rem 2rem;">
-                            <div style="font-size: 2.5rem; margin-bottom: 1rem;">📊</div>
+                            <div style="font-size: 2.5rem; margin-bottom: 1rem;"></div>
                             <h4 style="margin-bottom: 0.5rem;">No Trades Yet</h4>
                             <p style="color: var(--muted);">Your trades will appear here once you start trading</p>
                         </div>
