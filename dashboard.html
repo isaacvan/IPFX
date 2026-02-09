@@ -1030,11 +1030,33 @@
         // ============================================
         // CHECK AUTHENTICATION & LOAD USER DATA
         // ============================================
+        let authCheckAttempts = 0;
+        const MAX_AUTH_ATTEMPTS = 5;
+
         async function checkAuth() {
+            // Check localStorage first to prevent redirect loop
+            const authToken = localStorage.getItem('ipfx_auth_token');
+
             const { data: { session } } = await supabaseClient.auth.getSession();
 
-            if (!session) {
+            if (!session && !authToken) {
                 // Not logged in - redirect to login page
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // If we have a token but no session, wait for Supabase to establish session
+            if (!session && authToken && authCheckAttempts < MAX_AUTH_ATTEMPTS) {
+                authCheckAttempts++;
+                setTimeout(() => checkAuth(), 300);
+                return;
+            }
+
+            // If still no session after retries, clear storage and redirect
+            if (!session && authToken && authCheckAttempts >= MAX_AUTH_ATTEMPTS) {
+                localStorage.removeItem('ipfx_auth_token');
+                localStorage.removeItem('ipfx_user_data');
+                sessionStorage.removeItem('ipfx_user_session');
                 window.location.href = 'login.html';
                 return;
             }
