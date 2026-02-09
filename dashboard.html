@@ -84,6 +84,15 @@
             gap: 0.75rem;
         }
 
+        .user-info {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .user-info.loaded {
+            opacity: 1;
+        }
+
         .user-avatar {
             width: 36px;
             height: 36px;
@@ -1056,6 +1065,9 @@
                 document.querySelector('.user-avatar').textContent = initials;
                 document.querySelector('.user-name').textContent = fullName;
                 document.querySelector('.page-title').textContent = `Welcome back, ${firstName}!`;
+
+                // Show the user info in nav
+                document.querySelector('.user-info').classList.add('loaded');
 
                 // Load user's challenge enrollments
                 const { data: enrollments, error: enrollmentError } = await supabaseClient
