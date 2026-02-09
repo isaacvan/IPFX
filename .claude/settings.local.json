@@ -4,7 +4,13 @@
       "Bash(for file in about.html about-backup.html coming-soon.html dashboard.html index.html index-full-site.html infinity-new.html login.html market-data.html referral-dashboard-component.html signup.html start-challenge.html test-signup.html trading.html)",
       "Bash(do if [ -f $file ])",
       "Bash(then echo '=== $file ===' grep -n [💰🚀📈🎯⚖️🔄✅☑️✓➤👉💡🎨📊🛡️⚡✨🔥💎🎁🏆🌟💫] $file)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.pencil.dev)",
+      "WebFetch(domain:www.pencil.dev)",
+      "Bash(where:*)",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://code.visualstudio.com/sha/download?build=stable&os=win32-x64-user'' -OutFile ''$env:TEMP\\VSCodeSetup.exe''\")",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
