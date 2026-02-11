@@ -600,6 +600,17 @@
         }
 
         // ============================================
+        // TERMS & PRIVACY LINKS - COMING SOON
+        // ============================================
+        document.querySelectorAll('a[href="#terms"], a[href="#privacy"]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const linkText = this.textContent;
+                showAlert(`${linkText} - Coming Soon`, 'error');
+            });
+        });
+
+        // ============================================
         // FORM SUBMISSION
         // ============================================
         form.addEventListener('submit', async function(e) {
