@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>IPFX Futures — Trade CME Markets with Funded Capital</title>
+<meta name="description" content="Trade ES, NQ, CL, GC and all CME futures markets with IPFX Capital. No consistency rule, EOD trailing drawdown, 90% profit split, weekly payouts. From £79."/>
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0c;--fg:#ffffff;--muted:#a0a0a8;--muted2:#6b6b78;--line:#1e1e22;
+  --cobalt:#2563eb;--cobalt-h:#1d4ed8;--green:#10b981;--gold:#f59e0b;--red:#ef4444;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6;overflow-x:hidden;}
+a{color:inherit;text-decoration:none;}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,12,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;}
+.nav-logo{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.02em;}
+.nav-logo span{color:var(--cobalt);}
+.nav-links{display:flex;gap:2rem;align-items:center;}
+.nav-links a{font-size:.875rem;color:var(--muted);transition:color .2s;}
+.nav-links a:hover{color:var(--fg);}
+.nav-cta{padding:.5rem 1.25rem;background:var(--cobalt);color:#fff;border-radius:8px;font-weight:600;font-size:.875rem;transition:background .2s;}
+.nav-cta:hover{background:var(--cobalt-h);}
+
+/* HERO */
+.hero{padding:7rem 2rem 5rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(37,99,235,.18),transparent);}
+.hero-tag{display:inline-flex;align-items:center;gap:.5rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#10b981;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.35rem .9rem;border-radius:20px;margin-bottom:1.5rem;}
+.hero-tag svg{width:13px;height:13px;}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2.5rem,6vw,4.5rem);font-weight:800;line-height:1.05;letter-spacing:-.03em;margin-bottom:1.25rem;}
+.hero h1 .g{color:var(--green);}
+.hero-sub{font-size:clamp(1rem,2vw,1.2rem);color:var(--muted);max-width:620px;margin:0 auto 2.5rem;line-height:1.7;}
+.hero-btns{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;}
+.btn-primary{padding:.85rem 2.25rem;background:var(--cobalt);color:#fff;border-radius:10px;font-weight:700;font-size:1rem;transition:background .2s,transform .2s;}
+.btn-primary:hover{background:var(--cobalt-h);transform:translateY(-2px);}
+.btn-ghost{padding:.85rem 2.25rem;border:1px solid var(--line);color:var(--muted);border-radius:10px;font-weight:600;font-size:1rem;transition:border-color .2s,color .2s;}
+.btn-ghost:hover{border-color:rgba(255,255,255,.2);color:var(--fg);}
+.hero-stats{display:flex;align-items:center;justify-content:center;gap:3rem;margin-top:3.5rem;flex-wrap:wrap;}
+.hstat{text-align:center;}
+.hstat-val{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;color:var(--green);}
+.hstat-lbl{font-size:.78rem;color:var(--muted);margin-top:.15rem;}
+
+/* SECTION SHARED */
+section{padding:5.5rem 2rem;}
+.container{max-width:1200px;margin:0 auto;}
+.container-sm{max-width:800px;margin:0 auto;}
+.section-tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .7rem;border-radius:4px;margin-bottom:.9rem;}
+.tag-green{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
+.tag-blue{background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);color:#60a5fa;}
+.tag-gold{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
+.section-h{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:700;line-height:1.15;letter-spacing:-.02em;margin-bottom:.75rem;}
+.section-sub{font-size:1rem;color:var(--muted);line-height:1.7;margin-bottom:2.5rem;}
+.text-center{text-align:center;}
+.hl-g{color:var(--green);}
+.hl-b{color:#60a5fa;}
+
+/* WHAT IS FUTURES */
+.what-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;}
+.what-right{display:flex;flex-direction:column;gap:1rem;}
+.what-card{padding:1.25rem 1.5rem;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:var(--r);}
+.what-card-title{font-weight:700;font-size:.95rem;margin-bottom:.3rem;}
+.what-card-sub{font-size:.85rem;color:var(--muted);line-height:1.65;}
+.what-card.hl{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.05);}
+.what-card.hl .what-card-title{color:var(--green);}
+
+/* MARKETS */
+.mkts-section{background:#0d0d10;}
+.markets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;}
+.mkt-card{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--r);padding:1.25rem 1.5rem;transition:border-color .2s;}
+.mkt-card:hover{border-color:rgba(255,255,255,.1);}
+.mkt-ticker{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:800;color:var(--cobalt);margin-bottom:.15rem;}
+.mkt-ticker .micro{font-size:.8rem;color:var(--muted);font-weight:600;margin-left:.3rem;}
+.mkt-name{font-size:.85rem;font-weight:600;margin-bottom:.2rem;}
+.mkt-desc{font-size:.75rem;color:var(--muted);line-height:1.5;}
+.micro-note{margin-top:2rem;padding:1rem 1.25rem;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.15);border-radius:10px;font-size:.85rem;color:var(--muted);line-height:1.65;}
+.micro-note strong{color:#60a5fa;}
+
+/* DIFFERENTIATORS */
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.diff-card{padding:1.5rem;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:var(--r);}
+.diff-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;}
+.diff-icon svg{width:20px;height:20px;}
+.diff-icon.green{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;}
+.diff-icon.blue{background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);color:#60a5fa;}
+.diff-icon.gold{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;}
+.diff-title{font-weight:700;font-size:.95rem;margin-bottom:.35rem;}
+.diff-sub{font-size:.82rem;color:var(--muted);line-height:1.65;}
+.diff-others{font-size:.75rem;color:var(--red);margin-top:.4rem;}
+
+/* HOW IT WORKS */
+.steps-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;position:relative;}
+.step-card{padding:1.75rem;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:var(--r);text-align:center;}
+.step-num{width:40px;height:40px;background:var(--cobalt);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;margin:0 auto 1rem;}
+.step-title{font-weight:700;font-size:1rem;margin-bottom:.4rem;}
+.step-sub{font-size:.85rem;color:var(--muted);line-height:1.6;}
+
+/* PRICING */
+.pricing-section-f{background:#0d0d10;}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.25rem;}
+.price-card{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--r);padding:1.75rem;transition:border-color .2s,transform .2s;}
+.price-card:hover{border-color:rgba(255,255,255,.12);transform:translateY(-3px);}
+.price-card.featured{border-color:var(--cobalt);background:rgba(37,99,235,.07);position:relative;}
+.price-card.featured::before{content:'Most Popular';position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--cobalt);color:#fff;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.22rem .85rem;border-radius:20px;white-space:nowrap;}
+.pc-size{font-family:'Space Grotesk',sans-serif;font-size:2.25rem;font-weight:800;color:var(--cobalt);line-height:1;}
+.pc-fee{font-size:1.1rem;color:var(--muted);margin:.3rem 0 .15rem;}
+.pc-ref{font-size:.75rem;color:var(--green);font-weight:600;margin-bottom:1.25rem;}
+.pc-specs{border-top:1px solid var(--line);padding-top:1.25rem;margin-bottom:1.5rem;display:flex;flex-direction:column;gap:.6rem;}
+.pc-row{display:flex;justify-content:space-between;font-size:.84rem;}
+.pc-row span:first-child{color:var(--muted);}
+.pc-row span:last-child{font-weight:600;}
+.pc-row .good{color:var(--green);}
+.pc-btn{display:block;width:100%;padding:.75rem;background:var(--cobalt);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;text-align:center;transition:background .2s;font-family:'Inter',sans-serif;}
+.pc-btn:hover{background:var(--cobalt-h);}
+.pc-btn.outline{background:transparent;border:1px solid var(--line);color:var(--muted);}
+.pc-btn.outline:hover{border-color:rgba(255,255,255,.2);color:var(--fg);}
+
+/* RULES TABLE */
+.rules-table{width:100%;border-collapse:collapse;}
+.rules-table th,.rules-table td{padding:.8rem 1rem;border-bottom:1px solid var(--line);font-size:.85rem;text-align:left;}
+.rules-table th{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.rules-table td:first-child{color:var(--muted);}
+.rules-table td:last-child{font-weight:600;}
+.r-good{color:var(--green);}
+.r-warn{color:var(--gold);}
+
+/* REFERRAL PROMO */
+.ref-promo{padding:1.5rem 2rem;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(37,99,235,.08));border-top:1px solid rgba(245,158,11,.15);border-bottom:1px solid rgba(245,158,11,.15);text-align:center;}
+.ref-promo-inner{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:1.25rem;flex-wrap:wrap;}
+.ref-badge{background:#f59e0b;color:#000;font-weight:800;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.28rem .7rem;border-radius:20px;}
+.ref-text{font-size:.9rem;color:var(--fg);}
+.ref-text strong{color:#f59e0b;}
+.ref-link{padding:.38rem 1rem;border-radius:6px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);color:#f59e0b;font-weight:700;font-size:.8rem;transition:background .2s;}
+.ref-link:hover{background:rgba(245,158,11,.22);}
+
+/* FAQ */
+.faq-list{display:flex;flex-direction:column;gap:.5rem;}
+.faq-item{border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+.faq-q{width:100%;padding:1.1rem 1.25rem;background:rgba(255,255,255,.02);border:none;color:var(--fg);font-size:.9rem;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:1rem;font-family:'Inter',sans-serif;text-align:left;}
+.faq-icon{font-size:1.2rem;color:var(--muted);flex-shrink:0;transition:transform .2s;}
+.faq-q.open .faq-icon{transform:rotate(45deg);}
+.faq-a{padding:0 1.25rem;max-height:0;overflow:hidden;font-size:.85rem;color:var(--muted);line-height:1.7;transition:max-height .3s ease,padding .3s ease;}
+.faq-a.open{padding:.1rem 1.25rem 1.1rem;max-height:400px;}
+
+/* CTA */
+.cta-section{background:radial-gradient(ellipse 80% 60% at 50% 100%,rgba(37,99,235,.18),transparent);padding:6rem 2rem;text-align:center;}
+.cta-section h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,4vw,3.25rem);font-weight:800;margin-bottom:1rem;}
+.cta-section p{color:var(--muted);font-size:1rem;margin-bottom:2.5rem;max-width:520px;margin-left:auto;margin-right:auto;}
+.cta-meta{margin-top:1.25rem;font-size:.78rem;color:var(--muted2);}
+
+/* FOOTER */
+footer{background:#060608;border-top:1px solid var(--line);padding:2.5rem 2rem;text-align:center;font-size:.82rem;color:var(--muted2);}
+footer a{color:var(--muted);transition:color .2s;margin:0 .5rem;}
+footer a:hover{color:var(--fg);}
+
+@media(max-width:768px){
+  .what-grid,.diff-grid,.steps-row{grid-template-columns:1fr;}
+  .nav-links{display:none;}
+  .hero{padding:5rem 1.25rem 3.5rem;}
+  section{padding:4rem 1.25rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">IPFX <span>Capital</span></a>
+  <div class="nav-links">
+    <a href="index.html#traditional-challenge">Traditional</a>
+    <a href="personalised-challenge.html">Application</a>
+    <a href="infinity.html">Infinity</a>
+    <a href="futures.html" style="color:var(--green);">Futures</a>
+    <a href="login.html">Dashboard</a>
+    <a href="signup.html" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- REFERRAL PROMO -->
+<div class="ref-promo">
+  <div class="ref-promo-inner">
+    <span class="ref-badge">40% Off</span>
+    <span class="ref-text">Refer a friend — when you <strong>both</strong> purchase any challenge, you <strong>both get 40% off</strong> automatically.</span>
+    <a href="signup.html" class="ref-link">Get Your Link →</a>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    CME Futures · Rithmic Platform
+  </div>
+  <h1>Trade the world's<br>biggest markets.<br><span class="g">Funded.</span></h1>
+  <p class="hero-sub">S&P 500, Nasdaq, Crude Oil, Gold and every CME market — with your own funded account, 90% profit split, and no consistency rules holding you back.</p>
+  <div class="hero-btns">
+    <a href="signup.html" class="btn-primary">Get Funded — From £79 →</a>
+    <a href="#pricing" class="btn-ghost">View Pricing</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val">90%</div><div class="hstat-lbl">Profit split</div></div>
+    <div class="hstat"><div class="hstat-val">£79</div><div class="hstat-lbl">Entry from</div></div>
+    <div class="hstat"><div class="hstat-val">0</div><div class="hstat-lbl">Consistency rules</div></div>
+    <div class="hstat"><div class="hstat-val">EOD</div><div class="hstat-lbl">Trailing drawdown</div></div>
+    <div class="hstat"><div class="hstat-val">CME</div><div class="hstat-lbl">Exchange-listed</div></div>
+  </div>
+</section>
+
+<!-- WHAT IS FUTURES -->
+<section>
+  <div class="container">
+    <div class="what-grid">
+      <div>
+        <span class="section-tag tag-blue">Futures Trading</span>
+        <h2 class="section-h">Not forex. <span class="hl-g">Something bigger.</span></h2>
+        <p style="color:var(--muted);line-height:1.8;margin-bottom:1.25rem;">Futures are standardised, exchange-listed contracts to trade a financial asset at a set price on a future date. Unlike forex — which trades over-the-counter between brokers — futures trade on the CME Group (Chicago Mercantile Exchange), one of the world's most liquid, regulated markets.</p>
+        <p style="color:var(--muted);line-height:1.8;margin-bottom:1.25rem;">When you buy one ES contract, you're controlling exposure to the S&P 500 index. When you buy one CL contract, you control 1,000 barrels of crude oil. The prices you see are the same prices institutions trade at — no broker markup, no re-quotes.</p>
+        <p style="color:var(--muted);line-height:1.8;">Micro contracts (MES, MNQ, MCL, MGC) are 1/10th the size of full contracts, giving you all the same markets with a fraction of the risk per tick. Available on every IPFX Futures account size.</p>
+      </div>
+      <div class="what-right">
+        <div class="what-card hl">
+          <div class="what-card-title">Exchange-Listed & Regulated</div>
+          <div class="what-card-sub">Every trade clears through the CME Group — the same exchange used by hedge funds, banks, and institutional desks. No OTC risk, no broker counterparty.</div>
+        </div>
+        <div class="what-card">
+          <div class="what-card-title">Tick-Based P&L</div>
+          <div class="what-card-sub">Each market has a defined tick value. MES = $1.25/tick. ES = $12.50/tick. NQ = $5/tick. You always know exactly how much each move is worth.</div>
+        </div>
+        <div class="what-card">
+          <div class="what-card-title">Micro Contracts — Lower Risk, Same Markets</div>
+          <div class="what-card-sub">Trade MES instead of ES to get 1/10th the exposure. Perfect for managing risk on smaller accounts while still accessing the same CME liquidity.</div>
+        </div>
+        <div class="what-card">
+          <div class="what-card-title">Session-Based Trading</div>
+          <div class="what-card-sub">CME futures trade nearly 24 hours on weekdays. All positions must be closed by 4:00 PM CT (end of regular session). IPFX uses EOD trailing drawdown — not intraday — giving you maximum room to work.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARKETS -->
+<section class="mkts-section">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:3rem;">
+      <span class="section-tag tag-green">Available Markets</span>
+      <h2 class="section-h">Every major CME market.<br><span class="hl-b">Full and micro contracts.</span></h2>
+    </div>
+    <div class="markets-grid">
+      <div class="mkt-card">
+        <div class="mkt-ticker">ES <span class="micro">/ MES</span></div>
+        <div class="mkt-name">S&P 500 E-mini</div>
+        <div class="mkt-desc">The world's most traded index futures contract. Tick: $12.50 (ES) · $1.25 (MES)</div>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-ticker">NQ <span class="micro">/ MNQ</span></div>
+        <div class="mkt-name">Nasdaq-100 E-mini</div>
+        <div class="mkt-desc">Tech-heavy index — FAANG, semiconductors, AI. Tick: $5 (NQ) · $0.50 (MNQ)</div>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-ticker">YM <span class="micro">/ MYM</span></div>
+        <div class="mkt-name">Dow Jones E-mini</div>
+        <div class="mkt-desc">30 blue-chip US stocks. Steady mover, great for swing setups. Tick: $5 (YM) · $0.50 (MYM)</div>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-ticker">RTY <span class="micro">/ M2K</span></div>
+        <div class="mkt-name">Russell 2000 E-mini</div>
+        <div class="mkt-desc">Small-cap US index — high beta, risk-on sentiment. Tick: $5 (RTY) · $0.50 (M2K)</div>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-ticker">CL <span class="micro">/ MCL</span></div>
+        <div class="mkt-name">Crude Oil WTI</div>
+        <div class="mkt-desc">The benchmark US oil contract. Volatile, news-driven, high opportunity. Tick: $10 (CL) · $1 (MCL)</div>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-ticker">GC <span class="micro">/ MGC</span></div>
+        <div class="mkt-name">Gold</div>
+        <div class="mkt-desc">Safe haven, inflation hedge, breakout mover. Tick: $10 (GC) · $1 (MGC)</div>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-ticker">NG</div>
+        <div class="mkt-name">Natural Gas</div>
+        <div class="mkt-desc">Highly volatile energy market. Best for experienced futures traders. Tick: $10 per contract</div>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-ticker">ZB / ZN</div>
+        <div class="mkt-name">US Treasury Bonds</div>
+        <div class="mkt-desc">30-year and 10-year US bonds — rate-sensitive, macro-driven. Available on £100K+ accounts.</div>
+      </div>
+    </div>
+    <div class="micro-note">
+      <strong>Micro contracts available on all account sizes.</strong> Every market listed above has a micro equivalent at 1/10th the contract size. Trade MES on a £25K account with the same CME liquidity as institutional ES traders — just with proportionally smaller risk per tick. This makes futures accessible to traders of every experience level.
+    </div>
+  </div>
+</section>
+
+<!-- DIFFERENTIATORS -->
+<section>
+  <div class="container">
+    <div class="text-center" style="margin-bottom:3rem;">
+      <span class="section-tag tag-gold">Why IPFX Futures</span>
+      <h2 class="section-h">Built for traders who actually trade.<br><span class="hl-g">Not for firms that want you to fail.</span></h2>
+    </div>
+    <div class="diff-grid">
+      <div class="diff-card">
+        <div class="diff-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg></div>
+        <div class="diff-title">No Consistency Rule</div>
+        <div class="diff-sub">You trade when the market gives you opportunity — not when an arbitrary rule says your best day can't be too good. No single-day profit cap, ever.</div>
+        <div class="diff-others">Tradeify: 35–40% consistency rule. Topstep: 50% max-day rule.</div>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="diff-title">EOD Trailing Drawdown</div>
+        <div class="diff-sub">Your drawdown locks in at end-of-day highs — not intraday peaks. If you're up £3,000 at midday but close flat, your drawdown doesn't move. You keep your buffer.</div>
+        <div class="diff-others">Intraday trailing drawdown cuts you off mid-session. We don't do that.</div>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="diff-title">90% Profit Split</div>
+        <div class="diff-sub">From your very first payout, you keep 90% of everything you make. No waiting to "earn" a better split. No performance tiers. 90% from day one.</div>
+        <div class="diff-others">Topstep: 100% first $10K, then varies. Tradeify: 80–90%.</div>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div class="diff-title">Weekly Payouts</div>
+        <div class="diff-sub">Request a payout every week. Minimum £100. No waiting 30 days to access money you've already earned. Your profits, on your timeline.</div>
+        <div class="diff-others">Many firms: monthly payout schedule, multi-day processing delays.</div>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="diff-title">Micro Contracts on Every Account</div>
+        <div class="diff-sub">Every account size — including the £25K — allows both full and micro contracts. Trade MES, MNQ, MCL on any tier. Size up as your confidence grows.</div>
+        <div class="diff-others">Some firms restrict micro contracts to smaller account sizes only.</div>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+        <div class="diff-title">Scale to £500K</div>
+        <div class="diff-sub">After 3 months of consistent funded trading, apply for a capital increase at no cost. Allocation can grow to £500K based on your live performance. No fee to scale.</div>
+        <div class="diff-others">Most futures firms cap allocation or charge for reset/scale access.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section style="background:#0d0d10;">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:3rem;">
+      <span class="section-tag tag-blue">Process</span>
+      <h2 class="section-h">Pass once. Trade funded.</h2>
+      <p class="section-sub" style="max-width:540px;margin-left:auto;margin-right:auto;">One evaluation phase. No multi-step grind. Hit the profit target, respect the drawdown, and your funded account goes live.</p>
+    </div>
+    <div class="steps-row">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">Buy Your Evaluation</div>
+        <div class="step-sub">Choose your account size (£25K–£150K). Pay a one-time fee from £79. Your Rithmic-powered simulated account is ready within 24 hours.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Hit the Target</div>
+        <div class="step-sub">Trade any CME market within the rules: reach your profit target, stay within the EOD trailing drawdown, trade at least 3 days. No time limit.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Trade Funded Capital</div>
+        <div class="step-sub">Pass and your funded account is live — same rules, real capital. Keep 90% of every pound of profit. Request payouts weekly from £100 minimum.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section-f" id="pricing">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:3rem;">
+      <span class="section-tag tag-green">Pricing</span>
+      <h2 class="section-h">One-time fee. No subscriptions.</h2>
+      <p class="section-sub" style="max-width:520px;margin-left:auto;margin-right:auto;">Pay once to access your evaluation. Pass, get funded, earn 90%. No monthly billing, ever.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="pc-size">£25K</div>
+        <div class="pc-fee">£79 one-time</div>
+        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-specs">
+          <div class="pc-row"><span>Profit Target</span><span>£1,500 (6%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span>£1,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span>£500 (2%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span>3 days</span></div>
+          <div class="pc-row"><span>Time Limit</span><span>None</span></div>
+          <div class="pc-row"><span>Consistency Rule</span><span class="good">None</span></div>
+          <div class="pc-row"><span>Profit Split</span><span class="good">90%</span></div>
+          <div class="pc-row"><span>Micro Contracts</span><span class="good">Included</span></div>
+        </div>
+        <a href="signup.html" class="pc-btn">Get Started</a>
+      </div>
+      <div class="price-card">
+        <div class="pc-size">£50K</div>
+        <div class="pc-fee">£109 one-time</div>
+        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-specs">
+          <div class="pc-row"><span>Profit Target</span><span>£3,000 (6%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span>£2,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span>£1,000 (2%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span>3 days</span></div>
+          <div class="pc-row"><span>Time Limit</span><span>None</span></div>
+          <div class="pc-row"><span>Consistency Rule</span><span class="good">None</span></div>
+          <div class="pc-row"><span>Profit Split</span><span class="good">90%</span></div>
+          <div class="pc-row"><span>Micro Contracts</span><span class="good">Included</span></div>
+        </div>
+        <a href="signup.html" class="pc-btn">Get Started</a>
+      </div>
+      <div class="price-card featured">
+        <div class="pc-size">£100K</div>
+        <div class="pc-fee">£199 one-time</div>
+        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-specs">
+          <div class="pc-row"><span>Profit Target</span><span>£6,000 (6%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span>£4,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span>£2,500 (2.5%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span>3 days</span></div>
+          <div class="pc-row"><span>Time Limit</span><span>None</span></div>
+          <div class="pc-row"><span>Consistency Rule</span><span class="good">None</span></div>
+          <div class="pc-row"><span>Profit Split</span><span class="good">90%</span></div>
+          <div class="pc-row"><span>Micro Contracts</span><span class="good">Included</span></div>
+        </div>
+        <a href="signup.html" class="pc-btn">Get Started</a>
+      </div>
+      <div class="price-card">
+        <div class="pc-size">£150K</div>
+        <div class="pc-fee">£299 one-time</div>
+        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-specs">
+          <div class="pc-row"><span>Profit Target</span><span>£9,000 (6%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span>£6,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span>£3,750 (2.5%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span>3 days</span></div>
+          <div class="pc-row"><span>Time Limit</span><span>None</span></div>
+          <div class="pc-row"><span>Consistency Rule</span><span class="good">None</span></div>
+          <div class="pc-row"><span>Profit Split</span><span class="good">90%</span></div>
+          <div class="pc-row"><span>Micro Contracts</span><span class="good">Included</span></div>
+        </div>
+        <a href="signup.html" class="pc-btn">Get Started</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RULES TABLE -->
+<section>
+  <div class="container-sm">
+    <div class="text-center" style="margin-bottom:2.5rem;">
+      <span class="section-tag tag-blue">Rules</span>
+      <h2 class="section-h">Clear. Transparent. Locked.</h2>
+      <p style="color:var(--muted);font-size:.9rem;">The same rules apply in evaluation and in your funded account. No surprises after you pass.</p>
+    </div>
+    <table class="rules-table">
+      <thead><tr><th>Rule</th><th>Evaluation</th><th>Funded</th></tr></thead>
+      <tbody>
+        <tr><td>Trailing Drawdown</td><td>EOD (End of Day)</td><td class="r-good">EOD — same as eval</td></tr>
+        <tr><td>Drawdown Lock-In</td><td>Locks at account high each session close</td><td class="r-good">Same mechanism</td></tr>
+        <tr><td>Consistency Rule</td><td class="r-good">None</td><td class="r-good">None</td></tr>
+        <tr><td>Position Limit</td><td>Proportional to account size</td><td>Proportional to account size</td></tr>
+        <tr><td>Daily Loss Limit</td><td>Hard stop at daily limit</td><td>Hard stop at daily limit</td></tr>
+        <tr><td>Overnight Positions</td><td class="r-warn">Must close by 4:00 PM CT</td><td class="r-warn">Must close by 4:00 PM CT</td></tr>
+        <tr><td>Weekend Positions</td><td class="r-warn">Not permitted</td><td class="r-warn">Not permitted</td></tr>
+        <tr><td>News Trading</td><td class="r-good">Permitted</td><td class="r-good">Permitted</td></tr>
+        <tr><td>Automated Strategies</td><td class="r-good">Permitted (Rithmic compatible)</td><td class="r-good">Permitted</td></tr>
+        <tr><td>Payout Frequency</td><td>N/A</td><td class="r-good">Weekly · Min £100</td></tr>
+        <tr><td>Profit Split</td><td>N/A</td><td class="r-good">90%</td></tr>
+        <tr><td>Platform</td><td colspan="2">Rithmic (Tradovate compatible)</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1.25rem;font-size:.78rem;color:var(--muted2);">All positions must be flat by 4:00 PM CT (Chicago Time). EOD trailing drawdown locks at the highest account balance at session close — intraday equity peaks do not move the drawdown floor.</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="background:#0d0d10;">
+  <div class="container-sm">
+    <div class="text-center" style="margin-bottom:2.5rem;">
+      <span class="section-tag tag-blue">FAQ</span>
+      <h2 class="section-h">Questions answered.</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>What exactly is an EOD trailing drawdown?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Your drawdown floor locks in based on your account balance at the close of each trading session (4:00 PM CT). If you start at £25,000 with a £1,000 trailing drawdown, your floor is £24,000. If you close a session at £26,500, your floor rises to £25,500. Crucially — intraday peaks don't move it. If you're up £2,000 mid-session but close flat, your floor stays at £24,000. This is the most trader-friendly drawdown model available.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>What platform do I use?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">IPFX Futures runs on the Rithmic platform — the industry standard for professional futures trading. Rithmic provides direct CME market access, ultra-low latency, and full API support for automated strategies. Tradovate is also compatible if you prefer a web-based interface.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>Can I trade with an automated strategy or bot?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Yes. Automated strategies are fully permitted in both evaluation and funded stages. Rithmic provides API and bracket-order support for algorithmic traders. Your bot must still respect all account rules — daily loss limit, EOD close requirement, and the trailing drawdown.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>Why must all positions close by 4:00 PM CT?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">4:00 PM CT is the close of the CME regular trading session — when daily settlement prices are set. This is when EOD drawdown locks are calculated. Holding positions past session close introduces overnight gap risk and makes risk management significantly more complex. This is an industry-standard rule across all serious futures prop firms.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>How is this different from a forex/traditional challenge?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Traditional challenges (forex/CFDs) are 2-phase evaluations with MT5. IPFX Futures is 1-phase — pass once, get funded. You trade real CME exchange-listed contracts through Rithmic rather than OTC instruments through a broker. Profit targets and drawdown limits are sized to futures contract values and tick sizes rather than percentage-of-balance metrics.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>Is the fee refundable?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Yes. Your evaluation fee is fully refunded on your first successful payout as a funded trader. It is a one-time payment — no subscriptions, no monthly fees, nothing recurring.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>What is the referral 40% discount?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">When you refer a friend using your unique referral link from your IPFX dashboard, and they purchase any challenge, you both automatically receive a 40% discount code for any future purchase. Both of you benefit — no cap on how many times you can refer.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2>The biggest markets.<br>Your funded account.</h2>
+    <p>Start your IPFX Futures evaluation from £79 — one phase, no consistency rules, 90% profit split, weekly payouts.</p>
+    <div class="hero-btns">
+      <a href="signup.html" class="btn-primary">Get Funded — From £79 →</a>
+      <a href="index.html" class="btn-ghost">Compare All Challenges</a>
+    </div>
+    <div class="cta-meta">£79 · £109 · £199 · £299 · One-time fee · Fee refunded on first payout · 90% profit split · Weekly payouts</div>
+  </div>
+</section>
+
+<footer>
+  <div style="margin-bottom:.75rem;">
+    <a href="index.html">Home</a>
+    <a href="futures.html">Futures</a>
+    <a href="personalised-challenge.html">Application Challenge</a>
+    <a href="infinity.html">Infinity</a>
+    <a href="login.html">Dashboard</a>
+    <a href="signup.html">Sign Up</a>
+  </div>
+  <div>© 2026 IPFX Capital. All rights reserved. Trading involves substantial risk of loss. Futures trading is particularly high risk due to leverage — only trade with capital you can afford to lose. IPFX Capital provides simulated funded accounts; all evaluation trading is performed in a simulated environment.</div>
+</footer>
+
+<script>
+function toggleFaq(btn) {
+  const answer = btn.nextElementSibling;
+  const isOpen = answer.classList.contains('open');
+  document.querySelectorAll('.faq-a').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('.faq-q').forEach(b => b.classList.remove('open'));
+  if (!isOpen) { answer.classList.add('open'); btn.classList.add('open'); }
+}
+</script>
+</body>
+</html>
