@@ -77,7 +77,7 @@
             gap: 2rem;
             list-style: none;
             flex: 1;
-            justify-content: center;
+            justify-content: flex-start;
         }
         .nav-right {
             display: flex;
@@ -3488,6 +3488,36 @@
     </div>
 </div>
 
+<!-- How It Works Section -->
+<section class="how-it-works-section">
+    <div class="hiw-container">
+        <div class="hiw-header reveal-section">
+            <span class="section-tag">Simple Process</span>
+            <h2>Get Funded in 3 Steps</h2>
+            <p>From sign-up to funded trader — it's straightforward and fast.</p>
+        </div>
+        <div class="hiw-steps reveal-stagger">
+            <div class="hiw-step">
+                <div class="hiw-step-number">01</div>
+                <h3>Choose Your Challenge</h3>
+                <p>Pick the Infinity Challenge (free) or an Application/Traditional Challenge. Set your account size and get your credentials instantly.</p>
+            </div>
+            <div class="hiw-arrow">→</div>
+            <div class="hiw-step">
+                <div class="hiw-step-number">02</div>
+                <h3>Hit Your Profit Target</h3>
+                <p>Trade on MT4, MT5, cTrader or TradingView. Hit the profit target while staying within the risk rules. No time limits.</p>
+            </div>
+            <div class="hiw-arrow">→</div>
+            <div class="hiw-step">
+                <div class="hiw-step-number">03</div>
+                <h3>Get Paid & Scale</h3>
+                <p>Receive up to 90% of your profits bi-weekly. Hit consecutive targets and your capital automatically scales — up to £200K.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Choose Your Path Section -->
 <section class="path-section" id="programs">
     <!-- Vertical dividing line -->
@@ -3657,36 +3687,6 @@
         </div>
     </div>
     <p class="platforms-subtext">MT4 · MT5 · cTrader · TradingView · MatchTrader — your choice, your setup</p>
-</section>
-
-<!-- How It Works Section -->
-<section class="how-it-works-section">
-    <div class="hiw-container">
-        <div class="hiw-header reveal-section">
-            <span class="section-tag">Simple Process</span>
-            <h2>Get Funded in 3 Steps</h2>
-            <p>From sign-up to funded trader — it's straightforward and fast.</p>
-        </div>
-        <div class="hiw-steps reveal-stagger">
-            <div class="hiw-step">
-                <div class="hiw-step-number">01</div>
-                <h3>Choose Your Challenge</h3>
-                <p>Pick the Infinity Challenge (free) or an Application/Traditional Challenge. Set your account size and get your credentials instantly.</p>
-            </div>
-            <div class="hiw-arrow">→</div>
-            <div class="hiw-step">
-                <div class="hiw-step-number">02</div>
-                <h3>Hit Your Profit Target</h3>
-                <p>Trade on MT4, MT5, cTrader or TradingView. Hit the profit target while staying within the risk rules. No time limits.</p>
-            </div>
-            <div class="hiw-arrow">→</div>
-            <div class="hiw-step">
-                <div class="hiw-step-number">03</div>
-                <h3>Get Paid & Scale</h3>
-                <p>Receive up to 90% of your profits bi-weekly. Hit consecutive targets and your capital automatically scales — up to £200K.</p>
-            </div>
-        </div>
-    </div>
 </section>
 
 <!-- TRADING POT SECTION - COMMENTED OUT (Uncomment to restore)
@@ -5079,6 +5079,7 @@
 
     // Optimized parallax effect on scroll and sticky nav
     const nav = document.querySelector('nav');
+    if (nav) nav.classList.add('scrolled');
     const heroContent = document.querySelector('.hero-content');
     const heroSection = document.querySelector('.hero');
     let ticking = false;
@@ -5092,13 +5093,12 @@
             heroContent.style.opacity = 1 - (scrolled / 700);
         }
 
-        // Sticky nav after hero section
-        if (heroSection && nav) {
-            const heroHeight = heroSection.offsetHeight;
-            if (scrolled > heroHeight - nav.offsetHeight) {
+        // Nav always visible — update background on scroll
+        if (nav) {
+            if (scrolled > 50) {
                 nav.classList.add('scrolled');
             } else {
-                nav.classList.remove('scrolled');
+                nav.classList.add('scrolled');
             }
         }
 
