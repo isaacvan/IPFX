@@ -1,1409 +1,694 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Trader Dashboard</title>
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            /* Professional Dark Theme */
-            --bg-page: #0B0B0E;
-            --bg-card: #16161A;
-            --bg-elevated: #1A1A1E;
-
-            /* Text Hierarchy */
-            --text-primary: #FAFAF9;
-            --text-secondary: #6B6B70;
-            --text-muted: #8E8E93;
-
-            /* Borders */
-            --border-subtle: #2A2A2E;
-            --border-strong: #3A3A40;
-
-            /* Accent Colors */
-            --accent-green: #32D583;
-            --accent-indigo: #6366F1;
-            --accent-coral: #E85A4F;
-            --accent-amber: #FFB547;
-
-            /* Legacy support */
-            --bg: #0B0B0E;
-            --fg: #FAFAF9;
-            --muted: #6B6B70;
-            --line: #2A2A2E;
-            --cobalt: #6366F1;
-            --deep-blue: #4F46E5;
-            --radius: 16px;
-            --success: #32D583;
-            --error: #E85A4F;
-            --warning: #FFB547;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html, body {
-            min-height: 100vh;
-        }
-
-        body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            color: var(--text-primary);
-            background: var(--bg-page);
-            line-height: 1.6;
-        }
-
-        /* Navigation */
-        .nav {
-            background: var(--bg-elevated);
-            border-bottom: 1px solid var(--border-subtle);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
-            color: var(--fg);
-        }
-
-        .nav-brand img {
-            width: 28px;
-            height: 28px;
-        }
-
-        .nav-brand-text {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .user-info {
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .user-info.loaded {
-            opacity: 1;
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--accent-indigo);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.875rem;
-            color: white;
-        }
-
-        .user-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .btn-logout {
-            padding: 8px 20px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .btn-logout:hover {
-            background: var(--bg-card);
-            border-color: var(--accent-indigo);
-        }
-
-        /* Main Layout */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .container.loaded {
-            opacity: 1;
-        }
-
-        /* Loading Spinner */
-        .loading-spinner {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--cobalt);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-spinner.hidden {
-            display: none;
-        }
-
-        .page-header {
-            margin-bottom: 2rem;
-        }
-
-        .page-title {
-            font-family: 'Inter', system-ui;
-            font-size: 2rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-            letter-spacing: -0.02em;
-        }
-
-        .page-subtitle {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            font-weight: 400;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
-        }
-
-        .stat-card:hover {
-            border-color: var(--accent-indigo);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.3);
-        }
-
-        .stat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 1rem;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-        }
-
-        .stat-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .stat-icon.primary {
-            background: rgba(37, 99, 235, 0.1);
-        }
-
-        .stat-icon.success {
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .stat-icon.warning {
-            background: rgba(245, 158, 11, 0.1);
-        }
-
-        .stat-icon.error {
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        .stat-value {
-            font-size: 2.25rem;
-            font-weight: 700;
-            margin-bottom: 0.75rem;
-            letter-spacing: -0.02em;
-            color: var(--text-primary);
-        }
-
-        .stat-value.success {
-            color: var(--accent-green);
-        }
-
-        .stat-value.error {
-            color: var(--accent-coral);
-        }
-
-        .stat-value.warning {
-            color: var(--accent-amber);
-        }
-
-        .stat-change {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-
-        .stat-change.positive {
-            color: var(--accent-green);
-        }
-
-        .stat-change.negative {
-            color: var(--accent-coral);
-        }
-
-        /* Progress Section */
-        .section {
-            margin-bottom: 2rem;
-        }
-
-        .section-title {
-            font-family: 'Inter', system-ui;
-            font-size: 1.375rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-            letter-spacing: -0.01em;
-        }
-
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius);
-            padding: 2rem;
-            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
-        }
-
-        .progress-container {
-            margin-bottom: 1.5rem;
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-        }
-
-        .progress-label {
-            font-weight: 600;
-            font-size: 0.9375rem;
-            color: var(--text-primary);
-        }
-
-        .progress-value {
-            color: var(--accent-indigo);
-            font-weight: 600;
-            font-size: 0.9375rem;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--accent-indigo);
-            border-radius: 5px;
-            transition: width 0.5s ease;
-        }
-
-        .progress-info {
-            display: flex;
-            gap: 2rem;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-subtle);
-        }
-
-        .progress-info-item {
-            flex: 1;
-        }
-
-        .progress-info-label {
-            color: var(--text-secondary);
-            font-size: 0.8125rem;
-            font-weight: 500;
-            margin-bottom: 0.375rem;
-        }
-
-        .progress-info-value {
-            font-weight: 600;
-            font-size: 1.125rem;
-            color: var(--text-primary);
-        }
-
-        /* Trading Activity */
-        .activity-list {
-            list-style: none;
-        }
-
-        .activity-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .activity-icon.buy {
-            background: rgba(50, 213, 131, 0.15);
-            color: var(--accent-green);
-        }
-
-        .activity-icon.sell {
-            background: rgba(232, 90, 79, 0.15);
-            color: var(--accent-coral);
-        }
-
-        .activity-details h4 {
-            font-size: 0.9375rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-            color: var(--text-primary);
-        }
-
-        .activity-details p {
-            font-size: 0.8125rem;
-            color: var(--text-secondary);
-        }
-
-        .activity-result {
-            text-align: right;
-        }
-
-        .activity-pnl {
-            font-weight: 700;
-            font-size: 1rem;
-            margin-bottom: 0.25rem;
-            letter-spacing: -0.01em;
-        }
-
-        .activity-pnl.profit {
-            color: var(--accent-green);
-        }
-
-        .activity-pnl.loss {
-            color: var(--accent-coral);
-        }
-
-        .activity-time {
-            font-size: 0.8125rem;
-            color: var(--text-secondary);
-        }
-
-        /* Alert Box */
-        .alert {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.25);
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: start;
-            gap: 1rem;
-        }
-
-        .alert.success {
-            background: rgba(50, 213, 131, 0.1);
-            border-color: rgba(50, 213, 131, 0.25);
-        }
-
-        .alert.warning {
-            background: rgba(255, 181, 71, 0.1);
-            border-color: rgba(255, 181, 71, 0.25);
-        }
-
-        .alert-icon {
-            font-size: 1.3rem;
-            margin-top: 0.1rem;
-        }
-
-        .alert-content h4 {
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .alert-content p {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            line-height: 1.6;
-        }
-
-        /* Button */
-        .btn {
-            display: inline-block;
-            padding: 12px 28px;
-            background: var(--accent-indigo);
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9375rem;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-            background: #4F46E5;
-        }
-
-        .btn-secondary {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-            border: 1px solid var(--border-subtle);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-card);
-            border-color: var(--accent-indigo);
-            box-shadow: none;
-        }
-
-        /* Grid Layout */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 1.5rem;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 16px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .status-badge.active {
-            background: rgba(50, 213, 131, 0.15);
-            color: var(--accent-green);
-        }
-
-        .status-badge.pending {
-            background: rgba(255, 181, 71, 0.15);
-            color: var(--accent-amber);
-        }
-
-        .status-badge.completed {
-            background: rgba(99, 102, 241, 0.15);
-            color: var(--accent-indigo);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-
-            .nav {
-                padding: 1rem;
-            }
-
-            .nav-actions {
-                gap: 1rem;
-            }
-
-            .user-name {
-                display: none;
-            }
-
-            .progress-info {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .referral-code-card {
-                grid-template-columns: 1fr;
-            }
-
-            .code-text {
-                font-size: 1.5rem;
-                letter-spacing: 0.15rem;
-            }
-
-            .link-container {
-                flex-direction: column;
-            }
-
-            .copy-btn {
-                width: 100%;
-            }
-
-            .share-buttons {
-                flex-wrap: wrap;
-            }
-        }
-
-        /* Referral Section Styles */
-        .referral-code-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius);
-            padding: 2rem;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            align-items: start;
-            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
-        }
-
-        .code-section {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .code-label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .code-display {
-            background: var(--bg-page);
-            border: 2px solid var(--accent-indigo);
-            border-radius: 10px;
-            padding: 1.5rem;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        .code-text {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: 0.25rem;
-            color: var(--accent-indigo);
-            font-family: 'Inter', monospace;
-        }
-
-        .link-container {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-            background: var(--bg-elevated);
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            border: 1px solid var(--border-subtle);
-        }
-
-        .link-text {
-            flex: 1;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .copy-btn {
-            background: var(--accent-indigo);
-            color: white;
-            border: none;
-            padding: 0.5rem 1.25rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .copy-btn:hover {
-            background: #4F46E5;
-            transform: translateY(-1px);
-        }
-
-        .copy-btn.copied {
-            background: var(--accent-green);
-        }
-
-        .share-buttons {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1rem;
-        }
-
-        .share-btn {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            color: var(--text-primary);
-            text-decoration: none;
-            text-align: center;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .share-btn:hover {
-            background: var(--bg-card);
-            border-color: var(--accent-indigo);
-        }
-
-        .referral-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
-
-        .referral-stat-card {
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-subtle);
-            border-radius: 10px;
-            padding: 1.25rem;
-            text-align: center;
-        }
-
-        .referral-stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--accent-indigo);
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-        }
-
-        .referral-stat-label {
-            color: var(--text-secondary);
-            font-size: 0.8125rem;
-            font-weight: 500;
-        }
-
-        .referral-info {
-            grid-column: 1 / -1;
-            margin-top: 1rem;
-            padding: 1.25rem;
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.25);
-            border-radius: 10px;
-        }
-
-        .referral-info h4 {
-            color: var(--accent-indigo);
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .referral-info p {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            line-height: 1.6;
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | IPFX Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0a0c;--bg2:#0e0e10;--bgcard:#131316;--fg:#ffffff;
+  --muted:#a0a0a0;--muted2:#6a6a6a;--line:#2a2a2c;--line2:#1e1e20;
+  --cobalt:#2563eb;--cobalt-h:#1d4ed8;--cobalt-d:rgba(37,99,235,0.12);
+  --green:#10b981;--green-d:rgba(16,185,129,0.12);
+  --gold:#f59e0b;--gold-d:rgba(245,158,11,0.12);
+  --red:#ef4444;--red-d:rgba(239,68,68,0.1);
+  --r:10px;--sw:240px;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--fg);display:flex;-webkit-font-smoothing:antialiased;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;height:100vh;overflow-y:auto;}
+.sb-logo{display:flex;align-items:center;gap:.6rem;padding:1.25rem 1.25rem 1rem;text-decoration:none;color:var(--fg);border-bottom:1px solid var(--line);margin-bottom:.5rem;}
+.sb-logo-text{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;}
+.sb-nav{flex:1;padding:.25rem .75rem;display:flex;flex-direction:column;gap:2px;}
+.sb-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted2);padding:.9rem .5rem .4rem;}
+.nl{display:flex;align-items:center;gap:.65rem;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--muted);font-size:.875rem;font-weight:500;transition:background .15s,color .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+.nl:hover{background:rgba(255,255,255,.05);color:var(--fg);}
+.nl.active{background:var(--cobalt-d);color:var(--fg);}
+.nl.active svg{color:var(--cobalt);}
+.nl svg{width:16px;height:16px;flex-shrink:0;color:var(--muted2);transition:color .15s;}
+.nl:hover svg,.nl.active svg{color:var(--cobalt);}
+.sb-add{margin:.75rem;padding:.7rem;background:var(--cobalt);color:var(--fg);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;display:block;transition:background .2s;}
+.sb-add:hover{background:var(--cobalt-h);}
+.sb-bottom{padding:.75rem;border-top:1px solid var(--line);}
+.sb-user{display:flex;align-items:center;gap:.65rem;padding:.6rem .5rem;border-radius:8px;cursor:pointer;transition:background .15s;}
+.sb-user:hover{background:rgba(255,255,255,.05);}
+.av{width:30px;height:30px;border-radius:50%;background:var(--cobalt);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:.75rem;font-weight:700;flex-shrink:0;}
+.u-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.u-email{font-size:.72rem;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0;}
+.topbar{display:flex;align-items:center;gap:.75rem;padding:0 1.75rem;height:58px;border-bottom:1px solid var(--line);background:var(--bg);flex-shrink:0;flex-wrap:wrap;}
+.tb-title{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;flex:1;}
+.tb-status{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line);padding:.35rem .75rem;border-radius:20px;}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(16,185,129,.6);animation:pdot 2s ease infinite;}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.4}}
+.tb-timer{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line);padding:.35rem .75rem;border-radius:20px;}
+.tv{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums;}
+.tb-btn{display:flex;align-items:center;gap:.4rem;padding:.4rem .9rem;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--fg);}
+.tb-btn:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.08);}
+.tb-btn.sol{background:var(--cobalt);border-color:var(--cobalt);}
+.tb-btn.sol:hover{background:var(--cobalt-h);}
+.tb-btn svg{width:13px;height:13px;}
+.content{flex:1;overflow-y:auto;padding:1.5rem 1.75rem;background:var(--bg);}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;}
+
+/* SHARED */
+.promo-banner{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.5rem;border-radius:var(--r);background:linear-gradient(135deg,rgba(37,99,235,.15),rgba(30,58,138,.25));border:1px solid rgba(37,99,235,.25);margin-bottom:1.5rem;gap:1rem;}
+.promo-left{display:flex;align-items:center;gap:.9rem;}
+.promo-icon{width:36px;height:36px;border-radius:8px;background:var(--cobalt-d);border:1px solid rgba(37,99,235,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#60a5fa;}
+.promo-icon svg{width:18px;height:18px;}
+.promo-title{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:.15rem;}
+.promo-sub{font-size:.78rem;color:var(--muted);}
+.promo-sub b{color:#60a5fa;}
+.promo-btn{padding:.5rem 1.1rem;border-radius:7px;background:var(--cobalt);color:var(--fg);font-size:.8rem;font-weight:700;text-decoration:none;white-space:nowrap;transition:background .2s;flex-shrink:0;border:none;cursor:pointer;}
+.promo-btn:hover{background:var(--cobalt-h);}
+
+.filter-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem;}
+.filter-tabs{display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;padding:3px;}
+.ftab{padding:.4rem .9rem;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s;border:none;background:none;}
+.ftab:hover{color:var(--fg);}
+.ftab.active{background:var(--bgcard);color:var(--fg);box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.tog-row{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted);}
+.tog{position:relative;width:36px;height:20px;}
+.tog input{opacity:0;width:0;height:0;}
+.tog-track{position:absolute;inset:0;background:var(--cobalt);border-radius:20px;cursor:pointer;transition:background .2s;}
+.tog-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:var(--fg);border-radius:50%;transition:transform .2s;}
+.tog input:not(:checked)+.tog-track{background:var(--line);}
+.tog input:checked+.tog-track::before{transform:translateX(16px);}
+
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;gap:1rem;}
+.sec-title{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;}
+.sec-sub{font-size:.78rem;color:var(--muted);margin-top:.1rem;}
+
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1.5rem;}
+.stat-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem 1.25rem;}
+.sc-label{font-size:.72rem;color:var(--muted2);margin-bottom:.4rem;}
+.sc-val{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;}
+.sc-val.pos{color:var(--green);}
+.sc-val.gold{color:var(--gold);}
+.sc-sub{font-size:.73rem;color:var(--muted2);margin-top:.2rem;}
+
+.tbl-wrap{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:.72rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;padding:.8rem 1.25rem;text-align:left;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);}
+td{padding:.85rem 1.25rem;font-size:.85rem;border-bottom:1px solid var(--line2);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.015);}
+
+.pill{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:4px;font-size:.72rem;font-weight:600;}
+.pg{background:var(--green-d);color:var(--green);}
+.pr{background:var(--red-d);color:var(--red);}
+.pb{background:var(--cobalt-d);color:#60a5fa;}
+.po{background:var(--gold-d);color:var(--gold);}
+.pm{background:rgba(255,255,255,.06);color:var(--muted);}
+
+.cbtn{padding:.45rem .9rem;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--fg);}
+.cbtn:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.08);}
+.cbtn.p{background:var(--cobalt);border-color:var(--cobalt);}
+.cbtn.p:hover{background:var(--cobalt-h);}
+.full-btn{width:100%;padding:.75rem;border-radius:8px;background:var(--cobalt);color:var(--fg);border:none;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s;margin-top:.5rem;}
+.full-btn:hover{background:var(--cobalt-h);}
+
+/* ACCOUNT CARDS */
+.ac-list{display:flex;flex-direction:column;gap:1rem;}
+.ac{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;transition:border-color .2s;}
+.ac:hover{border-color:rgba(255,255,255,.12);}
+.ac-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem .75rem;gap:1rem;}
+.ac-nr{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.ac-name{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;}
+.badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .6rem;border-radius:5px;font-size:.72rem;font-weight:700;}
+.bdot{width:5px;height:5px;border-radius:50%;}
+.ba{background:var(--green-d);color:var(--green);}
+.ba .bdot{background:var(--green);}
+.bf{background:var(--cobalt-d);color:#60a5fa;}
+.bf .bdot{background:#60a5fa;}
+.bx{background:var(--red-d);color:var(--red);}
+.bx .bdot{background:var(--red);}
+.ac-last{font-size:.78rem;color:var(--muted2);}
+.ac-id{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--muted2);}
+.ac-body{display:flex;align-items:center;padding:.75rem 1.25rem 1rem;border-top:1px solid var(--line2);}
+.acs{flex:1;padding:0 1.25rem;border-right:1px solid var(--line2);}
+.acs:first-child{padding-left:0;}
+.acs:last-of-type{border-right:none;}
+.sl{font-size:.72rem;color:var(--muted2);margin-bottom:.3rem;}
+.sv{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;}
+.sv.pos{color:var(--green);}
+.sv.neg{color:var(--red);}
+.ss{font-size:.72rem;color:var(--muted2);margin-top:.1rem;}
+.pw{display:flex;align-items:center;gap:.75rem;}
+.ring{position:relative;width:38px;height:38px;flex-shrink:0;}
+.ring svg{transform:rotate(-90deg);}
+.rb{fill:none;stroke:rgba(255,255,255,.07);stroke-width:3;}
+.rf{fill:none;stroke-width:3;stroke-linecap:round;}
+.rf.g{stroke:var(--green);}
+.rf.w{stroke:var(--gold);}
+.rf.b{stroke:var(--red);}
+.rl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;}
+.cbar{width:100%;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;min-width:80px;}
+.cfill{height:100%;border-radius:2px;}
+.cfill.g{background:var(--green);}
+.cfill.w{background:var(--gold);}
+.cfill.b{background:var(--red);}
+.ac-acts{display:flex;align-items:center;gap:.5rem;margin-left:1.25rem;flex-shrink:0;}
+
+/* PAYOUT */
+.pm-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;margin-bottom:.6rem;}
+.pm-icon{width:38px;height:38px;border-radius:8px;background:var(--cobalt-d);border:1px solid rgba(37,99,235,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#60a5fa;}
+.pm-icon svg{width:18px;height:18px;}
+.pm-name{font-weight:600;font-size:.88rem;margin-bottom:.15rem;}
+.pm-det{font-size:.75rem;color:var(--muted2);}
+.pout-req{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.4rem;margin-bottom:1.4rem;}
+.pout-req-title{font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:.9rem;}
+.pout-amt{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;}
+.pout-amt input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:.65rem 1rem;color:var(--fg);font-size:1.05rem;font-family:'Space Grotesk',sans-serif;font-weight:700;outline:none;}
+.pout-amt input:focus{border-color:var(--cobalt);}
+.pout-note{font-size:.78rem;color:var(--muted);line-height:1.65;margin-bottom:1rem;}
+
+/* BILLING */
+.plan-card{background:var(--bgcard);border:1px solid var(--cobalt);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden;}
+.plan-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cobalt),#60a5fa);}
+.plan-name{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:.3rem;}
+.plan-price{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;color:var(--cobalt);}
+.plan-price span{font-size:1rem;font-weight:500;color:var(--muted);}
+.plan-feats{display:flex;flex-direction:column;gap:.45rem;margin-top:1rem;}
+.plan-feat{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--muted);}
+.plan-feat svg{width:14px;height:14px;color:var(--green);flex-shrink:0;}
+
+/* LEADERBOARD */
+.rank-1{color:var(--gold)!important;font-family:'Space Grotesk',sans-serif;}
+.rank-2{color:#94a3b8!important;font-family:'Space Grotesk',sans-serif;}
+.rank-3{color:#b45309!important;font-family:'Space Grotesk',sans-serif;}
+.trader-cell{display:flex;align-items:center;gap:.6rem;}
+.trader-av{width:26px;height:26px;border-radius:50%;background:var(--cobalt-d);border:1px solid rgba(37,99,235,.3);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#60a5fa;flex-shrink:0;}
+
+/* COMPETITIONS */
+.comp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.comp-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;transition:border-color .2s;}
+.comp-card:hover{border-color:rgba(255,255,255,.12);}
+.comp-banner{height:84px;background:linear-gradient(135deg,rgba(37,99,235,.25),rgba(30,58,138,.45));display:flex;align-items:center;justify-content:center;position:relative;}
+.comp-banner svg{width:32px;height:32px;color:rgba(96,165,250,.35);}
+.live-badge{position:absolute;top:.6rem;right:.6rem;background:var(--red);color:#fff;font-size:.62rem;font-weight:700;padding:.18rem .45rem;border-radius:3px;letter-spacing:.5px;}
+.comp-body{padding:.9rem 1.1rem;}
+.comp-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9rem;margin-bottom:.4rem;}
+.comp-meta{display:flex;gap:.9rem;margin-bottom:.65rem;}
+.comp-mi{display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--muted2);}
+.comp-mi svg{width:11px;height:11px;}
+.comp-prize{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:800;color:var(--gold);margin-bottom:.75rem;}
+.comp-prize small{font-size:.7rem;color:var(--muted2);font-weight:400;}
+.comp-btn{width:100%;padding:.6rem;border-radius:7px;background:var(--cobalt);color:#fff;border:none;font-weight:700;font-size:.8rem;cursor:pointer;transition:background .2s;}
+.comp-btn:hover{background:var(--cobalt-h);}
+.comp-btn.off{background:rgba(255,255,255,.06);color:var(--muted2);cursor:not-allowed;}
+
+/* EDUCATION */
+.edu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1rem;}
+.edu-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-decoration:none;color:var(--fg);display:block;transition:border-color .2s,transform .2s;}
+.edu-card:hover{border-color:rgba(255,255,255,.12);transform:translateY(-2px);}
+.edu-thumb{height:120px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(30,58,138,.38));display:flex;align-items:center;justify-content:center;position:relative;}
+.edu-thumb svg{width:28px;height:28px;color:rgba(96,165,250,.45);}
+.edu-tag{position:absolute;top:.55rem;left:.55rem;}
+.edu-body{padding:.85rem 1rem;}
+.edu-title{font-weight:600;font-size:.85rem;margin-bottom:.35rem;line-height:1.45;}
+.edu-meta{font-size:.72rem;color:var(--muted2);}
+
+/* REFERRALS */
+.ref-box{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.25rem;margin-bottom:1.5rem;}
+.ref-lbl{font-size:.75rem;color:var(--muted2);margin-bottom:.5rem;}
+.ref-row{display:flex;gap:.5rem;}
+.ref-input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:7px;padding:.6rem 1rem;color:var(--muted);font-size:.82rem;outline:none;font-family:'Inter',sans-serif;}
+.ref-copy{padding:.6rem 1rem;border-radius:7px;background:var(--cobalt);color:#fff;border:none;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .2s;display:flex;align-items:center;gap:.4rem;}
+.ref-copy:hover{background:var(--cobalt-h);}
+.ref-copy svg{width:13px;height:13px;}
+.ref-note{margin-top:.7rem;font-size:.78rem;color:var(--muted);line-height:1.6;}
+
+/* COMMUNITY */
+.social-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.social-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.2rem;text-decoration:none;color:var(--fg);display:flex;flex-direction:column;gap:.65rem;transition:border-color .2s,transform .2s;}
+.social-card:hover{border-color:rgba(255,255,255,.18);transform:translateY(-2px);}
+.social-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.social-icon svg{width:20px;height:20px;}
+.social-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.9rem;}
+.social-handle{font-size:.75rem;color:var(--muted2);}
+.social-desc{font-size:.78rem;color:var(--muted);line-height:1.5;}
+.social-follow{margin-top:auto;font-size:.74rem;font-weight:600;color:var(--cobalt);display:flex;align-items:center;gap:.3rem;}
+.social-follow svg{width:11px;height:11px;}
+
+/* HELP */
+.help-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+.hc-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.2rem;display:flex;flex-direction:column;gap:.5rem;text-decoration:none;color:var(--fg);transition:border-color .2s;}
+.hc-card:hover{border-color:rgba(255,255,255,.15);}
+.hc-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.2rem;}
+.hc-icon svg{width:16px;height:16px;}
+.hc-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.88rem;}
+.hc-sub{font-size:.76rem;color:var(--muted2);}
+.hc-act{font-size:.76rem;font-weight:600;color:var(--cobalt);display:flex;align-items:center;gap:.3rem;margin-top:.1rem;}
+.hc-act svg{width:11px;height:11px;}
+.faq-list{display:flex;flex-direction:column;gap:.4rem;}
+.faq-item{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.25rem;cursor:pointer;font-weight:600;font-size:.87rem;gap:1rem;}
+.faq-q:hover{background:rgba(255,255,255,.025);}
+.faq-icon{flex-shrink:0;width:16px;height:16px;color:var(--muted2);transition:transform .25s;}
+.faq-item.open .faq-icon{transform:rotate(45deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.faq-a p{padding:0 1.25rem 1rem;font-size:.84rem;color:var(--muted);line-height:1.7;}
+.faq-item.open .faq-a{max-height:300px;}
+
+/* CHAT WIDGET */
+.chat-w{position:fixed;bottom:1.5rem;right:1.5rem;z-index:1000;display:flex;flex-direction:column;align-items:flex-end;gap:.7rem;}
+.chat-bubble{width:52px;height:52px;border-radius:50%;background:var(--cobalt);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,99,235,.4);transition:transform .2s,box-shadow .2s;flex-shrink:0;border:none;}
+.chat-bubble:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(37,99,235,.55);}
+.chat-bubble svg{width:22px;height:22px;color:#fff;}
+.chat-bubble .ci{display:none;}
+.chat-w.open .chat-bubble .oi{display:none;}
+.chat-w.open .chat-bubble .ci{display:block;}
+.chat-notif{position:absolute;top:-3px;right:-3px;width:16px;height:16px;background:var(--red);border-radius:50%;border:2px solid var(--bg);font-size:.58rem;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.chat-panel{width:330px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.6);display:none;flex-direction:column;overflow:hidden;max-height:480px;}
+.chat-w.open .chat-panel{display:flex;}
+.chat-head{display:flex;align-items:center;gap:.7rem;padding:.9rem 1rem;border-bottom:1px solid var(--line);background:var(--bgcard);}
+.chat-head-av{width:32px;height:32px;border-radius:50%;background:var(--cobalt);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-head-av svg{width:15px;height:15px;color:#fff;}
+.chat-head-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.86rem;}
+.chat-head-status{font-size:.7rem;color:var(--green);display:flex;align-items:center;gap:.3rem;}
+.chat-head-status::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);}
+.chat-msgs{flex:1;overflow-y:auto;padding:.85rem .9rem;display:flex;flex-direction:column;gap:.55rem;min-height:260px;}
+.msg{display:flex;flex-direction:column;max-width:86%;}
+.msg.bot{align-self:flex-start;}
+.msg.user{align-self:flex-end;}
+.mb{padding:.55rem .8rem;border-radius:11px;font-size:.81rem;line-height:1.5;}
+.msg.bot .mb{background:var(--bgcard);border:1px solid var(--line);border-radius:11px 11px 11px 3px;}
+.msg.user .mb{background:var(--cobalt);border-radius:11px 11px 3px 11px;}
+.mt{font-size:.63rem;color:var(--muted2);margin-top:.18rem;padding:0 .15rem;}
+.msg.user .mt{text-align:right;}
+.chat-sugs{display:flex;flex-wrap:wrap;gap:.35rem;padding:.4rem .9rem .65rem;}
+.sug{padding:.28rem .6rem;border-radius:20px;border:1px solid var(--line);background:none;color:var(--muted);font-size:.71rem;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:'Inter',sans-serif;}
+.sug:hover{border-color:var(--cobalt);color:#60a5fa;background:var(--cobalt-d);}
+.chat-input-row{display:flex;gap:.45rem;padding:.7rem .9rem;border-top:1px solid var(--line);}
+.chat-input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:20px;padding:.45rem .8rem;color:var(--fg);font-size:.8rem;outline:none;font-family:'Inter',sans-serif;}
+.chat-input:focus{border-color:rgba(37,99,235,.45);}
+.chat-input::placeholder{color:var(--muted2);}
+.chat-send{width:30px;height:30px;border-radius:50%;background:var(--cobalt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;}
+.chat-send:hover{background:var(--cobalt-h);}
+.chat-send svg{width:13px;height:13px;color:#fff;}
+.tdots{display:flex;gap:3px;padding:.4rem .8rem;}
+.tdots span{width:6px;height:6px;border-radius:50%;background:var(--muted2);animation:td .9s ease infinite;}
+.tdots span:nth-child(2){animation-delay:.2s;}
+.tdots span:nth-child(3){animation-delay:.4s;}
+@keyframes td{0%,80%,100%{transform:scale(.7);opacity:.5}40%{transform:scale(1);opacity:1}}
+
+/* Mob */
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px;}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;}
+.mob-overlay.open{display:block;}
+.mob-btn{display:none;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--line);border-radius:7px;background:none;color:var(--fg);cursor:pointer;}
+.mob-btn svg{width:15px;height:15px;}
+@media(max-width:768px){
+  .sidebar{position:fixed;left:-100%;top:0;z-index:100;transition:left .3s;}
+  .sidebar.open{left:0;}
+  .mob-btn{display:flex;}
+  .ac-body{flex-direction:column;align-items:flex-start;gap:1rem;}
+  .acs{border-right:none;padding:0;border-bottom:1px solid var(--line2);padding-bottom:.75rem;width:100%;}
+  .acs:last-of-type{border-bottom:none;}
+  .ac-acts{margin-left:0;padding:0 1.25rem 1rem;}
+  .help-grid{grid-template-columns:1fr;}
+  .chat-panel{width:calc(100vw - 2rem);}
+  .promo-banner{flex-direction:column;align-items:flex-start;}
+}
+</style>
 </head>
 <body>
-    <!-- Loading Spinner -->
-    <div class="loading-spinner" id="loadingSpinner">
-        <div class="spinner"></div>
+
+<div class="mob-overlay" id="mobOverlay" onclick="closeSb()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <a href="/" class="sb-logo">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect width="26" height="26" rx="6" fill="#2563eb"/><path d="M7 19V8l6-3 6 3v11l-6 3-6-3z" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M13 5v16M7 8l6 3 6-3" stroke="#fff" stroke-width="1.5"/></svg>
+    <span class="sb-logo-text">IPFX Capital</span>
+  </a>
+  <nav class="sb-nav">
+    <a class="nl" href="index.html" onclick="try{window.top.location.href='index.html'}catch(e){window.location.href='index.html'};return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</a>
+    <button class="nl active" onclick="nav('accounts',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Accounts</button>
+    <button class="nl" onclick="nav('journal',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Journal</button>
+    <button class="nl" onclick="nav('payouts',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Payouts</button>
+    <button class="nl" onclick="nav('billing',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Billing</button>
+    <div class="sb-label">Programmes</div>
+    <button class="nl" onclick="nav('leaderboard',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Leaderboard</button>
+    <button class="nl" onclick="nav('competitions',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>Competitions</button>
+    <div class="sb-label">Resources</div>
+    <button class="nl" onclick="nav('education',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Education</button>
+    <button class="nl" onclick="nav('referrals',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Referrals</button>
+    <button class="nl" onclick="nav('community',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="10" r="3"/></svg>Community</button>
+    <button class="nl" onclick="nav('help',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; Support</button>
+  </nav>
+  <a href="#" class="sb-add" onclick="alert('Add Account — connect Supabase to implement.')">+ Add Account</a>
+  <div class="sb-bottom">
+    <div class="sb-user">
+      <div class="av" id="userAv">PA</div>
+      <div style="flex:1;min-width:0">
+        <div class="u-name" id="uName">Paul A.</div>
+        <div class="u-email" id="uEmail">paul@ipfxcapital.com</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <button class="mob-btn" onclick="openSb()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <span class="tb-title" id="pageTitle">Accounts</span>
+    <div class="tb-status"><span class="sdot"></span>Realtime: Live</div>
+    <div class="tb-timer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Day ending:&nbsp;<span class="tv" id="dayTimer">--:--:--</span></div>
+    <a href="#" class="tb-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Credentials</a>
+    <a href="#" class="tb-btn sol">+ Add Account</a>
+  </header>
+
+  <div class="content">
+
+    <!-- ACCOUNTS -->
+    <div class="page active" id="pg-accounts">
+      <div class="promo-banner">
+        <div class="promo-left"><div class="promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="promo-title">Ready to scale your capital?</div><div class="promo-sub">Apply for the <b>Application Challenge</b> — no evaluation, funded from day one, up to £250K. Consistent traders scale to £500K.</div></div></div>
+        <a href="/personalised-challenge.html" class="promo-btn">Apply Now →</a>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-tabs">
+          <button class="ftab active" onclick="filterAc('all',this)">All</button>
+          <button class="ftab" onclick="filterAc('infinity',this)">Infinity</button>
+          <button class="ftab" onclick="filterAc('application',this)">Application</button>
+          <button class="ftab" onclick="filterAc('traditional',this)">Traditional</button>
+        </div>
+        <div class="tog-row">Hide Failed<label class="tog"><input type="checkbox" id="hideFailed" checked onchange="applyFilter()"><span class="tog-track"></span></label></div>
+      </div>
+      <div class="ac-list" id="acList">
+        <div class="ac" data-type="infinity" data-status="active">
+          <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">Infinity £25K</span><span class="badge ba"><span class="bdot"></span>Active</span><span class="ac-last">Traded today</span></div></div><div class="ac-id"><span>IPFX-INF-25K-001</span><span style="color:var(--line)">·</span><span>MT5</span></div></div>
+          <div class="ac-body">
+            <div class="acs"><div class="sl">Balance</div><div class="sv pos">£26,843.20</div><div class="ss">+£1,843 (+7.37%)</div></div>
+            <div class="acs"><div class="sl">Max Drawdown</div><div class="sv">£23,750.00</div><div class="ss">5% floor</div></div>
+            <div class="acs"><div class="sl">Profit Target</div><div class="pw"><div class="ring"><svg viewBox="0 0 38 38" width="38" height="38"><circle class="rb" cx="19" cy="19" r="16"/><circle class="rf g" cx="19" cy="19" r="16" stroke-dasharray="100.5" stroke-dashoffset="27"/></svg><div class="rl">73%</div></div><div><div class="sv pos" style="font-size:.9rem">+£1,843</div><div class="ss">/ £2,500</div></div></div></div>
+            <div class="acs"><div class="sl">Consistency</div><div style="font-size:.82rem;color:var(--green);margin-bottom:.3rem;font-weight:600">Good</div><div class="cbar"><div class="cfill g" style="width:28%"></div></div><div class="ss" style="margin-top:.2rem">28% / 40% max</div></div>
+            <div class="ac-acts"><button class="cbtn">Reset</button><button class="cbtn p">View Details</button></div>
+          </div>
+        </div>
+        <div class="ac" data-type="application" data-status="funded">
+          <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">Application £100K</span><span class="badge bf"><span class="bdot"></span>Funded</span><span class="ac-last">Traded yesterday</span></div></div><div class="ac-id"><span>IPFX-APP-100K-003</span><span style="color:var(--line)">·</span><span>cTrader</span></div></div>
+          <div class="ac-body">
+            <div class="acs"><div class="sl">Balance</div><div class="sv pos">£104,210.00</div><div class="ss">+£4,210 (+4.21%)</div></div>
+            <div class="acs"><div class="sl">Max Drawdown</div><div class="sv">£92,000.00</div><div class="ss">8% agreed</div></div>
+            <div class="acs"><div class="sl">Profit Target</div><div class="pw"><div class="ring"><svg viewBox="0 0 38 38" width="38" height="38"><circle class="rb" cx="19" cy="19" r="16"/><circle class="rf w" cx="19" cy="19" r="16" stroke-dasharray="100.5" stroke-dashoffset="58"/></svg><div class="rl">42%</div></div><div><div class="sv pos" style="font-size:.9rem">+£4,210</div><div class="ss">/ £10,000</div></div></div></div>
+            <div class="acs"><div class="sl">Consistency</div><div style="font-size:.82rem;color:var(--green);margin-bottom:.3rem;font-weight:600">Good</div><div class="cbar"><div class="cfill g" style="width:31%"></div></div><div class="ss" style="margin-top:.2rem">31% / 40% max</div></div>
+            <div class="ac-acts"><button class="cbtn">Reset</button><button class="cbtn p">View Details</button></div>
+          </div>
+        </div>
+        <div class="ac" data-type="traditional" data-status="failed">
+          <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">Traditional £10K</span><span class="badge bx"><span class="bdot"></span>Failed</span><span class="ac-last">3 days ago</span></div></div><div class="ac-id"><span>IPFX-TRD-10K-007</span><span style="color:var(--line)">·</span><span>MT4</span></div></div>
+          <div class="ac-body">
+            <div class="acs"><div class="sl">Balance</div><div class="sv neg">£9,004.50</div><div class="ss">-£995 (-9.96%)</div></div>
+            <div class="acs"><div class="sl">Max Drawdown</div><div class="sv neg">Breached</div><div class="ss">10% limit hit</div></div>
+            <div class="acs"><div class="sl">Profit Target</div><div class="pw"><div class="ring"><svg viewBox="0 0 38 38" width="38" height="38"><circle class="rb" cx="19" cy="19" r="16"/><circle class="rf b" cx="19" cy="19" r="16" stroke-dasharray="100.5" stroke-dashoffset="93"/></svg><div class="rl">7%</div></div><div><div class="sv neg" style="font-size:.9rem">-£995</div><div class="ss">/ £800</div></div></div></div>
+            <div class="acs"><div class="sl">Consistency</div><div style="font-size:.82rem;color:var(--red);margin-bottom:.3rem;font-weight:600">Breached</div><div class="cbar"><div class="cfill b" style="width:100%"></div></div><div class="ss" style="margin-top:.2rem">62% / 40% max</div></div>
+            <div class="ac-acts"><button class="cbtn p" onclick="location.href='/personalised-challenge.html'">Reapply</button></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="nav">
-        <a href="index.html" class="nav-brand">
-            <img src="assets/images/favicon.ico" alt="IPFX">
-            <span class="nav-brand-text">IPFX Capital</span>
-        </a>
-        <div class="nav-actions">
-            <div class="user-info">
-                <div class="user-avatar">JD</div>
-                <span class="user-name">John Doe</span>
-            </div>
-            <a href="index.html" class="btn-logout">Logout</a>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container">
-        <!-- Header -->
-        <div class="page-header">
-            <h1 class="page-title">Welcome back, John!</h1>
-            <p class="page-subtitle">Here's your trading performance overview</p>
-        </div>
-
-        <!-- Alert -->
-        <div class="alert success">
-            <div class="alert-icon"></div>
-            <div class="alert-content">
-                <h4>Account Created Successfully!</h4>
-                <p>You're all set! Choose your challenge size below and start trading immediately. No waiting, no delays - begin your journey to funded trading right now.</p>
-            </div>
-        </div>
-
-        <!-- Stats Grid -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Account Balance</span>
-                    <div class="stat-icon primary"></div>
-                </div>
-                <div class="stat-value">£10,576</div>
-                <div class="stat-change positive">
-                    <span>↗</span>
-                    <span>+5.76% this week</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Profit Target Progress</span>
-                    <div class="stat-icon success"></div>
-                </div>
-                <div class="stat-value success">£576 / £800</div>
-                <div class="stat-change positive">
-                    <span>↗</span>
-                    <span>72% complete</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Daily Loss Limit</span>
-                    <div class="stat-icon success">✓</div>
-                </div>
-                <div class="stat-value">£124 / £500</div>
-                <div class="stat-change">
-                    <span>Safe zone - 25% used</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Total Trades</span>
-                    <div class="stat-icon primary"></div>
-                </div>
-                <div class="stat-value">47</div>
-                <div class="stat-change positive">
-                    <span>↗</span>
-                    <span>64% win rate</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Challenge Progress -->
-        <div class="section">
-            <h2 class="section-title">Challenge Progress</h2>
-            <div class="card">
-                <div class="progress-header">
-                    <div>
-                        <h3 style="margin-bottom: 0.5rem;">Phase 1 - Traditional Challenge</h3>
-                        <span class="status-badge active">In Progress</span>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="color: var(--muted); font-size: 0.9rem; margin-bottom: 0.25rem;">Days Remaining</div>
-                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--cobalt);">23</div>
-                    </div>
-                </div>
-
-                <div class="progress-container" style="margin-top: 2rem;">
-                    <div class="progress-header">
-                        <span class="progress-label">Profit Target</span>
-                        <span class="progress-value">£576 / £800 (72%)</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 72%;"></div>
-                    </div>
-                </div>
-
-                <div class="progress-info">
-                    <div class="progress-info-item">
-                        <div class="progress-info-label">Starting Balance</div>
-                        <div class="progress-info-value">£10,000</div>
-                    </div>
-                    <div class="progress-info-item">
-                        <div class="progress-info-label">Current Balance</div>
-                        <div class="progress-info-value" style="color: var(--success);">£10,576</div>
-                    </div>
-                    <div class="progress-info-item">
-                        <div class="progress-info-label">Max Drawdown</div>
-                        <div class="progress-info-value">£124 / £1,000</div>
-                    </div>
-                    <div class="progress-info-item">
-                        <div class="progress-info-label">Trading Days</div>
-                        <div class="progress-info-value">7 / 30</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Referral Section -->
-        <div class="section">
-            <h2 class="section-title">Refer & Earn</h2>
-            <div class="referral-code-card">
-                <!-- Code Section -->
-                <div class="code-section">
-                    <div class="code-label">Your Unique Referral Code</div>
-                    <div class="code-display">
-                        <div class="code-text" id="referralCode">Loading...</div>
-                    </div>
-
-                    <div class="link-container">
-                        <span class="link-text" id="referralLink">Loading...</span>
-                        <button class="copy-btn" id="copyBtn">Copy Link</button>
-                    </div>
-
-                    <div class="share-buttons">
-                        <a href="#" class="share-btn" id="shareEmail">Email</a>
-                        <a href="#" class="share-btn" id="shareTwitter" target="_blank">Twitter</a>
-                        <a href="#" class="share-btn" id="shareWhatsApp" target="_blank">WhatsApp</a>
-                    </div>
-                </div>
-
-                <!-- Stats Section -->
-                <div class="referral-stats">
-                    <div class="referral-stat-card">
-                        <div class="referral-stat-value" id="referralCount">0</div>
-                        <div class="referral-stat-label">Successful Referrals</div>
-                    </div>
-                    <div class="referral-stat-card">
-                        <div class="referral-stat-value" id="totalEarned">£0</div>
-                        <div class="referral-stat-label">Total Earned</div>
-                    </div>
-
-                    <div class="referral-info">
-                        <h4>Early Participant Referral Programme</h4>
-                        <p>
-                            <strong>Earn £100 per referral</strong> when someone uses your code and starts a challenge.
-                            Credit is automatically applied to your account balance and can be withdrawn once you reach £1,000 (standard payout rules apply).
-                        </p>
-                        <p style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--muted);">
-                            <strong>Programme Details:</strong> Maximum £500 per account (5 referrals).
-                            Available exclusively to the first 10,000 preregistered participants.
-                            Referred individuals must commence a challenge for credit to apply.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Two Column Layout -->
-        <div class="grid-2">
-            <!-- Recent Trades -->
-            <div class="section">
-                <h2 class="section-title">Recent Trades</h2>
-                <div class="card" style="padding: 0;">
-                    <ul class="activity-list">
-                        <li class="activity-item">
-                            <div class="activity-info">
-                                <div class="activity-icon buy">▲</div>
-                                <div class="activity-details">
-                                    <h4>EUR/USD</h4>
-                                    <p>Buy • 0.5 lots</p>
-                                </div>
-                            </div>
-                            <div class="activity-result">
-                                <div class="activity-pnl profit">+£84.50</div>
-                                <div class="activity-time">2 hours ago</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-info">
-                                <div class="activity-icon sell">▼</div>
-                                <div class="activity-details">
-                                    <h4>GBP/USD</h4>
-                                    <p>Sell • 0.3 lots</p>
-                                </div>
-                            </div>
-                            <div class="activity-result">
-                                <div class="activity-pnl loss">-£32.20</div>
-                                <div class="activity-time">5 hours ago</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-info">
-                                <div class="activity-icon buy">▲</div>
-                                <div class="activity-details">
-                                    <h4>XAU/USD</h4>
-                                    <p>Buy • 0.2 lots</p>
-                                </div>
-                            </div>
-                            <div class="activity-result">
-                                <div class="activity-pnl profit">+£156.80</div>
-                                <div class="activity-time">1 day ago</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-info">
-                                <div class="activity-icon buy">▲</div>
-                                <div class="activity-details">
-                                    <h4>US30</h4>
-                                    <p>Buy • 1.0 lots</p>
-                                </div>
-                            </div>
-                            <div class="activity-result">
-                                <div class="activity-pnl profit">+£92.40</div>
-                                <div class="activity-time">1 day ago</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-info">
-                                <div class="activity-icon sell">▼</div>
-                                <div class="activity-details">
-                                    <h4>BTC/USD</h4>
-                                    <p>Sell • 0.1 lots</p>
-                                </div>
-                            </div>
-                            <div class="activity-result">
-                                <div class="activity-pnl loss">-£18.60</div>
-                                <div class="activity-time">2 days ago</div>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="section">
-                <h2 class="section-title">Quick Actions</h2>
-                <div class="card">
-                    <div style="margin-bottom: 1.5rem;">
-                        <h4 style="margin-bottom: 0.75rem;">Challenges Coming Soon</h4>
-                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">We're finalizing our trading challenges. You'll be notified when they're ready to launch.</p>
-                        <button class="btn-secondary btn" disabled style="opacity: 0.5; cursor: not-allowed;">Not Available Yet</button>
-                    </div>
-
-                    <div style="margin-bottom: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line);">
-                        <h4 style="margin-bottom: 0.75rem;">Performance Report</h4>
-                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Download detailed analytics of your trading activity</p>
-                        <button class="btn-secondary btn">Download Report</button>
-                    </div>
-
-                    <div style="padding-top: 1.5rem; border-top: 1px solid var(--line);">
-                        <h4 style="margin-bottom: 0.75rem;">Request Payout</h4>
-                        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Available after passing Phase 1 & 2</p>
-                        <button class="btn-secondary btn" disabled style="opacity: 0.5; cursor: not-allowed;">Locked</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- JOURNAL -->
+    <div class="page" id="pg-journal">
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-label">Total Trades</div><div class="sc-val">147</div><div class="sc-sub">This month</div></div>
+        <div class="stat-card"><div class="sc-label">Win Rate</div><div class="sc-val pos">62.3%</div><div class="sc-sub">+3.1% vs last month</div></div>
+        <div class="stat-card"><div class="sc-label">Avg R:R</div><div class="sc-val">1.8</div><div class="sc-sub">Risk / Reward</div></div>
+        <div class="stat-card"><div class="sc-label">Best Day</div><div class="sc-val gold">+£843</div><div class="sc-sub">14 Jun 2026</div></div>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Date</th><th>Instrument</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P&amp;L</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>17 Jun</td><td>GBP/USD</td><td><span class="pill pb">Long</span></td><td>1.2741</td><td>1.2798</td><td style="color:var(--green);font-weight:700">+£342</td><td style="color:var(--muted2);font-size:.78rem">News momentum</td></tr>
+          <tr><td>17 Jun</td><td>US30</td><td><span class="pill pr">Short</span></td><td>42,180</td><td>42,090</td><td style="color:var(--green);font-weight:700">+£180</td><td style="color:var(--muted2);font-size:.78rem">Resistance reject</td></tr>
+          <tr><td>16 Jun</td><td>XAU/USD</td><td><span class="pill pb">Long</span></td><td>2,318.40</td><td>2,304.20</td><td style="color:var(--red);font-weight:700">-£142</td><td style="color:var(--muted2);font-size:.78rem">Stopped out</td></tr>
+          <tr><td>16 Jun</td><td>EUR/USD</td><td><span class="pill pb">Long</span></td><td>1.0812</td><td>1.0851</td><td style="color:var(--green);font-weight:700">+£391</td><td style="color:var(--muted2);font-size:.78rem">ECB follow-through</td></tr>
+          <tr><td>15 Jun</td><td>NAS100</td><td><span class="pill pr">Short</span></td><td>19,840</td><td>19,760</td><td style="color:var(--green);font-weight:700">+£280</td><td style="color:var(--muted2);font-size:.78rem">Tech sell-off hedge</td></tr>
+          <tr><td>14 Jun</td><td>GBP/JPY</td><td><span class="pill pb">Long</span></td><td>198.42</td><td>198.91</td><td style="color:var(--green);font-weight:700">+£194</td><td style="color:var(--muted2);font-size:.78rem">BoJ carry trade</td></tr>
+        </tbody></table>
+      </div>
     </div>
 
-    <script>
-        // ============================================
-        // SUPABASE CONFIGURATION
-        // ============================================
-        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-        const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <!-- PAYOUTS -->
+    <div class="page" id="pg-payouts">
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-label">Total Paid Out</div><div class="sc-val pos">£4,212</div><div class="sc-sub">All time</div></div>
+        <div class="stat-card"><div class="sc-label">Available Now</div><div class="sc-val gold">£1,843</div><div class="sc-sub">Infinity £25K</div></div>
+        <div class="stat-card"><div class="sc-label">Last Payout</div><div class="sc-val">£680</div><div class="sc-sub">1 Jun 2026</div></div>
+        <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val">24 Jun</div><div class="sc-sub">7 days</div></div>
+      </div>
+      <div class="pout-req">
+        <div class="pout-req-title">Request Payout</div>
+        <div class="pout-amt"><span style="font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;color:var(--muted)">£</span><input type="number" id="poutAmt" placeholder="0.00"></div>
+        <div class="pout-note">Available: <strong style="color:var(--fg)">£1,843.20</strong> · 90% profit split · Paid in 1–3 business days to your connected method.</div>
+        <button class="full-btn" onclick="doPayout()">Request Payout</button>
+      </div>
+      <div class="sec-hd"><div><div class="sec-title">Payment Methods</div></div><button class="cbtn p">+ Add Method</button></div>
+      <div class="pm-card"><div class="pm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div><div class="pm-name">Visa ending 4242</div><div class="pm-det">Expires 09/28</div></div><span class="pill pg" style="margin-left:auto">Default</span></div>
+      <div class="pm-card"><div class="pm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="pm-name">Bank Transfer</div><div class="pm-det">Barclays ••••7831</div></div></div>
+      <div class="sec-hd" style="margin-top:1.4rem"><div><div class="sec-title">Payout History</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
+        <tr><td>01 Jun 2026</td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+£680.00</td><td>Visa ••4242</td><td><span class="pill pg">Paid</span></td></tr>
+        <tr><td>01 May 2026</td><td>Application £100K</td><td style="color:var(--green);font-weight:700">+£2,100.00</td><td>Bank Transfer</td><td><span class="pill pg">Paid</span></td></tr>
+        <tr><td>01 Apr 2026</td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+£432.00</td><td>Visa ••4242</td><td><span class="pill pg">Paid</span></td></tr>
+        <tr><td>01 Mar 2026</td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+£1,000.00</td><td>Bank Transfer</td><td><span class="pill pg">Paid</span></td></tr>
+      </tbody></table></div>
+    </div>
 
-        // ============================================
-        // CHECK AUTHENTICATION & LOAD USER DATA
-        // ============================================
-        let authCheckAttempts = 0;
-        const MAX_AUTH_ATTEMPTS = 5;
+    <!-- BILLING -->
+    <div class="page" id="pg-billing">
+      <div class="plan-card">
+        <div class="plan-name">Infinity Challenge — £25K</div>
+        <div style="display:flex;align-items:flex-end;gap:.5rem;margin:.4rem 0"><div class="plan-price">£99<span>/month</span></div><span class="pill pg" style="margin-bottom:.35rem">Active</span></div>
+        <div class="plan-feats">
+          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>£25,000 funded account</div>
+          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>90% profit split</div>
+          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>5% max drawdown</div>
+          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>MT5 &amp; cTrader access</div>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:1.1rem"><button class="cbtn">Manage Plan</button><button class="cbtn" style="color:var(--red);border-color:rgba(239,68,68,.25)">Cancel</button></div>
+      </div>
+      <div class="sec-hd"><div><div class="sec-title">Invoices</div></div><button class="cbtn">Download All</button></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Invoice</th><th>Date</th><th>Plan</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
+        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#INV-0041</td><td>01 Jun 2026</td><td>Infinity £25K</td><td>£99.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
+        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#INV-0040</td><td>01 May 2026</td><td>Infinity £25K</td><td>£99.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
+        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#INV-0039</td><td>01 Apr 2026</td><td>Infinity £25K</td><td>£99.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
+        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#APP-001</td><td>15 Jan 2026</td><td>Application £100K</td><td>£399.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
+      </tbody></table></div>
+    </div>
 
-        async function checkAuth() {
-            // Check localStorage first to prevent redirect loop
-            const authToken = localStorage.getItem('ipfx_auth_token');
+    <!-- LEADERBOARD -->
+    <div class="page" id="pg-leaderboard">
+      <div class="promo-banner">
+        <div class="promo-left"><div class="promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><div><div class="promo-title">Monthly Leaderboard — June 2026</div><div class="promo-sub">Top 3 traders each month win <b>bonus capital allocation</b>. Rankings update in real-time.</div></div></div>
+        <span class="pill pg" style="padding:.4rem .9rem;font-size:.78rem">Live</span>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Trader</th><th>Account</th><th>Return %</th><th>P&amp;L</th><th>Win Rate</th><th>Trades</th></tr></thead><tbody>
+        <tr><td class="rank-1">🥇 1</td><td><div class="trader-cell"><div class="trader-av">JK</div>J. K***er</div></td><td>Infinity £50K</td><td style="color:var(--green);font-weight:700">+18.4%</td><td style="color:var(--green);font-weight:700">+£9,200</td><td>71%</td><td>83</td></tr>
+        <tr><td class="rank-2">🥈 2</td><td><div class="trader-cell"><div class="trader-av">SM</div>S. M***ez</div></td><td>Application £100K</td><td style="color:var(--green);font-weight:700">+14.1%</td><td style="color:var(--green);font-weight:700">+£14,100</td><td>68%</td><td>112</td></tr>
+        <tr><td class="rank-3">🥉 3</td><td><div class="trader-cell"><div class="trader-av">RO</div>R. O***n</div></td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+12.8%</td><td style="color:var(--green);font-weight:700">+£3,200</td><td>65%</td><td>59</td></tr>
+        <tr><td style="color:var(--muted2);font-weight:600">4</td><td><div class="trader-cell"><div class="trader-av" style="background:rgba(37,99,235,.3);color:#60a5fa">PA</div>You</div></td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+7.4%</td><td style="color:var(--green);font-weight:700">+£1,843</td><td>62%</td><td>41</td></tr>
+        <tr><td style="color:var(--muted2);font-weight:600">5</td><td><div class="trader-cell"><div class="trader-av">LT</div>L. T***as</div></td><td>Traditional £25K</td><td style="color:var(--green);font-weight:700">+6.9%</td><td style="color:var(--green);font-weight:700">+£1,725</td><td>58%</td><td>97</td></tr>
+        <tr><td style="color:var(--muted2);font-weight:600">6</td><td><div class="trader-cell"><div class="trader-av">AW</div>A. W***d</div></td><td>Infinity £50K</td><td style="color:var(--green);font-weight:700">+5.2%</td><td style="color:var(--green);font-weight:700">+£2,600</td><td>54%</td><td>74</td></tr>
+      </tbody></table></div>
+    </div>
 
-            const { data: { session } } = await supabaseClient.auth.getSession();
+    <!-- COMPETITIONS -->
+    <div class="page" id="pg-competitions">
+      <div class="sec-hd"><div><div class="sec-title">Live &amp; Upcoming Competitions</div><div class="sec-sub">Real capital prizes and recognition for top performers</div></div></div>
+      <div class="comp-grid">
+        <div class="comp-card"><div class="comp-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="live-badge">LIVE</span></div><div class="comp-body"><div class="comp-title">June Sprint Challenge</div><div class="comp-meta"><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>13 days left</div><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>48 traders</div></div><div class="comp-prize">£5,000 <small>prize pool</small></div><button class="comp-btn">Join Competition</button></div></div>
+        <div class="comp-card"><div class="comp-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><div class="comp-body"><div class="comp-title">Q3 Consistency Cup</div><div class="comp-meta"><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Starts 1 Jul</div><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>0 registered</div></div><div class="comp-prize">£10,000 <small>prize pool</small></div><button class="comp-btn">Register Interest</button></div></div>
+        <div class="comp-card"><div class="comp-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="comp-body"><div class="comp-title">Algo Trading Championship</div><div class="comp-meta"><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Starts 1 Aug</div><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Application only</div></div><div class="comp-prize">£25,000 <small>+ capital scaling</small></div><button class="comp-btn off" disabled>Application Only</button></div></div>
+      </div>
+      <div class="sec-hd"><div><div class="sec-title">Past Results</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Competition</th><th>Period</th><th>Winner</th><th>Prize</th><th>Your Rank</th></tr></thead><tbody>
+        <tr><td>May Speed Run</td><td>May 2026</td><td>J. K***er</td><td>£2,000</td><td><span class="pill pb">7th</span></td></tr>
+        <tr><td>Q1 Consistency Cup</td><td>Jan–Mar 2026</td><td>R. O***n</td><td>£8,000</td><td><span class="pill pm">Did not enter</span></td></tr>
+      </tbody></table></div>
+    </div>
 
-            if (!session && !authToken) {
-                // Not logged in - redirect to login page
-                window.location.href = 'login.html';
-                return;
-            }
+    <!-- EDUCATION -->
+    <div class="page" id="pg-education">
+      <div class="filter-bar"><div class="filter-tabs"><button class="ftab active">All</button><button class="ftab">Risk Management</button><button class="ftab">Psychology</button><button class="ftab">Strategy</button></div></div>
+      <div class="edu-grid">
+        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="edu-tag pill pr">Video</span></div><div class="edu-body"><div class="edu-title">Understanding Drawdown: Why Most Traders Blow Up</div><div class="edu-meta">Risk Management · 18 min</div></div></a>
+        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="edu-tag pill pb">Article</span></div><div class="edu-body"><div class="edu-title">Position Sizing for Funded Accounts</div><div class="edu-meta">Risk Management · 8 min read</div></div></a>
+        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="edu-tag pill pr">Video</span></div><div class="edu-body"><div class="edu-title">Trading Psychology: Consistency Like an Institution</div><div class="edu-meta">Psychology · 24 min</div></div></a>
+        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="edu-tag pill pb">Article</span></div><div class="edu-body"><div class="edu-title">Backtesting: Walk-Forward vs Curve-Fitting</div><div class="edu-meta">Strategy · 12 min read</div></div></a>
+        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="edu-tag pill pr">Video</span></div><div class="edu-body"><div class="edu-title">News Trading: Managing Risk Around High-Impact Events</div><div class="edu-meta">Strategy · 31 min</div></div></a>
+        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="edu-tag pill po">Guide</span></div><div class="edu-body"><div class="edu-title">How to Get Paid: Maximising Your Profit Split</div><div class="edu-meta">Payouts · 6 min read</div></div></a>
+      </div>
+    </div>
 
-            // If we have a token but no session, wait for Supabase to establish session
-            if (!session && authToken && authCheckAttempts < MAX_AUTH_ATTEMPTS) {
-                authCheckAttempts++;
-                setTimeout(() => checkAuth(), 300);
-                return;
-            }
+    <!-- REFERRALS -->
+    <div class="page" id="pg-referrals">
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-label">Total Referrals</div><div class="sc-val">7</div><div class="sc-sub">All time</div></div>
+        <div class="stat-card"><div class="sc-label">Earnings</div><div class="sc-val gold">£420</div><div class="sc-sub">Lifetime commissions</div></div>
+        <div class="stat-card"><div class="sc-label">Pending</div><div class="sc-val">£60</div><div class="sc-sub">Awaiting payout</div></div>
+        <div class="stat-card"><div class="sc-label">Conversion</div><div class="sc-val pos">58%</div><div class="sc-sub">Clicks → sign-ups</div></div>
+      </div>
+      <div class="ref-box">
+        <div class="ref-lbl">Your referral link</div>
+        <div class="ref-row"><input class="ref-input" id="refLink" value="https://ipfxcapital.com/ref/PA7K3X" readonly><button class="ref-copy" onclick="copyRef()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="cpTxt">Copy Link</span></button></div>
+        <div class="ref-note">Earn <strong style="color:var(--fg)">10% commission</strong> on the entry fee for every trader you refer who gets funded. Commission paid within 30 days of their first payout.</div>
+      </div>
+      <div class="sec-hd"><div><div class="sec-title">Referred Traders</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Joined</th><th>Account</th><th>Status</th><th>Commission</th></tr></thead><tbody>
+        <tr><td>M. R***ds</td><td>14 May 2026</td><td>Infinity £25K</td><td><span class="pill pg">Funded</span></td><td style="color:var(--green);font-weight:700">+£9.90</td></tr>
+        <tr><td>T. O***o</td><td>02 May 2026</td><td>Application £100K</td><td><span class="pill pg">Funded</span></td><td style="color:var(--green);font-weight:700">+£39.90</td></tr>
+        <tr><td>C. B***n</td><td>18 Apr 2026</td><td>Infinity £50K</td><td><span class="pill pg">Funded</span></td><td style="color:var(--green);font-weight:700">+£24.90</td></tr>
+        <tr><td>H. F***r</td><td>01 Apr 2026</td><td>Traditional £10K</td><td><span class="pill pr">Failed</span></td><td><span class="pill pm">£0</span></td></tr>
+        <tr><td>P. A***s</td><td>10 Mar 2026</td><td>Application £250K</td><td><span class="pill pb">In Review</span></td><td><span class="pill pm">Pending</span></td></tr>
+      </tbody></table></div>
+    </div>
 
-            // If still no session after retries, clear storage and redirect
-            if (!session && authToken && authCheckAttempts >= MAX_AUTH_ATTEMPTS) {
-                localStorage.removeItem('ipfx_auth_token');
-                localStorage.removeItem('ipfx_user_data');
-                sessionStorage.removeItem('ipfx_user_session');
-                window.location.href = 'login.html';
-                return;
-            }
+    <!-- COMMUNITY -->
+    <div class="page" id="pg-community">
+      <div class="promo-banner">
+        <div class="promo-left"><div class="promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div class="promo-title">Join the IPFX Capital Community</div><div class="promo-sub">Connect with <b>1,400+ funded traders</b>. Share ideas, discuss strategies and get real-time support from the IPFX team.</div></div></div>
+        <a href="https://discord.gg/ipfxcapital" target="_blank" class="promo-btn">Join Discord →</a>
+      </div>
+      <div class="sec-hd"><div><div class="sec-title">Find Us On Social Media</div><div class="sec-sub">Follow IPFX Capital for market insights, trader spotlights and firm updates</div></div></div>
+      <div class="social-grid">
+        <a href="https://discord.gg/ipfxcapital" target="_blank" class="social-card"><div class="social-icon" style="background:rgba(88,101,242,.15)"><svg viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="1.5"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.032.054a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg></div><div class="social-name">Discord</div><div class="social-handle">discord.gg/ipfxcapital</div><div class="social-desc">Live chat, strategy rooms, news alerts and exclusive giveaways. Usually under 10 mins for a reply.</div><div class="social-follow">Join Server <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div></a>
+        <a href="https://www.instagram.com/ipfxcapital" target="_blank" class="social-card"><div class="social-icon" style="background:rgba(225,48,108,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="#e1306c" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div><div class="social-name">Instagram</div><div class="social-handle">@ipfxcapital</div><div class="social-desc">Trader spotlights, payout screenshots and market commentary.</div><div class="social-follow">Follow <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div></a>
+        <a href="https://x.com/ipfxcapital" target="_blank" class="social-card"><div class="social-icon" style="background:rgba(255,255,255,.06)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l16 16M4 20 20 4"/><path d="M4 4h4l12 16h-4z"/></svg></div><div class="social-name">X (Twitter)</div><div class="social-handle">@ipfxcapital</div><div class="social-desc">Real-time market analysis, firm announcements and daily trade ideas.</div><div class="social-follow">Follow <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div></a>
+        <a href="https://www.youtube.com/@ipfxcapital" target="_blank" class="social-card"><div class="social-icon" style="background:rgba(255,0,0,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="#ff0000" stroke-width="1.5"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg></div><div class="social-name">YouTube</div><div class="social-handle">@ipfxcapital</div><div class="social-desc">Educational series, live trading sessions, webinars and firm updates.</div><div class="social-follow">Subscribe <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div></a>
+        <a href="https://www.tiktok.com/@ipfxcapital" target="_blank" class="social-card"><div class="social-icon" style="background:rgba(255,255,255,.05)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg></div><div class="social-name">TikTok</div><div class="social-handle">@ipfxcapital</div><div class="social-desc">Short-form trading content, payout reveals and market breakdowns.</div><div class="social-follow">Follow <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div></a>
+        <a href="https://www.linkedin.com/company/ipfxcapital" target="_blank" class="social-card"><div class="social-icon" style="background:rgba(10,102,194,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div><div class="social-name">LinkedIn</div><div class="social-handle">IPFX Capital</div><div class="social-desc">Company news, institutional insights and career opportunities.</div><div class="social-follow">Connect <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div></a>
+      </div>
+    </div>
 
-            // User is logged in - load their profile from database
-            const user = session.user;
+    <!-- HELP & SUPPORT -->
+    <div class="page" id="pg-help">
+      <div class="help-grid">
+        <a href="mailto:support@ipfxcapital.com" class="hc-card"><div class="hc-icon" style="background:var(--cobalt-d)"><svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="hc-title">Email Support</div><div class="hc-sub">Response within 24 hours from the IPFX team.</div><div class="hc-act">support@ipfxcapital.com <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
+        <a href="https://discord.gg/ipfxcapital" target="_blank" class="hc-card"><div class="hc-icon" style="background:rgba(88,101,242,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="hc-title">Discord Community</div><div class="hc-sub">Usually under 10 minutes. 1,400+ traders online.</div><div class="hc-act">Join Discord <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
+      </div>
+      <div class="sec-hd"><div><div class="sec-title">Frequently Asked Questions</div></div></div>
+      <div class="faq-list">
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I withdraw my profits?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>Go to Payouts in your dashboard, enter the amount you want to withdraw and submit. You keep 90% of all profits. Payouts are processed within 1–3 business days to your connected payment method. You must have passed the consistency check to be eligible.</p></div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens if I breach my drawdown limit?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>Your account is suspended automatically. For Infinity and Traditional accounts you can reset or reapply. For Application Challenge accounts, a breach of your agreed parameters ends the contract — you can reapply with a new entry fee.</p></div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I trade any instrument?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>Infinity and Traditional accounts support forex, indices, commodities and crypto (platform dependent). Application Challenge accounts are restricted to the instruments agreed during your parameter negotiation — this is part of what protects both you and IPFX Capital.</p></div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How is the Application Challenge different from Infinity?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>Infinity is an evaluation programme — you pass phases to get funded. The Application Challenge has no evaluation: you disclose your strategy, our analysts backtest it, agree custom parameters with you, and you are funded from day one. It is designed for traders with a proven, systematic edge.</p></div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I use an Expert Advisor (EA) or automated strategy?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>Yes — EAs and algorithmic strategies are fully permitted and encouraged on all IPFX accounts. For the Application Challenge, your algorithm logic must be disclosed during the application so our analysts can backtest and set appropriate parameters.</p></div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I scale my capital beyond my current account?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>For Infinity accounts, consistent performance over 3+ months qualifies you to apply for a larger account up to £200K. For Application Challenge traders, after an agreed review period demonstrating consistent edge, you can apply for capital scaling up to £500K at no additional fee.</p></div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What trading platforms does IPFX support?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>IPFX Capital supports MetaTrader 4 (MT4), MetaTrader 5 (MT5) and cTrader. Choose your platform when setting up your account. Application Challenge traders agree their platform during the parameter negotiation phase.</p></div></div>
+      </div>
+    </div>
 
-            try {
-                // Fetch user profile from database
-                const { data: profile, error } = await supabaseClient
-                    .from('user_profiles')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .single();
+  </div>
+</main>
 
-                if (error) {
-                    console.error('Error loading profile:', error);
-                    // Fallback to user metadata
-                    var fullName = user.user_metadata?.full_name || user.email.split('@')[0];
-                } else {
-                    var fullName = profile.full_name;
-                }
+<!-- CHAT WIDGET -->
+<div class="chat-w" id="chatW">
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-head">
+      <div class="chat-head-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      <div>
+        <div class="chat-head-name">IPFX Support</div>
+        <div class="chat-head-status">Online now</div>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="msg bot"><div class="mb">Hey! I'm the IPFX support assistant. How can I help you today?</div><div class="mt">Now</div></div>
+    </div>
+    <div class="chat-sugs" id="chatSugs">
+      <button class="sug" onclick="askSug(this)">How do payouts work?</button>
+      <button class="sug" onclick="askSug(this)">What is the PAC?</button>
+      <button class="sug" onclick="askSug(this)">Drawdown rules</button>
+      <button class="sug" onclick="askSug(this)">Scaling capital</button>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="chat-send" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    </div>
+  </div>
+  <button class="chat-bubble" onclick="toggleChat()" style="position:relative">
+    <svg class="oi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <span class="chat-notif" id="chatNotif">1</span>
+  </button>
+</div>
 
-                const firstName = fullName.split(' ')[0];
-                const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+<script>
+// Timer
+function tick(){const n=new Date(),e=new Date();e.setHours(17,0,0,0);if(n>e)e.setDate(e.getDate()+1);const d=e-n,h=Math.floor(d/3600000).toString().padStart(2,'0'),m=Math.floor((d%3600000)/60000).toString().padStart(2,'0'),s=Math.floor((d%60000)/1000).toString().padStart(2,'0');document.getElementById('dayTimer').textContent=`${h}:${m}:${s}`;}
+setInterval(tick,1000);tick();
 
-                // Update user display
-                document.querySelector('.user-avatar').textContent = initials;
-                document.querySelector('.user-name').textContent = fullName;
-                document.querySelector('.page-title').textContent = `Welcome back, ${firstName}!`;
+// Nav
+function nav(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('pageTitle').textContent=btn.textContent.trim();
+  closeSb();
+}
 
-                // Show the user info in nav
-                document.querySelector('.user-info').classList.add('loaded');
+// Account filter
+let af='all';
+function filterAc(t,btn){af=t;document.querySelectorAll('#pg-accounts .filter-tabs .ftab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyFilter();}
+function applyFilter(){const hf=document.getElementById('hideFailed').checked;document.querySelectorAll('.ac').forEach(c=>{const mt=af==='all'||c.dataset.type===af;const mf=!hf||c.dataset.status!=='failed';c.style.display=(mt&&mf)?'':'none';});}
+applyFilter();
 
-                // Load user's challenge enrollments
-                const { data: enrollments, error: enrollmentError } = await supabaseClient
-                    .from('challenge_enrollments')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false });
+// Sidebar
+function openSb(){document.getElementById('sidebar').classList.add('open');document.getElementById('mobOverlay').classList.add('open');}
+function closeSb(){document.getElementById('sidebar').classList.remove('open');document.getElementById('mobOverlay').classList.remove('open');}
 
-                if (enrollmentError) {
-                    console.error('Error loading enrollments:', error);
-                }
+// FAQ
+function toggleFaq(el){const item=el.parentElement;const was=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!was)item.classList.add('open');}
 
-                // Update dashboard based on enrollment status
-                if (!enrollments || enrollments.length === 0) {
-                    showEmptyState(firstName);
-                } else {
-                    showEnrollmentData(enrollments, firstName);
-                }
+// Payout
+function doPayout(){const v=parseFloat(document.getElementById('poutAmt').value);if(!v||v<=0){alert('Enter a valid amount.');return;}if(v>1843.20){alert('Exceeds available balance of £1,843.20');return;}alert(`Payout of £${v.toFixed(2)} submitted. Processing in 1–3 business days.`);}
 
-                // Show the dashboard content now that data is loaded
-                document.querySelector('.container').classList.add('loaded');
-                document.getElementById('loadingSpinner').classList.add('hidden');
+// Referral copy
+function copyRef(){navigator.clipboard.writeText(document.getElementById('refLink').value).then(()=>{const t=document.getElementById('cpTxt');t.textContent='Copied!';setTimeout(()=>t.textContent='Copy Link',2000);});}
 
-            } catch (error) {
-                console.error('Error in checkAuth:', error);
-                // Still show the dashboard even if there's an error
-                document.querySelector('.container').classList.add('loaded');
-                document.getElementById('loadingSpinner').classList.add('hidden');
-            }
-        }
-
-        // ============================================
-        // SHOW EMPTY STATE (No Challenges)
-        // ============================================
-        function showEmptyState(firstName) {
-            // Update alert to welcome new user
-            document.querySelector('.alert h4').textContent = `Welcome to IPFX Capital, ${firstName}!`;
-            document.querySelector('.alert p').textContent = 'You\'re all set! Choose your challenge size and start trading immediately. No waiting, no delays - begin your journey to funded trading right now.';
-
-            // Update stats to show zero state
-            const statValues = document.querySelectorAll('.stat-value');
-            statValues[0].textContent = '£0';
-            statValues[1].textContent = '£0 / £0';
-            statValues[2].textContent = '£0 / £0';
-            statValues[3].textContent = '0';
-
-            const statChanges = document.querySelectorAll('.stat-change');
-            statChanges[0].innerHTML = '<span>Start your first challenge</span>';
-            statChanges[0].className = 'stat-change';
-            statChanges[1].innerHTML = '<span>No active challenge</span>';
-            statChanges[1].className = 'stat-change';
-            statChanges[2].innerHTML = '<span>Ready to begin</span>';
-            statChanges[2].className = 'stat-change';
-            statChanges[3].innerHTML = '<span>0% win rate</span>';
-            statChanges[3].className = 'stat-change';
-
-            // Update challenge progress section
-            document.querySelector('.section-title').textContent = 'Ready to Start?';
-            const progressCard = document.querySelector('.card');
-            progressCard.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
-                    <h3 style="margin-bottom: 1rem; font-size: 1.5rem;">Challenges Coming Soon</h3>
-                    <p style="color: var(--muted); margin-bottom: 2rem;">We're finalizing our trading challenges and will notify you as soon as they're ready to launch.</p>
-                    <div style="padding: 1rem; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 8px;">
-                        <p style="color: var(--cobalt); font-size: 0.9rem; margin: 0;">In the meantime, invite friends using your referral code below to earn rewards when challenges launch!</p>
-                    </div>
-                </div>
-            `;
-
-            // Hide recent trades section
-            document.querySelector('.grid-2').style.display = 'none';
-        }
-
-        // ============================================
-        // SHOW ENROLLMENT DATA (Has Challenges)
-        // ============================================
-        function showEnrollmentData(enrollments, firstName) {
-            const activeEnrollment = enrollments.find(e => e.status === 'active') || enrollments[0];
-
-            // Update alert based on status
-            if (activeEnrollment.status === 'active') {
-                document.querySelector('.alert h4').textContent = `You're doing great, ${firstName}!`;
-                document.querySelector('.alert p').textContent = 'Keep up the good work! Stay within your risk limits and focus on hitting your profit targets.';
-            } else if (activeEnrollment.status === 'pending') {
-                document.querySelector('.alert h4').textContent = 'Challenge Starting Soon!';
-                document.querySelector('.alert p').textContent = 'Your challenge is being set up. You\'ll receive your trading credentials via email shortly.';
-            }
-
-            // Update stats with real data
-            const currentBalance = activeEnrollment.current_balance || activeEnrollment.account_size;
-            const profitLoss = currentBalance - activeEnrollment.account_size;
-            const profitPercent = ((profitLoss / activeEnrollment.account_size) * 100).toFixed(2);
-
-            document.querySelectorAll('.stat-value')[0].textContent = `£${(currentBalance / 100).toLocaleString()}`;
-            document.querySelectorAll('.stat-value')[1].textContent = `£${(activeEnrollment.current_profit || 0) / 100} / £${activeEnrollment.profit_target / 100}`;
-            document.querySelectorAll('.stat-value')[2].textContent = `£0 / £${activeEnrollment.daily_loss_limit / 100}`;
-            document.querySelectorAll('.stat-value')[3].textContent = activeEnrollment.trades_count || 0;
-
-            const statChanges = document.querySelectorAll('.stat-change');
-            statChanges[0].innerHTML = profitLoss >= 0 ?
-                `<span>↗</span><span>+${profitPercent}% this week</span>` :
-                `<span>↘</span><span>${profitPercent}% this week</span>`;
-            statChanges[0].className = profitLoss >= 0 ? 'stat-change positive' : 'stat-change negative';
-
-            const progressPercent = Math.min(100, ((activeEnrollment.current_profit || 0) / activeEnrollment.profit_target * 100)).toFixed(0);
-            statChanges[1].innerHTML = `<span>↗</span><span>${progressPercent}% complete</span>`;
-            statChanges[1].className = 'stat-change positive';
-
-            statChanges[2].innerHTML = '<span>Safe zone - within limits</span>';
-            statChanges[3].innerHTML = `<span>${activeEnrollment.win_rate || 0}% win rate</span>`;
-
-            // Update challenge progress
-            const daysRemaining = activeEnrollment.end_date ?
-                Math.max(0, Math.ceil((new Date(activeEnrollment.end_date) - new Date()) / (1000 * 60 * 60 * 24))) :
-                30;
-
-            document.querySelector('.section-title').textContent = 'Challenge Progress';
-            document.querySelector('.card h3').textContent = `${activeEnrollment.challenge_tier.toUpperCase()} Challenge`;
-            document.querySelector('.status-badge').textContent = activeEnrollment.status.charAt(0).toUpperCase() + activeEnrollment.status.slice(1);
-            document.querySelector('.status-badge').className = `status-badge ${activeEnrollment.status}`;
-
-            const daysRemainingEl = document.querySelector('[style*="font-size: 1.5rem"]');
-            if (daysRemainingEl) daysRemainingEl.textContent = daysRemaining;
-
-            // Update progress bars
-            document.querySelectorAll('.progress-value')[0].textContent = `£${(activeEnrollment.current_profit || 0) / 100} / £${activeEnrollment.profit_target / 100} (${progressPercent}%)`;
-            document.querySelectorAll('.progress-fill')[0].style.width = `${progressPercent}%`;
-
-            // Update progress info
-            const infoValues = document.querySelectorAll('.progress-info-value');
-            infoValues[0].textContent = `£${(activeEnrollment.account_size / 100).toLocaleString()}`;
-            infoValues[1].textContent = `£${(currentBalance / 100).toLocaleString()}`;
-            infoValues[2].textContent = `£0 / £${activeEnrollment.total_loss_limit / 100}`;
-            infoValues[3].textContent = `${activeEnrollment.trades_count || 0} trades`;
-
-            // Show trades section but with message if no trades yet
-            if (!activeEnrollment.trades_count || activeEnrollment.trades_count === 0) {
-                const tradesCard = document.querySelectorAll('.card')[1];
-                if (tradesCard) {
-                    tradesCard.innerHTML = `
-                        <div style="text-align: center; padding: 3rem 2rem;">
-                            <div style="font-size: 2.5rem; margin-bottom: 1rem;"></div>
-                            <h4 style="margin-bottom: 0.5rem;">No Trades Yet</h4>
-                            <p style="color: var(--muted);">Your trades will appear here once you start trading</p>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        // ============================================
-        // REFERRAL FUNCTIONALITY
-        // ============================================
-        async function loadReferralData() {
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (!session) return;
-
-                // Fetch user profile with referral data
-                const { data: profile, error } = await supabaseClient
-                    .from('user_profiles')
-                    .select('referral_code, referral_count')
-                    .eq('user_id', session.user.id)
-                    .single();
-
-                if (error) {
-                    console.error('Error loading referral data:', error);
-                    document.getElementById('referralCode').textContent = 'ERROR';
-                    document.getElementById('referralLink').textContent = 'Unable to load referral code';
-                    return;
-                }
-
-                const referralCode = profile.referral_code;
-                const referralCount = profile.referral_count || 0;
-
-                // Display referral code
-                document.getElementById('referralCode').textContent = referralCode || 'NONE';
-
-                // Generate referral link
-                const baseUrl = window.location.origin;
-                const referralLink = `${baseUrl}/start-challenge.html?ref=${referralCode}`;
-                document.getElementById('referralLink').textContent = referralLink;
-
-                // Update stats
-                document.getElementById('referralCount').textContent = referralCount;
-                document.getElementById('totalEarned').textContent = `£${(referralCount * 10).toFixed(0)}`;
-
-                // Setup copy button
-                document.getElementById('copyBtn').addEventListener('click', async function() {
-                    try {
-                        await navigator.clipboard.writeText(referralLink);
-                        this.textContent = 'Copied!';
-                        this.classList.add('copied');
-
-                        setTimeout(() => {
-                            this.textContent = 'Copy Link';
-                            this.classList.remove('copied');
-                        }, 2000);
-                    } catch (err) {
-                        console.error('Failed to copy:', err);
-                    }
-                });
-
-                // Setup share buttons
-                const shareMessage = `Join IPFX Capital and start trading with funded capital! Use my referral code: ${referralCode}`;
-                const encodedMessage = encodeURIComponent(shareMessage);
-                const encodedLink = encodeURIComponent(referralLink);
-
-                document.getElementById('shareEmail').href = `mailto:?subject=Join IPFX Capital&body=${encodedMessage}%0A%0A${encodedLink}`;
-                document.getElementById('shareTwitter').href = `https://twitter.com/intent/tweet?text=${encodedMessage}&url=${encodedLink}`;
-                document.getElementById('shareWhatsApp').href = `https://wa.me/?text=${encodedMessage}%20${encodedLink}`;
-
-            } catch (error) {
-                console.error('Error in loadReferralData:', error);
-            }
-        }
-
-        // ============================================
-        // LOGOUT FUNCTIONALITY
-        // ============================================
-        document.querySelector('.btn-logout').addEventListener('click', async function(e) {
-            e.preventDefault();
-
-            // Prevent multiple clicks
-            if (this.disabled) return;
-            this.disabled = true;
-            this.textContent = 'Logging out...';
-
-            try {
-                // Clear all stored auth data
-                localStorage.removeItem('ipfx_auth_token');
-                localStorage.removeItem('ipfx_user_data');
-                sessionStorage.removeItem('ipfx_user_session');
-
-                // Sign out from Supabase
-                await supabaseClient.auth.signOut();
-
-                // Redirect to login
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('Logout error:', error);
-                // Still redirect even if signOut fails
-                window.location.href = 'login.html';
-            }
-        });
-
-        // Prevent multiple simultaneous auth checks
-        let isCheckingAuth = false;
-
-        // Check auth on page load
-        if (!isCheckingAuth) {
-            isCheckingAuth = true;
-            checkAuth().then(() => {
-                // Load referral data after auth is complete
-                loadReferralData();
-            });
-        }
-    </script>
+// Chat KB
+const KB={
+  payout:['payout','withdraw','profit split','money','payment'],
+  pac:['pac','application challenge','personalised','funded from day','no evaluation','strategy disclose'],
+  drawdown:['drawdown','blow','breach','limit','floor','lose','fail'],
+  scaling:['scale','scaling','500k','more capital','bigger account','upgrade'],
+  ea:['ea','expert advisor','automated','algo','bot','robot','api'],
+  platform:['platform','mt4','mt5','ctrader','metatrader'],
+  hello:['hello','hi','hey','morning','afternoon','evening'],
+};
+const ANS={
+  payout:'Your profits are available under the **Payouts** tab. IPFX operates a 90/10 split — you keep 90%. Payouts process in 1–3 business days to your connected payment method. You need to pass the consistency check to be eligible.',
+  pac:'The **Application Challenge (PAC)** is our funded-from-day-one programme. You disclose your strategy, our analysts backtest it, agree custom parameters with you, and you trade live capital immediately — no evaluation phases. Starts at £25K, scales to £500K.',
+  drawdown:'Your drawdown limit is the floor your balance cannot breach. If hit, trading is suspended. Infinity accounts can reset; PAC accounts: a breach ends the agreement as it falls outside your agreed parameters — you can reapply.',
+  scaling:'After proving a consistent edge, apply for more capital — up to **£200K on Infinity** and up to **£500K on PAC accounts at no fee**. Go to Accounts after 3+ months of consistent returns.',
+  ea:'Yes — EAs and algos are fully permitted. For the PAC, your algorithm logic must be disclosed so our analysts can backtest and agree appropriate parameters before you go live.',
+  platform:'IPFX supports **MT4, MT5 and cTrader**. Choose when setting up. PAC traders agree platform during parameter negotiation.',
+  hello:'Hey! Good to hear from you. I can help with payouts, drawdown, the Application Challenge, scaling capital, EAs, platforms and more. What do you need?',
+  default:'Great question — for detailed help reach us on Discord (usually under 10 mins) or email support@ipfxcapital.com. Anything else I can help clarify?'
+};
+function classify(t){const l=t.toLowerCase();for(const[k,ps] of Object.entries(KB)){if(ps.some(p=>l.includes(p)))return k;}return 'default';}
+function addMsg(txt,role){const msgs=document.getElementById('chatMsgs');const d=document.createElement('div');d.className='msg '+role;const n=new Date();const h=n.getHours().toString().padStart(2,'0'),m=n.getMinutes().toString().padStart(2,'0');d.innerHTML=`<div class="mb">${txt.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div><div class="mt">${h}:${m}</div>`;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function showTyping(){const msgs=document.getElementById('chatMsgs');const d=document.createElement('div');d.className='msg bot';d.id='typing';d.innerHTML='<div class="mb"><div class="tdots"><span></span><span></span><span></span></div></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+function sendMsg(){const inp=document.getElementById('chatInput');const txt=inp.value.trim();if(!txt)return;addMsg(txt,'user');inp.value='';document.getElementById('chatSugs').style.display='none';showTyping();setTimeout(()=>{removeTyping();addMsg(ANS[classify(txt)],'bot');},800+Math.random()*500);}
+function askSug(btn){document.getElementById('chatInput').value=btn.textContent;sendMsg();}
+function toggleChat(){const w=document.getElementById('chatW');w.classList.toggle('open');document.getElementById('chatNotif').style.display='none';}
+</script>
 </body>
 </html>

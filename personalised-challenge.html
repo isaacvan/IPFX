@@ -1,123 +1,1554 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Application Challenge</title>
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Challenge | IPFX Capital</title>
+    <meta name="description" content="The IPFX Application Challenge — custom rules, your own buy-in, direct access to £25K–£250K capital. Designed for experienced traders who know their edge.">
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
-            --muted: #9ea0a6;
-            --line: #2b2d34;
+            --muted: #a0a0a0;
+            --line: #2a2a2c;
             --cobalt: #2563eb;
             --deep-blue: #1e3a8a;
+            --gold: #f59e0b;
+            --success: #10b981;
+            --radius: 12px;
+            --shadow: 0 8px 32px rgba(0,0,0,0.4);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
+        html { scroll-behavior: smooth; overflow-x: hidden; }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-            color: var(--fg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
+            color: var(--fg);
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Scroll progress ── */
+        .scroll-progress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cobalt), #f59e0b);
+            width: 0%;
+            z-index: 9999;
+            transition: width 0.1s linear;
+        }
+
+        /* ── Nav (matches site-wide nav) ── */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 999;
+            padding: 2rem 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            background: rgba(10,10,12,0);
+            border-bottom: 1px solid rgba(42,42,44,0);
+            transform: translateY(-100%);
+            transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        nav.scrolled {
+            background: rgba(10,10,12,0.85);
+            border-bottom: 1px solid rgba(42,42,44,0.3);
+            transform: translateY(0);
+        }
+
+        .logo {
+            display: inline-flex; align-items: center; gap: 0.7rem;
+            text-decoration: none; color: var(--fg);
+            transition: opacity 0.3s ease; order: 1;
+        }
+        .logo:hover { opacity: 0.8; }
+        .logo img { width: 32px; height: 32px; object-fit: contain; }
+        .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.5px; }
+
+        .hamburger {
+            display: none; flex-direction: column; gap: 5px;
+            cursor: pointer; padding: 0.5rem; z-index: 1001;
+            order: 3; margin-left: 0.75rem;
+        }
+        .hamburger span { display: block; width: 24px; height: 2px; background: var(--fg); border-radius: 2px; transition: all 0.3s ease; }
+        .hamburger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        .nav-links {
+            display: flex; gap: 2.5rem; list-style: none; align-items: center;
+        }
+        .nav-links a {
+            color: var(--muted); text-decoration: none;
+            font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; letter-spacing: 0.3px;
+            transition: color 0.3s ease; position: relative;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; bottom: -4px; left: 0;
+            width: 0; height: 2px; background: var(--cobalt); transition: width 0.3s ease;
+        }
+        .nav-links a:hover { color: var(--fg); }
+        .nav-links a:hover::after { width: 100%; }
+
+        .nav-item { position: relative; }
+        .dropdown-arrow { font-size: 0.65rem; margin-left: 0.3rem; opacity: 0.6; transition: transform 0.3s ease; display: inline-block; }
+        .nav-item:hover .dropdown-arrow { transform: rotate(180deg); }
+
+        .dropdown-menu {
+            position: absolute; top: calc(100% + 1rem); left: 50%;
+            transform: translateX(-50%) translateY(-6px);
+            background: rgba(14,14,16,0.98); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+            padding: 0.5rem; min-width: 200px;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .nav-item:hover .dropdown-menu { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+        .dropdown-menu a { padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.9rem; color: var(--muted); display: block; transition: background 0.2s ease, color 0.2s ease; white-space: nowrap; }
+        .dropdown-menu a::after { display: none; }
+        .dropdown-menu a:hover { background: rgba(37,99,235,0.12); color: var(--fg); }
+
+        .nav-separator { width: 1px; height: 20px; background: rgba(255,255,255,0.12); display: inline-block; align-self: center; margin: 0 0.5rem; }
+
+        .btn-nav-cta {
+            display: inline-flex; align-items: center;
+            padding: 0.6rem 1.25rem; background: var(--cobalt);
+            color: var(--fg) !important; border-radius: 8px;
+            font-size: 0.9rem; font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease; white-space: nowrap;
+        }
+        .btn-nav-cta::after { display: none !important; }
+        .btn-nav-cta:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+        .nav-social {
+            display: flex; align-items: center; gap: 0.6rem;
+            margin-left: 1.5rem; padding-left: 1.5rem;
+            border-left: 1px solid rgba(255,255,255,0.1); order: 2;
+        }
+        .nav-social a { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; color: var(--muted); transition: color 0.2s ease; text-decoration: none; }
+        .nav-social a::after { display: none !important; }
+        .nav-social a:hover { color: var(--fg); }
+        .nav-social a svg { width: 16px; height: 16px; }
+
+        /* ── Reveal animations ── */
+        .reveal {
+            opacity: 0; transform: translateY(24px);
+            transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1);
+        }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); }
+        .reveal:nth-child(2) { transition-delay: 0.1s; }
+        .reveal:nth-child(3) { transition-delay: 0.2s; }
+        .reveal:nth-child(4) { transition-delay: 0.3s; }
+        .reveal:nth-child(5) { transition-delay: 0.4s; }
+
+        /* ── Shared section layout ── */
+        section { position: relative; padding: 7rem 0; }
+        section:nth-of-type(even) { background: #0e0e10; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+        .section-badge {
+            display: inline-block; margin-bottom: 1.25rem;
+            padding: 0.4rem 1rem; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+        }
+        .badge-gold { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.35); color: var(--gold); }
+        .badge-blue { background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.35); color: #60a5fa; }
+        .badge-green { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.35); color: var(--success); }
+
+        .section-heading {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.9rem, 4vw, 2.6rem);
+            font-weight: 800; margin-bottom: 0.75rem;
+        }
+        .section-sub { color: var(--muted); font-size: 1rem; line-height: 1.7; max-width: 560px; }
+        .text-center { text-align: center; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .highlight { background: linear-gradient(135deg, var(--cobalt) 0%, #60a5fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .highlight-gold { background: linear-gradient(135deg, #f59e0b 0%, #fcd34d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 90vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 2rem 5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated gradient glow behind hero text */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(ellipse, rgba(37,99,235,0.12) 0%, transparent 70%);
+            animation: heroPulse 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes heroPulse {
+            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+        }
+
+        /* Gold accent line top-right */
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 1px; height: 60%;
+            background: linear-gradient(to bottom, transparent, rgba(245,158,11,0.4), transparent);
+        }
+
+        .hero-content { position: relative; z-index: 1; text-align: center; max-width: 780px; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 1.2rem;
+            background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3);
+            border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold);
+            margin-bottom: 2rem;
+        }
+        .hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+
+        .hero h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.8rem, 6.5vw, 4.2rem);
+            font-weight: 800; line-height: 1.1; margin-bottom: 1.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .hero-desc {
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            color: var(--muted); max-width: 540px;
+            margin: 0 auto 2.5rem; line-height: 1.8;
+        }
+
+        .hero-actions { display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 4rem; }
+
+        .btn-primary {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 1rem 2rem; border-radius: 10px;
+            background: linear-gradient(135deg, var(--cobalt), #1d4ed8);
+            color: var(--fg); text-decoration: none; font-weight: 700; font-size: 1rem;
+            box-shadow: 0 0 24px rgba(37,99,235,0.35);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(37,99,235,0.5); }
+
+        .btn-ghost {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 1rem 2rem; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--fg); text-decoration: none; font-weight: 600; font-size: 1rem;
+            transition: border-color 0.25s ease, background 0.25s ease;
+        }
+        .btn-ghost:hover { border-color: var(--cobalt); background: rgba(37,99,235,0.08); }
+
+        /* Hero stat strip */
+        .hero-stats {
+            display: flex; justify-content: center; gap: 0;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px; overflow: hidden;
+            background: rgba(255,255,255,0.02);
+            backdrop-filter: blur(8px);
+            max-width: 680px; margin: 0 auto;
+        }
+        .hero-stat {
+            flex: 1; padding: 1.25rem 1rem; text-align: center;
+            border-right: 1px solid rgba(255,255,255,0.07);
+        }
+        .hero-stat:last-child { border-right: none; }
+        .hero-stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--fg); }
+        .hero-stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+
+        /* Scroll cue */
+        .scroll-cue {
+            position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+            text-decoration: none; color: var(--muted);
+        }
+        .scroll-cue-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; opacity: 0.4; }
+        .scroll-cue-arrow {
+            width: 38px; height: 38px; border: 1px solid rgba(255,255,255,0.12); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            animation: bounce 1.8s ease-in-out infinite;
+        }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+        .scroll-cue-arrow svg { width: 15px; height: 15px; opacity: 0.5; }
+
+        /* ── WHO IT'S FOR ── */
+        .profiles-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+            margin-top: 3.5rem;
+        }
+        .profile-card {
+            padding: 2rem; border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.02);
+            transition: border-color 0.3s ease, transform 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+        .profile-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--cobalt), transparent);
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .profile-card:hover { border-color: rgba(37,99,235,0.3); transform: translateY(-4px); }
+        .profile-card:hover::before { opacity: 1; }
+        .profile-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.2);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1.25rem; color: #60a5fa;
+        }
+        .profile-icon svg { width: 22px; height: 22px; }
+        .profile-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .profile-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; margin-bottom: 1rem; }
+        .profile-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .profile-tag {
+            padding: 0.25rem 0.65rem; border-radius: 4px;
+            background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.2);
+            font-size: 0.72rem; font-weight: 600; color: #60a5fa;
+        }
+
+        /* ── HOW IT WORKS ── */
+        .steps-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+            margin-top: 3.5rem; position: relative;
+        }
+        .steps-grid::before {
+            content: '';
+            position: absolute; top: 2.5rem; left: calc(16.66% + 1rem); right: calc(16.66% + 1rem);
+            height: 1px; background: linear-gradient(90deg, var(--cobalt), rgba(37,99,235,0.2), var(--cobalt));
+            z-index: 0;
+        }
+        .step {
+            text-align: center; padding: 0 2rem; position: relative; z-index: 1;
+        }
+        .step-num {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: var(--cobalt); color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.5rem; box-shadow: 0 0 20px rgba(37,99,235,0.4);
+        }
+        .step h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.6rem; }
+        .step p { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
+
+        /* ── WHAT YOU CUSTOMIZE ── */
+        .customize-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem;
+            margin-top: 3.5rem;
+        }
+        .customize-row {
+            display: flex; align-items: flex-start; gap: 1rem;
+            padding: 1.4rem 1.6rem; border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+            transition: border-color 0.3s ease;
+        }
+        .customize-row:hover { border-color: rgba(245,158,11,0.3); }
+        .customize-icon {
+            width: 38px; height: 38px; flex-shrink: 0; border-radius: 8px;
+            background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--gold);
+        }
+        .customize-icon svg { width: 18px; height: 18px; }
+        .customize-text h4 { font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .customize-text p { font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
+
+        /* ── CAPITAL TIERS ── */
+        .tiers-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem;
+            margin-top: 3.5rem;
+        }
+        .tier-card {
+            padding: 1.75rem 1.5rem; border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+            text-align: center; position: relative;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .tier-card:hover { transform: translateY(-5px); border-color: rgba(37,99,235,0.4); }
+        .tier-card.featured {
+            border-color: var(--cobalt);
+            background: rgba(37,99,235,0.06);
+        }
+        .tier-popular {
+            position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+            padding: 0.3rem 1rem; border-radius: 0 0 8px 8px;
+            background: var(--cobalt); font-size: 0.7rem; font-weight: 700;
+            letter-spacing: 0.5px; white-space: nowrap;
+        }
+        .tier-capital {
+            font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 800;
+            margin: 0.5rem 0 0.25rem;
+        }
+        .tier-fee { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.25rem; }
+        .tier-features { text-align: left; display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem; }
+        .tier-feature { font-size: 0.83rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+        .tier-feature::before { content: '✓'; color: var(--success); font-weight: 700; flex-shrink: 0; }
+        .tier-btn {
+            display: block; padding: 0.75rem; border-radius: 8px; text-align: center;
+            text-decoration: none; font-weight: 700; font-size: 0.88rem;
+            transition: all 0.25s ease;
+        }
+        .tier-btn-outline {
+            border: 1px solid rgba(255,255,255,0.15); color: var(--fg);
+        }
+        .tier-btn-outline:hover { border-color: var(--cobalt); background: rgba(37,99,235,0.1); }
+        .tier-btn-fill { background: var(--cobalt); color: var(--fg); }
+        .tier-btn-fill:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+        /* ── REQUIREMENTS ── */
+        .req-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
+            margin-top: 3.5rem;
+        }
+        .req-item {
+            display: flex; align-items: flex-start; gap: 1rem;
+            padding: 1.25rem 1.5rem; border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+        }
+        .req-check {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--success); font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+        }
+        .req-text h4 { font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .req-text p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+        /* ── Alignment / anti-rigging section ── */
+        .align-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: start;
+        }
+
+        .align-quote {
+            padding: 1.25rem 1.5rem;
+            border-left: 3px solid var(--gold);
+            background: rgba(245,158,11,0.05);
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+            color: rgba(255,255,255,0.75);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .contrast-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .contrast-col { padding: 1.5rem; }
+
+        .contrast-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .contrast-bad { background: rgba(239,68,68,0.04); border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .contrast-bad .contrast-label { color: #f87171; }
+        .contrast-bad .contrast-label::before { content: '✕'; }
+
+        .contrast-good { background: rgba(16,185,129,0.04); }
+        .contrast-good .contrast-label { color: var(--success); }
+        .contrast-good .contrast-label::before { content: '✓'; }
+
+        .contrast-item {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+        }
+        .contrast-item:last-child { border-bottom: none; }
+
+        .contrast-item.bad { color: rgba(255,255,255,0.5); }
+        .contrast-item.bad::before { content: '✕'; color: #f87171; font-size: 0.75rem; margin-top: 2px; flex-shrink: 0; }
+
+        .contrast-item.good { color: rgba(255,255,255,0.8); }
+        .contrast-item.good::before { content: '✓'; color: var(--success); font-size: 0.75rem; margin-top: 2px; flex-shrink: 0; }
+
+        /* ── Parameter negotiation section ── */
+        .neg-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 3.5rem;
+        }
+
+        .neg-card {
+            padding: 2rem 1.75rem;
+            border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.02);
+            text-align: center;
+            transition: border-color 0.3s ease, transform 0.3s ease;
+        }
+        .neg-card:hover { border-color: rgba(37,99,235,0.3); transform: translateY(-3px); }
+
+        .neg-icon { width: 44px; height: 44px; border-radius: 10px; background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; color: #60a5fa; }
+        .neg-icon svg { width: 22px; height: 22px; }
+        .neg-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.6rem; }
+        .neg-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.65; }
+
+        .neg-arrow {
+            font-size: 1.5rem;
+            color: var(--cobalt);
+            opacity: 0.5;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .neg-note {
+            margin-top: 2.5rem;
+        }
+
+        .neg-note-inner {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            border-radius: var(--radius);
+            background: rgba(37,99,235,0.06);
+            border: 1px solid rgba(37,99,235,0.2);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .neg-note-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        @media (max-width: 900px) {
+            .align-layout { grid-template-columns: 1fr; gap: 2.5rem; }
+            .neg-grid { grid-template-columns: 1fr; }
+            .neg-arrow { transform: rotate(90deg); justify-self: center; }
+        }
+
+        /* ── Backtesting section ── */
+        .bt-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-top: 3.5rem;
+        }
+
+        .bt-card {
+            padding: 2rem 2rem 2rem 2rem;
+            border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.02);
+            position: relative;
+            transition: border-color 0.3s ease, transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .bt-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .bt-card:hover { border-color: rgba(245,158,11,0.25); transform: translateY(-3px); }
+        .bt-card:hover::before { opacity: 1; }
+
+        .bt-step {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--gold);
+            opacity: 0.7;
+            margin-bottom: 0.75rem;
+        }
+
+        .bt-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.65rem;
+        }
+
+        .bt-card p {
+            font-size: 0.88rem;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .bt-disclaimer {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            margin-top: 2rem;
+            padding: 1.25rem 1.5rem;
+            border-radius: var(--radius);
+            background: rgba(37,99,235,0.05);
+            border: 1px solid rgba(37,99,235,0.15);
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.6;
+        }
+
+        .bt-disclaimer svg { flex-shrink: 0; margin-top: 2px; color: #60a5fa; }
+
+        /* 5-item req grid: 2-col, last item spans full width */
+        .req-grid { grid-template-columns: repeat(2, 1fr); }
+        .req-item:last-child:nth-child(odd) { grid-column: 1 / -1; max-width: 540px; margin: 0 auto; width: 100%; }
+
+        @media (max-width: 640px) {
+            .bt-grid { grid-template-columns: 1fr; }
+            .req-item:last-child:nth-child(odd) { max-width: 100%; }
+        }
+
+        /* ── Scaling pathway ── */
+        .scale-track {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 3.5rem 0 3rem;
+            flex-wrap: wrap;
+        }
+
+        .scale-step {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 0.6rem;
             text-align: center;
-            padding: 20px;
         }
 
-        .container { max-width: 600px; }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 40px;
-            transition: color 0.3s ease;
-        }
-        .back-link:hover { color: var(--cobalt); }
-
-        .icon { font-size: 4rem; margin-bottom: 20px; }
-
-        h1 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2rem, 5vw, 3rem);
-            margin: 0 0 16px;
-            color: var(--cobalt);
-        }
-
-        .tagline {
-            font-size: 1.2rem;
-            color: var(--fg);
-            margin-bottom: 30px;
-            font-weight: 500;
-        }
-
-        .coming-soon-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            padding: 10px 24px;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 16px;
-        }
-
-        .launch-date {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--fg);
-            margin-bottom: 30px;
-        }
-        .launch-date span { color: var(--cobalt); }
-
-        p {
-            font-size: 1rem;
-            color: var(--muted);
-            line-height: 1.7;
-            margin-bottom: 30px;
-        }
-
-        .home-btn {
-            display: inline-block;
-            padding: 14px 32px;
-            background: var(--cobalt);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
+        .scale-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.2);
             transition: all 0.3s ease;
         }
-        .home-btn:hover {
-            background: var(--deep-blue);
-            transform: translateY(-2px);
+        .scale-dot.active { background: var(--cobalt); border-color: var(--cobalt); box-shadow: 0 0 12px rgba(37,99,235,0.5); }
+        .scale-dot.gold { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 16px rgba(245,158,11,0.5); }
+
+        .scale-line {
+            flex: 1; height: 1px; min-width: 40px; max-width: 100px;
+            background: linear-gradient(90deg, rgba(37,99,235,0.4), rgba(245,158,11,0.3));
+            margin-bottom: 2.4rem;
+        }
+
+        .scale-amount {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem; font-weight: 800; color: var(--fg);
+        }
+
+        .scale-label {
+            font-size: 0.75rem; color: var(--muted);
+            max-width: 120px; line-height: 1.4;
+        }
+
+        .scale-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .scale-card {
+            padding: 1.75rem;
+            border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.02);
+            transition: border-color 0.3s ease, transform 0.3s ease;
+        }
+        .scale-card:hover { border-color: rgba(245,158,11,0.25); transform: translateY(-3px); }
+
+        .scale-card-icon {
+            width: 40px; height: 40px; border-radius: 9px;
+            background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--gold); margin-bottom: 1.1rem;
+        }
+        .scale-card-icon svg { width: 18px; height: 18px; }
+
+        .scale-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem;
+        }
+        .scale-card p { font-size: 0.84rem; color: var(--muted); line-height: 1.65; }
+
+        .scale-note {
+            display: flex; align-items: flex-start; gap: 0.85rem;
+            padding: 1.1rem 1.5rem; border-radius: var(--radius);
+            background: rgba(245,158,11,0.04); border: 1px solid rgba(245,158,11,0.15);
+            font-size: 0.82rem; color: var(--muted); line-height: 1.6;
+        }
+        .scale-note svg { flex-shrink: 0; margin-top: 2px; }
+
+        @media (max-width: 768px) {
+            .scale-track { gap: 1rem; }
+            .scale-line { display: none; }
+            .scale-cards { grid-template-columns: 1fr; }
+        }
+
+        /* ── FAQ ── */
+        .faq-list { display: flex; flex-direction: column; gap: 0; margin-top: 3.5rem; }
+        .faq-item {
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        .faq-q {
+            width: 100%; padding: 1.4rem 0;
+            display: flex; justify-content: space-between; align-items: center;
+            background: none; border: none; color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600;
+            cursor: pointer; text-align: left; gap: 1rem; transition: color 0.2s ease;
+        }
+        .faq-q:hover { color: #60a5fa; }
+        .faq-icon {
+            width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; line-height: 1; transition: all 0.3s ease; color: var(--muted);
+        }
+        .faq-item.open .faq-icon { background: var(--cobalt); border-color: var(--cobalt); color: var(--fg); transform: rotate(45deg); }
+        .faq-a {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), padding 0.3s ease;
+            color: var(--muted); font-size: 0.93rem; line-height: 1.75;
+        }
+        .faq-item.open .faq-a { max-height: 200px; padding-bottom: 1.25rem; }
+
+        /* ── FINAL CTA ── */
+        .cta-section {
+            padding: 8rem 0;
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.1) 0%, transparent 70%);
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .cta-section h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-bottom: 1rem; }
+        .cta-section p { color: var(--muted); max-width: 480px; margin: 0 auto 2.5rem; line-height: 1.7; }
+
+        /* ── FOOTER ── */
+        footer {
+            background: #07070a; border-top: 1px solid var(--line);
+            padding: 4rem 0 0; position: relative; z-index: 1;
+        }
+        .footer-container {
+            max-width: 1200px; margin: 0 auto; padding: 0 2rem 3rem;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 3rem;
+        }
+        .footer-brand h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; }
+        .footer-brand p { color: var(--muted); font-size: 0.9rem; line-height: 1.7; margin-bottom: 2rem; }
+        .footer-platforms h4 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 1rem; }
+        .footer-platform-logos { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+        .footer-platform-logos img { height: 20px; object-fit: contain; opacity: 0.5; filter: grayscale(1) brightness(2); transition: opacity 0.3s ease; }
+        .footer-platform-logos img:hover { opacity: 0.9; }
+        .footer-links h4 { font-family: 'Space Grotesk', sans-serif; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 1.5rem; }
+        .footer-links ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+        .footer-links a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.9rem; transition: color 0.2s ease; }
+        .footer-links a:hover { color: var(--fg); }
+        .footer-payment { max-width: 1200px; margin: 0 auto; padding: 2rem; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+        .footer-payment h4 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); white-space: nowrap; }
+        .payment-methods { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .payment-icon { padding: 0.3rem 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 6px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+        .footer-risk { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem; border-top: 1px solid var(--line); }
+        .footer-risk p { font-size: 0.75rem; color: rgba(160,160,160,0.6); line-height: 1.6; }
+        .footer-bottom { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem 2rem; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .footer-bottom p { font-size: 0.85rem; color: var(--muted); }
+        .footer-social { display: flex; gap: 1rem; align-items: center; }
+        .footer-social a { color: var(--muted); transition: color 0.2s ease; display: flex; align-items: center; }
+        .footer-social a:hover { color: var(--fg); }
+
+        /* ── Mobile nav ── */
+        @media (max-width: 768px) {
+            nav { padding: 1.2rem 1.5rem; }
+            .hamburger { display: flex; }
+            .nav-links {
+                position: fixed; top: 0; left: 0; right: 0; height: 100vh;
+                background: rgba(10,10,12,0.98); flex-direction: column;
+                gap: 0; padding: 5rem 2rem 2rem;
+                transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+                overflow-y: auto; z-index: 1000;
+            }
+            .nav-links.open { transform: translateX(0); }
+            .nav-links li { border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .nav-links > li > a { display: block; padding: 1rem 0; font-size: 1.1rem; color: var(--fg); }
+            .nav-separator { display: none; }
+            .nav-social { order: 2; margin-left: auto; border-left: none; padding-left: 0; gap: 0.5rem; transition: opacity 0.2s ease; }
+            .nav-social a { width: 26px; height: 26px; }
+            .nav-social a svg { width: 15px; height: 15px; }
+            .hamburger { order: 3; }
+            .hamburger.active ~ .nav-social { opacity: 0; pointer-events: none; }
+            .dropdown-menu { position: static; transform: none !important; opacity: 1; visibility: visible; background: transparent; backdrop-filter: none; border: none; border-radius: 0; box-shadow: none; padding: 0; min-width: 0; display: none; flex-direction: column; }
+            .nav-item.mobile-open .dropdown-menu { display: flex; }
+            .dropdown-menu a { padding: 0.6rem 0 0.6rem 1.25rem; color: var(--muted); border-left: 2px solid rgba(37,99,235,0.3); }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .profiles-grid { grid-template-columns: 1fr 1fr; }
+            .tiers-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 640px) {
+            .profiles-grid { grid-template-columns: 1fr; }
+            .steps-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .steps-grid::before { display: none; }
+            .customize-grid { grid-template-columns: 1fr; }
+            .tiers-grid { grid-template-columns: 1fr; }
+            .req-grid { grid-template-columns: 1fr; }
+            .hero-stats { flex-direction: column; border: none; gap: 0; }
+            .hero-stat { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+            .footer-container { grid-template-columns: 1fr 1fr; }
+            .footer-brand { grid-column: 1 / -1; }
+            .footer-bottom { flex-direction: column; text-align: center; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="index.html" class="back-link">&larr; Back to Home</a>
-        <div class="icon">&#9889;</div>
-        <h1>Application Challenge</h1>
-        <p class="tagline">Custom rules. Fast track to capital.</p>
-        <div class="coming-soon-badge">Coming Soon</div>
-        <p class="launch-date">Launching <span>1st January 2026</span></p>
-        <p>
-            For experienced traders who know their edge. Customize your challenge parameters,
-            set your own buy-in, and fast-track your way to funded capital up to £200K.
-        </p>
-        <a href="index.html" class="home-btn">Return to Home</a>
-    </div>
+
+    <!-- Scroll progress bar -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
+    <!-- Navigation -->
+    <nav id="mainNav">
+        <a href="/" class="logo">
+            <img src="/assets/images/favicon.ico" alt="IPFX Logo">
+            <span class="logo-text">IPFX Capital</span>
+        </a>
+        <div class="hamburger" id="hamburger">
+            <span></span><span></span><span></span>
+        </div>
+        <ul class="nav-links" id="navLinks">
+            <li class="nav-item">
+                <a href="/#programs">Challenges <span class="dropdown-arrow">▼</span></a>
+                <div class="dropdown-menu">
+                    <a href="/infinity.html">Infinity Challenge</a>
+                    <a href="/personalised-challenge.html">Application Challenge</a>
+                    <a href="/#traditional-challenge">Traditional Challenge</a>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a href="/#resources">Resources <span class="dropdown-arrow">▼</span></a>
+                <div class="dropdown-menu">
+                    <a href="/#profit-calculator">Profit Calculator</a>
+                    <a href="/#analyst-reports">Analyst Reports</a>
+                </div>
+            </li>
+            <li><a href="/about.html">About</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+            <li class="nav-separator"></li>
+            <li><a href="/login.html">Login</a></li>
+            <li><a href="/signup.html" class="btn-nav-cta">Get Started</a></li>
+        </ul>
+        <div class="nav-social" id="navSocial">
+            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
+            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg></a>
+            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
+            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
+        </div>
+    </nav>
+
+    <!-- ══ HERO ══ -->
+    <section class="hero" id="top">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="hero-badge-dot"></span>
+                No Evaluation. No Arbitrary Rules. Just Capital.
+            </div>
+            <h1>
+                Funded on day one.<br>
+                <span class="highlight-gold">On your terms.</span>
+            </h1>
+            <p class="hero-desc">
+                No evaluation phase. Our analysts backtest your strategy, agree your parameters with you, and fund you directly — £25K to £250K. You trade, you profit, we both win.
+            </p>
+            <div class="hero-actions">
+                <a href="/signup.html" class="btn-primary">Apply Now →</a>
+                <a href="#how-it-works" class="btn-ghost">See How It Works</a>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value" style="color:#f59e0b;">Zero</div>
+                    <div class="hero-stat-label">Evaluation phase</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">£25K–£250K</div>
+                    <div class="hero-stat-label">Direct capital</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">90%</div>
+                    <div class="hero-stat-label">Profit split</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">Your rules</div>
+                    <div class="hero-stat-label">Negotiated with you</div>
+                </div>
+            </div>
+        </div>
+        <a href="#who-its-for" class="scroll-cue" id="scrollCue">
+            <span class="scroll-cue-label">Explore</span>
+            <span class="scroll-cue-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+        </a>
+    </section>
+
+    <!-- ══ WHO IT'S FOR ══ -->
+    <section id="who-its-for">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-gold">Who It's For</span>
+                <h2 class="section-heading">Built for traders who already know their edge</h2>
+                <p class="section-sub mx-auto">Skip the standard tracks. This challenge adapts to you — not the other way around.</p>
+            </div>
+            <div class="profiles-grid">
+                <div class="profile-card reveal">
+                    <div class="profile-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="19" y1="12" x2="5" y2="12" stroke-dasharray="2 2"/></svg></div>
+                    <h3>Algorithmic Traders</h3>
+                    <p>Your bot has a proven track record. Set drawdown limits that match your strategy's max DD — no arbitrary time caps, no evaluation phase, just parameters calibrated to your system's actual risk profile.</p>
+                    <div class="profile-tags">
+                        <span class="profile-tag">Custom drawdown</span>
+                        <span class="profile-tag">No time cap</span>
+                        <span class="profile-tag">EA allowed</span>
+                    </div>
+                </div>
+                <div class="profile-card reveal">
+                    <div class="profile-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+                    <h3>News &amp; Event Traders</h3>
+                    <p>You trade high-impact macro events. Choose accounts that allow news trading and set your own profit targets based on historical trade frequency.</p>
+                    <div class="profile-tags">
+                        <span class="profile-tag">News trading on</span>
+                        <span class="profile-tag">Custom targets</span>
+                        <span class="profile-tag">Flexible leverage</span>
+                    </div>
+                </div>
+                <div class="profile-card reveal">
+                    <div class="profile-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+                    <h3>Swing &amp; Position Traders</h3>
+                    <p>You hold trades for days or weeks. Extended time frames, overnight holding permitted, and larger account sizes to match your style.</p>
+                    <div class="profile-tags">
+                        <span class="profile-tag">Overnight holds</span>
+                        <span class="profile-tag">Weekend positions</span>
+                        <span class="profile-tag">Up to £250K</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ HOW IT WORKS ══ -->
+    <section id="how-it-works">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-blue">Process</span>
+                <h2 class="section-heading">Three steps to funded capital</h2>
+                <p class="section-sub mx-auto">No multi-phase grind. Apply, customise, and trade with real capital.</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step reveal">
+                    <div class="step-num">1</div>
+                    <h3>Apply &amp; Disclose</h3>
+                    <p>Submit your full strategy — entry and exit rules, risk management approach, instruments, and track record. Our analysts need to understand your edge completely before they can model it.</p>
+                </div>
+                <div class="step reveal">
+                    <div class="step-num">2</div>
+                    <h3>We Backtest &amp; Agree Parameters</h3>
+                    <p>Our quant team stress-tests your strategy across historical market conditions. We'll confirm your proposed parameters or send a counter-offer. You review, negotiate if needed, and sign off.</p>
+                </div>
+                <div class="step reveal">
+                    <div class="step-num">3</div>
+                    <h3>Funded from Day One</h3>
+                    <p>No evaluation phase. No challenge to pass. Once parameters are agreed and your entry fee is paid, your funded account is live. Trade within your agreed parameters and keep 90% of every pound you make.</p>
+                </div>
+            </div>
+            <div class="bt-disclaimer reveal" style="margin-top:2.5rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <p><strong style="color:var(--fg);">The one rule that matters:</strong> your agreed parameters are your contract. Breach the drawdown limits or risk rules you signed off on — not arbitrary ones we invented — and the account closes. These are the same guardrails you told us your strategy operates within. If you trade the way you said you trade, you keep trading.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ ANTI-RIGGING / ALIGNMENT SECTION ══ -->
+    <section id="alignment">
+        <div class="container">
+            <div class="align-layout reveal">
+                <div class="align-left">
+                    <span class="section-badge badge-gold">The Honest Truth</span>
+                    <h2 class="section-heading">Most prop firms are built to make you lose.<br><span class="highlight-gold">We're not.</span></h2>
+                    <p style="color:var(--muted);line-height:1.8;margin-bottom:1.5rem;">The industry's worst-kept secret: 5% daily drawdown limits on volatile strategies. 10% profit targets in 30 days on low-frequency systems. Rules designed in spreadsheets by people who have never traded, calibrated to maximise failure rates — not to find real talent.</p>
+                    <p style="color:var(--muted);line-height:1.8;margin-bottom:2rem;">We're not interested in your entry fee. We're interested in what happens after — because we make money when you make money. A trader rinsing us of capital isn't a problem. It means our process worked, and we found someone exceptional.</p>
+                    <div class="align-quote">
+                        "We don't cap your upside. We don't move the goalposts. If you're good enough to drain a £250K account, we want you trading more of our capital — not less."
+                    </div>
+                </div>
+                <div class="align-right">
+                    <div class="contrast-card">
+                        <div class="contrast-col contrast-bad">
+                            <div class="contrast-label">Other Firms</div>
+                            <div class="contrast-item bad">Fixed 5% daily drawdown — regardless of your strategy</div>
+                            <div class="contrast-item bad">10% profit target in 30 days — arbitrary, not data-driven</div>
+                            <div class="contrast-item bad">Rules that change after you pass the eval</div>
+                            <div class="contrast-item bad">Parameters set to maximise account breaches</div>
+                            <div class="contrast-item bad">Business model depends on you failing</div>
+                        </div>
+                        <div class="contrast-col contrast-good">
+                            <div class="contrast-label">IPFX PAC</div>
+                            <div class="contrast-item good">Drawdown limits derived from your actual backtest data</div>
+                            <div class="contrast-item good">Profit targets set to what your strategy historically achieves</div>
+                            <div class="contrast-item good">Parameters agreed upfront, in writing, before you fund</div>
+                            <div class="contrast-item good">Rules calibrated to keep you trading, not breach you</div>
+                            <div class="contrast-item good">Business model depends on you winning</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ PARAMETER NEGOTIATION ══ -->
+    <section id="negotiation">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-blue">How Parameters Work</span>
+                <h2 class="section-heading">You propose. We analyse. <span class="highlight">We agree.</span></h2>
+                <p class="section-sub mx-auto">You're not submitting to our rules — you're opening a negotiation. Here's exactly how it works.</p>
+            </div>
+            <div class="neg-grid">
+                <div class="neg-card reveal">
+                    <div class="neg-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+                    <h3>You Propose Your Parameters</h3>
+                    <p>Based on how you trade, you tell us what drawdown limits, profit targets, time windows, and leverage you want. You know your strategy best — so you set the opening terms.</p>
+                </div>
+                <div class="neg-arrow reveal">→</div>
+                <div class="neg-card reveal">
+                    <div class="neg-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></div>
+                    <h3>We Run the Numbers</h3>
+                    <p>Our analysts backtest your strategy against your proposed parameters. If the data supports your proposal, we approve it as-is. If our analysis identifies risk your proposal doesn't account for, we send a counter-offer.</p>
+                </div>
+                <div class="neg-arrow reveal">→</div>
+                <div class="neg-card reveal">
+                    <div class="neg-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/></svg></div>
+                    <h3>Counter-Offers, Not Rejections</h3>
+                    <p>A counter-offer might mean a slightly tighter drawdown limit, a more realistic profit target based on your actual data, or a small leverage adjustment. It's not a rejection — it's our analysts protecting your account from parameters your own backtest shows are too aggressive.</p>
+                </div>
+            </div>
+            <div class="neg-note reveal">
+                <div class="neg-note-inner">
+                    <span class="neg-note-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <div>
+                        <strong>Once agreed, the parameters are locked.</strong> We cannot change them retroactively. You trade within the rules you signed off on. No surprises, no shifting goalposts after funding — unlike firms that tighten conditions after the evaluation phase.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ INSTITUTIONAL BACKTESTING ══ -->
+    <section id="backtesting">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-gold">Our Process</span>
+                <h2 class="section-heading">Institutional-grade backtesting <br>before you trade a single pound</h2>
+                <p class="section-sub mx-auto">When you submit your application, our in-house analyst team runs your strategy through the same quantitative stress-testing frameworks used by systematic hedge funds. This is how we set your parameters — not guesswork.</p>
+            </div>
+
+            <div class="bt-grid">
+                <div class="bt-card reveal">
+                    <div class="bt-step">01</div>
+                    <h3>Strategy Ingestion</h3>
+                    <p>Your disclosed strategy rules — entry triggers, exit conditions, position sizing logic, and instrument universe — are codified into our backtesting engine. EAs are imported directly; discretionary rules are translated into structured logic by our quant analysts.</p>
+                </div>
+                <div class="bt-card reveal">
+                    <div class="bt-step">02</div>
+                    <h3>Out-of-Sample Walk-Forward Analysis</h3>
+                    <p>We divide your historical data into in-sample (optimisation) and out-of-sample (validation) windows. We walk the strategy forward across multiple market regimes — trending, ranging, and high-volatility environments — to eliminate curve-fitting and confirm genuine edge.</p>
+                </div>
+                <div class="bt-card reveal">
+                    <div class="bt-step">03</div>
+                    <h3>Monte Carlo Stress Testing</h3>
+                    <p>We run thousands of randomised trade-sequence simulations against your equity curve. This identifies tail-risk scenarios, worst-case drawdown probabilities, and the statistical confidence of your edge surviving in live market conditions with real execution slippage.</p>
+                </div>
+                <div class="bt-card reveal">
+                    <div class="bt-step">04</div>
+                    <h3>Risk-Adjusted Parameter Setting</h3>
+                    <p>The output — your Sharpe ratio, Calmar ratio, max drawdown, profit factor, and expectancy — is used to calibrate your challenge parameters. Your drawdown limits, profit targets, and leverage are set to match what your strategy can realistically sustain. No arbitrary numbers.</p>
+                </div>
+            </div>
+
+            <div class="bt-disclaimer reveal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <p>Our analysts review every application personally. Applications are assessed within 24–48 business hours. Strategy data is kept strictly confidential under NDA-equivalent terms and is never shared externally.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ WHAT YOU CAN CUSTOMISE ══ -->
+    <section id="customise">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-gold">Flexibility</span>
+                <h2 class="section-heading">You set the <span class="highlight-gold">parameters</span></h2>
+                <p class="section-sub mx-auto">Unlike every other prop firm, you're not shoehorned into fixed rules. Tell us how you trade — we'll structure the challenge around it.</p>
+            </div>
+            <div class="customize-grid">
+                <div class="customize-row reveal">
+                    <div class="customize-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+                    <div class="customize-text">
+                        <h4>Drawdown Limit</h4>
+                        <p>Set your max daily and total drawdown tolerance. If your strategy runs tight stops, choose stricter limits and a smaller buy-in. If you swing wide, choose looser limits.</p>
+                    </div>
+                </div>
+                <div class="customize-row reveal">
+                    <div class="customize-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+                    <div class="customize-text">
+                        <h4>Profit Target</h4>
+                        <p>Choose a realistic target based on your historical monthly returns. We don't force an arbitrary 10% — you decide what's achievable for your approach.</p>
+                    </div>
+                </div>
+                <div class="customize-row reveal">
+                    <div class="customize-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                    <div class="customize-text">
+                        <h4>Evaluation Period</h4>
+                        <p>Standard, extended, or unlimited time window. Swing traders and algo traders often need more runway — this is built in from day one.</p>
+                    </div>
+                </div>
+                <div class="customize-row reveal">
+                    <div class="customize-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg></div>
+                    <div class="customize-text">
+                        <h4>Instruments &amp; Leverage</h4>
+                        <p>Trade forex, indices, commodities, or crypto. Choose your leverage tier. News trading and overnight holding can be enabled per your application.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ CAPITAL TIERS ══ -->
+    <section id="pricing">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-blue">Capital Tiers</span>
+                <h2 class="section-heading">Choose your account size</h2>
+                <p class="section-sub mx-auto">Entry fees are one-time and fully refundable on your first payout. No subscriptions, no surprises.</p>
+            </div>
+            <div class="tiers-grid">
+                <div class="tier-card reveal">
+                    <div class="tier-capital">£25K</div>
+                    <div class="tier-fee">£149 one-time entry</div>
+                    <div class="tier-features">
+                        <div class="tier-feature">Analyst backtest included</div>
+                        <div class="tier-feature">Custom drawdown &amp; targets</div>
+                        <div class="tier-feature">90% profit split</div>
+                        <div class="tier-feature">Weekly payouts</div>
+                    </div>
+                    <a href="/signup.html" class="tier-btn tier-btn-outline">Apply</a>
+                </div>
+                <div class="tier-card reveal">
+                    <div class="tier-capital">£50K</div>
+                    <div class="tier-fee">£249 one-time entry</div>
+                    <div class="tier-features">
+                        <div class="tier-feature">Analyst backtest included</div>
+                        <div class="tier-feature">Custom drawdown &amp; targets</div>
+                        <div class="tier-feature">90% profit split</div>
+                        <div class="tier-feature">Weekly payouts</div>
+                    </div>
+                    <a href="/signup.html" class="tier-btn tier-btn-outline">Apply</a>
+                </div>
+                <div class="tier-card featured reveal">
+                    <div class="tier-popular">Most Popular</div>
+                    <div class="tier-capital"><span class="highlight">£100K</span></div>
+                    <div class="tier-fee">£399 one-time entry</div>
+                    <div class="tier-features">
+                        <div class="tier-feature">Analyst backtest included</div>
+                        <div class="tier-feature">Custom drawdown &amp; targets</div>
+                        <div class="tier-feature">90% profit split</div>
+                        <div class="tier-feature">Weekly payouts</div>
+                        <div class="tier-feature">Priority analyst review</div>
+                    </div>
+                    <a href="/signup.html" class="tier-btn tier-btn-fill">Apply</a>
+                </div>
+                <div class="tier-card reveal">
+                    <div class="tier-capital">£250K</div>
+                    <div class="tier-fee">£699 one-time entry</div>
+                    <div class="tier-features">
+                        <div class="tier-feature">Analyst backtest included</div>
+                        <div class="tier-feature">Custom drawdown &amp; targets</div>
+                        <div class="tier-feature">90% profit split</div>
+                        <div class="tier-feature">Weekly payouts</div>
+                        <div class="tier-feature">Dedicated account manager</div>
+                    </div>
+                    <a href="/signup.html" class="tier-btn tier-btn-outline">Apply</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ SCALING PATHWAY ══ -->
+    <section id="scaling" style="background:#0e0e10;">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-gold">Capital Scaling</span>
+                <h2 class="section-heading">Prove your edge. <span class="highlight-gold">We back you further.</span></h2>
+                <p class="section-sub mx-auto">Your initial account is the starting point, not the ceiling. Once we've seen consistent, disciplined trading over time, you can apply to have your capital increased — up to £500K.</p>
+            </div>
+
+            <div class="scale-track reveal">
+                <div class="scale-step">
+                    <div class="scale-dot active"></div>
+                    <div class="scale-amount">£25K–£250K</div>
+                    <div class="scale-label">Initial funded account</div>
+                </div>
+                <div class="scale-line"></div>
+                <div class="scale-step">
+                    <div class="scale-dot"></div>
+                    <div class="scale-amount">+Capital</div>
+                    <div class="scale-label">Consistent edge demonstrated</div>
+                </div>
+                <div class="scale-line"></div>
+                <div class="scale-step">
+                    <div class="scale-dot"></div>
+                    <div class="scale-amount">+Capital</div>
+                    <div class="scale-label">Trust established, drawdown respected</div>
+                </div>
+                <div class="scale-line"></div>
+                <div class="scale-step">
+                    <div class="scale-dot gold"></div>
+                    <div class="scale-amount highlight-gold">£500K</div>
+                    <div class="scale-label">Maximum allocation</div>
+                </div>
+            </div>
+
+            <div class="scale-cards">
+                <div class="scale-card reveal">
+                    <div class="scale-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    </div>
+                    <h3>What We Look For</h3>
+                    <p>Consistent returns relative to your agreed targets. Drawdown staying well within your parameters — not just within them. Risk management that holds up across different market conditions, not just favourable ones.</p>
+                </div>
+                <div class="scale-card reveal">
+                    <div class="scale-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <h3>How You Apply</h3>
+                    <p>After a minimum of 3 months trading your funded account, you can submit a capital increase request. Our analysts review your live trading record — the same rigorous process as your original application — and determine the new allocation.</p>
+                </div>
+                <div class="scale-card reveal">
+                    <div class="scale-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <h3>No Fee to Scale</h3>
+                    <p>Capital increase reviews carry no additional fee. There is no cost to applying for more allocation — if you've earned the trust, we extend the capital. The only thing you need to do is keep trading the way you said you would.</p>
+                </div>
+            </div>
+
+            <div class="scale-note reveal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <p>Capital increases are not guaranteed and are awarded solely at IPFX's discretion based on live trading performance. Traders who repeatedly approach their drawdown limits or deviate from their agreed strategy will not be considered for scaling regardless of net profitability.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ REQUIREMENTS ══ -->
+    <section id="requirements">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-badge badge-green">Requirements</span>
+                <h2 class="section-heading">What you need to apply</h2>
+                <p class="section-sub mx-auto">We're selective — this programme is for traders who can prove their edge, not learn it.</p>
+            </div>
+            <div class="req-grid">
+                <div class="req-item reveal">
+                    <div class="req-check">✓</div>
+                    <div class="req-text">
+                        <h4>Full Strategy Disclosure</h4>
+                        <p>You must submit a complete breakdown of your trading strategy: entry and exit rules, indicators used, timeframes, instruments traded, position sizing method, and how you manage risk intra-trade. This is non-negotiable — our analysts cannot backtest what they don't fully understand.</p>
+                    </div>
+                </div>
+                <div class="req-item reveal">
+                    <div class="req-check">✓</div>
+                    <div class="req-text">
+                        <h4>Verified Track Record</h4>
+                        <p>A minimum of 3 months of live or demo trading history that demonstrates your strategy in action. Myfxbook, FX Blue, broker statements, or EA logs all accepted. The more data you provide, the more accurately we can model your parameters.</p>
+                    </div>
+                </div>
+                <div class="req-item reveal">
+                    <div class="req-check">✓</div>
+                    <div class="req-text">
+                        <h4>Risk Management Evidence</h4>
+                        <p>We need to see consistent position sizing, defined stop-loss usage, and controlled drawdown behaviour across your track record. Strategies with no defined risk management framework will not be approved.</p>
+                    </div>
+                </div>
+                <div class="req-item reveal">
+                    <div class="req-check">✓</div>
+                    <div class="req-text">
+                        <h4>Age 18+ &amp; Identity Verification</h4>
+                        <p>You must be 18 or over with a valid government-issued ID. KYC is completed before your first payout is processed.</p>
+                    </div>
+                </div>
+                <div class="req-item reveal">
+                    <div class="req-check">✓</div>
+                    <div class="req-text">
+                        <h4>One-Time Entry Fee</h4>
+                        <p>A single non-recurring fee from £149 depending on account size. Fully refunded on your first successful payout. No monthly subscriptions, ever.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ FAQ ══ -->
+    <section id="faq">
+        <div class="container" style="max-width: 740px;">
+            <div class="text-center reveal">
+                <span class="section-badge badge-blue">FAQ</span>
+                <h2 class="section-heading">Common questions</h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        <span>Is there really no evaluation phase?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-a">Correct — there is no evaluation or challenge phase. Once you submit your application, our analysts backtest your strategy, we agree your parameters together, and your funded account goes live. You are trading real capital from day one. The only thing standing between you and a funded account is the application review and agreeing the terms.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        <span>What happens if you send a counter-offer and I disagree with it?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-a">Counter-offers are a conversation, not a verdict. If our analysts propose stricter parameters than you requested, they'll explain exactly why — with reference to your own backtest data. You can come back with a revised proposal, ask questions, or request a second review. We want to reach terms both sides are confident in, because a trader who understands their own parameters trades better within them.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        <span>What does "losing the account" actually mean?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-a">If you breach the drawdown or risk parameters you agreed to in your contract, the funded account closes. These aren't arbitrary limits — they are the exact guardrails you told us your strategy operates within, verified by our backtest. Breaching them means you traded outside your own declared strategy. You can reapply, and in most cases we'll offer a discounted re-entry fee.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        <span>Can I use an EA or automated strategy?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-a">Yes. EAs are fully supported. Submit your EA's backtested results and logic alongside your application. Our analysts will import and stress-test it directly. Parameters are then set around the system's actual statistical profile, not a generic template.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        <span>Why do you want good traders? Won't they drain the account?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-a">That's precisely the point. Our revenue comes from spreads and volume on live trading — not from failed challenges. A trader making consistent profits generates more volume, more longevity, and more referrals. A trader rinsing a £250K account means we found someone exceptional, and our next step is to give them more capital, not less. We are structurally incentivised to help you win.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        <span>Is the entry fee refundable?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-a">Yes. Your entry fee is fully refunded on your first successful payout. It is a one-time, non-recurring payment — no subscriptions, no monthly fees, nothing hidden.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ FINAL CTA ══ -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="reveal">
+                <span class="section-badge badge-gold">Ready?</span>
+                <h2>Stop trading with limits <br>someone else set for you.</h2>
+                <p>Apply for the Application Challenge and trade with your own rules, your own risk profile, and up to £250K in capital behind you.</p>
+                <div style="display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;">
+                    <a href="/signup.html" class="btn-primary" style="font-size:1.1rem;padding:1.1rem 2.5rem;">Apply Now →</a>
+                    <a href="/" class="btn-ghost">Compare All Challenges</a>
+                </div>
+                <p style="margin-top:1.5rem;font-size:0.82rem;color:var(--muted);">Entry from £149 · 90% profit split · Fee refunded on first payout · No evaluation phase</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ FOOTER ══ -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">
+                <h3>IPFX Capital</h3>
+                <p>Empowering traders with fair, transparent access to capital. No gimmicks, no hidden fees, just real opportunities to scale your trading career.</p>
+                <div class="footer-platforms">
+                    <h4>Supported Platforms</h4>
+                    <div class="footer-platform-logos">
+                        <img src="/brand-logos/MT4.png" alt="MetaTrader 4">
+                        <img src="/brand-logos/MT5.png" alt="MetaTrader 5">
+                        <img src="/brand-logos/cTraderWhite.svg" alt="cTrader">
+                        <img src="/brand-logos/TradingView.svg" alt="TradingView">
+                        <img src="/brand-logos/matchTrader.png" alt="MatchTrader">
+                    </div>
+                </div>
+            </div>
+            <div class="footer-links">
+                <h4>Programs</h4>
+                <ul>
+                    <li><a href="/infinity.html">Infinity Challenge</a></li>
+                    <li><a href="/personalised-challenge.html">Application Challenge</a></li>
+                    <li><a href="/trading-pot.html">Trading Pot</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="/about.html">About Us</a></li>
+                    <li><a href="/contact.html">Contact</a></li>
+                    <li><a href="/faq.html">FAQ</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="/contact.html">Contact Us</a></li>
+                    <li><a href="/faq.html">Help Center</a></li>
+                    <li><a href="/login.html">Trader Login</a></li>
+                    <li><a href="/signup.html">Start Challenge</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="/terms.html">Terms &amp; Conditions</a></li>
+                    <li><a href="/privacy.html">Privacy Policy</a></li>
+                    <li><a href="/risk-disclosure.html">Risk Disclosure</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-payment">
+            <h4>We Accept</h4>
+            <div class="payment-methods">
+                <div class="payment-icon">Visa</div>
+                <div class="payment-icon">Mastercard</div>
+                <div class="payment-icon">PayPal</div>
+                <div class="payment-icon">Apple Pay</div>
+                <div class="payment-icon">🅖 Google Pay</div>
+                <div class="payment-icon">₿ Crypto</div>
+            </div>
+        </div>
+        <div class="footer-risk">
+            <p><strong>Risk Disclosure:</strong> Trading involves substantial risk of loss and is not suitable for all investors. Past performance is not indicative of future results. You should carefully consider whether trading is appropriate for you in light of your financial condition and risk tolerance. IPFX Capital is a proprietary trading firm providing funded accounts to qualified traders.</p>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 IPFX Capital. All rights reserved.</p>
+            <div class="footer-social">
+                <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
+                <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+                <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ── Scroll progress + cue fade ──
+        const scrollProgress = document.getElementById('scrollProgress');
+        const scrollCue = document.getElementById('scrollCue');
+        function updateScroll() {
+            const st = window.scrollY;
+            const dh = document.documentElement.scrollHeight - window.innerHeight;
+            if (scrollProgress) scrollProgress.style.width = (dh > 0 ? (st / dh) * 100 : 0) + '%';
+            if (scrollCue) scrollCue.style.opacity = Math.max(0, 1 - st / 180);
+        }
+        window.addEventListener('scroll', updateScroll, { passive: true });
+
+        // ── Nav scroll reveal ──
+        const nav = document.getElementById('mainNav');
+        function updateNav() {
+            nav.classList.toggle('scrolled', window.scrollY > 30);
+        }
+        window.addEventListener('scroll', updateNav, { passive: true });
+        updateNav();
+
+        // ── Hamburger ──
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navLinks');
+        if (hamburger && navLinks) {
+            hamburger.addEventListener('click', () => {
+                const open = navLinks.classList.contains('open');
+                navLinks.classList.toggle('open', !open);
+                hamburger.classList.toggle('active', !open);
+            });
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768 && link.nextElementSibling?.classList.contains('dropdown-menu')) {
+                        e.preventDefault();
+                        const item = link.closest('.nav-item');
+                        const isOpen = item.classList.contains('mobile-open');
+                        document.querySelectorAll('.nav-item.mobile-open').forEach(el => el.classList.remove('mobile-open'));
+                        if (!isOpen) item.classList.add('mobile-open');
+                    } else if (window.innerWidth <= 768) {
+                        navLinks.classList.remove('open');
+                        hamburger.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        // ── FAQ accordion ──
+        function toggleFaq(btn) {
+            const item = btn.closest('.faq-item');
+            const isOpen = item.classList.contains('open');
+            document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+            if (!isOpen) item.classList.add('open');
+        }
+
+        // ── Reveal on scroll ──
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    </script>
 </body>
 </html>
