@@ -9,6 +9,231 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
+
+        /* ===== STANDARD NAV ===== */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 999;
+            padding: 0 2.5rem;
+            height: 68px;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            backdrop-filter: blur(10px);
+            background: rgba(10, 10, 12, 0);
+            border-bottom: 1px solid rgba(42, 42, 44, 0);
+            transform: translateY(-100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-center {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            list-style: none;
+            flex: 1;
+            justify-content: center;
+        }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+        .nav-right a {
+            color: var(--muted);
+            text-decoration: none;
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .nav-right a:hover { color: var(--fg); }
+        .nav-right-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.12); }
+        nav.scrolled {
+            background: rgba(10, 10, 12, 0.8);
+            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
+            transform: translateY(0);
+        }
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+            text-decoration: none;
+            color: var(--fg);
+            transition: opacity 0.3s ease;
+        }
+        .logo:hover { opacity: 0.8; }
+        .logo img { width: 32px; height: 32px; object-fit: contain; }
+        .logo-text {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .nav-links { display: flex; gap: 3rem; list-style: none; }
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px; left: 0;
+            width: 0; height: 2px;
+            background: var(--cobalt);
+            transition: width 0.3s ease;
+        }
+        .nav-links a:hover { color: var(--fg); }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-center a {
+            color: var(--muted);
+            text-decoration: none;
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: color 0.25s ease;
+        }
+        .nav-center a:hover { color: var(--fg); }
+        .nav-center a::after { display: none; }
+        .nav-social {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding-left: 0.9rem;
+            border-left: 1px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
+        }
+        .nav-social a {
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px; height: 26px;
+            transition: color 0.2s ease;
+            text-decoration: none;
+        }
+        .nav-social a:hover { color: var(--fg); }
+        .nav-social a svg { width: 14px; height: 14px; fill: currentColor; }
+        .nav-item { position: relative; }
+        .nav-item > a { display: flex; align-items: center; gap: 0.3rem; }
+        .dropdown-arrow { font-size: 0.7rem; transition: transform 0.3s ease; }
+        .nav-item:hover .dropdown-arrow { transform: rotate(180deg); }
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.4rem);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 12, 0.97);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem 0;
+            min-width: 220px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .nav-item:hover .dropdown-menu { opacity: 1; visibility: visible; top: calc(100% + 0.4rem); }
+        .dropdown-menu a {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        .dropdown-menu a::after { display: none; }
+        .dropdown-menu a:hover {
+            color: var(--fg);
+            background: rgba(37, 99, 235, 0.1);
+            border-left-color: var(--cobalt);
+        }
+        .nav-separator { width: 1px; height: 24px; background: rgba(255,255,255,0.15); align-self: center; }
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1000;
+        }
+        .hamburger span {
+            display: block;
+            width: 28px; height: 2px;
+            background: var(--fg);
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(8px, -8px); }
+        .nav-links.mobile-open { display: flex; }
+        @media (max-width: 768px) {
+            nav { padding: 0 1.25rem; height: 60px; }
+            .hamburger { display: flex; margin-left: auto; }
+            .nav-center {
+                display: none;
+                position: fixed;
+                top: 0; right: -100%;
+                width: 72%; max-width: 300px;
+                height: 100vh;
+                background: rgba(10, 10, 12, 0.98);
+                backdrop-filter: blur(20px);
+                flex-direction: column;
+                justify-content: flex-start;
+                gap: 0;
+                padding: 5rem 1.75rem 2rem;
+                border-left: 1px solid rgba(37, 99, 235, 0.2);
+                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+                list-style: none;
+            }
+            .nav-center.mobile-open { display: flex; right: 0; }
+            .nav-center li { width: 100%; border-bottom: 1px solid rgba(255,255,255,0.05); }
+            .nav-center a {
+                display: block;
+                padding: 1.1rem 0;
+                font-size: 1rem;
+                width: 100%;
+                color: var(--muted);
+                text-decoration: none;
+                font-family: 'Space Grotesk', sans-serif;
+                font-weight: 600;
+            }
+            .nav-right { display: none; }
+            .dropdown-menu {
+                position: static; transform: none;
+                opacity: 1; visibility: visible;
+                background: transparent; backdrop-filter: none;
+                border: none; border-radius: 0; box-shadow: none;
+                padding: 0; min-width: 0;
+                display: none; flex-direction: column;
+            }
+            .nav-item.mobile-open .dropdown-menu { display: flex; }
+            .dropdown-menu a {
+                padding: 0.5rem 0 0.5rem 1rem;
+                font-size: 0.9rem;
+                color: var(--muted);
+                border-left: 2px solid rgba(37,99,235,0.3);
+                border-bottom: none;
+            }
+            .nav-social { display: none; }
+            .hamburger { order: 3; margin-left: 0.75rem; }
+            .hamburger.active ~ .nav-social { opacity: 0; pointer-events: none; }
+            .mobile-social-row { display: none !important; }
+        }
+        /* ===== END STANDARD NAV ===== */
+
+
         :root {
             --bg: #0a0a0c;
             --fg: #ffffff;
@@ -607,6 +832,59 @@
     </style>
 </head>
 <body>
+<nav>
+    <a href="/" class="logo">
+        <img src="/assets/images/favicon.ico" alt="IPFX Logo">
+        <span class="logo-text">IPFX Capital</span>
+    </a>
+    <div class="hamburger">
+        <span></span><span></span><span></span>
+    </div>
+    <ul class="nav-center">
+        <li class="nav-item">
+            <a href="/#programs">Challenges <span class="dropdown-arrow">▼</span></a>
+            <div class="dropdown-menu">
+                <a href="/#infinity-challenge">Infinity Challenge</a>
+                <a href="/#application-challenge">Application Challenge</a>
+                <a href="/#traditional-challenge">Traditional Challenge</a>
+                <a href="futures.html">Futures Challenge</a>
+            </div>
+        </li>
+        <li class="nav-item">
+            <a href="/#resources">Resources <span class="dropdown-arrow">▼</span></a>
+            <div class="dropdown-menu">
+                <a href="/#profit-calculator">Profit Calculator</a>
+                <a href="futures.html">Futures Trading</a>
+                <a href="personalised-challenge.html">Personalised Challenge</a>
+            </div>
+        </li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="/#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-right">
+        <div class="nav-social">
+            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
+            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg></a>
+            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
+            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
+        </div>
+        <div class="nav-right-sep"></div>
+        <a href="login.html">Login</a>
+        <a href="/signup.html" class="btn btn-primary" style="padding:0.55rem 1.2rem;font-size:0.875rem;color:#fff;">Get Started</a>
+    </div>
+    <ul class="nav-links" style="display:none;">
+        <li class="mobile-social-row">
+            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
+            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg></a>
+            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
+            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
+        </li>
+    </ul>
+</nav>
     <div class="container">
         <div class="header">
             <a href="index.html" class="back-link">← Back to Home</a>
@@ -1109,5 +1387,48 @@
             }
         });
     </script>
+
+    <script>
+    // Standard nav scroll + hamburger
+    (function() {
+        var nav = document.querySelector('nav');
+        // Always show nav on non-hero pages
+        if (nav) { nav.classList.add('scrolled'); }
+
+        var hamburger = document.querySelector('.hamburger');
+        var navCenter = document.querySelector('.nav-center');
+        if (hamburger && navCenter) {
+            hamburger.addEventListener('click', function() {
+                hamburger.classList.toggle('active');
+                navCenter.classList.toggle('mobile-open');
+            });
+            document.querySelectorAll('.nav-item > a').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    if (window.innerWidth <= 768 && link.nextElementSibling && link.nextElementSibling.classList.contains('dropdown-menu')) {
+                        e.preventDefault();
+                        var item = link.closest('.nav-item');
+                        var isOpen = item.classList.contains('mobile-open');
+                        document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
+                        if (!isOpen) item.classList.add('mobile-open');
+                    }
+                });
+            });
+            document.querySelectorAll('.nav-center a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    hamburger.classList.remove('active');
+                    navCenter.classList.remove('mobile-open');
+                    document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
+                });
+            });
+            document.addEventListener('click', function(e) {
+                if (!hamburger.contains(e.target) && !navCenter.contains(e.target)) {
+                    hamburger.classList.remove('active');
+                    navCenter.classList.remove('mobile-open');
+                }
+            });
+        }
+    })();
+    </script>
+
 </body>
 </html>
