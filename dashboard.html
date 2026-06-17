@@ -231,6 +231,42 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .ref-copy svg{width:13px;height:13px;}
 .ref-note{margin-top:.7rem;font-size:.78rem;color:var(--muted);line-height:1.6;}
 
+/* AFFILIATES */
+.aff-hero{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:2rem;margin-bottom:1.5rem;display:flex;gap:2rem;align-items:center;flex-wrap:wrap;}
+.aff-hero-text{flex:1;min-width:200px;}
+.aff-hero-title{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;margin-bottom:.4rem;}
+.aff-hero-sub{font-size:.85rem;color:var(--muted);line-height:1.65;}
+.aff-stats{display:flex;gap:1.5rem;flex-wrap:wrap;}
+.aff-stat{text-align:center;}
+.aff-stat-val{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:var(--cobalt);}
+.aff-stat-lbl{font-size:.72rem;color:var(--muted2);}
+.aff-form-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.75rem;margin-bottom:1.25rem;}
+.aff-form-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--line);}
+.aff-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;}
+.aff-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem;}
+.aff-field{display:flex;flex-direction:column;gap:.3rem;}
+.aff-field label{font-size:.75rem;font-weight:600;color:var(--muted);}
+.aff-field input,.aff-field textarea,.aff-field select{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:7px;padding:.65rem .85rem;color:var(--fg);font-size:.85rem;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,background .2s;width:100%;}
+.aff-field input:focus,.aff-field textarea:focus{border-color:var(--cobalt);background:rgba(37,99,235,.05);}
+.aff-field input::placeholder,.aff-field textarea::placeholder{color:var(--muted2);}
+.aff-field textarea{resize:vertical;min-height:90px;line-height:1.5;}
+.aff-url-wrap{position:relative;}
+.aff-url-pre{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:.82rem;pointer-events:none;}
+.aff-url-wrap input{padding-left:4.8rem;}
+.aff-submit{padding:.75rem 2rem;background:var(--cobalt);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;transition:background .2s;font-family:'Inter',sans-serif;}
+.aff-submit:hover{background:var(--cobalt-h);}
+.aff-notice{display:flex;gap:.65rem;align-items:flex-start;padding:.85rem 1rem;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.15);border-radius:8px;font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:1.5rem;}
+.aff-notice svg{width:15px;height:15px;color:#60a5fa;flex-shrink:0;margin-top:.1rem;}
+/* REFERRALS IMPROVED */
+.ref-share-btns{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.85rem;}
+.ref-share-btn{padding:.45rem .9rem;border-radius:7px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:border-color .2s,color .2s;text-decoration:none;}
+.ref-share-btn:hover{border-color:rgba(255,255,255,.2);color:var(--fg);}
+.ref-share-btn svg{width:13px;height:13px;}
+.ref-how{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;}
+.ref-how-step{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem;text-align:center;}
+.ref-how-num{width:28px;height:28px;border-radius:50%;background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.25);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#60a5fa;margin:0 auto .6rem;}
+.ref-how-title{font-weight:600;font-size:.82rem;margin-bottom:.25rem;}
+.ref-how-sub{font-size:.75rem;color:var(--muted);line-height:1.5;}
 /* COMMUNITY */
 .social-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem;}
 .social-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.2rem;text-decoration:none;color:var(--fg);display:flex;flex-direction:column;gap:.65rem;transition:border-color .2s,transform .2s;}
@@ -347,6 +383,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="sb-label">Resources</div>
     <button class="nl" onclick="nav('education',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Education</button>
     <button class="nl" onclick="nav('referrals',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Referrals</button>
+    <button class="nl" onclick="nav('affiliates',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Affiliates</button>
     <button class="nl" onclick="nav('community',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="10" r="3"/></svg>Community</button>
     <button class="nl" onclick="nav('help',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; Support</button>
   </nav>
@@ -516,14 +553,24 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="page" id="pg-referrals">
       <div class="stat-row">
         <div class="stat-card"><div class="sc-label">Total Referrals</div><div class="sc-val">7</div><div class="sc-sub">All time</div></div>
-        <div class="stat-card"><div class="sc-label">Earnings</div><div class="sc-val gold">£420</div><div class="sc-sub">Lifetime commissions</div></div>
+        <div class="stat-card"><div class="sc-label">Lifetime Earnings</div><div class="sc-val gold">£420</div><div class="sc-sub">Commissions earned</div></div>
         <div class="stat-card"><div class="sc-label">Pending</div><div class="sc-val">£60</div><div class="sc-sub">Awaiting payout</div></div>
         <div class="stat-card"><div class="sc-label">Conversion</div><div class="sc-val pos">58%</div><div class="sc-sub">Clicks → sign-ups</div></div>
+      </div>
+      <div class="ref-how">
+        <div class="ref-how-step"><div class="ref-how-num">1</div><div class="ref-how-title">Share your link</div><div class="ref-how-sub">Send your unique referral link to traders in your network.</div></div>
+        <div class="ref-how-step"><div class="ref-how-num">2</div><div class="ref-how-title">They sign up &amp; get funded</div><div class="ref-how-sub">When they complete their challenge and get funded, you earn.</div></div>
+        <div class="ref-how-step"><div class="ref-how-num">3</div><div class="ref-how-title">You get paid</div><div class="ref-how-sub">10% of their entry fee paid to you within 30 days of their first payout.</div></div>
       </div>
       <div class="ref-box">
         <div class="ref-lbl">Your referral link</div>
         <div class="ref-row"><input class="ref-input" id="refLink" value="https://ipfxcapital.com/ref/PA7K3X" readonly><button class="ref-copy" onclick="copyRef()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="cpTxt">Copy Link</span></button></div>
         <div class="ref-note">Earn <strong style="color:var(--fg)">10% commission</strong> on the entry fee for every trader you refer who gets funded. Commission paid within 30 days of their first payout.</div>
+        <div class="ref-share-btns">
+          <a class="ref-share-btn" href="https://twitter.com/intent/tweet?text=I%27m%20trading%20with%20IPFX%20Capital%20%E2%80%94%20funded%20accounts%20with%20your%20own%20rules.%20Use%20my%20link%3A%20https%3A%2F%2Fipfxcapital.com%2Fref%2FPA7K3X" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Share on X</a>
+          <a class="ref-share-btn" href="https://wa.me/?text=I%27m%20trading%20with%20IPFX%20Capital%20%E2%80%94%20funded%20accounts%20with%20your%20own%20rules.%20Use%20my%20link%3A%20https%3A%2F%2Fipfxcapital.com%2Fref%2FPA7K3X" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Share on WhatsApp</a>
+          <button class="ref-share-btn" onclick="copyRef()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy link</button>
+        </div>
       </div>
       <div class="sec-hd"><div><div class="sec-title">Referred Traders</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Joined</th><th>Account</th><th>Status</th><th>Commission</th></tr></thead><tbody>
@@ -533,6 +580,71 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <tr><td>H. F***r</td><td>01 Apr 2026</td><td>Traditional £10K</td><td><span class="pill pr">Failed</span></td><td><span class="pill pm">£0</span></td></tr>
         <tr><td>P. A***s</td><td>10 Mar 2026</td><td>Application £250K</td><td><span class="pill pb">In Review</span></td><td><span class="pill pm">Pending</span></td></tr>
       </tbody></table></div>
+    </div>
+
+    <!-- AFFILIATES -->
+    <div class="page" id="pg-affiliates">
+      <div class="aff-hero">
+        <div class="aff-hero-text">
+          <div class="aff-hero-title">Apply now to start earning commission</div>
+          <div class="aff-hero-sub">Partner with IPFX Capital and earn recurring commission for every trader you refer. Share your audience, grow your income.</div>
+        </div>
+        <div class="aff-stats">
+          <div class="aff-stat"><div class="aff-stat-val">10%</div><div class="aff-stat-lbl">Commission rate</div></div>
+          <div class="aff-stat"><div class="aff-stat-val">30d</div><div class="aff-stat-lbl">Payout window</div></div>
+          <div class="aff-stat"><div class="aff-stat-val">No cap</div><div class="aff-stat-lbl">On earnings</div></div>
+        </div>
+      </div>
+      <div class="aff-notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Applications are reviewed within 2–5 business days. The more detail you provide about your audience, the faster we can process your application. All fields marked with your social handles help us verify reach.</span>
+      </div>
+      <form id="affForm" onsubmit="submitAffForm(event)">
+        <div class="aff-form-card">
+          <div class="aff-form-title">Personal Details</div>
+          <div class="aff-grid">
+            <div class="aff-field"><label>First Name</label><input type="text" placeholder="Isaac" required></div>
+            <div class="aff-field"><label>Last Name</label><input type="text" placeholder="Van Enck" required></div>
+            <div class="aff-field"><label>Email Address</label><input type="email" placeholder="you@example.com" required></div>
+            <div class="aff-field"><label>Phone Number</label><input type="tel" placeholder="+44 7700 000000"></div>
+          </div>
+        </div>
+        <div class="aff-form-card">
+          <div class="aff-form-title">Social &amp; Online Presence</div>
+          <div class="aff-grid">
+            <div class="aff-field"><label>Discord ID</label><input type="text" placeholder="username#0000"></div>
+            <div class="aff-field"><label>YouTube Channel</label><div class="aff-url-wrap"><span class="aff-url-pre">https://</span><input type="text" placeholder="youtube.com/c/yourchannel"></div></div>
+            <div class="aff-field"><label>Instagram Profile</label><div class="aff-url-wrap"><span class="aff-url-pre">https://</span><input type="text" placeholder="instagram.com/yourhandle"></div></div>
+            <div class="aff-field"><label>TikTok Profile</label><div class="aff-url-wrap"><span class="aff-url-pre">https://</span><input type="text" placeholder="tiktok.com/@yourhandle"></div></div>
+            <div class="aff-field"><label>X / Twitter Profile</label><div class="aff-url-wrap"><span class="aff-url-pre">https://</span><input type="text" placeholder="x.com/yourhandle"></div></div>
+            <div class="aff-field"><label>Website</label><div class="aff-url-wrap"><span class="aff-url-pre">https://</span><input type="text" placeholder="yoursite.com"></div></div>
+          </div>
+          <div class="aff-field" style="margin-top:.85rem;"><label>Other Contact Details</label><input type="text" placeholder="Telegram, Skype, or any other platform"></div>
+        </div>
+        <div class="aff-form-card">
+          <div class="aff-form-title">About Your Application</div>
+          <div class="aff-field" style="margin-bottom:.85rem;">
+            <label>Why would you like to partner with us?</label>
+            <textarea placeholder="Tell us about yourself. Include:&#10;• Your social media handles and follower counts&#10;• Your experience promoting trading products&#10;• Details about your audience (traders, investors, educators)&#10;• Any other relevant details&#10;&#10;The more detail you provide, the faster we can process your application." style="min-height:130px;"></textarea>
+          </div>
+          <div class="aff-field">
+            <label>How did you hear about IPFX Capital?</label>
+            <select style="background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:7px;padding:.65rem .85rem;color:var(--fg);font-size:.85rem;font-family:'Inter',sans-serif;outline:none;width:100%;">
+              <option value="" style="background:#1a1a1e">Select an option</option>
+              <option value="social" style="background:#1a1a1e">Social media</option>
+              <option value="referral" style="background:#1a1a1e">Referred by someone</option>
+              <option value="search" style="background:#1a1a1e">Search engine</option>
+              <option value="youtube" style="background:#1a1a1e">YouTube</option>
+              <option value="discord" style="background:#1a1a1e">Discord</option>
+              <option value="other" style="background:#1a1a1e">Other</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+          <button type="submit" class="aff-submit">Submit Application</button>
+          <span style="font-size:.78rem;color:var(--muted);">We review every application personally and respond within 2–5 business days.</span>
+        </div>
+      </form>
     </div>
 
     <!-- COMMUNITY -->
@@ -724,6 +836,19 @@ function doPayout(){const v=parseFloat(document.getElementById('poutAmt').value)
 
 // Referral copy
 function copyRef(){navigator.clipboard.writeText(document.getElementById('refLink').value).then(()=>{const t=document.getElementById('cpTxt');t.textContent='Copied!';setTimeout(()=>t.textContent='Copy Link',2000);});}
+
+// Affiliate form submit
+function submitAffForm(e){
+  e.preventDefault();
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.textContent='Submitting…';btn.disabled=true;
+  setTimeout(()=>{
+    e.target.reset();
+    btn.textContent='Application Submitted';
+    btn.style.background='var(--green)';
+    setTimeout(()=>{btn.textContent='Submit Application';btn.disabled=false;btn.style.background='';},4000);
+  },1200);
+}
 
 // Chat KB
 const KB={
