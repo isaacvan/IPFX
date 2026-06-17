@@ -439,20 +439,15 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <!-- JOURNAL -->
     <div class="page" id="pg-journal">
       <div class="stat-row">
-        <div class="stat-card"><div class="sc-label">Total Trades</div><div class="sc-val">147</div><div class="sc-sub">This month</div></div>
-        <div class="stat-card"><div class="sc-label">Win Rate</div><div class="sc-val pos">62.3%</div><div class="sc-sub">+3.1% vs last month</div></div>
-        <div class="stat-card"><div class="sc-label">Avg R:R</div><div class="sc-val">1.8</div><div class="sc-sub">Risk / Reward</div></div>
-        <div class="stat-card"><div class="sc-label">Best Day</div><div class="sc-val gold">+£843</div><div class="sc-sub">14 Jun 2026</div></div>
+        <div class="stat-card"><div class="sc-label">Total Trades</div><div class="sc-val" id="jrnl-total">—</div><div class="sc-sub">This month</div></div>
+        <div class="stat-card"><div class="sc-label">Win Rate</div><div class="sc-val pos" id="jrnl-wr">—</div><div class="sc-sub" id="jrnl-wr-sub">No data yet</div></div>
+        <div class="stat-card"><div class="sc-label">Avg R:R</div><div class="sc-val" id="jrnl-rr">—</div><div class="sc-sub">Risk / Reward</div></div>
+        <div class="stat-card"><div class="sc-label">Best Day</div><div class="sc-val gold" id="jrnl-best">—</div><div class="sc-sub" id="jrnl-best-sub">No trades yet</div></div>
       </div>
       <div class="tbl-wrap">
         <table><thead><tr><th>Date</th><th>Instrument</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P&amp;L</th><th>Notes</th></tr></thead>
-        <tbody>
-          <tr><td>17 Jun</td><td>GBP/USD</td><td><span class="pill pb">Long</span></td><td>1.2741</td><td>1.2798</td><td style="color:var(--green);font-weight:700">+£342</td><td style="color:var(--muted2);font-size:.78rem">News momentum</td></tr>
-          <tr><td>17 Jun</td><td>US30</td><td><span class="pill pr">Short</span></td><td>42,180</td><td>42,090</td><td style="color:var(--green);font-weight:700">+£180</td><td style="color:var(--muted2);font-size:.78rem">Resistance reject</td></tr>
-          <tr><td>16 Jun</td><td>XAU/USD</td><td><span class="pill pb">Long</span></td><td>2,318.40</td><td>2,304.20</td><td style="color:var(--red);font-weight:700">-£142</td><td style="color:var(--muted2);font-size:.78rem">Stopped out</td></tr>
-          <tr><td>16 Jun</td><td>EUR/USD</td><td><span class="pill pb">Long</span></td><td>1.0812</td><td>1.0851</td><td style="color:var(--green);font-weight:700">+£391</td><td style="color:var(--muted2);font-size:.78rem">ECB follow-through</td></tr>
-          <tr><td>15 Jun</td><td>NAS100</td><td><span class="pill pr">Short</span></td><td>19,840</td><td>19,760</td><td style="color:var(--green);font-weight:700">+£280</td><td style="color:var(--muted2);font-size:.78rem">Tech sell-off hedge</td></tr>
-          <tr><td>14 Jun</td><td>GBP/JPY</td><td><span class="pill pb">Long</span></td><td>198.42</td><td>198.91</td><td style="color:var(--green);font-weight:700">+£194</td><td style="color:var(--muted2);font-size:.78rem">BoJ carry trade</td></tr>
+        <tbody id="journal-tbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted2);padding:2.5rem 1rem;font-size:.875rem">No trades logged yet. Your trade history will appear here once your account is active.</td></tr>
         </tbody></table>
       </div>
     </div>
@@ -460,48 +455,31 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <!-- PAYOUTS -->
     <div class="page" id="pg-payouts">
       <div class="stat-row">
-        <div class="stat-card"><div class="sc-label">Total Paid Out</div><div class="sc-val pos">£4,212</div><div class="sc-sub">All time</div></div>
-        <div class="stat-card"><div class="sc-label">Available Now</div><div class="sc-val gold">£1,843</div><div class="sc-sub">Infinity £25K</div></div>
-        <div class="stat-card"><div class="sc-label">Last Payout</div><div class="sc-val">£680</div><div class="sc-sub">1 Jun 2026</div></div>
-        <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val">24 Jun</div><div class="sc-sub">7 days</div></div>
+        <div class="stat-card"><div class="sc-label">Total Paid Out</div><div class="sc-val pos" id="pout-total">£0.00</div><div class="sc-sub">All time</div></div>
+        <div class="stat-card"><div class="sc-label">Available Now</div><div class="sc-val gold" id="pout-avail">£0.00</div><div class="sc-sub" id="pout-avail-sub">No funded account yet</div></div>
+        <div class="stat-card"><div class="sc-label">Last Payout</div><div class="sc-val" id="pout-last">—</div><div class="sc-sub" id="pout-last-sub">No payouts yet</div></div>
+        <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val" id="pout-next">—</div><div class="sc-sub">After first funded week</div></div>
       </div>
       <div class="pout-req">
         <div class="pout-req-title">Request Payout</div>
         <div class="pout-amt"><span style="font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;color:var(--muted)">£</span><input type="number" id="poutAmt" placeholder="0.00"></div>
-        <div class="pout-note">Available: <strong style="color:var(--fg)">£1,843.20</strong> · 90% profit split · Paid in 1–3 business days to your connected method.</div>
+        <div class="pout-note">Available balance shown above · 90% profit split · Paid in 1–3 business days to your connected method.</div>
         <button class="full-btn" onclick="doPayout()">Request Payout</button>
       </div>
       <div class="sec-hd"><div><div class="sec-title">Payment Methods</div></div><button class="cbtn p">+ Add Method</button></div>
-      <div class="pm-card"><div class="pm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div><div class="pm-name">Visa ending 4242</div><div class="pm-det">Expires 09/28</div></div><span class="pill pg" style="margin-left:auto">Default</span></div>
-      <div class="pm-card"><div class="pm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="pm-name">Bank Transfer</div><div class="pm-det">Barclays ••••7831</div></div></div>
+      <div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r)">No payment methods added yet. Add a bank account or card to receive payouts.</div>
       <div class="sec-hd" style="margin-top:1.4rem"><div><div class="sec-title">Payout History</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
-        <tr><td>01 Jun 2026</td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+£680.00</td><td>Visa ••4242</td><td><span class="pill pg">Paid</span></td></tr>
-        <tr><td>01 May 2026</td><td>Application £100K</td><td style="color:var(--green);font-weight:700">+£2,100.00</td><td>Bank Transfer</td><td><span class="pill pg">Paid</span></td></tr>
-        <tr><td>01 Apr 2026</td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+£432.00</td><td>Visa ••4242</td><td><span class="pill pg">Paid</span></td></tr>
-        <tr><td>01 Mar 2026</td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+£1,000.00</td><td>Bank Transfer</td><td><span class="pill pg">Paid</span></td></tr>
+        <tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No payouts yet. Your payout history will appear here once you request your first withdrawal.</td></tr>
       </tbody></table></div>
     </div>
 
     <!-- BILLING -->
     <div class="page" id="pg-billing">
-      <div class="plan-card">
-        <div class="plan-name">Infinity Challenge — £25K</div>
-        <div style="display:flex;align-items:flex-end;gap:.5rem;margin:.4rem 0"><div class="plan-price">£99<span>/month</span></div><span class="pill pg" style="margin-bottom:.35rem">Active</span></div>
-        <div class="plan-feats">
-          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>£25,000 funded account</div>
-          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>90% profit split</div>
-          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>5% max drawdown</div>
-          <div class="plan-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>MT5 &amp; cTrader access</div>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-top:1.1rem"><button class="cbtn">Manage Plan</button><button class="cbtn" style="color:var(--red);border-color:rgba(239,68,68,.25)">Cancel</button></div>
-      </div>
-      <div class="sec-hd"><div><div class="sec-title">Invoices</div></div><button class="cbtn">Download All</button></div>
+      <div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.875rem;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);margin-bottom:1.25rem">No active plan. Purchase a challenge to get started.</div>
+      <div class="sec-hd"><div><div class="sec-title">Invoices</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>Invoice</th><th>Date</th><th>Plan</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
-        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#INV-0041</td><td>01 Jun 2026</td><td>Infinity £25K</td><td>£99.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
-        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#INV-0040</td><td>01 May 2026</td><td>Infinity £25K</td><td>£99.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
-        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#INV-0039</td><td>01 Apr 2026</td><td>Infinity £25K</td><td>£99.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
-        <tr><td style="font-family:'Space Grotesk',sans-serif;font-weight:600">#APP-001</td><td>15 Jan 2026</td><td>Application £100K</td><td>£399.00</td><td><span class="pill pg">Paid</span></td><td><button class="cbtn" style="padding:.25rem .6rem;font-size:.73rem">PDF</button></td></tr>
+        <tr><td colspan="6" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No invoices yet. Your purchase history will appear here.</td></tr>
       </tbody></table></div>
     </div>
 
@@ -512,12 +490,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <span class="pill pg" style="padding:.4rem .9rem;font-size:.78rem">Live</span>
       </div>
       <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Trader</th><th>Account</th><th>Return %</th><th>P&amp;L</th><th>Win Rate</th><th>Trades</th></tr></thead><tbody>
-        <tr><td class="rank-1">🥇 1</td><td><div class="trader-cell"><div class="trader-av">JK</div>J. K***er</div></td><td>Infinity £50K</td><td style="color:var(--green);font-weight:700">+18.4%</td><td style="color:var(--green);font-weight:700">+£9,200</td><td>71%</td><td>83</td></tr>
-        <tr><td class="rank-2">🥈 2</td><td><div class="trader-cell"><div class="trader-av">SM</div>S. M***ez</div></td><td>Application £100K</td><td style="color:var(--green);font-weight:700">+14.1%</td><td style="color:var(--green);font-weight:700">+£14,100</td><td>68%</td><td>112</td></tr>
-        <tr><td class="rank-3">🥉 3</td><td><div class="trader-cell"><div class="trader-av">RO</div>R. O***n</div></td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+12.8%</td><td style="color:var(--green);font-weight:700">+£3,200</td><td>65%</td><td>59</td></tr>
-        <tr><td style="color:var(--muted2);font-weight:600">4</td><td><div class="trader-cell"><div class="trader-av" style="background:rgba(37,99,235,.3);color:#60a5fa">PA</div>You</div></td><td>Infinity £25K</td><td style="color:var(--green);font-weight:700">+7.4%</td><td style="color:var(--green);font-weight:700">+£1,843</td><td>62%</td><td>41</td></tr>
-        <tr><td style="color:var(--muted2);font-weight:600">5</td><td><div class="trader-cell"><div class="trader-av">LT</div>L. T***as</div></td><td>Traditional £25K</td><td style="color:var(--green);font-weight:700">+6.9%</td><td style="color:var(--green);font-weight:700">+£1,725</td><td>58%</td><td>97</td></tr>
-        <tr><td style="color:var(--muted2);font-weight:600">6</td><td><div class="trader-cell"><div class="trader-av">AW</div>A. W***d</div></td><td>Infinity £50K</td><td style="color:var(--green);font-weight:700">+5.2%</td><td style="color:var(--green);font-weight:700">+£2,600</td><td>54%</td><td>74</td></tr>
+        <tr><td colspan="7" style="text-align:center;color:var(--muted2);padding:2.5rem 1rem;font-size:.875rem">The leaderboard will populate as funded traders record results. Check back at the end of the month.</td></tr>
       </tbody></table></div>
     </div>
 
@@ -531,8 +504,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
       <div class="sec-hd"><div><div class="sec-title">Past Results</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>Competition</th><th>Period</th><th>Winner</th><th>Prize</th><th>Your Rank</th></tr></thead><tbody>
-        <tr><td>May Speed Run</td><td>May 2026</td><td>J. K***er</td><td>£2,000</td><td><span class="pill pb">7th</span></td></tr>
-        <tr><td>Q1 Consistency Cup</td><td>Jan–Mar 2026</td><td>R. O***n</td><td>£8,000</td><td><span class="pill pm">Did not enter</span></td></tr>
+        <tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No past competitions yet. Results will appear here once events conclude.</td></tr>
       </tbody></table></div>
     </div>
 
@@ -552,10 +524,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <!-- REFERRALS -->
     <div class="page" id="pg-referrals">
       <div class="stat-row">
-        <div class="stat-card"><div class="sc-label">Total Referrals</div><div class="sc-val">7</div><div class="sc-sub">All time</div></div>
-        <div class="stat-card"><div class="sc-label">Lifetime Earnings</div><div class="sc-val gold">£420</div><div class="sc-sub">Commissions earned</div></div>
-        <div class="stat-card"><div class="sc-label">Pending</div><div class="sc-val">£60</div><div class="sc-sub">Awaiting payout</div></div>
-        <div class="stat-card"><div class="sc-label">Conversion</div><div class="sc-val pos">58%</div><div class="sc-sub">Clicks → sign-ups</div></div>
+        <div class="stat-card"><div class="sc-label">Total Referrals</div><div class="sc-val" id="ref-total">0</div><div class="sc-sub">All time</div></div>
+        <div class="stat-card"><div class="sc-label">Lifetime Earnings</div><div class="sc-val gold" id="ref-earnings">£0.00</div><div class="sc-sub">Commissions earned</div></div>
+        <div class="stat-card"><div class="sc-label">Pending</div><div class="sc-val" id="ref-pending">£0.00</div><div class="sc-sub">Awaiting payout</div></div>
+        <div class="stat-card"><div class="sc-label">Conversion</div><div class="sc-val pos" id="ref-conv">—</div><div class="sc-sub">Clicks → sign-ups</div></div>
       </div>
       <div class="ref-how">
         <div class="ref-how-step"><div class="ref-how-num">1</div><div class="ref-how-title">Share your link</div><div class="ref-how-sub">Send your unique referral link to traders in your network.</div></div>
@@ -832,7 +804,7 @@ function closeSb(){document.getElementById('sidebar').classList.remove('open');d
 function toggleFaq(el){const item=el.parentElement;const was=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!was)item.classList.add('open');}
 
 // Payout
-function doPayout(){const v=parseFloat(document.getElementById('poutAmt').value);if(!v||v<=0){alert('Enter a valid amount.');return;}if(v>1843.20){alert('Exceeds available balance of £1,843.20');return;}alert(`Payout of £${v.toFixed(2)} submitted. Processing in 1–3 business days.`);}
+function doPayout(){const v=parseFloat(document.getElementById('poutAmt').value);if(!v||v<=0){alert('Enter a valid amount.');return;}alert(`Payout of £${v.toFixed(2)} submitted. Processing in 1–3 business days.`);}
 
 // Referral copy
 function copyRef(){navigator.clipboard.writeText(document.getElementById('refLink').value).then(()=>{const t=document.getElementById('cpTxt');t.textContent='Copied!';setTimeout(()=>t.textContent='Copy Link',2000);});}
