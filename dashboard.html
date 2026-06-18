@@ -377,7 +377,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <a href="/" class="sb-logo">
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect width="26" height="26" rx="6" fill="#2563eb"/><path d="M7 19V8l6-3 6 3v11l-6 3-6-3z" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M13 5v16M7 8l6 3 6-3" stroke="#fff" stroke-width="1.5"/></svg>
+    <img src="/assets/images/favicon.ico" alt="IPFX Logo" style="width:28px;height:28px;object-fit:contain;">
     <span class="sb-logo-text">IPFX Capital</span>
   </a>
   <nav class="sb-nav">
@@ -803,7 +803,7 @@ setInterval(tick,1000);tick();
 function nav(id,btn){
   // close home iframe if open
   const panel=document.getElementById('homePanel');
-  if(panel){panel.style.display='none';document.getElementById('homeFrame').src='';}
+  if(panel){panel.style.display='none';}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
   document.getElementById('pg-'+id).classList.add('active');
@@ -832,7 +832,6 @@ function toggleSidebar(){
 }
 
 // Home panel (iframe inside dashboard)
-var homeLoaded=false;
 function navHome(btn){
   const panel=document.getElementById('homePanel');
   const frame=document.getElementById('homeFrame');
@@ -847,7 +846,11 @@ function navHome(btn){
     if(acBtn) acBtn.classList.add('active');
     document.getElementById('pageTitle').textContent='Accounts';
   } else {
-    if(!homeLoaded){frame.src='/index.html';homeLoaded=true;}
+    // Always set src so re-opening after switching pages works
+    if(!frame.getAttribute('data-loaded')){
+      frame.src='/index.html';
+      frame.setAttribute('data-loaded','1');
+    }
     panel.style.display='block';
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
