@@ -832,23 +832,23 @@ function toggleSidebar(){
 }
 
 // Home panel (iframe inside dashboard)
+var homeLoaded=false;
 function navHome(btn){
   const panel=document.getElementById('homePanel');
   const frame=document.getElementById('homeFrame');
-  const isOpen=panel.style.display!=='none';
+  const isOpen=panel.style.display==='block';
   if(isOpen){
-    // already showing home — close it and go back
     panel.style.display='none';
-    frame.src='';
     document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
-    // restore last active page or default to accounts
-    const firstPage=document.querySelector('.page');
-    if(firstPage) firstPage.classList.add('active');
-    document.querySelector('[onclick*="nav(\'accounts"]')?.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    var acPage=document.getElementById('pg-accounts');
+    if(acPage) acPage.classList.add('active');
+    var acBtn=document.querySelector('[onclick*="nav(\'accounts\'"]');
+    if(acBtn) acBtn.classList.add('active');
     document.getElementById('pageTitle').textContent='Accounts';
   } else {
+    if(!homeLoaded){frame.src='/index.html';homeLoaded=true;}
     panel.style.display='block';
-    if(!frame.src||frame.src==='about:blank'||frame.src==='') frame.src='index.html';
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
     btn.classList.add('active');
