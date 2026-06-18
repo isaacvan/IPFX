@@ -1,1061 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | About Us</title>
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <style>
-
-        /* ===== STANDARD NAV ===== */
-        nav {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 999;
-            padding: 0 2.5rem;
-            height: 68px;
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            backdrop-filter: blur(10px);
-            background: rgba(10, 10, 12, 0);
-            border-bottom: 1px solid rgba(42, 42, 44, 0);
-            transform: translateY(-100%);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .nav-center {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            list-style: none;
-            flex: 1;
-            justify-content: center;
-        }
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-shrink: 0;
-        }
-        .nav-right a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: color 0.3s ease;
-        }
-        .nav-right a:hover { color: var(--fg); }
-        .nav-right-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.12); }
-        nav.scrolled {
-            background: rgba(10, 10, 12, 0.8);
-            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
-            transform: translateY(0);
-        }
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.7rem;
-            text-decoration: none;
-            color: var(--fg);
-            transition: opacity 0.3s ease;
-        }
-        .logo:hover { opacity: 0.8; }
-        .logo img { width: 32px; height: 32px; object-fit: contain; }
-        .logo-text {
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        .nav-links { display: flex; gap: 3rem; list-style: none; }
-        .nav-links a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            transition: color 0.3s ease;
-            position: relative;
-        }
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -4px; left: 0;
-            width: 0; height: 2px;
-            background: var(--cobalt);
-            transition: width 0.3s ease;
-        }
-        .nav-links a:hover { color: var(--fg); }
-        .nav-links a:hover::after { width: 100%; }
-        .nav-center a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: color 0.25s ease;
-        }
-        .nav-center a:hover { color: var(--fg); }
-        .nav-center a::after { display: none; }
-        .nav-social {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding-left: 0.9rem;
-            border-left: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0;
-        }
-        .nav-social a {
-            color: var(--muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px; height: 26px;
-            transition: color 0.2s ease;
-            text-decoration: none;
-        }
-        .nav-social a:hover { color: var(--fg); }
-        .nav-social a svg { width: 14px; height: 14px; fill: currentColor; }
-        .nav-item { position: relative; }
-        .nav-item > a { display: flex; align-items: center; gap: 0.3rem; }
-        .dropdown-arrow { font-size: 0.7rem; transition: transform 0.3s ease; }
-        .nav-item:hover .dropdown-arrow { transform: rotate(180deg); }
-        .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 0.4rem);
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 10, 12, 0.97);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            border-radius: 8px;
-            padding: 0.75rem 0;
-            min-width: 220px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        }
-        .nav-item:hover .dropdown-menu { opacity: 1; visibility: visible; top: calc(100% + 0.4rem); }
-        .dropdown-menu a {
-            display: block;
-            padding: 0.75rem 1.5rem;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
-        }
-        .dropdown-menu a::after { display: none; }
-        .dropdown-menu a:hover {
-            color: var(--fg);
-            background: rgba(37, 99, 235, 0.1);
-            border-left-color: var(--cobalt);
-        }
-        .nav-separator { width: 1px; height: 24px; background: rgba(255,255,255,0.15); align-self: center; }
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 6px;
-            cursor: pointer;
-            padding: 0.5rem;
-            z-index: 1000;
-        }
-        .hamburger span {
-            display: block;
-            width: 28px; height: 2px;
-            background: var(--fg);
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
-        .hamburger.active span:nth-child(2) { opacity: 0; }
-        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(8px, -8px); }
-        .nav-links.mobile-open { display: flex; }
-        @media (max-width: 768px) {
-            nav { padding: 0 1.25rem; height: 60px; }
-            .hamburger { display: flex; margin-left: auto; }
-            .nav-center {
-                display: none;
-                position: fixed;
-                top: 0; right: -100%;
-                width: 72%; max-width: 300px;
-                height: 100vh;
-                background: rgba(10, 10, 12, 0.98);
-                backdrop-filter: blur(20px);
-                flex-direction: column;
-                justify-content: flex-start;
-                gap: 0;
-                padding: 5rem 1.75rem 2rem;
-                border-left: 1px solid rgba(37, 99, 235, 0.2);
-                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: -4px 0 24px rgba(0,0,0,0.5);
-                list-style: none;
-            }
-            .nav-center.mobile-open { display: flex; right: 0; }
-            .nav-center li { width: 100%; border-bottom: 1px solid rgba(255,255,255,0.05); }
-            .nav-center a {
-                display: block;
-                padding: 1.1rem 0;
-                font-size: 1rem;
-                width: 100%;
-                color: var(--muted);
-                text-decoration: none;
-                font-family: 'Space Grotesk', sans-serif;
-                font-weight: 600;
-            }
-            .nav-right { display: none; }
-            .dropdown-menu {
-                position: static; transform: none;
-                opacity: 1; visibility: visible;
-                background: transparent; backdrop-filter: none;
-                border: none; border-radius: 0; box-shadow: none;
-                padding: 0; min-width: 0;
-                display: none; flex-direction: column;
-            }
-            .nav-item.mobile-open .dropdown-menu { display: flex; }
-            .dropdown-menu a {
-                padding: 0.5rem 0 0.5rem 1rem;
-                font-size: 0.9rem;
-                color: var(--muted);
-                border-left: 2px solid rgba(37,99,235,0.3);
-                border-bottom: none;
-            }
-            .nav-social { display: none; }
-            .hamburger { order: 3; margin-left: 0.75rem; }
-            .hamburger.active ~ .nav-social { opacity: 0; pointer-events: none; }
-            .mobile-social-row { display: none !important; }
-        }
-        /* ===== END STANDARD NAV ===== */
-
-
-        :root {
-            --bg: #0a0a0c;
-            --fg: #ffffff;
-            --muted: #b8b8b8;
-            --line: #2a2a2c;
-            --cobalt: #2563eb;
-            --deep-blue: #1e3a8a;
-            --radius: 12px;
-
-            /* Professional spacing scale */
-            --space-xs: 8px;
-            --space-sm: 12px;
-            --space-md: 16px;
-            --space-lg: 24px;
-            --space-xl: 32px;
-            --space-2xl: 48px;
-            --space-3xl: 64px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            color: var(--fg);
-            background: var(--bg);
-            line-height: 1.6;
-        }
-
-        /* Navigation */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 999;
-            padding: 2rem 4rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-            background: rgba(10, 10, 12, 0);
-            border-bottom: 1px solid rgba(42, 42, 44, 0);
-            transform: translateY(-100%);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        nav.scrolled {
-            background: rgba(10, 10, 12, 0.8);
-            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
-            transform: translateY(0);
-        }
-
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.7rem;
-            text-decoration: none;
-            color: var(--fg);
-            transition: opacity 0.3s ease;
-        }
-
-        .logo:hover {
-            opacity: 0.8;
-        }
-
-        .logo img {
-            width: 32px;
-            height: 32px;
-            object-fit: contain;
-        }
-
-        .logo-text {
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 3rem;
-            list-style: none;
-        }
-
-        .nav-links a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            transition: color 0.3s ease;
-            position: relative;
-        }
-
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: var(--cobalt);
-            transition: width 0.3s ease;
-        }
-
-        .nav-links a:hover {
-            color: var(--fg);
-        }
-
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-
-        /* Social Media Icons in Nav */
-        .nav-social {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-left: 1rem;
-            padding-left: 1rem;
-            border-left: 1px solid var(--line);
-        }
-
-        .nav-social a {
-            color: var(--muted);
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-        }
-
-        .nav-social a:hover {
-            color: var(--cobalt);
-            transform: translateY(-2px);
-        }
-
-        .nav-social a svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
-        }
-
-        /* Dropdown Menu */
-        .nav-item {
-            position: relative;
-        }
-
-        .nav-item > a {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .dropdown-arrow {
-            font-size: 0.7rem;
-            transition: transform 0.3s ease;
-        }
-
-        .nav-item:hover .dropdown-arrow {
-            transform: rotate(180deg);
-        }
-
-        .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 1rem);
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 10, 12, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            border-radius: 8px;
-            padding: 0.75rem 0;
-            min-width: 220px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-
-        .nav-item:hover .dropdown-menu {
-            opacity: 1;
-            visibility: visible;
-            top: calc(100% + 0.5rem);
-        }
-
-        .dropdown-menu a {
-            display: block;
-            padding: 0.75rem 1.5rem;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
-        }
-
-        .dropdown-menu a::after {
-            display: none;
-        }
-
-        .dropdown-menu a:hover {
-            color: var(--fg);
-            background: rgba(37, 99, 235, 0.1);
-            border-left-color: var(--cobalt);
-        }
-
-        /* Navigation Separator */
-        .nav-separator {
-            width: 1px;
-            height: 24px;
-            background: rgba(255, 255, 255, 0.15);
-            align-self: center;
-        }
-
-        /* Hamburger Menu */
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 6px;
-            cursor: pointer;
-            padding: 0.5rem;
-            z-index: 1000;
-        }
-
-        .hamburger span {
-            display: block;
-            width: 28px;
-            height: 2px;
-            background: var(--fg);
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-
-        .hamburger.active span:nth-child(1) {
-            transform: rotate(45deg) translate(8px, 8px);
-        }
-
-        .hamburger.active span:nth-child(2) {
-            opacity: 0;
-        }
-
-        .hamburger.active span:nth-child(3) {
-            transform: rotate(-45deg) translate(8px, -8px);
-        }
-
-        /* Mobile Menu Dropdown */
-        .nav-links.mobile-open {
-            display: flex;
-        }
-
-        /* Hero Section */
-        .hero {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 6rem 2rem 3rem;
-            text-align: center;
-        }
-
-        .hero h1 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2.5rem, 6vw, 4rem);
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
-        }
-
-        .hero h1 span {
-            color: var(--cobalt);
-        }
-
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--muted);
-            max-width: 700px;
-            margin: 0 auto;
-            line-height: 1.8;
-        }
-
-        /* Challenge Type Switcher */
-        .challenge-switcher-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 3rem 2rem 4rem;
-            display: flex;
-            justify-content: center;
-        }
-
-        .challenge-switcher {
-            display: inline-flex;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 6px;
-            gap: 6px;
-            role: tablist;
-        }
-
-        .challenge-option {
-            padding: 14px 28px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: var(--muted);
-            background: transparent;
-            border: none;
-            white-space: nowrap;
-            font-family: 'Inter', system-ui;
-        }
-
-        .challenge-option:hover {
-            color: var(--fg);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .challenge-option:focus {
-            outline: 2px solid var(--cobalt);
-            outline-offset: 2px;
-        }
-
-        .challenge-option.active {
-            background: var(--cobalt);
-            color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-
-        /* Content Container */
-        .content-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-            min-height: 400px;
-        }
-
-        /* Hidden class for content sections */
-        .hidden {
-            display: none;
-        }
-
-        /* Challenge Content Styles */
-        .challenge-intro {
-            text-align: center;
-            margin-bottom: var(--space-3xl);
-        }
-
-        .challenge-intro h2 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: clamp(2rem, 4vw, 2.5rem);
-            margin-bottom: var(--space-md);
-        }
-
-        .challenge-intro .subtitle {
-            font-size: 1.2rem;
-            color: var(--cobalt);
-            font-weight: 600;
-            margin-bottom: var(--space-md);
-        }
-
-        .challenge-intro p {
-            font-size: 1.1rem;
-            color: var(--muted);
-            line-height: 1.8;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .section-divider {
-            height: 1px;
-            background: var(--line);
-            margin: var(--space-3xl) 0;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: var(--space-2xl);
-        }
-
-        .section-header h3 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.8rem;
-            margin-bottom: var(--space-sm);
-        }
-
-        .section-header p {
-            color: var(--muted);
-            font-size: 1rem;
-        }
-
-        /* Process Steps */
-        .process-steps {
-            display: grid;
-            gap: var(--space-lg);
-            margin-bottom: var(--space-3xl);
-        }
-
-        .step {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: var(--space-xl);
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: var(--space-lg);
-            align-items: start;
-            transition: all 0.3s ease;
-        }
-
-        .step:hover {
-            border-color: var(--cobalt);
-            transform: translateY(-2px);
-        }
-
-        .step-number {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--cobalt);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-
-        .step-content h4 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.3rem;
-            margin-bottom: var(--space-sm);
-        }
-
-        .step-content p {
-            color: var(--muted);
-            line-height: 1.7;
-        }
-
-        /* Feature Grid */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: var(--space-lg);
-            margin-bottom: var(--space-3xl);
-        }
-
-        .feature-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: var(--space-xl);
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .feature-card:hover {
-            border-color: var(--cobalt);
-            transform: translateY(-4px);
-        }
-
-        .feature-label {
-            display: inline-block;
-            padding: var(--space-xs) var(--space-md);
-            background: rgba(37, 99, 235, 0.15);
-            color: var(--cobalt);
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-bottom: var(--space-md);
-        }
-
-        .feature-card h4 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.1rem;
-            margin-bottom: var(--space-sm);
-        }
-
-        .feature-card p {
-            color: var(--muted);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-
-        /* Highlight Box */
-        .highlight-box {
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
-            border-radius: var(--radius);
-            padding: var(--space-xl);
-            margin-bottom: var(--space-3xl);
-        }
-
-        .highlight-box h4 {
-            color: var(--cobalt);
-            font-size: 1.2rem;
-            margin-bottom: var(--space-md);
-        }
-
-        .highlight-box p {
-            color: var(--muted);
-            line-height: 1.7;
-        }
-
-        .highlight-box ul {
-            list-style: none;
-            padding: 0;
-            margin-top: var(--space-md);
-        }
-
-        .highlight-box ul li {
-            padding: var(--space-xs) 0;
-            color: var(--muted);
-            display: flex;
-            align-items: center;
-            gap: var(--space-sm);
-        }
-
-        .highlight-box ul li::before {
-            content: '✓';
-            color: var(--cobalt);
-            font-weight: 700;
-            font-size: 1.2rem;
-        }
-
-        /* Account Sizes Table */
-        .account-sizes {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            overflow: hidden;
-            margin-bottom: var(--space-3xl);
-        }
-
-        .account-sizes table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .account-sizes th,
-        .account-sizes td {
-            padding: 1.25rem;
-            text-align: left;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .account-sizes th {
-            background: rgba(255, 255, 255, 0.05);
-            font-weight: 600;
-            color: var(--cobalt);
-        }
-
-        .account-sizes td {
-            color: var(--muted);
-        }
-
-        .account-sizes tr:last-child td {
-            border-bottom: none;
-        }
-
-        .account-sizes tr:hover td {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        /* CTA Section */
-        .challenge-cta {
-            text-align: center;
-            padding: var(--space-2xl) var(--space-xl);
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-        }
-
-        .challenge-cta h3 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.8rem;
-            margin-bottom: var(--space-md);
-        }
-
-        .challenge-cta p {
-            color: var(--muted);
-            font-size: 1.1rem;
-            margin-bottom: var(--space-xl);
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .cta-button {
-            display: inline-block;
-            padding: 14px 32px;
-            background: var(--cobalt);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-        }
-
-        .cta-button:focus {
-            outline: 2px solid var(--cobalt);
-            outline-offset: 4px;
-        }
-
-        /* Reveal animation for sections */
-        .reveal-section {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: opacity 0.8s ease, transform 0.8s ease;
-        }
-
-        .reveal-section.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Staggered reveal for child elements */
-        .reveal-stagger > * {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(1) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.1s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(2) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.2s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(3) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.3s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(4) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.4s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(5) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.5s;
-        }
-
-        .reveal-stagger.is-visible > *:nth-child(6) {
-            opacity: 1;
-            transform: translateY(0);
-            transition-delay: 0.6s;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            nav {
-                padding: 1.5rem 2rem;
-            }
-
-            .hamburger {
-                display: flex;
-            }
-
-            .nav-links {
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: 70%;
-                max-width: 300px;
-                height: 100vh;
-                background: rgba(10, 10, 12, 0.98);
-                backdrop-filter: blur(20px);
-                flex-direction: column;
-                gap: 0;
-                padding: 6rem 2rem 2rem;
-                border-left: 1px solid rgba(37, 99, 235, 0.2);
-                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
-            }
-
-            .nav-links.mobile-open {
-                right: 0;
-            }
-
-            .nav-links li {
-                width: 100%;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            }
-
-            .nav-links a {
-                display: block;
-                padding: 1.25rem 0;
-                font-size: 1.1rem;
-                width: 100%;
-            }
-
-            .dropdown-menu {
-                position: static;
-                transform: none;
-                margin-top: 0.5rem;
-                margin-left: 1rem;
-                box-shadow: none;
-            }
-
-            .nav-separator {
-                display: none;
-            }
-
-            .nav-social {
-                position: fixed;
-                bottom: 2rem;
-                left: 50%;
-                transform: translateX(-50%);
-                border: none;
-                padding: 0;
-                margin: 0;
-                justify-content: center;
-                width: auto;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.3s ease;
-            }
-
-            .nav-links.mobile-open ~ .nav-social {
-                opacity: 1;
-                pointer-events: all;
-            }
-
-            .hero {
-                padding: 4rem 1.5rem 2rem;
-            }
-
-            .challenge-switcher-container {
-                padding: 2rem 1.5rem 3rem;
-            }
-
-            .challenge-switcher {
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .challenge-option {
-                width: 100%;
-                text-align: center;
-            }
-
-            .content-container {
-                padding: 1.5rem;
-            }
-
-            .step {
-                grid-template-columns: 1fr;
-                text-align: center;
-            }
-
-            .step-number {
-                margin: 0 auto;
-            }
-
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .account-sizes {
-                overflow-x: auto;
-            }
-        }
-
-        /* Reduced motion support */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-
-            .reveal-section,
-            .reveal-stagger > * {
-                opacity: 1;
-                transform: translateY(0);
-                transition: none;
-            }
-
-            html {
-                scroll-behavior: auto;
-            }
-        }
-    </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>About Us | IPFX Capital</title>
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== STANDARD NAV ===== */
+nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+    padding: 0 2.5rem; height: 68px;
+    display: flex; align-items: center; gap: 2rem;
+    backdrop-filter: blur(10px);
+    background: rgba(10, 10, 12, 0);
+    border-bottom: 1px solid rgba(42, 42, 44, 0);
+    transform: translateY(-100%);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-center { display: flex; align-items: center; gap: 2rem; list-style: none; flex: 1; justify-content: flex-start; }
+.nav-right { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
+.nav-right a { color: var(--muted); text-decoration: none; font-family: 'Space Grotesk','Inter',sans-serif; font-size: .95rem; font-weight: 600; transition: color .3s ease; }
+.nav-right a:hover { color: var(--fg); }
+.nav-right-sep { width: 1px; height: 22px; background: rgba(255,255,255,.12); }
+nav.scrolled { background: rgba(10,10,12,.8); border-bottom: 1px solid rgba(42,42,44,.3); transform: translateY(0); }
+.logo { display: inline-flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--fg); transition: opacity .3s ease; }
+.logo:hover { opacity: .8; }
+.logo img { width: 32px; height: 32px; object-fit: contain; }
+.logo-text { font-family: 'Space Grotesk','Inter',sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: .5px; }
+.nav-center a { color: var(--muted); text-decoration: none; font-family: 'Space Grotesk','Inter',sans-serif; font-size: .95rem; font-weight: 600; transition: color .25s ease; }
+.nav-center a:hover { color: var(--fg); }
+.nav-center a::after { display: none; }
+.nav-social { display: flex; align-items: center; gap: .55rem; padding-left: .9rem; border-left: 1px solid rgba(255,255,255,.1); flex-shrink: 0; }
+.nav-social a { color: var(--muted); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; transition: color .2s ease; text-decoration: none; }
+.nav-social a:hover { color: var(--fg); }
+.nav-social a svg { width: 14px; height: 14px; fill: currentColor; }
+.nav-item { position: relative; }
+.nav-item > a { display: flex; align-items: center; gap: .3rem; }
+.dropdown-arrow { font-size: .7rem; transition: transform .3s ease; }
+.nav-item:hover .dropdown-arrow { transform: rotate(180deg); }
+.dropdown-menu { position: absolute; top: calc(100% + .4rem); left: 50%; transform: translateX(-50%); background: rgba(10,10,12,.97); backdrop-filter: blur(20px); border: 1px solid rgba(37,99,235,.2); border-radius: 8px; padding: .75rem 0; min-width: 220px; opacity: 0; visibility: hidden; transition: all .25s cubic-bezier(.4,0,.2,1); box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+.nav-item:hover .dropdown-menu { opacity: 1; visibility: visible; }
+.dropdown-menu a { display: block; padding: .75rem 1.5rem; color: var(--muted); text-decoration: none; font-size: .95rem; transition: all .3s ease; border-left: 3px solid transparent; }
+.dropdown-menu a::after { display: none; }
+.dropdown-menu a:hover { color: var(--fg); background: rgba(37,99,235,.1); border-left-color: var(--cobalt); }
+.hamburger { display: none; flex-direction: column; gap: 6px; cursor: pointer; padding: .5rem; z-index: 1000; }
+.hamburger span { display: block; width: 28px; height: 2px; background: var(--fg); transition: all .3s ease; border-radius: 2px; }
+.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px,8px); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(8px,-8px); }
+@media(max-width:768px){
+    nav { padding: 0 1.25rem; height: 60px; }
+    .hamburger { display: flex; margin-left: auto; }
+    .nav-center { display: none; position: fixed; top: 0; right: -100%; width: 72%; max-width: 300px; height: 100vh; background: rgba(10,10,12,.98); backdrop-filter: blur(20px); flex-direction: column; justify-content: flex-start; gap: 0; padding: 5rem 1.75rem 2rem; border-left: 1px solid rgba(37,99,235,.2); transition: right .3s cubic-bezier(.4,0,.2,1); box-shadow: -4px 0 24px rgba(0,0,0,.5); list-style: none; }
+    .nav-center.mobile-open { display: flex; right: 0; }
+    .nav-center li { width: 100%; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .nav-center a { display: block; padding: 1.1rem 0; font-size: 1rem; width: 100%; color: var(--muted); text-decoration: none; font-family: 'Space Grotesk',sans-serif; font-weight: 600; }
+    .nav-right { display: none; }
+    .dropdown-menu { position: static; transform: none; opacity: 1; visibility: visible; background: transparent; backdrop-filter: none; border: none; border-radius: 0; box-shadow: none; padding: 0; min-width: 0; display: none; flex-direction: column; }
+    .nav-item.mobile-open .dropdown-menu { display: flex; }
+    .dropdown-menu a { padding: .5rem 0 .5rem 1rem; font-size: .9rem; color: var(--muted); border-left: 2px solid rgba(37,99,235,.3); border-bottom: none; }
+    .nav-social { display: none; }
+    .hamburger { order: 3; margin-left: .75rem; }
+    .mobile-social-row { display: none !important; }
+}
+/* ===== END STANDARD NAV ===== */
+
+:root {
+    --bg: #0a0a0c;
+    --fg: #f0f0f0;
+    --muted: #a0a0a0;
+    --cobalt: #2563eb;
+    --cobalt-d: rgba(37,99,235,.12);
+    --line: rgba(255,255,255,.08);
+    --gold: #f59e0b;
+    --green: #10b981;
+    --r: 12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--fg); line-height:1.65; }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+.section { padding: 5rem 0; }
+.section-tag { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--cobalt); background: var(--cobalt-d); border: 1px solid rgba(37,99,235,.25); padding: .3rem .9rem; border-radius: 20px; margin-bottom: 1.25rem; }
+.section-heading { font-family:'Space Grotesk',sans-serif; font-size: clamp(1.8rem,3.5vw,2.6rem); font-weight: 800; line-height: 1.15; margin-bottom: 1rem; }
+.section-sub { font-size: 1.05rem; color: var(--muted); max-width: 640px; line-height: 1.7; }
+.divider { width: 100%; height: 1px; background: var(--line); margin: 0; }
+
+/* HERO */
+.hero {
+    padding: 9rem 2rem 5rem;
+    text-align: center;
+    background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(37,99,235,.15), transparent);
+    position: relative;
+}
+.hero h1 { font-family:'Space Grotesk',sans-serif; font-size: clamp(2.4rem,5vw,4rem); font-weight: 800; line-height: 1.1; margin-bottom: 1.25rem; }
+.hero h1 span { color: var(--cobalt); }
+.hero-sub { font-size: 1.15rem; color: var(--muted); max-width: 620px; margin: 0 auto 2rem; line-height: 1.7; }
+.hero-badges { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+.badge { display: inline-flex; align-items: center; gap: .4rem; background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 20px; padding: .35rem .9rem; font-size: .82rem; color: var(--muted); }
+.badge svg { width: 13px; height: 13px; fill: currentColor; color: var(--cobalt); }
+
+/* STORY */
+.story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+.story-text p { color: var(--muted); font-size: 1rem; line-height: 1.8; margin-bottom: 1rem; }
+.story-text p:last-child { margin-bottom: 0; }
+.story-stat-block { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.stat-card { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: var(--r); padding: 1.5rem; }
+.stat-card .val { font-family:'Space Grotesk',sans-serif; font-size: 1.9rem; font-weight: 800; color: var(--cobalt); }
+.stat-card .label { font-size: .82rem; color: var(--muted); margin-top: .25rem; }
+.stat-card.gold .val { color: var(--gold); }
+.stat-card.green .val { color: var(--green); }
+
+/* VALUES */
+.values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.value-card { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: var(--r); padding: 2rem; transition: border-color .2s; }
+.value-card:hover { border-color: rgba(37,99,235,.4); }
+.value-icon { width: 44px; height: 44px; background: var(--cobalt-d); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+.value-icon svg { width: 20px; height: 20px; color: var(--cobalt); stroke: currentColor; fill: none; }
+.value-card h3 { font-family:'Space Grotesk',sans-serif; font-size: 1.05rem; font-weight: 700; margin-bottom: .5rem; }
+.value-card p { font-size: .9rem; color: var(--muted); line-height: 1.6; }
+
+/* WHY US */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.why-item { display: flex; gap: 1rem; align-items: flex-start; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: var(--r); padding: 1.5rem; }
+.why-num { font-family:'Space Grotesk',sans-serif; font-size: 1.5rem; font-weight: 800; color: rgba(37,99,235,.3); flex-shrink: 0; width: 36px; line-height: 1; }
+.why-item h4 { font-family:'Space Grotesk',sans-serif; font-size: .95rem; font-weight: 700; margin-bottom: .3rem; }
+.why-item p { font-size: .87rem; color: var(--muted); line-height: 1.6; }
+
+/* TEAM */
+.team-intro { max-width: 680px; margin-bottom: 3rem; }
+.team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.team-card { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: var(--r); padding: 2rem; text-align: center; transition: border-color .2s; }
+.team-card:hover { border-color: rgba(37,99,235,.4); }
+.team-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg,#1e3a8a,#2563eb); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-family:'Space Grotesk',sans-serif; font-size: 1.3rem; font-weight: 800; color: #fff; }
+.team-card h3 { font-family:'Space Grotesk',sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: .2rem; }
+.team-card .role { font-size: .82rem; color: var(--cobalt); font-weight: 600; margin-bottom: .75rem; }
+.team-card p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+/* TRANSPARENCY */
+.transparency-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.t-card { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: var(--r); padding: 1.75rem; }
+.t-card h4 { font-family:'Space Grotesk',sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: .6rem; display: flex; align-items: center; gap: .6rem; }
+.t-card h4 svg { width: 16px; height: 16px; color: var(--cobalt); stroke: currentColor; fill: none; flex-shrink: 0; }
+.t-card p { font-size: .9rem; color: var(--muted); line-height: 1.65; }
+
+/* AFFILIATES */
+.aff-hero { background: rgba(37,99,235,.06); border: 1px solid rgba(37,99,235,.2); border-radius: 16px; padding: 3rem; display: grid; grid-template-columns: 1fr auto; gap: 3rem; align-items: center; }
+.aff-hero h3 { font-family:'Space Grotesk',sans-serif; font-size: 1.6rem; font-weight: 800; margin-bottom: .75rem; }
+.aff-hero p { color: var(--muted); font-size: .97rem; line-height: 1.7; max-width: 500px; }
+.aff-tiers { display: flex; flex-direction: column; gap: .75rem; margin-top: 2rem; }
+.aff-tier { display: flex; align-items: center; gap: 1rem; background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 8px; padding: .9rem 1.25rem; }
+.aff-tier-pct { font-family:'Space Grotesk',sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--cobalt); min-width: 52px; }
+.aff-tier-info h5 { font-size: .88rem; font-weight: 600; margin-bottom: .1rem; }
+.aff-tier-info p { font-size: .8rem; color: var(--muted); }
+.aff-cta-box { background: rgba(37,99,235,.1); border: 1px solid rgba(37,99,235,.3); border-radius: 12px; padding: 2rem; text-align: center; min-width: 220px; flex-shrink: 0; }
+.aff-cta-box .big { font-family:'Space Grotesk',sans-serif; font-size: 2.5rem; font-weight: 800; color: var(--cobalt); }
+.aff-cta-box .sub { font-size: .82rem; color: var(--muted); margin-bottom: 1rem; }
+.btn { display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.75rem; border-radius: 8px; font-family:'Space Grotesk',sans-serif; font-size: .95rem; font-weight: 700; text-decoration: none; transition: all .2s ease; cursor: pointer; border: none; }
+.btn-primary { background: var(--cobalt); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.btn-outline:hover { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.05); }
+
+/* TRUSTPILOT */
+.tp-strip { background: rgba(0,184,92,.06); border: 1px solid rgba(0,184,92,.18); border-radius: 12px; padding: 2rem 2.5rem; display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+.tp-stars { font-size: 1.5rem; color: #00b875; letter-spacing: 2px; }
+.tp-text h4 { font-family:'Space Grotesk',sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: .2rem; }
+.tp-text p { font-size: .88rem; color: var(--muted); }
+.tp-badge { margin-left: auto; background: rgba(0,184,92,.12); border: 1px solid rgba(0,184,92,.25); border-radius: 20px; padding: .4rem 1.1rem; font-size: .82rem; font-weight: 700; color: #00b875; white-space: nowrap; }
+
+/* CTA */
+.cta-section { text-align: center; padding: 5rem 2rem 6rem; }
+.cta-section h2 { font-family:'Space Grotesk',sans-serif; font-size: clamp(1.8rem,3.5vw,2.8rem); font-weight: 800; margin-bottom: 1rem; }
+.cta-section p { color: var(--muted); font-size: 1.05rem; margin-bottom: 2rem; max-width: 520px; margin-left: auto; margin-right: auto; }
+.cta-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+/* FOOTER */
+footer { border-top: 1px solid var(--line); padding: 2rem; text-align: center; color: var(--muted); font-size: .85rem; }
+
+@media(max-width:900px){
+    .story-grid,.why-grid,.transparency-grid { grid-template-columns: 1fr; }
+    .team-grid { grid-template-columns: 1fr 1fr; }
+    .values-grid { grid-template-columns: 1fr 1fr; }
+    .aff-hero { grid-template-columns: 1fr; }
+    .aff-cta-box { min-width: 0; }
+}
+@media(max-width:600px){
+    .team-grid,.values-grid { grid-template-columns: 1fr; }
+    .why-grid { grid-template-columns: 1fr; }
+    .hero { padding: 7rem 1.25rem 3.5rem; }
+    .section { padding: 3.5rem 0; }
+    .tp-badge { margin-left: 0; }
+}
+</style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav>
+
+<nav>
     <a href="/" class="logo">
         <img src="/assets/images/favicon.ico" alt="IPFX Logo">
         <span class="logo-text">IPFX Capital</span>
     </a>
-    <div class="hamburger">
-        <span></span><span></span><span></span>
-    </div>
+    <div class="hamburger"><span></span><span></span><span></span></div>
     <ul class="nav-center">
         <li class="nav-item">
             <a href="/#programs">Challenges <span class="dropdown-arrow">▼</span></a>
@@ -1090,415 +240,326 @@
         <a href="login.html">Login</a>
         <a href="/signup.html" class="btn btn-primary" style="padding:0.55rem 1.2rem;font-size:0.875rem;color:#fff;">Get Started</a>
     </div>
-    <ul class="nav-links" style="display:none;">
-        <li class="mobile-social-row">
-            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
-            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
-            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg></a>
-            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
-            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
-        </li>
-    </ul>
+    <ul class="nav-links" style="display:none;"></ul>
 </nav>
 
-    <!-- Hero Section -->
-    <section class="hero reveal-section">
-        <h1>About <span>IPFX Capital</span></h1>
-        <p>Access funded trading accounts from £10,000 to £200,000 with profit splits from 50% to 90%. Professional prop trading with transparent terms and fair evaluation processes.</p>
-    </section>
-
-    <!-- Challenge Type Switcher -->
-    <div class="challenge-switcher-container reveal-section">
-        <div class="challenge-switcher" role="tablist" aria-label="Challenge type selection">
-            <button class="challenge-option active" data-challenge="infinity" role="tab" aria-selected="true" aria-controls="infinity-content" id="tab-infinity">Infinity Challenge</button>
-            <button class="challenge-option" data-challenge="personalised" role="tab" aria-selected="false" aria-controls="personalised-content" id="tab-personalised">Personalised Application</button>
-            <button class="challenge-option" data-challenge="traditional" role="tab" aria-selected="false" aria-controls="traditional-content" id="tab-traditional">Traditional</button>
+<!-- HERO -->
+<section class="hero">
+    <div class="container">
+        <div class="section-tag">Founded 2025 · London, UK</div>
+        <h1>Built by traders,<br><span>for traders.</span></h1>
+        <p class="hero-sub">IPFX Capital was created because we believed the prop firm industry could be done better — fairer rules, faster payouts, and a team that actually trades.</p>
+        <div class="hero-badges">
+            <span class="badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Founded 2025</span>
+            <span class="badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a11 11 0 1 0 11 11A11 11 0 0 0 12 1zm0 20a9 9 0 1 1 9-9 9 9 0 0 1-9 9zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Bi-Weekly Payouts</span>
+            <span class="badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>90% Profit Split</span>
+            <span class="badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Global Access</span>
         </div>
     </div>
+</section>
 
-    <!-- Dynamic Content Container -->
-    <div class="content-container">
-        <!-- Infinity Challenge Content -->
-        <div id="infinity-content" class="challenge-content" role="tabpanel" aria-labelledby="tab-infinity">
-            <!-- Introduction -->
-            <div class="challenge-intro reveal-section">
-                <h2>The Infinity Challenge</h2>
-                <p class="subtitle">No Evaluation Fees. Instant Funding.</p>
-                <p>Start trading with real capital immediately without paying upfront evaluation fees. Account sizes range from £10,000 to £200,000 with profit splits starting at 50% and scaling to 90% based on consistent performance over 6+ months of trading activity.</p>
+<div class="divider"></div>
+
+<!-- OUR STORY -->
+<section class="section">
+    <div class="container">
+        <div class="story-grid">
+            <div class="story-text">
+                <div class="section-tag">Our Story</div>
+                <h2 class="section-heading">We started IPFX because we were frustrated.</h2>
+                <p>In 2025, the three founders of IPFX Capital had spent years trading — across forex, indices, commodities and futures. We used prop firms. We knew how they worked. And we knew most of them were built to take your money, not fund your trading.</p>
+                <p>Arbitrary consistency rules. Drawdown limits that reset against you. Payout delays that stretched to weeks. Challenges that moved the goalposts when you got close.</p>
+                <p>So we built the firm we always wanted to trade at. No hidden traps. Payouts that actually land. Rules written plainly, because if we can't explain a rule simply, it shouldn't exist.</p>
+                <p>We launched in 2025 and have already issued five-figure payouts to our traders. We're growing fast — and we're staying honest while we do it.</p>
             </div>
-
-            <!-- What is it Section -->
-            <div class="section-header reveal-section">
-                <h3>What Makes It Different?</h3>
-                <p>Key features and requirements</p>
-            </div>
-
-            <div class="feature-grid reveal-stagger">
-                <div class="feature-card">
-                    <span class="feature-label">ACCESS</span>
-                    <h4>Zero Entry Cost</h4>
-                    <p>No evaluation fees or monthly subscriptions. Start trading immediately with our capital at no upfront cost.</p>
+            <div class="story-stat-block">
+                <div class="stat-card green">
+                    <div class="val">2025</div>
+                    <div class="label">Year founded</div>
                 </div>
-                <div class="feature-card">
-                    <span class="feature-label">TIMELINE</span>
-                    <h4>24-48 Hour Approval</h4>
-                    <p>Application review and identity verification typically completed within 24-48 hours. Minimum 6 months trading experience required.</p>
+                <div class="stat-card">
+                    <div class="val">£5K+</div>
+                    <div class="label">Paid out to traders</div>
                 </div>
-                <div class="feature-card">
-                    <span class="feature-label">GROWTH</span>
-                    <h4>Performance-Based Scaling</h4>
-                    <p>Demonstrate 3+ consecutive profitable months to unlock larger account sizes. Progress from £10k to £200k+ capital.</p>
+                <div class="stat-card">
+                    <div class="val">90%</div>
+                    <div class="label">Profit split — always</div>
                 </div>
-                <div class="feature-card">
-                    <span class="feature-label">TARGETS</span>
-                    <h4>10% Profit Objective</h4>
-                    <p>Realistic 10% profit targets across all account sizes. No artificial deadlines or time pressure on achieving targets.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-label">SPLITS</span>
-                    <h4>50-90% Profit Share</h4>
-                    <p>Start with 50% profit share on £10k accounts. Scale up to 90% on £200k accounts based on consistent profitability.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-label">PAYOUTS</span>
-                    <h4>Weekly Withdrawals</h4>
-                    <p>Request payouts weekly after minimum £500 profit threshold. Processed within 24-48 hours via bank transfer or crypto.</p>
+                <div class="stat-card gold">
+                    <div class="val">£200K</div>
+                    <div class="label">Max funded capital</div>
                 </div>
             </div>
-
-            <div class="section-divider"></div>
-
-            <!-- How It Works Section -->
-            <div class="section-header reveal-section">
-                <h3>How The Process Works</h3>
-                <p>Your journey from application to funded trader</p>
-            </div>
-
-            <div class="process-steps reveal-stagger">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h4>Apply & Verify</h4>
-                        <p>Submit application with trading history and verify identity. Requires minimum 6 months documented trading experience. Review process takes 24-48 hours.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h4>Receive Trading Account</h4>
-                        <p>Once approved, receive instant access to funded account. Initial account size (£10k-£50k) determined by experience level and trading history.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h4>Trade & Grow</h4>
-                        <p>Start trading immediately with 5% daily loss limit and 10% total drawdown limit. All strategies permitted including EAs and overnight positions.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h4>Earn Payouts</h4>
-                        <p>Request weekly payouts after £500 minimum profit (starter accounts). Payouts processed within 24-48 hours. Maintain 40 trading days per evaluation period.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">5</div>
-                    <div class="step-content">
-                        <h4>Scale Your Account</h4>
-                        <p>Achieve 3+ consecutive profitable months with consistent risk management to qualify for next tier. Progress from £10k to £200k with increasing profit splits up to 90%.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section-divider"></div>
-
-            <!-- Account Sizes Section -->
-            <div class="section-header reveal-section">
-                <h3>Available Account Sizes</h3>
-                <p>Scale your capital as you demonstrate consistency</p>
-            </div>
-
-            <div class="account-sizes reveal-section">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Account Size</th>
-                            <th>Profit Target</th>
-                            <th>Daily Loss Limit</th>
-                            <th>Total Loss Limit</th>
-                            <th>Profit Split</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>£10,000</td>
-                            <td>£1,000 (10%)</td>
-                            <td>£500 (5%)</td>
-                            <td>£1,000 (10%)</td>
-                            <td>50%</td>
-                        </tr>
-                        <tr>
-                            <td>£25,000</td>
-                            <td>£2,500 (10%)</td>
-                            <td>£1,250 (5%)</td>
-                            <td>£2,500 (10%)</td>
-                            <td>60%</td>
-                        </tr>
-                        <tr>
-                            <td>£50,000</td>
-                            <td>£5,000 (10%)</td>
-                            <td>£2,500 (5%)</td>
-                            <td>£5,000 (10%)</td>
-                            <td>70%</td>
-                        </tr>
-                        <tr>
-                            <td>£100,000</td>
-                            <td>£10,000 (10%)</td>
-                            <td>£5,000 (5%)</td>
-                            <td>£10,000 (10%)</td>
-                            <td>80%</td>
-                        </tr>
-                        <tr>
-                            <td>£200,000</td>
-                            <td>£20,000 (10%)</td>
-                            <td>£10,000 (5%)</td>
-                            <td>£20,000 (10%)</td>
-                            <td>90%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Trading Rules Highlight -->
-            <div class="highlight-box reveal-section">
-                <h4>Trading Rules & Requirements</h4>
-                <p>Transparent rules for sustainable trading success:</p>
-                <ul>
-                    <li>Daily loss limit: Maximum 5% daily drawdown from starting balance</li>
-                    <li>Total loss limit: Maximum 10% total drawdown from starting balance</li>
-                    <li>Minimum trading days: 10 active trading days before first payout</li>
-                    <li>Profit consistency: No single day exceeds 40% of total profits</li>
-                    <li>Allowed instruments: Forex, Indices, Commodities, Cryptocurrencies</li>
-                    <li>Trading style: All strategies allowed (scalping, day trading, swing trading)</li>
-                    <li>Overnight and weekend positions permitted</li>
-                    <li>Expert Advisors (EAs) and copy trading permitted</li>
-                </ul>
-            </div>
-
-            <!-- Scaling Process -->
-            <div class="section-header reveal-section">
-                <h3>Scaling Your Account</h3>
-                <p>Grow your capital and profit share over time</p>
-            </div>
-
-            <div class="highlight-box reveal-section">
-                <h4>How Account Scaling Works</h4>
-                <p>After achieving your profit target and demonstrating consistent profitability over minimum 3 months, you qualify for account scaling. Requirements for each tier:</p>
-                <ul>
-                    <li>Minimum 3 consecutive profitable months</li>
-                    <li>Zero breaches of daily or total loss limits</li>
-                    <li>Consistent activity (minimum 40 trading days per evaluation period)</li>
-                    <li>Positive risk-reward ratios maintained throughout period</li>
-                    <li>Maximum 7% drawdown in any single month</li>
-                </ul>
-                <p style="margin-top: var(--space-md);">Meeting these criteria qualifies your account for the next tier with increased capital and improved profit splits. Scaling typically occurs every 3-6 months based on performance.</p>
-            </div>
-
-            <!-- CTA Section -->
-            <div class="challenge-cta reveal-section">
-                <h3>Ready to Start Trading?</h3>
-                <p>Apply for the Infinity Challenge and access trading capital with zero upfront costs. Requires minimum 6 months trading experience.</p>
-                <a href="start-challenge.html?type=infinity" class="cta-button">Apply for Infinity Challenge</a>
-            </div>
-        </div>
-
-        <!-- Personalised Application Content -->
-        <div id="personalised-content" class="challenge-content hidden" role="tabpanel" aria-labelledby="tab-personalised">
-            <p style="text-align: center; color: var(--muted); font-size: 1.1rem;">Personalised Application content will go here...</p>
-        </div>
-
-        <!-- Traditional Content -->
-        <div id="traditional-content" class="challenge-content hidden" role="tabpanel" aria-labelledby="tab-traditional">
-            <p style="text-align: center; color: var(--muted); font-size: 1.1rem;">Traditional challenge content will go here...</p>
         </div>
     </div>
+</section>
 
-    <script>
-        // Navigation scroll behavior
-        const nav = document.querySelector('nav');
-        let ticking = false;
+<div class="divider"></div>
 
-        function updateScroll() {
-            const scrolled = window.pageYOffset;
+<!-- VALUES -->
+<section class="section">
+    <div class="container">
+        <div class="section-tag">What We Stand For</div>
+        <h2 class="section-heading" style="margin-bottom:3rem;">Our values aren't slogans.</h2>
+        <div class="values-grid">
+            <div class="value-card">
+                <div class="value-icon"><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <h3>Full Transparency</h3>
+                <p>Every rule we set, we explain. If you're ever unsure why a rule exists, ask us directly on Discord — we'll answer. No fine print designed to catch you out.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                <h3>Trader-First Rules</h3>
+                <p>We're traders ourselves. Every rule we implement has been stress-tested by us. If it doesn't make sense from the trader's perspective, it doesn't make it into our programme.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><svg viewBox="0 0 24 24" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                <h3>Fast Payouts</h3>
+                <p>Bi-weekly payout cycles, processed promptly. No 30-day waits, no manufactured delays. When you earn it, you get it.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                <h3>Community-Driven</h3>
+                <p>Our Discord is active, our team responds, and our leaderboard celebrates real traders. We grow when our traders grow — so your success is genuinely in our interest.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                <h3>Scaling That Works</h3>
+                <p>Hit your targets and your capital scales — all the way to £200K. No arbitrary caps, no hidden re-qualification requirements. Consistent performance equals consistent growth.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                <h3>Honest About Where We Are</h3>
+                <p>We launched in 2025. We're not pretending to be a decade-old institution. We're a lean, focused team building something better — and we'll show you the results as we grow.</p>
+            </div>
+        </div>
+    </div>
+</section>
 
-            // Show nav after scrolling starts
-            if (scrolled > 50) {
-                nav.classList.add('scrolled');
-            } else {
-                nav.classList.remove('scrolled');
-            }
+<div class="divider"></div>
 
-            ticking = false;
-        }
+<!-- WHY US -->
+<section class="section">
+    <div class="container">
+        <div class="section-tag">Why IPFX</div>
+        <h2 class="section-heading" style="margin-bottom:3rem;">What makes us different from the rest.</h2>
+        <div class="why-grid">
+            <div class="why-item">
+                <div class="why-num">01</div>
+                <div>
+                    <h4>No consistency rule</h4>
+                    <p>Most firms punish you for having a great day. We don't. Trade how you trade — spike days are not a red flag here.</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-num">02</div>
+                <div>
+                    <h4>Refundable challenge fees</h4>
+                    <p>Pass your Traditional Challenge and your fee comes back with your first payout. We believe in giving you a clean start.</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-num">03</div>
+                <div>
+                    <h4>Free path to funding</h4>
+                    <p>The Infinity Challenge costs nothing to enter. Prove you can trade profitably and we scale your capital — no upfront fee required.</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-num">04</div>
+                <div>
+                    <h4>Futures trading available</h4>
+                    <p>One of the few UK prop firms offering funded futures accounts. Trade CME, CBOT, NYMEX instruments alongside forex and indices.</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-num">05</div>
+                <div>
+                    <h4>Bespoke Application Challenge</h4>
+                    <p>Already profitable? Apply directly. Our analysts review your strategy and fund you on negotiated terms — no two-phase evaluation theatre.</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-num">06</div>
+                <div>
+                    <h4>We're reachable</h4>
+                    <p>Real people answer on Discord, usually within the hour. If you have a question about your account, you get an answer — not a ticket number.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
-        window.addEventListener('scroll', () => {
-            if (!ticking) {
-                window.requestAnimationFrame(updateScroll);
-                ticking = true;
-            }
-        }, { passive: true });
+<div class="divider"></div>
 
-        // Hamburger Menu Toggle
-        const hamburger = document.querySelector('.hamburger');
-        const navLinks = document.querySelector('.nav-links');
+<!-- THE TEAM -->
+<section class="section">
+    <div class="container">
+        <div class="section-tag">The Team</div>
+        <div class="team-intro">
+            <h2 class="section-heading">A small team with deep market experience.</h2>
+            <p class="section-sub">IPFX was founded by three active traders. Everyone on the team has skin in the game — we've all sat through losing streaks, blown challenges, and breakthrough runs. That experience shapes everything we build.</p>
+        </div>
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="team-avatar">IS</div>
+                <h3>Isaac</h3>
+                <div class="role">Co-Founder & CEO</div>
+                <p>Forex and indices trader with a background in financial technology. Leads product direction and trader experience at IPFX.</p>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar">RK</div>
+                <h3>Risk & Operations</h3>
+                <div class="role">Head of Risk</div>
+                <p>Oversees challenge parameters, drawdown frameworks and payout processing. Ensures the firm remains sustainable for both traders and IPFX long-term.</p>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar">TM</div>
+                <h3>Technology & Platform</h3>
+                <div class="role">Head of Platform</div>
+                <p>Builds and maintains the trading dashboard, account infrastructure and integrations with MT4, MT5, cTrader and TradingView.</p>
+            </div>
+        </div>
+    </div>
+</section>
 
-        hamburger.addEventListener('click', () => {
+<div class="divider"></div>
+
+<!-- TRANSPARENCY -->
+<section class="section">
+    <div class="container">
+        <div class="section-tag">Transparency</div>
+        <h2 class="section-heading" style="margin-bottom:3rem;">How we operate — openly.</h2>
+        <div class="transparency-grid">
+            <div class="t-card">
+                <h4><svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Where your fee goes</h4>
+                <p>Challenge fees fund the risk pool used to back real funded accounts. A portion covers platform and operational costs. We don't take fees and disappear — they underwrite the capital you're trading with.</p>
+            </div>
+            <div class="t-card">
+                <h4><svg viewBox="0 0 24 24" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>How payouts work</h4>
+                <p>Payouts are processed bi-weekly. Once your request is submitted in the dashboard, it is reviewed and issued within the standard cycle. No manufactured delays. We publish our payout timeline clearly in the dashboard.</p>
+            </div>
+            <div class="t-card">
+                <h4><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Account protection</h4>
+                <p>Your funded account operates within the loss limits you agreed to at the start. We do not move the drawdown limit mid-challenge. What you signed up for is what you get — in writing, in your dashboard, no changes.</p>
+            </div>
+            <div class="t-card">
+                <h4><svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>What happens if you fail</h4>
+                <p>A failed challenge is a failed challenge — not a ban, not a blacklist. You can re-enter immediately, often at a discounted rate. We want good traders to succeed, and setbacks are part of trading.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- AFFILIATES -->
+<section class="section">
+    <div class="container">
+        <div class="section-tag">Affiliates & Referrals</div>
+        <h2 class="section-heading" style="margin-bottom:2rem;">Earn while you refer.</h2>
+        <div class="aff-hero">
+            <div>
+                <h3>Two ways to make money with IPFX — trading, and referring.</h3>
+                <p>Our affiliate and referral programmes are designed to reward people who genuinely believe in IPFX and bring others into the community. No spammy link-dropping — real commissions for real referrals.</p>
+                <div class="aff-tiers">
+                    <div class="aff-tier">
+                        <div class="aff-tier-pct">10%</div>
+                        <div class="aff-tier-info">
+                            <h5>Standard Referral</h5>
+                            <p>Share your unique link. Earn 10% of every challenge fee your referral pays.</p>
+                        </div>
+                    </div>
+                    <div class="aff-tier">
+                        <div class="aff-tier-pct">40%</div>
+                        <div class="aff-tier-info">
+                            <h5>Refer a Friend — Challenge Discount</h5>
+                            <p>Your referred friend gets 40% off their first challenge. You get 10% commission. Everyone wins.</p>
+                        </div>
+                    </div>
+                    <div class="aff-tier">
+                        <div class="aff-tier-pct">15%</div>
+                        <div class="aff-tier-info">
+                            <h5>Trustpilot Review Bonus</h5>
+                            <p>Leave an honest Trustpilot review after passing your challenge and receive 15% of your challenge fee back as account credit.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="aff-cta-box">
+                <div class="big">10%</div>
+                <div class="sub">commission per referral</div>
+                <a href="/signup.html" class="btn btn-primary" style="width:100%;justify-content:center;">Join as Affiliate</a>
+                <p style="font-size:.78rem;color:var(--muted);margin-top:.75rem;">Free to join. Tracked in your dashboard.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TRUSTPILOT -->
+<section class="section" style="padding-top:3rem;padding-bottom:3rem;">
+    <div class="container">
+        <div class="tp-strip">
+            <div class="tp-stars">★★★★★</div>
+            <div class="tp-text">
+                <h4>Leave us a Trustpilot review</h4>
+                <p>We're new — and honest about that. Every genuine review helps other traders decide with confidence. Pass your challenge and get 15% of your fee back as a thank you.</p>
+            </div>
+            <div class="tp-badge">Get 15% Back</div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section class="cta-section">
+    <div class="section-tag">Ready?</div>
+    <h2>Start trading with IPFX Capital.</h2>
+    <p>Choose your challenge, prove your edge, and join a growing community of funded traders built on fair terms.</p>
+    <div class="cta-btns">
+        <a href="/signup.html" class="btn btn-primary">Get Started</a>
+        <a href="/#programs" class="btn btn-outline">View Challenges</a>
+    </div>
+</section>
+
+<footer>
+    <p>&copy; 2025 IPFX Capital. All rights reserved. &nbsp;·&nbsp; <a href="/#faq" style="color:var(--muted);text-decoration:none;">FAQ</a> &nbsp;·&nbsp; <a href="https://discord.gg/ipfxcapital" target="_blank" style="color:var(--muted);text-decoration:none;">Discord</a></p>
+</footer>
+
+<script>
+(function(){
+    var nav = document.querySelector('nav');
+    if(nav) nav.classList.add('scrolled');
+    var hamburger = document.querySelector('.hamburger');
+    var navCenter = document.querySelector('.nav-center');
+    if(hamburger && navCenter){
+        hamburger.addEventListener('click', function(){
             hamburger.classList.toggle('active');
-            navLinks.classList.toggle('mobile-open');
+            navCenter.classList.toggle('mobile-open');
         });
-
-        // Close menu when clicking a link
-        document.querySelectorAll('.nav-links a').forEach(link => {
-            link.addEventListener('click', () => {
-                hamburger.classList.remove('active');
-                navLinks.classList.remove('mobile-open');
-            });
-        });
-
-        // Challenge Type Switcher with keyboard navigation and ARIA support
-        document.addEventListener('DOMContentLoaded', function() {
-            const buttons = document.querySelectorAll('.challenge-option');
-            const contentSections = document.querySelectorAll('.challenge-content');
-
-            // Handle button clicks
-            buttons.forEach(button => {
-                button.addEventListener('click', function() {
-                    switchTab(this);
-                });
-            });
-
-            // Keyboard navigation (arrow keys)
-            buttons.forEach((button, index) => {
-                button.addEventListener('keydown', function(e) {
-                    let targetIndex;
-
-                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        targetIndex = (index + 1) % buttons.length;
-                        buttons[targetIndex].focus();
-                        switchTab(buttons[targetIndex]);
-                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        targetIndex = (index - 1 + buttons.length) % buttons.length;
-                        buttons[targetIndex].focus();
-                        switchTab(buttons[targetIndex]);
-                    } else if (e.key === 'Home') {
-                        e.preventDefault();
-                        buttons[0].focus();
-                        switchTab(buttons[0]);
-                    } else if (e.key === 'End') {
-                        e.preventDefault();
-                        buttons[buttons.length - 1].focus();
-                        switchTab(buttons[buttons.length - 1]);
-                    }
-                });
-            });
-
-            function switchTab(selectedButton) {
-                // Remove active class and update ARIA attributes
-                buttons.forEach(btn => {
-                    btn.classList.remove('active');
-                    btn.setAttribute('aria-selected', 'false');
-                });
-
-                // Add active class to selected button
-                selectedButton.classList.add('active');
-                selectedButton.setAttribute('aria-selected', 'true');
-
-                // Get the selected challenge type
-                const challengeType = selectedButton.getAttribute('data-challenge');
-
-                // Hide all content sections
-                contentSections.forEach(section => {
-                    section.classList.add('hidden');
-                });
-
-                // Show the selected content section
-                const selectedContent = document.getElementById(`${challengeType}-content`);
-                if (selectedContent) {
-                    selectedContent.classList.remove('hidden');
+        document.querySelectorAll('.nav-item > a').forEach(function(link){
+            link.addEventListener('click', function(e){
+                if(window.innerWidth <= 768 && link.nextElementSibling && link.nextElementSibling.classList.contains('dropdown-menu')){
+                    e.preventDefault();
+                    var item = link.closest('.nav-item');
+                    var isOpen = item.classList.contains('mobile-open');
+                    document.querySelectorAll('.nav-item.mobile-open').forEach(function(el){ el.classList.remove('mobile-open'); });
+                    if(!isOpen) item.classList.add('mobile-open');
                 }
+            });
+        });
+        document.addEventListener('click', function(e){
+            if(!hamburger.contains(e.target) && !navCenter.contains(e.target)){
+                hamburger.classList.remove('active');
+                navCenter.classList.remove('mobile-open');
             }
         });
-
-        // Reveal animations for all sections
-        const revealObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                }
-            });
-        }, {
-            threshold: 0.15,
-            rootMargin: '0px 0px -50px 0px'
-        });
-
-        // Observe all reveal elements
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.reveal-section, .reveal-stagger').forEach(element => {
-                revealObserver.observe(element);
-            });
-        });
-    </script>
-
-    <script>
-    // Standard nav scroll + hamburger
-    (function() {
-        var nav = document.querySelector('nav');
-        // Always show nav on non-hero pages
-        if (nav) { nav.classList.add('scrolled'); }
-
-        var hamburger = document.querySelector('.hamburger');
-        var navCenter = document.querySelector('.nav-center');
-        if (hamburger && navCenter) {
-            hamburger.addEventListener('click', function() {
-                hamburger.classList.toggle('active');
-                navCenter.classList.toggle('mobile-open');
-            });
-            document.querySelectorAll('.nav-item > a').forEach(function(link) {
-                link.addEventListener('click', function(e) {
-                    if (window.innerWidth <= 768 && link.nextElementSibling && link.nextElementSibling.classList.contains('dropdown-menu')) {
-                        e.preventDefault();
-                        var item = link.closest('.nav-item');
-                        var isOpen = item.classList.contains('mobile-open');
-                        document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
-                        if (!isOpen) item.classList.add('mobile-open');
-                    }
-                });
-            });
-            document.querySelectorAll('.nav-center a').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    hamburger.classList.remove('active');
-                    navCenter.classList.remove('mobile-open');
-                    document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
-                });
-            });
-            document.addEventListener('click', function(e) {
-                if (!hamburger.contains(e.target) && !navCenter.contains(e.target)) {
-                    hamburger.classList.remove('active');
-                    navCenter.classList.remove('mobile-open');
-                }
-            });
-        }
-    })();
-    </script>
+    }
+})();
+</script>
 
 </body>
 </html>
