@@ -5769,6 +5769,90 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closePricingModal(); });
 </script>
 
+<!-- ===== CHAT WIDGET ===== -->
+<style>
+.cw{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:.7rem;}
+.cb{width:54px;height:54px;border-radius:50%;background:#2563eb;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(37,99,235,.45);transition:transform .2s,box-shadow .2s;flex-shrink:0;border:none;}
+.cb:hover{transform:scale(1.08);box-shadow:0 6px 32px rgba(37,99,235,.6);}
+.cb svg{width:22px;height:22px;color:#fff;}
+.cb .ci{display:none;}
+.cw.open .cb .oi{display:none;}
+.cw.open .cb .ci{display:block;}
+.cn{position:absolute;top:-3px;right:-3px;width:16px;height:16px;background:#ef4444;border-radius:50%;border:2px solid #0a0a0c;font-size:.58rem;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.cp{width:330px;background:#111113;border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.7);display:none;flex-direction:column;overflow:hidden;max-height:480px;}
+.cw.open .cp{display:flex;}
+.ch{display:flex;align-items:center;gap:.7rem;padding:.9rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);background:#161618;}
+.chav{width:32px;height:32px;border-radius:50%;background:#2563eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chav svg{width:15px;height:15px;color:#fff;}
+.chn{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.86rem;color:#fff;}
+.chs{font-size:.7rem;color:#22c55e;display:flex;align-items:center;gap:.3rem;}
+.chs::before{content:'';width:5px;height:5px;border-radius:50%;background:#22c55e;}
+.cms{flex:1;overflow-y:auto;padding:.85rem .9rem;display:flex;flex-direction:column;gap:.55rem;min-height:240px;}
+.cmsg{display:flex;flex-direction:column;max-width:86%;}
+.cmsg.bot{align-self:flex-start;}
+.cmsg.user{align-self:flex-end;}
+.cmb{padding:.55rem .8rem;border-radius:11px;font-size:.81rem;line-height:1.5;}
+.cmsg.bot .cmb{background:#1a1a1d;border:1px solid rgba(255,255,255,.08);border-radius:11px 11px 11px 3px;color:#e0e0e0;}
+.cmsg.user .cmb{background:#2563eb;border-radius:11px 11px 3px 11px;color:#fff;}
+.cmt{font-size:.63rem;color:#606060;margin-top:.18rem;padding:0 .15rem;}
+.cmsg.user .cmt{text-align:right;}
+.csg{display:flex;flex-wrap:wrap;gap:.35rem;padding:.4rem .9rem .65rem;}
+.csb{padding:.28rem .6rem;border-radius:20px;border:1px solid rgba(255,255,255,.12);background:none;color:#a0a0a0;font-size:.71rem;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:'Inter',sans-serif;}
+.csb:hover{border-color:#2563eb;color:#60a5fa;}
+.cir{display:flex;gap:.45rem;padding:.7rem .9rem;border-top:1px solid rgba(255,255,255,.08);}
+.cin{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:.45rem .8rem;color:#fff;font-size:.8rem;outline:none;font-family:'Inter',sans-serif;}
+.cin:focus{border-color:rgba(37,99,235,.5);}
+.cin::placeholder{color:#505050;}
+.csnd{width:30px;height:30px;border-radius:50%;background:#2563eb;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.csnd:hover{background:#1d4ed8;}
+.csnd svg{width:13px;height:13px;color:#fff;}
+.ctd{display:flex;gap:3px;padding:.4rem .8rem;}
+.ctd span{width:6px;height:6px;border-radius:50%;background:#505050;animation:ctda .9s ease infinite;}
+.ctd span:nth-child(2){animation-delay:.2s;}
+.ctd span:nth-child(3){animation-delay:.4s;}
+@keyframes ctda{0%,80%,100%{transform:scale(.7);opacity:.5}40%{transform:scale(1);opacity:1}}
+@media(max-width:480px){.cp{width:calc(100vw - 2rem);}}
+</style>
+<div class="cw" id="chatW">
+  <div class="cp" id="chatPanel">
+    <div class="ch">
+      <div class="chav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      <div>
+        <div class="chn">IPFX Support</div>
+        <div class="chs">Online now</div>
+      </div>
+    </div>
+    <div class="cms" id="chatMsgs">
+      <div class="cmsg bot"><div class="cmb">Hey! I'm the IPFX support assistant. How can I help you today?</div><div class="cmt">Now</div></div>
+    </div>
+    <div class="csg" id="chatSugs">
+      <button class="csb" onclick="cAskSug(this)">How do payouts work?</button>
+      <button class="csb" onclick="cAskSug(this)">What is the PAC?</button>
+      <button class="csb" onclick="cAskSug(this)">Drawdown rules</button>
+      <button class="csb" onclick="cAskSug(this)">Scaling capital</button>
+    </div>
+    <div class="cir">
+      <input class="cin" id="chatInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')cSend()">
+      <button class="csnd" onclick="cSend()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    </div>
+  </div>
+  <button class="cb" onclick="cToggle()" style="position:relative">
+    <svg class="oi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <span class="cn" id="chatNotif">1</span>
+  </button>
+</div>
+<script>
+const cKB={payout:['payout','withdraw','profit split','money','payment'],pac:['pac','application challenge','personalised','funded from day','no evaluation','strategy disclose'],drawdown:['drawdown','blow','breach','limit','floor','lose','fail'],scaling:['scale','scaling','more capital','bigger account','upgrade'],ea:['ea','expert advisor','automated','algo','bot','robot','api'],platform:['platform','mt4','mt5','ctrader','metatrader'],hello:['hello','hi','hey','morning','afternoon','evening'],infinity:['infinity','free','no fee','zero cost']};
+const cANS={payout:'Profits are paid bi-weekly. IPFX operates up to a 90/10 split — you keep the majority. Payouts are processed promptly once requested from the dashboard. No manufactured delays.',pac:'The **Application Challenge (PAC)** is our funded-from-day-one programme. You disclose your strategy, our analysts review it, agree custom parameters with you, and you trade live capital immediately — no evaluation phases.',drawdown:'Your drawdown limit is the floor your balance cannot breach. It is fixed from the start and never moved against you mid-challenge. What you agreed to at signup is what applies.',scaling:'After proving consistent performance, your capital scales — with no fixed ceiling. Consistent returns equal consistent growth. Apply from the dashboard after meeting your targets.',ea:'Yes — EAs and algos are fully permitted. For the PAC, your algorithm logic must be disclosed so our analysts can agree appropriate parameters before you go live.',platform:'IPFX supports **MT4, MT5 and cTrader**. Choose your platform when setting up your account.',hello:'Hey! Good to hear from you. I can help with payouts, drawdown, the Application Challenge, scaling capital, EAs, platforms and more. What do you need?',infinity:'The Infinity Challenge is our **free** path to funding — no upfront fee. Prove you can trade consistently and we scale your capital. A genuine zero-cost route to a funded account.',default:'Great question — for detailed help reach us on Discord (usually under 10 minutes) or email support@ipfxcapital.com. Anything else I can help clarify?'};
+function cClassify(t){const l=t.toLowerCase();for(const[k,ps]of Object.entries(cKB)){if(ps.some(p=>l.includes(p)))return k;}return'default';}
+function cAddMsg(txt,role){const msgs=document.getElementById('chatMsgs');const d=document.createElement('div');d.className='cmsg '+role;const n=new Date();const h=n.getHours().toString().padStart(2,'0'),m=n.getMinutes().toString().padStart(2,'0');d.innerHTML=`<div class="cmb">${txt.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div><div class="cmt">${h}:${m}</div>`;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function cShowTyping(){const msgs=document.getElementById('chatMsgs');const d=document.createElement('div');d.className='cmsg bot';d.id='ctyping';d.innerHTML='<div class="cmb"><div class="ctd"><span></span><span></span><span></span></div></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function cRemoveTyping(){const t=document.getElementById('ctyping');if(t)t.remove();}
+function cSend(){const inp=document.getElementById('chatInput');const txt=inp.value.trim();if(!txt)return;cAddMsg(txt,'user');inp.value='';document.getElementById('chatSugs').style.display='none';cShowTyping();setTimeout(()=>{cRemoveTyping();cAddMsg(cANS[cClassify(txt)],'bot');},800+Math.random()*500);}
+function cAskSug(btn){document.getElementById('chatInput').value=btn.textContent;cSend();}
+function cToggle(){const w=document.getElementById('chatW');w.classList.toggle('open');document.getElementById('chatNotif').style.display='none';}
+</script>
 
 </body>
 </html>
