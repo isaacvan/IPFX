@@ -474,7 +474,7 @@ function changeSym(sym,el){
   activeSym=sym;
   document.querySelectorAll('.wl-item').forEach(i=>i.classList.remove('active'));
   if(el)el.classList.add('active');
-  if(tvWidget){tvWidget.setSymbol(sym,currentTf,function(){});}
+  rebuildChart();
 }
 
 // ── INDICATORS DATA ──
@@ -640,7 +640,7 @@ function setTf(tf,btn){
   currentTf=tf;
   document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(tvWidget){tvWidget.setSymbol(activeSym,tf,function(){});}
+  rebuildChart();
 }
 
 function setStyle(style,btn){
