@@ -918,7 +918,13 @@ function navHome(btn){
 }
 
 // Credentials
-function toggleCreds(btn){btn.classList.toggle('open');btn.nextElementSibling.classList.toggle('open');}
+function toggleCreds(btn){
+  const panel=btn.parentElement.querySelector('.creds-panel');
+  if(!panel)return;
+  const isOpen=panel.style.display==='flex';
+  panel.style.display=isOpen?'none':'flex';
+  btn.classList.toggle('open',!isOpen);
+}
 function showPw(elId,btn){const el=document.getElementById(elId);const v=el.dataset.v;if(!v)return;const hidden=el.textContent==='••••••••';el.textContent=hidden?v:'••••••••';btn.textContent=hidden?'Hide':'Show';}
 function copyCred(btn,val){if(!val)return;navigator.clipboard.writeText(val).then(()=>{const o=btn.textContent;btn.textContent='Copied';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok');},2000);});}
 
