@@ -41,37 +41,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 /* ── LAYOUT ── */
 .layout{flex:1;display:flex;overflow:hidden;position:relative;}
 
-/* ── LEFT WATCHLIST ── */
-.wl{width:185px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
-.wl.hidden{width:0;border-right:none;}
-.wl-header{padding:.65rem .9rem .4rem;border-bottom:1px solid var(--line2);flex-shrink:0;}
-.wl-title{font-family:'Space Grotesk',sans-serif;font-size:.7rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1.2px;}
-.wl-search{margin-top:.5rem;position:relative;}
-.wl-search input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:.32rem .55rem .32rem 1.6rem;font-size:.72rem;color:var(--fg);font-family:'Inter',sans-serif;outline:none;}
-.wl-search input::placeholder{color:var(--muted2);}
-.wl-search input:focus{border-color:rgba(37,99,235,.4);}
-.wl-search svg{position:absolute;left:.45rem;top:50%;transform:translateY(-50%);width:11px;height:11px;color:var(--muted2);pointer-events:none;}
-.wl-cat{padding:.5rem .9rem .2rem;font-size:.62rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;}
-.wl-list{flex:1;overflow-y:auto;}
-.wl-list::-webkit-scrollbar{width:3px;}
-.wl-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
-.wl-item{display:flex;align-items:center;justify-content:space-between;padding:.48rem .9rem;cursor:pointer;transition:background .1s;gap:.4rem;border-left:2px solid transparent;}
-.wl-item:hover{background:rgba(255,255,255,.04);}
-.wl-item.active{background:var(--cobalt-d);border-left-color:var(--cobalt);}
-.wl-sym{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:700;}
-.wl-sub{font-size:.6rem;color:var(--muted2);margin-top:.08rem;}
-.wl-cat-badge{font-size:.58rem;padding:.1rem .3rem;border-radius:3px;font-weight:700;text-transform:uppercase;flex-shrink:0;}
-.cat-fx{background:rgba(37,99,235,.15);color:#60a5fa;}
-.cat-idx{background:rgba(245,158,11,.12);color:var(--gold);}
-.cat-com{background:rgba(16,185,129,.12);color:var(--green);}
-.cat-cry{background:rgba(139,92,246,.12);color:var(--purple);}
-
-/* ── LEFT TOGGLE ── */
-.wl-tog{position:absolute;top:50%;left:185px;transform:translateY(-50%);z-index:100;width:14px;height:36px;background:var(--bg2);border:1px solid var(--line);border-left:none;border-radius:0 5px 5px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:left .22s cubic-bezier(.4,0,.2,1),color .15s;}
-.wl-tog:hover{color:var(--fg);}
-.wl-tog svg{width:8px;height:8px;transition:transform .22s;}
-.wl.hidden+.wl-tog{left:0;}
-.wl.hidden+.wl-tog svg{transform:rotate(180deg);}
 
 /* ── CHART CENTER ── */
 .chart-wrap{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;}
@@ -196,22 +165,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 
 <!-- LAYOUT -->
 <div class="layout">
-
-  <!-- LEFT: WATCHLIST -->
-  <div class="wl" id="wlPanel">
-    <div class="wl-header">
-      <div class="wl-title">Watchlist</div>
-      <div class="wl-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="wlSearch" placeholder="Search…" oninput="filterWl(this.value)">
-      </div>
-    </div>
-    <div class="wl-list" id="wlList"></div>
-  </div>
-
-  <div class="wl-tog" id="wlTog" onclick="toggleWl()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-  </div>
 
   <!-- CENTER: CHART -->
   <div class="chart-wrap">
@@ -417,65 +370,7 @@ document.getElementById('tbPlatform').textContent=P.get('platform')||'MT5';
 document.getElementById('tbServer').textContent=P.get('server')||'IPFX-MT5-Live';
 document.title='IPFX Markets | '+(P.get('name')||'Account');
 
-// ── WATCHLIST DATA ──
-const PAIRS=[
-  {sym:'OANDA:EURUSD', label:'EUR/USD', sub:'Euro / US Dollar',      cat:'fx'},
-  {sym:'OANDA:GBPUSD', label:'GBP/USD', sub:'Pound / US Dollar',     cat:'fx'},
-  {sym:'OANDA:USDJPY', label:'USD/JPY', sub:'Dollar / Yen',          cat:'fx'},
-  {sym:'OANDA:AUDUSD', label:'AUD/USD', sub:'Aussie / US Dollar',    cat:'fx'},
-  {sym:'OANDA:USDCAD', label:'USD/CAD', sub:'Dollar / Canadian',     cat:'fx'},
-  {sym:'OANDA:USDCHF', label:'USD/CHF', sub:'Dollar / Swiss Franc',  cat:'fx'},
-  {sym:'OANDA:NZDUSD', label:'NZD/USD', sub:'Kiwi / US Dollar',      cat:'fx'},
-  {sym:'OANDA:GBPJPY', label:'GBP/JPY', sub:'Pound / Yen',           cat:'fx'},
-  {sym:'OANDA:EURJPY', label:'EUR/JPY', sub:'Euro / Yen',            cat:'fx'},
-  {sym:'OANDA:EURGBP', label:'EUR/GBP', sub:'Euro / Pound',          cat:'fx'},
-  {sym:'OANDA:EURAUD', label:'EUR/AUD', sub:'Euro / Aussie',         cat:'fx'},
-  {sym:'OANDA:GBPAUD', label:'GBP/AUD', sub:'Pound / Aussie',        cat:'fx'},
-  {sym:'SP:SPX',       label:'S&P 500', sub:'S&P 500 Index',          cat:'idx'},
-  {sym:'NASDAQ:NDX',   label:'NAS100',  sub:'Nasdaq 100 Index',      cat:'idx'},
-  {sym:'TVC:DJI',      label:'DOW 30',  sub:'Dow Jones 30',          cat:'idx'},
-  {sym:'TVC:DEU40',    label:'DAX 40',  sub:'German Index',          cat:'idx'},
-  {sym:'OANDA:XAUUSD', label:'XAU/USD', sub:'Gold / US Dollar',      cat:'com'},
-  {sym:'OANDA:XAGUSD', label:'XAG/USD', sub:'Silver / US Dollar',    cat:'com'},
-  {sym:'TVC:USOIL',    label:'WTI Oil', sub:'Crude Oil Spot',        cat:'com'},
-  {sym:'TVC:OIL',      label:'Brent Oil',sub:'Brent Crude Spot',     cat:'com'},
-  {sym:'TVC:NGAS',     label:'Nat Gas', sub:'Natural Gas Spot',      cat:'com'},
-  {sym:'BINANCE:BTCUSDT',label:'BTC',   sub:'Bitcoin / USD',         cat:'cry'},
-  {sym:'BINANCE:ETHUSDT',label:'ETH',   sub:'Ethereum / USD',        cat:'cry'},
-];
-
-const CAT_LABELS={fx:'Forex',idx:'Indices',com:'Commodities',cry:'Crypto'};
-const CAT_CLASS={fx:'cat-fx',idx:'cat-idx',com:'cat-com',cry:'cat-cry'};
-
 let activeSym='OANDA:EURUSD';
-let allPairs=[...PAIRS];
-
-function buildWl(filter=''){
-  const cats=['fx','idx','com','cry'];
-  let html='';
-  cats.forEach(cat=>{
-    const items=PAIRS.filter(p=>p.cat===cat&&(p.label+p.sub).toLowerCase().includes(filter.toLowerCase()));
-    if(!items.length)return;
-    html+=`<div class="wl-cat">${CAT_LABELS[cat]}</div>`;
-    items.forEach((p,i)=>{
-      const isActive=p.sym===activeSym;
-      html+=`<div class="wl-item${isActive?' active':''}" onclick="changeSym('${p.sym}',this)">
-        <div><div class="wl-sym">${p.label}</div><div class="wl-sub">${p.sub}</div></div>
-        <span class="wl-cat-badge ${CAT_CLASS[cat]}">${cat.toUpperCase()}</span>
-      </div>`;
-    });
-  });
-  document.getElementById('wlList').innerHTML=html||'<div style="padding:1rem;font-size:.75rem;color:var(--muted2);text-align:center">No results</div>';
-}
-
-function filterWl(v){buildWl(v);}
-
-function changeSym(sym,el){
-  activeSym=sym;
-  document.querySelectorAll('.wl-item').forEach(i=>i.classList.remove('active'));
-  if(el)el.classList.add('active');
-  rebuildChart();
-}
 
 // ── INDICATORS DATA ──
 const INDS=[
@@ -651,11 +546,6 @@ function setStyle(style,btn){
 }
 
 // ── PANEL TOGGLES ──
-function toggleWl(){
-  const p=document.getElementById('wlPanel');
-  p.classList.toggle('hidden');
-}
-
 function toggleGuide(){
   const g=document.getElementById('guidePanel');
   g.classList.toggle('hidden');
@@ -677,7 +567,6 @@ function toggleLearn(el){
 }
 
 // ── INIT ──
-buildWl();
 buildIndList();
 
 if(typeof TradingView!=='undefined'){
