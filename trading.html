@@ -1,1152 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPFX Trading Platform</title>
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-
-        :root {
-            --bg: #0a0a0c;
-            --fg: #f0f0f0;
-            --muted: #a0a0a0;
-            --cobalt: #2563eb;
-        }
-        body { background: var(--bg); color: var(--fg); margin: 0; font-family: 'Inter', sans-serif; }
-
-        /* ===== STANDARD NAV ===== */
-        nav {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 999;
-            padding: 0 2.5rem;
-            height: 68px;
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            backdrop-filter: blur(10px);
-            background: rgba(10, 10, 12, 0);
-            border-bottom: 1px solid rgba(42, 42, 44, 0);
-            transform: translateY(-100%);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .nav-center {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            list-style: none;
-            flex: 1;
-            justify-content: center;
-        }
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-shrink: 0;
-        }
-        .nav-right a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: color 0.3s ease;
-        }
-        .nav-right a:hover { color: var(--fg); }
-        .nav-right-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.12); }
-        nav.scrolled {
-            background: rgba(10, 10, 12, 0.8);
-            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
-            transform: translateY(0);
-        }
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.7rem;
-            text-decoration: none;
-            color: var(--fg);
-            transition: opacity 0.3s ease;
-        }
-        .logo:hover { opacity: 0.8; }
-        .logo img { width: 32px; height: 32px; object-fit: contain; }
-        .logo-text {
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        .nav-links { display: flex; gap: 3rem; list-style: none; }
-        .nav-links a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            transition: color 0.3s ease;
-            position: relative;
-        }
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -4px; left: 0;
-            width: 0; height: 2px;
-            background: var(--cobalt);
-            transition: width 0.3s ease;
-        }
-        .nav-links a:hover { color: var(--fg); }
-        .nav-links a:hover::after { width: 100%; }
-        .nav-center a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: color 0.25s ease;
-        }
-        .nav-center a:hover { color: var(--fg); }
-        .nav-center a::after { display: none; }
-        .nav-social {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding-left: 0.9rem;
-            border-left: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0;
-        }
-        .nav-social a {
-            color: var(--muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px; height: 26px;
-            transition: color 0.2s ease;
-            text-decoration: none;
-        }
-        .nav-social a:hover { color: var(--fg); }
-        .nav-social a svg { width: 14px; height: 14px; fill: currentColor; }
-        .nav-item { position: relative; }
-        .nav-item > a { display: flex; align-items: center; gap: 0.3rem; }
-        .dropdown-arrow { font-size: 0.7rem; transition: transform 0.3s ease; }
-        .nav-item:hover .dropdown-arrow { transform: rotate(180deg); }
-        .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 0.4rem);
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 10, 12, 0.97);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            border-radius: 8px;
-            padding: 0.75rem 0;
-            min-width: 220px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        }
-        .nav-item:hover .dropdown-menu { opacity: 1; visibility: visible; top: calc(100% + 0.4rem); }
-        .dropdown-menu a {
-            display: block;
-            padding: 0.75rem 1.5rem;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
-        }
-        .dropdown-menu a::after { display: none; }
-        .dropdown-menu a:hover {
-            color: var(--fg);
-            background: rgba(37, 99, 235, 0.1);
-            border-left-color: var(--cobalt);
-        }
-        .nav-separator { width: 1px; height: 24px; background: rgba(255,255,255,0.15); align-self: center; }
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 6px;
-            cursor: pointer;
-            padding: 0.5rem;
-            z-index: 1000;
-        }
-        .hamburger span {
-            display: block;
-            width: 28px; height: 2px;
-            background: var(--fg);
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
-        .hamburger.active span:nth-child(2) { opacity: 0; }
-        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(8px, -8px); }
-        .nav-links.mobile-open { display: flex; }
-        @media (max-width: 768px) {
-            nav { padding: 0 1.25rem; height: 60px; }
-            .hamburger { display: flex; margin-left: auto; }
-            .nav-center {
-                display: none;
-                position: fixed;
-                top: 0; right: -100%;
-                width: 72%; max-width: 300px;
-                height: 100vh;
-                background: rgba(10, 10, 12, 0.98);
-                backdrop-filter: blur(20px);
-                flex-direction: column;
-                justify-content: flex-start;
-                gap: 0;
-                padding: 5rem 1.75rem 2rem;
-                border-left: 1px solid rgba(37, 99, 235, 0.2);
-                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: -4px 0 24px rgba(0,0,0,0.5);
-                list-style: none;
-            }
-            .nav-center.mobile-open { display: flex; right: 0; }
-            .nav-center li { width: 100%; border-bottom: 1px solid rgba(255,255,255,0.05); }
-            .nav-center a {
-                display: block;
-                padding: 1.1rem 0;
-                font-size: 1rem;
-                width: 100%;
-                color: var(--muted);
-                text-decoration: none;
-                font-family: 'Space Grotesk', sans-serif;
-                font-weight: 600;
-            }
-            .nav-right { display: none; }
-            .dropdown-menu {
-                position: static; transform: none;
-                opacity: 1; visibility: visible;
-                background: transparent; backdrop-filter: none;
-                border: none; border-radius: 0; box-shadow: none;
-                padding: 0; min-width: 0;
-                display: none; flex-direction: column;
-            }
-            .nav-item.mobile-open .dropdown-menu { display: flex; }
-            .dropdown-menu a {
-                padding: 0.5rem 0 0.5rem 1rem;
-                font-size: 0.9rem;
-                color: var(--muted);
-                border-left: 2px solid rgba(37,99,235,0.3);
-                border-bottom: none;
-            }
-            .nav-social { display: none; }
-            .hamburger { order: 3; margin-left: 0.75rem; }
-            .hamburger.active ~ .nav-social { opacity: 0; pointer-events: none; }
-            .mobile-social-row { display: none !important; }
-        }
-        /* ===== END STANDARD NAV ===== */
-
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #131722;
-            --bg-secondary: #1e222d;
-            --bg-tertiary: #2a2e39;
-            --border-color: #2a2e39;
-            --text-primary: #d1d4dc;
-            --text-secondary: #787b86;
-            --blue: #2962ff;
-            --green: #089981;
-            --red: #f23645;
-            --hover-bg: #2a2e39;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        /* Main Layout */
-        .trading-container {
-            display: grid;
-            grid-template-columns: 250px 1fr 320px;
-            grid-template-rows: 48px 1fr 200px;
-            height: 100vh;
-            gap: 0;
-        }
-
-        /* Top Bar */
-        .top-bar {
-            grid-column: 1 / -1;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            gap: 16px;
-        }
-
-        .logo {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .symbol-search {
-            display: flex;
-            align-items: center;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            padding: 8px 12px;
-            gap: 8px;
-            min-width: 200px;
-        }
-
-        .symbol-search input {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-            width: 100%;
-        }
-
-        .symbol-name {
-            font-weight: 600;
-            font-size: 15px;
-        }
-
-        .symbol-price {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .price-up {
-            color: var(--green);
-        }
-
-        .price-down {
-            color: var(--red);
-        }
-
-        .timeframes {
-            display: flex;
-            gap: 4px;
-            margin-left: auto;
-        }
-
-        .timeframe-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .timeframe-btn:hover {
-            background: var(--hover-bg);
-            color: var(--text-primary);
-        }
-
-        .timeframe-btn.active {
-            background: var(--blue);
-            color: white;
-        }
-
-        .logout-btn {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 6px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            margin-left: 16px;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: var(--red);
-            border-color: var(--red);
-            color: white;
-        }
-
-        /* Left Sidebar - Watchlist */
-        .left-sidebar {
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .sidebar-header {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .watchlist {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .watchlist-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .watchlist-item:hover {
-            background: var(--hover-bg);
-        }
-
-        .watchlist-item.active {
-            background: var(--bg-tertiary);
-        }
-
-        .watchlist-symbol {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .watchlist-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-        }
-
-        .watchlist-price {
-            color: var(--text-primary);
-        }
-
-        .watchlist-change {
-            font-weight: 600;
-        }
-
-        /* Chart Area */
-        .chart-area {
-            background: var(--bg-primary);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .chart-toolbar {
-            display: flex;
-            align-items: center;
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            gap: 8px;
-        }
-
-        .toolbar-group {
-            display: flex;
-            gap: 4px;
-            padding: 0 8px;
-            border-right: 1px solid var(--border-color);
-        }
-
-        .toolbar-group:last-child {
-            border-right: none;
-        }
-
-        .toolbar-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .toolbar-btn:hover {
-            background: var(--hover-bg);
-            color: var(--text-primary);
-        }
-
-        .toolbar-btn.active {
-            background: var(--blue);
-            color: white;
-        }
-
-        #tradingview-chart {
-            flex: 1;
-            width: 100%;
-        }
-
-        /* Right Sidebar - Order Entry */
-        .right-sidebar {
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .order-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .order-tab {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .order-tab:hover {
-            color: var(--text-primary);
-        }
-
-        .order-tab.active {
-            color: var(--text-primary);
-            border-bottom-color: var(--blue);
-        }
-
-        .order-panel {
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .order-type-selector {
-            display: flex;
-            gap: 8px;
-        }
-
-        .order-type-btn {
-            flex: 1;
-            padding: 8px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .order-type-btn.active {
-            background: var(--blue);
-            border-color: var(--blue);
-            color: white;
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .input-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        .input-field {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 10px 12px;
-            border-radius: 4px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .input-field:focus {
-            border-color: var(--blue);
-        }
-
-        .order-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .order-btn {
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .order-btn-buy {
-            background: var(--green);
-            color: white;
-        }
-
-        .order-btn-buy:hover {
-            background: #0ab991;
-        }
-
-        .order-btn-sell {
-            background: var(--red);
-            color: white;
-        }
-
-        .order-btn-sell:hover {
-            background: #ff4757;
-        }
-
-        .account-info {
-            padding: 16px;
-            background: var(--bg-tertiary);
-            margin: 0 16px 16px;
-            border-radius: 4px;
-        }
-
-        .account-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-
-        .account-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .account-label {
-            color: var(--text-secondary);
-        }
-
-        .account-value {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        /* Bottom Panel */
-        .bottom-panel {
-            grid-column: 1 / -1;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel-tabs {
-            display: flex;
-            gap: 16px;
-            padding: 0 16px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .panel-tab {
-            padding: 12px 0;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .panel-tab:hover {
-            color: var(--text-primary);
-        }
-
-        .panel-tab.active {
-            color: var(--text-primary);
-            border-bottom-color: var(--blue);
-        }
-
-        .panel-content {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .positions-table {
-            width: 100%;
-            font-size: 13px;
-        }
-
-        .positions-table thead {
-            background: var(--bg-tertiary);
-            position: sticky;
-            top: 0;
-        }
-
-        .positions-table th {
-            padding: 10px 16px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-secondary);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .positions-table td {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .positions-table tr:hover {
-            background: var(--hover-bg);
-        }
-
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-secondary);
-            padding: 32px;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--hover-bg);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPFX Markets</title>
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0a0c;--bg2:#0e0e10;--fg:#fff;--muted:#a0a0a0;--muted2:#6a6a6a;
+  --line:#2a2a2c;--cobalt:#2563eb;--cobalt-h:#1d4ed8;--green:#10b981;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;}
+
+.topbar{display:flex;align-items:center;gap:.75rem;padding:0 1.25rem;height:52px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--bg2);}
+.back-btn{display:flex;align-items:center;gap:.35rem;padding:.32rem .7rem;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s;white-space:nowrap;}
+.back-btn:hover{color:var(--fg);border-color:rgba(255,255,255,.2);}
+.back-btn svg{width:12px;height:12px;}
+.tb-div{width:1px;height:22px;background:var(--line);flex-shrink:0;}
+.tb-acct{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;white-space:nowrap;}
+.tb-pill{display:flex;align-items:center;gap:.3rem;padding:.26rem .6rem;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:.72rem;color:var(--muted2);white-space:nowrap;}
+.tb-pill strong{color:var(--fg);font-weight:600;}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:.5rem;flex-shrink:0;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(16,185,129,.6);animation:pd 2s ease infinite;flex-shrink:0;}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.4}}
+.live-lbl{font-size:.75rem;color:var(--green);font-weight:700;}
+
+.layout{flex:1;display:flex;overflow:hidden;}
+
+.wl{width:190px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;transition:width .25s,min-width .25s;}
+.wl.hidden{width:0;min-width:0;overflow:hidden;border-right:none;}
+.wl-head{padding:.75rem 1rem .5rem;font-family:'Space Grotesk',sans-serif;font-size:.72rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;flex-shrink:0;}
+.wl-list{flex:1;overflow-y:auto;}
+.wl-item{display:flex;align-items:center;justify-content:space-between;padding:.55rem 1rem;cursor:pointer;transition:background .1s;gap:.5rem;border-bottom:1px solid var(--line);}
+.wl-item:last-child{border-bottom:none;}
+.wl-item:hover{background:rgba(255,255,255,.04);}
+.wl-item.active{background:rgba(37,99,235,.1);border-right:2px solid var(--cobalt);}
+.wl-sym{font-family:'Space Grotesk',sans-serif;font-size:.8rem;font-weight:700;}
+.wl-desc{font-size:.65rem;color:var(--muted2);margin-top:.1rem;}
+
+.chart-wrap{flex:1;position:relative;overflow:hidden;}
+#tv_chart_container{width:100%;height:100%;}
+
+.wl-toggle{position:fixed;top:50%;left:190px;transform:translateY(-50%);z-index:200;width:16px;height:38px;background:var(--bg2);border:1px solid var(--line);border-left:none;border-radius:0 5px 5px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:left .25s,color .15s;}
+.wl-toggle:hover{color:var(--fg);}
+.wl-toggle svg{width:9px;height:9px;transition:transform .25s;}
+.wl.hidden~.wl-toggle{left:0;}
+.wl.hidden~.wl-toggle svg{transform:rotate(180deg);}
+</style>
 </head>
 <body>
-<nav>
-    <a href="/" class="logo">
-        <img src="/assets/images/favicon.ico" alt="IPFX Logo">
-        <span class="logo-text">IPFX Capital</span>
-    </a>
-    <div class="hamburger">
-        <span></span><span></span><span></span>
-    </div>
-    <ul class="nav-center">
-        <li class="nav-item">
-            <a href="/#programs">Challenges <span class="dropdown-arrow">▼</span></a>
-            <div class="dropdown-menu">
-                <a href="/#infinity-challenge">Infinity Challenge</a>
-                <a href="/#application-challenge">Application Challenge</a>
-                <a href="/#traditional-challenge">Traditional Challenge</a>
-                <a href="futures.html">Futures Challenge</a>
-            </div>
-        </li>
-        <li class="nav-item">
-            <a href="/#resources">Resources <span class="dropdown-arrow">▼</span></a>
-            <div class="dropdown-menu">
-                <a href="/#profit-calculator">Profit Calculator</a>
-                <a href="futures.html">Futures Trading</a>
-                <a href="personalised-challenge.html">Personalised Challenge</a>
-            </div>
-        </li>
-        <li><a href="about.html">About</a></li>
-        <li><a href="/#faq">FAQ</a></li>
-    </ul>
-    <div class="nav-right">
-        <div class="nav-social">
-            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
-            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
-            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg></a>
-            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
-            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
-        </div>
-        <div class="nav-right-sep"></div>
-        <a href="login.html">Login</a>
-        <a href="/signup.html" class="btn btn-primary" style="padding:0.55rem 1.2rem;font-size:0.875rem;color:#fff;">Get Started</a>
-    </div>
-    <ul class="nav-links" style="display:none;">
-        <li class="mobile-social-row">
-            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
-            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
-            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg></a>
-            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
-            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
-        </li>
-    </ul>
-</nav>
-    <div class="trading-container">
-        <!-- Top Bar -->
-        <div class="top-bar">
-            <div class="logo">
-                IPFX Capital
-            </div>
-            <div class="symbol-search">
-                <input type="text" placeholder="Search symbols..." id="symbol-search-input">
-            </div>
-            <div class="symbol-name">EUR/USD</div>
-            <div class="symbol-price price-up">1.0892 <span style="font-size: 12px;">+0.0023 (+0.21%)</span></div>
-            <div class="timeframes">
-                <button class="timeframe-btn">1m</button>
-                <button class="timeframe-btn">5m</button>
-                <button class="timeframe-btn active">15m</button>
-                <button class="timeframe-btn">1H</button>
-                <button class="timeframe-btn">4H</button>
-                <button class="timeframe-btn">D</button>
-                <button class="timeframe-btn">W</button>
-            </div>
-            <button class="logout-btn" id="logout-btn">Logout</button>
-        </div>
 
-        <!-- Left Sidebar - Watchlist -->
-        <div class="left-sidebar">
-            <div class="sidebar-header">Watchlist</div>
-            <div class="watchlist">
-                <div class="watchlist-item active">
-                    <div class="watchlist-symbol">EUR/USD</div>
-                    <div class="watchlist-details">
-                        <span class="watchlist-price">1.0892</span>
-                        <span class="watchlist-change price-up">+0.21%</span>
-                    </div>
-                </div>
-                <div class="watchlist-item">
-                    <div class="watchlist-symbol">GBP/USD</div>
-                    <div class="watchlist-details">
-                        <span class="watchlist-price">1.2634</span>
-                        <span class="watchlist-change price-down">-0.15%</span>
-                    </div>
-                </div>
-                <div class="watchlist-item">
-                    <div class="watchlist-symbol">USD/JPY</div>
-                    <div class="watchlist-details">
-                        <span class="watchlist-price">148.92</span>
-                        <span class="watchlist-change price-up">+0.08%</span>
-                    </div>
-                </div>
-                <div class="watchlist-item">
-                    <div class="watchlist-symbol">US30</div>
-                    <div class="watchlist-details">
-                        <span class="watchlist-price">37,891</span>
-                        <span class="watchlist-change price-up">+0.54%</span>
-                    </div>
-                </div>
-                <div class="watchlist-item">
-                    <div class="watchlist-symbol">XAUUSD</div>
-                    <div class="watchlist-details">
-                        <span class="watchlist-price">2,034.50</span>
-                        <span class="watchlist-change price-down">-0.32%</span>
-                    </div>
-                </div>
-                <div class="watchlist-item">
-                    <div class="watchlist-symbol">US500</div>
-                    <div class="watchlist-details">
-                        <span class="watchlist-price">4,783.45</span>
-                        <span class="watchlist-change price-up">+0.42%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="topbar">
+  <a href="dashboard.html" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Dashboard
+  </a>
+  <div class="tb-div"></div>
+  <div class="tb-acct" id="tbAcct">IPFX Markets</div>
+  <div class="tb-div"></div>
+  <div class="tb-pill">Login&nbsp;<strong id="tbLogin">—</strong></div>
+  <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">MT5</strong></div>
+  <div class="tb-pill">Server&nbsp;<strong id="tbServer">IPFX-MT5-Live</strong></div>
+  <div class="tb-right">
+    <div class="live-dot"></div>
+    <div class="live-lbl">Live</div>
+  </div>
+</div>
 
-        <!-- Chart Area -->
-        <div class="chart-area">
-            <div class="chart-toolbar">
-                <div class="toolbar-group">
-                    <button class="toolbar-btn active">Candles</button>
-                    <button class="toolbar-btn">Bars</button>
-                    <button class="toolbar-btn">Line</button>
-                </div>
-                <div class="toolbar-group">
-                    <button class="toolbar-btn">Draw</button>
-                    <button class="toolbar-btn">Trend Line</button>
-                    <button class="toolbar-btn">Horizontal</button>
-                </div>
-                <div class="toolbar-group">
-                    <button class="toolbar-btn">Indicators</button>
-                    <button class="toolbar-btn">Settings</button>
-                </div>
-            </div>
-            <div id="tradingview-chart"></div>
-        </div>
+<div class="layout">
+  <div class="wl" id="wlPanel">
+    <div class="wl-head">Watchlist</div>
+    <div class="wl-list" id="wlList"></div>
+  </div>
+  <div class="wl-toggle" id="wlToggle" onclick="toggleWl()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+  </div>
+  <div class="chart-wrap">
+    <div id="tv_chart_container"></div>
+  </div>
+</div>
 
-        <!-- Right Sidebar - Order Entry -->
-        <div class="right-sidebar">
-            <div class="order-tabs">
-                <button class="order-tab active">Order</button>
-                <button class="order-tab">Calculator</button>
-            </div>
-            <div class="order-panel">
-                <div class="order-type-selector">
-                    <button class="order-type-btn active">Market</button>
-                    <button class="order-type-btn">Limit</button>
-                    <button class="order-type-btn">Stop</button>
-                </div>
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+const params=new URLSearchParams(location.search);
+document.getElementById('tbAcct').textContent=params.get('name')||'My Account';
+document.getElementById('tbLogin').textContent=params.get('login')||'—';
+document.getElementById('tbPlatform').textContent=params.get('platform')||'MT5';
+document.getElementById('tbServer').textContent=params.get('server')||'IPFX-MT5-Live';
+document.title='IPFX Markets | '+(params.get('name')||'Account');
 
-                <div class="input-group">
-                    <label class="input-label">Volume (Lots)</label>
-                    <input type="number" class="input-field" value="0.01" step="0.01" min="0.01">
-                </div>
+const PAIRS=[
+  {sym:'OANDA:EURUSD',label:'EUR/USD',desc:'Euro / US Dollar'},
+  {sym:'OANDA:GBPUSD',label:'GBP/USD',desc:'Pound / US Dollar'},
+  {sym:'OANDA:USDJPY',label:'USD/JPY',desc:'Dollar / Japanese Yen'},
+  {sym:'OANDA:XAUUSD',label:'XAU/USD',desc:'Gold / US Dollar'},
+  {sym:'OANDA:USDCAD',label:'USD/CAD',desc:'Dollar / Canadian Dollar'},
+  {sym:'OANDA:AUDUSD',label:'AUD/USD',desc:'Aussie / US Dollar'},
+  {sym:'OANDA:GBPJPY',label:'GBP/JPY',desc:'Pound / Japanese Yen'},
+  {sym:'OANDA:EURJPY',label:'EUR/JPY',desc:'Euro / Japanese Yen'},
+  {sym:'OANDA:USDCHF',label:'USD/CHF',desc:'Dollar / Swiss Franc'},
+  {sym:'NASDAQ:NQ1!', label:'NAS100', desc:'Nasdaq 100 Futures'},
+  {sym:'CME_MINI:ES1!',label:'S&P 500',desc:'S&P 500 Futures'},
+  {sym:'OANDA:US30USD',label:'DOW 30', desc:'Dow Jones 30'},
+  {sym:'OANDA:XAGUSD',label:'XAG/USD',desc:'Silver / US Dollar'},
+  {sym:'NYMEX:CL1!',  label:'WTI Oil', desc:'Crude Oil Futures'},
+  {sym:'CME:GC1!',    label:'Gold Fut',desc:'Gold Futures (CME)'},
+];
 
-                <div class="input-group">
-                    <label class="input-label">Stop Loss</label>
-                    <input type="number" class="input-field" placeholder="Optional">
-                </div>
+let activeSym='OANDA:EURUSD';
+let tvWidget=null;
 
-                <div class="input-group">
-                    <label class="input-label">Take Profit</label>
-                    <input type="number" class="input-field" placeholder="Optional">
-                </div>
+function buildWl(){
+  document.getElementById('wlList').innerHTML=PAIRS.map((p,i)=>`
+    <div class="wl-item${i===0?' active':''}" onclick="changeSym('${p.sym}',this)">
+      <div>
+        <div class="wl-sym">${p.label}</div>
+        <div class="wl-desc">${p.desc}</div>
+      </div>
+    </div>`).join('');
+}
 
-                <div class="order-buttons">
-                    <button class="order-btn order-btn-buy">BUY</button>
-                    <button class="order-btn order-btn-sell">SELL</button>
-                </div>
-            </div>
+function changeSym(sym,el){
+  activeSym=sym;
+  document.querySelectorAll('.wl-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  if(tvWidget){tvWidget.setSymbol(sym,'60',function(){});}
+}
 
-            <div class="account-info">
-                <div class="account-row">
-                    <span class="account-label">Balance</span>
-                    <span class="account-value">$5,000.00</span>
-                </div>
-                <div class="account-row">
-                    <span class="account-label">Equity</span>
-                    <span class="account-value">$5,000.00</span>
-                </div>
-                <div class="account-row">
-                    <span class="account-label">Margin</span>
-                    <span class="account-value">$0.00</span>
-                </div>
-                <div class="account-row">
-                    <span class="account-label">Free Margin</span>
-                    <span class="account-value">$5,000.00</span>
-                </div>
-                <div class="account-row">
-                    <span class="account-label">Profit/Loss</span>
-                    <span class="account-value price-up">$0.00</span>
-                </div>
-            </div>
-        </div>
+function toggleWl(){
+  document.getElementById('wlPanel').classList.toggle('hidden');
+}
 
-        <!-- Bottom Panel -->
-        <div class="bottom-panel">
-            <div class="panel-tabs">
-                <button class="panel-tab active">Positions</button>
-                <button class="panel-tab">Orders</button>
-                <button class="panel-tab">History</button>
-            </div>
-            <div class="panel-content">
-                <div class="empty-state">
-                    <div class="empty-state-icon"></div>
-                    <div>No open positions</div>
-                </div>
-            </div>
-        </div>
-    </div>
+buildWl();
 
-    <!-- TradingView Widget -->
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script>
-        // Auto-login check
-        (function checkAuth() {
-            const authToken = localStorage.getItem('ipfx_auth_token');
-            const userSession = sessionStorage.getItem('ipfx_user_session');
-
-            // If no authentication found, redirect to login
-            if (!authToken && !userSession) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            // Optional: Load user data from stored session
-            if (authToken) {
-                const userData = JSON.parse(localStorage.getItem('ipfx_user_data') || '{}');
-
-                // Update account info if available
-                if (userData.balance) {
-                    document.querySelector('.account-info').innerHTML = `
-                        <div class="account-row">
-                            <span class="account-label">Balance</span>
-                            <span class="account-value">$${parseFloat(userData.balance).toFixed(2)}</span>
-                        </div>
-                        <div class="account-row">
-                            <span class="account-label">Equity</span>
-                            <span class="account-value">$${parseFloat(userData.equity || userData.balance).toFixed(2)}</span>
-                        </div>
-                        <div class="account-row">
-                            <span class="account-label">Margin</span>
-                            <span class="account-value">$${parseFloat(userData.margin || 0).toFixed(2)}</span>
-                        </div>
-                        <div class="account-row">
-                            <span class="account-label">Free Margin</span>
-                            <span class="account-value">$${parseFloat(userData.freeMargin || userData.balance).toFixed(2)}</span>
-                        </div>
-                        <div class="account-row">
-                            <span class="account-label">Profit/Loss</span>
-                            <span class="account-value ${(userData.pnl || 0) >= 0 ? 'price-up' : 'price-down'}">$${parseFloat(userData.pnl || 0).toFixed(2)}</span>
-                        </div>
-                    `;
-                }
-
-                // Update logo/username if available
-                if (userData.name || userData.email) {
-                    const displayName = userData.name || userData.email.split('@')[0];
-                    document.querySelector('.logo').innerHTML = `IPFX Capital <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin-left: 8px;">• ${displayName}</span>`;
-                }
-            }
-        })();
-
-        // Initialize TradingView Chart
-        new TradingView.widget({
-            "container_id": "tradingview-chart",
-            "autosize": true,
-            "symbol": "FX:EURUSD",
-            "interval": "15",
-            "timezone": "Etc/UTC",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#131722",
-            "enable_publishing": false,
-            "hide_top_toolbar": true,
-            "hide_legend": true,
-            "save_image": false,
-            "backgroundColor": "#131722",
-            "gridColor": "#1e222d",
-            "hide_volume": false,
-            "support_host": "https://www.tradingview.com"
-        });
-
-        // Tab switching logic
-        document.querySelectorAll('.order-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.order-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        document.querySelectorAll('.panel-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        document.querySelectorAll('.order-type-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.order-type-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        document.querySelectorAll('.timeframe-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        // Watchlist item switching
-        document.querySelectorAll('.watchlist-item').forEach(item => {
-            item.addEventListener('click', function() {
-                document.querySelectorAll('.watchlist-item').forEach(i => i.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        // Logout functionality
-        document.getElementById('logout-btn').addEventListener('click', function() {
-            // Clear all authentication data
-            localStorage.removeItem('ipfx_auth_token');
-            localStorage.removeItem('ipfx_user_data');
-            sessionStorage.removeItem('ipfx_user_session');
-
-            // Redirect to login page
-            window.location.href = 'login.html';
-        });
-    </script>
-
-    <script>
-    // Standard nav scroll + hamburger
-    (function() {
-        var nav = document.querySelector('nav');
-        // Always show nav on non-hero pages
-        if (nav) { nav.classList.add('scrolled'); }
-
-        var hamburger = document.querySelector('.hamburger');
-        var navCenter = document.querySelector('.nav-center');
-        if (hamburger && navCenter) {
-            hamburger.addEventListener('click', function() {
-                hamburger.classList.toggle('active');
-                navCenter.classList.toggle('mobile-open');
-            });
-            document.querySelectorAll('.nav-item > a').forEach(function(link) {
-                link.addEventListener('click', function(e) {
-                    if (window.innerWidth <= 768 && link.nextElementSibling && link.nextElementSibling.classList.contains('dropdown-menu')) {
-                        e.preventDefault();
-                        var item = link.closest('.nav-item');
-                        var isOpen = item.classList.contains('mobile-open');
-                        document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
-                        if (!isOpen) item.classList.add('mobile-open');
-                    }
-                });
-            });
-            document.querySelectorAll('.nav-center a').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    hamburger.classList.remove('active');
-                    navCenter.classList.remove('mobile-open');
-                    document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
-                });
-            });
-            document.addEventListener('click', function(e) {
-                if (!hamburger.contains(e.target) && !navCenter.contains(e.target)) {
-                    hamburger.classList.remove('active');
-                    navCenter.classList.remove('mobile-open');
-                }
-            });
-        }
-    })();
-    </script>
-
+if(typeof TradingView!=='undefined'){
+  tvWidget=new TradingView.widget({
+    container_id:'tv_chart_container',
+    autosize:true,
+    symbol:activeSym,
+    interval:'60',
+    timezone:'Europe/London',
+    theme:'dark',
+    style:'1',
+    locale:'en',
+    toolbar_bg:'#0e0e10',
+    enable_publishing:false,
+    hide_side_toolbar:false,
+    allow_symbol_change:true,
+    save_image:true,
+    studies:['RSI@tv-basicstudies','MACD@tv-basicstudies'],
+    overrides:{
+      'paneProperties.background':'#0a0a0c',
+      'paneProperties.backgroundType':'solid',
+      'scalesProperties.textColor':'#a0a0a0',
+      'mainSeriesProperties.candleStyle.upColor':'#10b981',
+      'mainSeriesProperties.candleStyle.downColor':'#ef4444',
+      'mainSeriesProperties.candleStyle.borderUpColor':'#10b981',
+      'mainSeriesProperties.candleStyle.borderDownColor':'#ef4444',
+      'mainSeriesProperties.candleStyle.wickUpColor':'#10b981',
+      'mainSeriesProperties.candleStyle.wickDownColor':'#ef4444',
+    },
+  });
+} else {
+  document.addEventListener('DOMContentLoaded',function(){
+    tvWidget=new TradingView.widget({
+      container_id:'tv_chart_container',
+      autosize:true,symbol:activeSym,interval:'60',timezone:'Europe/London',
+      theme:'dark',style:'1',locale:'en',toolbar_bg:'#0e0e10',
+      enable_publishing:false,allow_symbol_change:true,save_image:true,
+      studies:['RSI@tv-basicstudies','MACD@tv-basicstudies'],
+      overrides:{'paneProperties.background':'#0a0a0c','paneProperties.backgroundType':'solid','scalesProperties.textColor':'#a0a0a0','mainSeriesProperties.candleStyle.upColor':'#10b981','mainSeriesProperties.candleStyle.downColor':'#ef4444','mainSeriesProperties.candleStyle.borderUpColor':'#10b981','mainSeriesProperties.candleStyle.borderDownColor':'#ef4444','mainSeriesProperties.candleStyle.wickUpColor':'#10b981','mainSeriesProperties.candleStyle.wickDownColor':'#ef4444'},
+    });
+  });
+}
+</script>
 </body>
 </html>
