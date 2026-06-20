@@ -808,34 +808,10 @@ function renderAccounts(list){
         <div class="ac-acts">${actions}</div>
       </div>
       <div class="ac-creds">
-        <button class="creds-tog" onclick="toggleCreds(this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span>Credentials</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="creds-panel">
-          <div class="cred-grid">
-            <div class="cred-item">
-              <div class="cred-lbl">Login Code</div>
-              <div class="cred-row">
-                <code class="cred-code">${loginCode}</code>
-                <button class="cred-copy" onclick="copyCred(this,'${loginCode}')">Copy</button>
-              </div>
-            </div>
-            <div class="cred-item">
-              <div class="cred-lbl">Password</div>
-              <div class="cred-row">
-                <code class="cred-code" id="${pwElId}" data-v="${tradePw}">${tradePw?'••••••••':'Not set'}</code>
-                ${tradePw?`<button class="cred-copy" onclick="showPw('${pwElId}',this)">Show</button><button class="cred-copy" onclick="copyCred(this,document.getElementById('${pwElId}').dataset.v)">Copy</button>`:'<span style="font-size:.7rem;color:var(--muted2)">Contact support</span>'}
-              </div>
-            </div>
-          </div>
-          <div class="cred-server">Server:&nbsp;<span>${tvServer}</span>&nbsp;&nbsp;·&nbsp;&nbsp;Platform:&nbsp;<span>${platform}</span></div>
-          <a href="trading.html?login=${encodeURIComponent(loginCode)}&name=${encodeURIComponent(acName)}&platform=${encodeURIComponent(platform)}&server=${encodeURIComponent(tvServer)}" class="trade-btn" target="_blank">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Launch IPFX Markets
-          </a>
-        </div>
+        <a href="trading.html?login=${encodeURIComponent(loginCode)}&name=${encodeURIComponent(acName)}&platform=${encodeURIComponent(platform)}&server=${encodeURIComponent(tvServer)}" class="trade-btn" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Go to Markets
+        </a>
       </div>
     </div>`;
   }).join('');
