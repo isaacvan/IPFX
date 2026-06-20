@@ -9,58 +9,182 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --bg:#0a0a0c;--bg2:#0e0e10;--fg:#fff;--muted:#a0a0a0;--muted2:#6a6a6a;
-  --line:#2a2a2c;--cobalt:#2563eb;--cobalt-h:#1d4ed8;--green:#10b981;
+  --bg:#0a0a0c;--bg2:#0e0e10;--bg3:#131316;--fg:#ffffff;
+  --muted:#a0a0a0;--muted2:#606060;--line:#2a2a2c;--line2:#1e1e20;
+  --cobalt:#2563eb;--cobalt-h:#1d4ed8;--cobalt-d:rgba(37,99,235,.12);
+  --green:#10b981;--red:#ef4444;--gold:#f59e0b;--purple:#8b5cf6;
+  --r:8px;
 }
 html,body{height:100%;overflow:hidden;}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;}
 
-.topbar{display:flex;align-items:center;gap:.75rem;padding:0 1.25rem;height:52px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--bg2);}
-.back-btn{display:flex;align-items:center;gap:.35rem;padding:.32rem .7rem;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s;white-space:nowrap;}
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;gap:.6rem;padding:0 1rem;height:50px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--bg2);}
+.back-btn{display:flex;align-items:center;gap:.35rem;padding:.3rem .65rem;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);font-size:.75rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s;white-space:nowrap;flex-shrink:0;}
 .back-btn:hover{color:var(--fg);border-color:rgba(255,255,255,.2);}
-.back-btn svg{width:12px;height:12px;}
-.tb-div{width:1px;height:22px;background:var(--line);flex-shrink:0;}
-.tb-acct{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;white-space:nowrap;}
-.tb-pill{display:flex;align-items:center;gap:.3rem;padding:.26rem .6rem;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:.72rem;color:var(--muted2);white-space:nowrap;}
+.back-btn svg{width:11px;height:11px;}
+.tb-logo{display:flex;align-items:center;gap:.4rem;flex-shrink:0;}
+.tb-logo img{width:20px;height:20px;object-fit:contain;}
+.tb-logo span{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:700;}
+.tb-div{width:1px;height:20px;background:var(--line);flex-shrink:0;}
+.tb-acct{font-family:'Space Grotesk',sans-serif;font-size:.88rem;font-weight:700;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.tb-pill{display:flex;align-items:center;gap:.25rem;padding:.22rem .55rem;border-radius:4px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:.68rem;color:var(--muted2);white-space:nowrap;flex-shrink:0;}
 .tb-pill strong{color:var(--fg);font-weight:600;}
 .tb-right{margin-left:auto;display:flex;align-items:center;gap:.5rem;flex-shrink:0;}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(16,185,129,.6);animation:pd 2s ease infinite;flex-shrink:0;}
-@keyframes pd{0%,100%{opacity:1}50%{opacity:.4}}
-.live-lbl{font-size:.75rem;color:var(--green);font-weight:700;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px rgba(16,185,129,.7);animation:pd 2s ease infinite;}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.35}}
+.live-lbl{font-size:.72rem;color:var(--green);font-weight:700;}
+.tv-attr{font-size:.65rem;color:var(--muted2);display:flex;align-items:center;gap:.3rem;}
+.tv-attr a{color:var(--muted2);text-decoration:none;}
+.tv-attr a:hover{color:var(--muted);}
 
-.layout{flex:1;display:flex;overflow:hidden;}
+/* ── LAYOUT ── */
+.layout{flex:1;display:flex;overflow:hidden;position:relative;}
 
-.wl{width:190px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;transition:width .25s,min-width .25s;}
-.wl.hidden{width:0;min-width:0;overflow:hidden;border-right:none;}
-.wl-head{padding:.75rem 1rem .5rem;font-family:'Space Grotesk',sans-serif;font-size:.72rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;flex-shrink:0;}
+/* ── LEFT WATCHLIST ── */
+.wl{width:185px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+.wl.hidden{width:0;border-right:none;}
+.wl-header{padding:.65rem .9rem .4rem;border-bottom:1px solid var(--line2);flex-shrink:0;}
+.wl-title{font-family:'Space Grotesk',sans-serif;font-size:.7rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1.2px;}
+.wl-search{margin-top:.5rem;position:relative;}
+.wl-search input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:.32rem .55rem .32rem 1.6rem;font-size:.72rem;color:var(--fg);font-family:'Inter',sans-serif;outline:none;}
+.wl-search input::placeholder{color:var(--muted2);}
+.wl-search input:focus{border-color:rgba(37,99,235,.4);}
+.wl-search svg{position:absolute;left:.45rem;top:50%;transform:translateY(-50%);width:11px;height:11px;color:var(--muted2);pointer-events:none;}
+.wl-cat{padding:.5rem .9rem .2rem;font-size:.62rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;}
 .wl-list{flex:1;overflow-y:auto;}
-.wl-item{display:flex;align-items:center;justify-content:space-between;padding:.55rem 1rem;cursor:pointer;transition:background .1s;gap:.5rem;border-bottom:1px solid var(--line);}
-.wl-item:last-child{border-bottom:none;}
+.wl-list::-webkit-scrollbar{width:3px;}
+.wl-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.wl-item{display:flex;align-items:center;justify-content:space-between;padding:.48rem .9rem;cursor:pointer;transition:background .1s;gap:.4rem;border-left:2px solid transparent;}
 .wl-item:hover{background:rgba(255,255,255,.04);}
-.wl-item.active{background:rgba(37,99,235,.1);border-right:2px solid var(--cobalt);}
-.wl-sym{font-family:'Space Grotesk',sans-serif;font-size:.8rem;font-weight:700;}
-.wl-desc{font-size:.65rem;color:var(--muted2);margin-top:.1rem;}
+.wl-item.active{background:var(--cobalt-d);border-left-color:var(--cobalt);}
+.wl-sym{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:700;}
+.wl-sub{font-size:.6rem;color:var(--muted2);margin-top:.08rem;}
+.wl-cat-badge{font-size:.58rem;padding:.1rem .3rem;border-radius:3px;font-weight:700;text-transform:uppercase;flex-shrink:0;}
+.cat-fx{background:rgba(37,99,235,.15);color:#60a5fa;}
+.cat-idx{background:rgba(245,158,11,.12);color:var(--gold);}
+.cat-com{background:rgba(16,185,129,.12);color:var(--green);}
+.cat-cry{background:rgba(139,92,246,.12);color:var(--purple);}
 
-.chart-wrap{flex:1;position:relative;overflow:hidden;}
+/* ── LEFT TOGGLE ── */
+.wl-tog{position:absolute;top:50%;left:185px;transform:translateY(-50%);z-index:100;width:14px;height:36px;background:var(--bg2);border:1px solid var(--line);border-left:none;border-radius:0 5px 5px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:left .22s cubic-bezier(.4,0,.2,1),color .15s;}
+.wl-tog:hover{color:var(--fg);}
+.wl-tog svg{width:8px;height:8px;transition:transform .22s;}
+.wl.hidden+.wl-tog{left:0;}
+.wl.hidden+.wl-tog svg{transform:rotate(180deg);}
+
+/* ── CHART CENTER ── */
+.chart-wrap{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+.chart-toolbar{display:flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-bottom:1px solid var(--line);background:var(--bg2);flex-shrink:0;flex-wrap:wrap;}
+.ct-label{font-size:.68rem;color:var(--muted2);font-weight:600;margin-right:.2rem;white-space:nowrap;}
+.tf-btn{padding:.22rem .5rem;border-radius:4px;border:1px solid var(--line);background:none;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Inter',sans-serif;white-space:nowrap;}
+.tf-btn:hover{color:var(--fg);border-color:rgba(255,255,255,.2);}
+.tf-btn.active{background:var(--cobalt-d);border-color:rgba(37,99,235,.4);color:#60a5fa;}
+.ct-sep{width:1px;height:16px;background:var(--line);flex-shrink:0;}
+.style-btn{padding:.22rem .5rem;border-radius:4px;border:1px solid var(--line);background:none;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:.3rem;}
+.style-btn:hover{color:var(--fg);}
+.style-btn.active{background:var(--cobalt-d);border-color:rgba(37,99,235,.4);color:#60a5fa;}
+.chart-area{flex:1;position:relative;}
 #tv_chart_container{width:100%;height:100%;}
 
-.wl-toggle{position:fixed;top:50%;left:190px;transform:translateY(-50%);z-index:200;width:16px;height:38px;background:var(--bg2);border:1px solid var(--line);border-left:none;border-radius:0 5px 5px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:left .25s,color .15s;}
-.wl-toggle:hover{color:var(--fg);}
-.wl-toggle svg{width:9px;height:9px;transition:transform .25s;}
-.wl.hidden~.wl-toggle{left:0;}
-.wl.hidden~.wl-toggle svg{transform:rotate(180deg);}
+/* ── RIGHT GUIDE PANEL ── */
+.guide{width:270px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+.guide.hidden{width:0;border-left:none;}
+.guide-tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0;}
+.gtab{flex:1;padding:.6rem .3rem;font-size:.68rem;font-weight:700;text-align:center;cursor:pointer;color:var(--muted2);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.gtab:hover{color:var(--muted);}
+.gtab.active{color:var(--fg);border-bottom-color:var(--cobalt);}
+.guide-body{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.guide-body::-webkit-scrollbar{width:3px;}
+.guide-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.gpanel{display:none;flex-direction:column;flex:1;}
+.gpanel.active{display:flex;}
+
+/* INDICATORS TAB */
+.ind-apply-bar{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-bottom:1px solid var(--line2);flex-shrink:0;}
+.ind-apply-bar span{font-size:.7rem;color:var(--muted);flex:1;}
+.apply-btn{padding:.3rem .7rem;border-radius:5px;background:var(--cobalt);color:#fff;border:none;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;white-space:nowrap;transition:background .15s;}
+.apply-btn:hover{background:var(--cobalt-h);}
+.reset-btn{padding:.3rem .6rem;border-radius:5px;background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--line);font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.reset-btn:hover{color:var(--fg);}
+.ind-cat-hd{padding:.55rem .8rem .25rem;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);display:flex;align-items:center;gap:.4rem;}
+.ind-cat-hd::after{content:'';flex:1;height:1px;background:var(--line2);}
+.ind-item{display:flex;align-items:flex-start;gap:.55rem;padding:.55rem .8rem;border-bottom:1px solid var(--line2);cursor:pointer;transition:background .1s;}
+.ind-item:hover{background:rgba(255,255,255,.03);}
+.ind-item:last-child{border-bottom:none;}
+.ind-check{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--line);background:none;flex-shrink:0;margin-top:.1rem;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ind-item.on .ind-check{background:var(--cobalt);border-color:var(--cobalt);}
+.ind-item.on .ind-check::after{content:'';width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);margin-top:-2px;}
+.ind-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:.3rem;}
+.ind-info{flex:1;min-width:0;}
+.ind-name{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:.4rem;}
+.ind-tag{font-size:.58rem;padding:.1rem .35rem;border-radius:3px;font-weight:700;background:rgba(37,99,235,.12);color:#60a5fa;}
+.ind-brief{font-size:.68rem;color:var(--muted);margin-top:.12rem;}
+.ind-explain{font-size:.67rem;color:var(--muted2);margin-top:.3rem;line-height:1.55;display:none;padding:.4rem .5rem;background:rgba(255,255,255,.03);border-radius:4px;border-left:2px solid var(--cobalt);}
+.ind-item:hover .ind-explain{display:block;}
+.ind-more{font-size:.62rem;color:var(--cobalt);margin-top:.5rem;padding:.35rem .8rem;border-top:1px solid var(--line2);text-align:center;}
+
+/* LEARN TAB */
+.learn-section{padding:.75rem .9rem;border-bottom:1px solid var(--line2);}
+.learn-section:last-child{border-bottom:none;}
+.learn-q{font-family:'Space Grotesk',sans-serif;font-size:.8rem;font-weight:700;margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;cursor:pointer;}
+.learn-q svg{width:12px;height:12px;color:var(--cobalt);flex-shrink:0;transition:transform .2s;}
+.learn-q.open svg{transform:rotate(90deg);}
+.learn-a{font-size:.72rem;color:var(--muted);line-height:1.65;display:none;}
+.learn-q.open+.learn-a{display:block;}
+.candle-demo{display:flex;align-items:flex-end;gap:.4rem;margin:.5rem 0;padding:.5rem;background:rgba(255,255,255,.03);border-radius:6px;}
+.candle-wrap{display:flex;flex-direction:column;align-items:center;gap:.1rem;}
+.candle-label{font-size:.6rem;color:var(--muted2);text-align:center;}
+.candle-body{width:14px;border-radius:1px;}
+.candle-wick{width:1.5px;background:currentColor;}
+.up-candle{color:var(--green);}
+.dn-candle{color:var(--red);}
+.term-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.5rem;}
+.term-card{padding:.4rem .5rem;background:rgba(255,255,255,.03);border-radius:5px;border:1px solid var(--line2);}
+.term-card .tk{font-size:.65rem;font-weight:700;color:var(--fg);margin-bottom:.1rem;}
+.term-card .tv{font-size:.62rem;color:var(--muted);}
+
+/* TIMEFRAMES TAB */
+.tf-section{padding:.65rem .9rem;border-bottom:1px solid var(--line2);}
+.tf-section:last-child{border-bottom:none;}
+.tf-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem;}
+.tf-badge{font-family:'Space Grotesk',sans-serif;font-size:.75rem;font-weight:700;min-width:30px;}
+.tf-desc{font-size:.7rem;color:var(--muted);flex:1;}
+.tf-who{font-size:.63rem;padding:.1rem .35rem;border-radius:3px;font-weight:700;background:rgba(255,255,255,.06);color:var(--muted2);}
+
+/* RIGHT TOGGLE */
+.guide-tog{position:absolute;top:50%;right:270px;transform:translateY(-50%);z-index:100;width:14px;height:36px;background:var(--bg2);border:1px solid var(--line);border-right:none;border-radius:5px 0 0 5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:right .22s cubic-bezier(.4,0,.2,1),color .15s;}
+.guide-tog:hover{color:var(--fg);}
+.guide-tog svg{width:8px;height:8px;transition:transform .22s;}
+.guide.hidden~.guide-tog{right:0;}
+.guide.hidden~.guide-tog svg{transform:rotate(180deg);}
+
+/* SCROLLBAR GLOBAL */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px;}
+
+/* FOOTER */
+.chart-footer{display:flex;align-items:center;justify-content:flex-end;padding:.25rem .75rem;border-top:1px solid var(--line);background:var(--bg2);font-size:.62rem;color:var(--muted2);gap:.4rem;flex-shrink:0;}
+.chart-footer a{color:var(--muted2);text-decoration:none;}
+.chart-footer a:hover{color:var(--muted);}
 </style>
 </head>
 <body>
 
+<!-- TOPBAR -->
 <div class="topbar">
   <a href="dashboard.html" class="back-btn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
     Dashboard
   </a>
   <div class="tb-div"></div>
-  <div class="tb-acct" id="tbAcct">IPFX Markets</div>
+  <div class="tb-logo">
+    <img src="/assets/images/favicon.ico" alt="IPFX">
+    <span>IPFX Markets</span>
+  </div>
   <div class="tb-div"></div>
+  <div class="tb-acct" id="tbAcct">Account</div>
   <div class="tb-pill">Login&nbsp;<strong id="tbLogin">—</strong></div>
   <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">MT5</strong></div>
   <div class="tb-pill">Server&nbsp;<strong id="tbServer">IPFX-MT5-Live</strong></div>
@@ -70,111 +194,499 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   </div>
 </div>
 
+<!-- LAYOUT -->
 <div class="layout">
+
+  <!-- LEFT: WATCHLIST -->
   <div class="wl" id="wlPanel">
-    <div class="wl-head">Watchlist</div>
+    <div class="wl-header">
+      <div class="wl-title">Watchlist</div>
+      <div class="wl-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="wlSearch" placeholder="Search…" oninput="filterWl(this.value)">
+      </div>
+    </div>
     <div class="wl-list" id="wlList"></div>
   </div>
-  <div class="wl-toggle" id="wlToggle" onclick="toggleWl()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+
+  <div class="wl-tog" id="wlTog" onclick="toggleWl()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
   </div>
+
+  <!-- CENTER: CHART -->
   <div class="chart-wrap">
-    <div id="tv_chart_container"></div>
+    <div class="chart-toolbar" id="chartToolbar">
+      <span class="ct-label">Timeframe</span>
+      <button class="tf-btn" onclick="setTf('1',this)">1m</button>
+      <button class="tf-btn" onclick="setTf('3',this)">3m</button>
+      <button class="tf-btn" onclick="setTf('5',this)">5m</button>
+      <button class="tf-btn" onclick="setTf('15',this)">15m</button>
+      <button class="tf-btn" onclick="setTf('30',this)">30m</button>
+      <button class="tf-btn active" onclick="setTf('60',this)">1H</button>
+      <button class="tf-btn" onclick="setTf('240',this)">4H</button>
+      <button class="tf-btn" onclick="setTf('D',this)">1D</button>
+      <button class="tf-btn" onclick="setTf('W',this)">1W</button>
+      <div class="ct-sep"></div>
+      <span class="ct-label">Style</span>
+      <button class="style-btn active" onclick="setStyle(1,this)" title="Candles">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="3" height="7"/><rect x="8" y="2" width="3" height="5"/><line x1="4.5" y1="1" x2="4.5" y2="3"/><line x1="4.5" y1="10" x2="4.5" y2="12"/><line x1="9.5" y1="1" x2="9.5" y2="2"/><line x1="9.5" y1="7" x2="9.5" y2="12"/></svg>
+        Candles
+      </button>
+      <button class="style-btn" onclick="setStyle(2,this)" title="Line">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,10 4,6 7,8 10,3 13,5"/></svg>
+        Line
+      </button>
+      <button class="style-btn" onclick="setStyle(8,this)" title="Heikin Ashi">HA</button>
+    </div>
+    <div class="chart-area">
+      <div id="tv_chart_container"></div>
+    </div>
+    <div class="chart-footer">
+      Charts powered by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>
+      &nbsp;·&nbsp;Data is indicative and for reference only. Not financial advice.
+    </div>
   </div>
-</div>
+
+  <!-- RIGHT GUIDE TOGGLE -->
+  <div class="guide-tog" id="guideTog" onclick="toggleGuide()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+  </div>
+
+  <!-- RIGHT: GUIDE PANEL -->
+  <div class="guide" id="guidePanel">
+    <div class="guide-tabs">
+      <div class="gtab active" onclick="switchTab('indicators',this)">Indicators</div>
+      <div class="gtab" onclick="switchTab('learn',this)">Learn</div>
+      <div class="gtab" onclick="switchTab('timeframes',this)">Timeframes</div>
+    </div>
+    <div class="guide-body">
+
+      <!-- INDICATORS TAB -->
+      <div class="gpanel active" id="tab-indicators">
+        <div class="ind-apply-bar">
+          <span id="selCount">0 selected</span>
+          <button class="reset-btn" onclick="resetIndicators()">Reset</button>
+          <button class="apply-btn" onclick="applyIndicators()">Apply to Chart</button>
+        </div>
+        <div id="indList"></div>
+        <div class="ind-more">100+ more indicators available via the chart toolbar above</div>
+      </div>
+
+      <!-- LEARN TAB -->
+      <div class="gpanel" id="tab-learn">
+
+        <div class="learn-section">
+          <div class="learn-q" onclick="toggleLearn(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            What is a candlestick?
+          </div>
+          <div class="learn-a">
+            Each candle represents one time period. The body shows where price opened and closed. The wicks show the highest and lowest price reached.
+            <div class="candle-demo">
+              <div class="candle-wrap up-candle">
+                <div class="candle-wick" style="height:16px"></div>
+                <div class="candle-body" style="height:24px;background:#10b981"></div>
+                <div class="candle-wick" style="height:8px"></div>
+                <div class="candle-label">Bullish<br>(price up)</div>
+              </div>
+              <div class="candle-wrap dn-candle" style="margin-left:.8rem">
+                <div class="candle-wick" style="height:10px"></div>
+                <div class="candle-body" style="height:28px;background:#ef4444"></div>
+                <div class="candle-wick" style="height:12px"></div>
+                <div class="candle-label">Bearish<br>(price down)</div>
+              </div>
+            </div>
+            A green/white candle means price closed higher than it opened. A red candle means price closed lower. Long wicks show the market tested those levels but rejected them.
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-q" onclick="toggleLearn(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            What is a trend?
+          </div>
+          <div class="learn-a">
+            <strong style="color:var(--fg)">Uptrend:</strong> Price makes higher highs and higher lows. Like stairs going up. Look to buy on dips.<br><br>
+            <strong style="color:var(--fg)">Downtrend:</strong> Price makes lower highs and lower lows. Stairs going down. Look to sell on rallies.<br><br>
+            <strong style="color:var(--fg)">Sideways:</strong> Price bounces between two levels — no clear direction. Wait for a breakout before trading.
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-q" onclick="toggleLearn(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            What is support and resistance?
+          </div>
+          <div class="learn-a">
+            <strong style="color:var(--fg)">Support</strong> is a price level where buyers have stepped in repeatedly, preventing price from falling further. Think of it as a floor.<br><br>
+            <strong style="color:var(--fg)">Resistance</strong> is where sellers repeatedly push price back down. A ceiling.<br><br>
+            When support breaks, it often becomes resistance. When resistance breaks, it becomes support. These level flips are key trading opportunities.
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-q" onclick="toggleLearn(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            Key trading terms
+          </div>
+          <div class="learn-a">
+            <div class="term-grid">
+              <div class="term-card"><div class="tk">Long</div><div class="tv">You buy, expecting price to rise</div></div>
+              <div class="term-card"><div class="tk">Short</div><div class="tv">You sell, expecting price to fall</div></div>
+              <div class="term-card"><div class="tk">Stop Loss</div><div class="tv">Auto-closes your trade to cap your loss</div></div>
+              <div class="term-card"><div class="tk">Take Profit</div><div class="tv">Auto-closes when your target is hit</div></div>
+              <div class="term-card"><div class="tk">Pip</div><div class="tv">Smallest price move in forex (0.0001)</div></div>
+              <div class="term-card"><div class="tk">Spread</div><div class="tv">Cost of the trade — difference between buy/sell price</div></div>
+              <div class="term-card"><div class="tk">Leverage</div><div class="tv">Trading more than your balance — magnifies wins and losses</div></div>
+              <div class="term-card"><div class="tk">Drawdown</div><div class="tv">How far your account has dropped from its peak</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-q" onclick="toggleLearn(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            How to use indicators
+          </div>
+          <div class="learn-a">
+            Indicators are mathematical calculations based on price and volume. They help you identify trends, momentum, and potential reversals.<br><br>
+            <strong style="color:var(--fg)">Golden rule:</strong> Never rely on a single indicator. Use two or three together for confirmation. If the RSI says oversold AND price is at a key support level AND there is a bullish candle pattern — that is a much stronger signal than any one of those alone.
+          </div>
+        </div>
+
+        <div class="learn-section">
+          <div class="learn-q" onclick="toggleLearn(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            Risk management basics
+          </div>
+          <div class="learn-a">
+            Good traders protect capital first. A common rule is to never risk more than 1–2% of your account on a single trade.<br><br>
+            <strong style="color:var(--fg)">Risk/Reward:</strong> Before entering, know your stop loss and target. If your stop is 20 pips away, your target should be at least 40 pips — a 1:2 ratio. This means you can be wrong half the time and still be profitable.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TIMEFRAMES TAB -->
+      <div class="gpanel" id="tab-timeframes">
+
+        <div class="tf-section">
+          <div style="font-size:.68rem;color:var(--muted);padding:.1rem 0 .7rem;line-height:1.6">
+            Each timeframe shows the same market from a different zoom level. Higher timeframes show the bigger picture. Lower timeframes show detail for precise entries.
+          </div>
+          <div class="tf-row"><span class="tf-badge" style="color:#ef4444">1m</span><span class="tf-desc">1 minute. Extremely fast. Used by scalpers only. Very noisy.</span><span class="tf-who">Scalping</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#f97316">5m</span><span class="tf-desc">5 minutes. Short-term scalping and quick entries after a news event.</span><span class="tf-who">Scalping</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#f59e0b">15m</span><span class="tf-desc">15 minutes. Popular for day trading. Good balance of speed and signal quality.</span><span class="tf-who">Day</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#84cc16">1H</span><span class="tf-desc">1 hour. The most widely used timeframe by serious day traders.</span><span class="tf-who">Day</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#10b981">4H</span><span class="tf-desc">4 hours. Swing traders use this to identify multi-day trends and key levels.</span><span class="tf-who">Swing</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#2563eb">1D</span><span class="tf-desc">Daily. Each candle = one full trading day. Used for longer-term position trading.</span><span class="tf-who">Position</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#8b5cf6">1W</span><span class="tf-desc">Weekly. Big picture view. Each candle = one week. Institutional perspective.</span><span class="tf-who">Macro</span></div>
+        </div>
+
+        <div class="tf-section">
+          <div style="font-size:.7rem;font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:.5rem;">Multi-Timeframe Analysis</div>
+          <div style="font-size:.7rem;color:var(--muted);line-height:1.6">
+            Professional traders use multiple timeframes together. A common approach: use the Daily to find the trend direction, the 4H to identify the setup, and the 1H to time the entry. Always trade in the direction of the higher timeframe trend.
+          </div>
+        </div>
+
+        <div class="tf-section">
+          <div style="font-size:.7rem;font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:.5rem;">Market Sessions</div>
+          <div style="font-size:.7rem;color:var(--muted);line-height:1.6;margin-bottom:.5rem">
+            Forex trades 24 hours but has distinct sessions with varying volatility:
+          </div>
+          <div class="tf-row"><span class="tf-badge" style="color:#f59e0b;font-size:.68rem">Asia</span><span class="tf-desc">00:00–09:00 GMT. Low volatility. JPY pairs most active.</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#10b981;font-size:.68rem">London</span><span class="tf-desc">08:00–17:00 GMT. Highest volume. Best for EUR, GBP pairs.</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#2563eb;font-size:.68rem">New York</span><span class="tf-desc">13:00–22:00 GMT. Second highest volume. USD pairs most active.</span></div>
+          <div class="tf-row"><span class="tf-badge" style="color:#8b5cf6;font-size:.68rem">Overlap</span><span class="tf-desc">13:00–17:00 GMT. London + NY overlap. Highest daily volatility window.</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- end layout -->
 
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script>
-const params=new URLSearchParams(location.search);
-document.getElementById('tbAcct').textContent=params.get('name')||'My Account';
-document.getElementById('tbLogin').textContent=params.get('login')||'—';
-document.getElementById('tbPlatform').textContent=params.get('platform')||'MT5';
-document.getElementById('tbServer').textContent=params.get('server')||'IPFX-MT5-Live';
-document.title='IPFX Markets | '+(params.get('name')||'Account');
+// ── URL PARAMS ──
+const P=new URLSearchParams(location.search);
+document.getElementById('tbAcct').textContent=P.get('name')||'My Account';
+document.getElementById('tbLogin').textContent=P.get('login')||'—';
+document.getElementById('tbPlatform').textContent=P.get('platform')||'MT5';
+document.getElementById('tbServer').textContent=P.get('server')||'IPFX-MT5-Live';
+document.title='IPFX Markets | '+(P.get('name')||'Account');
 
+// ── WATCHLIST DATA ──
 const PAIRS=[
-  {sym:'OANDA:EURUSD',label:'EUR/USD',desc:'Euro / US Dollar'},
-  {sym:'OANDA:GBPUSD',label:'GBP/USD',desc:'Pound / US Dollar'},
-  {sym:'OANDA:USDJPY',label:'USD/JPY',desc:'Dollar / Japanese Yen'},
-  {sym:'OANDA:XAUUSD',label:'XAU/USD',desc:'Gold / US Dollar'},
-  {sym:'OANDA:USDCAD',label:'USD/CAD',desc:'Dollar / Canadian Dollar'},
-  {sym:'OANDA:AUDUSD',label:'AUD/USD',desc:'Aussie / US Dollar'},
-  {sym:'OANDA:GBPJPY',label:'GBP/JPY',desc:'Pound / Japanese Yen'},
-  {sym:'OANDA:EURJPY',label:'EUR/JPY',desc:'Euro / Japanese Yen'},
-  {sym:'OANDA:USDCHF',label:'USD/CHF',desc:'Dollar / Swiss Franc'},
-  {sym:'NASDAQ:NQ1!', label:'NAS100', desc:'Nasdaq 100 Futures'},
-  {sym:'CME_MINI:ES1!',label:'S&P 500',desc:'S&P 500 Futures'},
-  {sym:'OANDA:US30USD',label:'DOW 30', desc:'Dow Jones 30'},
-  {sym:'OANDA:XAGUSD',label:'XAG/USD',desc:'Silver / US Dollar'},
-  {sym:'NYMEX:CL1!',  label:'WTI Oil', desc:'Crude Oil Futures'},
-  {sym:'CME:GC1!',    label:'Gold Fut',desc:'Gold Futures (CME)'},
+  {sym:'OANDA:EURUSD', label:'EUR/USD', sub:'Euro / US Dollar',      cat:'fx'},
+  {sym:'OANDA:GBPUSD', label:'GBP/USD', sub:'Pound / US Dollar',     cat:'fx'},
+  {sym:'OANDA:USDJPY', label:'USD/JPY', sub:'Dollar / Yen',          cat:'fx'},
+  {sym:'OANDA:AUDUSD', label:'AUD/USD', sub:'Aussie / US Dollar',    cat:'fx'},
+  {sym:'OANDA:USDCAD', label:'USD/CAD', sub:'Dollar / Canadian',     cat:'fx'},
+  {sym:'OANDA:USDCHF', label:'USD/CHF', sub:'Dollar / Swiss Franc',  cat:'fx'},
+  {sym:'OANDA:NZDUSD', label:'NZD/USD', sub:'Kiwi / US Dollar',      cat:'fx'},
+  {sym:'OANDA:GBPJPY', label:'GBP/JPY', sub:'Pound / Yen',           cat:'fx'},
+  {sym:'OANDA:EURJPY', label:'EUR/JPY', sub:'Euro / Yen',            cat:'fx'},
+  {sym:'OANDA:EURGBP', label:'EUR/GBP', sub:'Euro / Pound',          cat:'fx'},
+  {sym:'OANDA:EURAUD', label:'EUR/AUD', sub:'Euro / Aussie',         cat:'fx'},
+  {sym:'OANDA:GBPAUD', label:'GBP/AUD', sub:'Pound / Aussie',        cat:'fx'},
+  {sym:'CME_MINI:ES1!',label:'S&P 500', sub:'S&P 500 Futures',       cat:'idx'},
+  {sym:'NASDAQ:NQ1!',  label:'NAS100',  sub:'Nasdaq 100 Futures',    cat:'idx'},
+  {sym:'OANDA:US30USD',label:'DOW 30',  sub:'Dow Jones 30',          cat:'idx'},
+  {sym:'EUREX:FDAX1!', label:'DAX 40',  sub:'German Index Futures',  cat:'idx'},
+  {sym:'OANDA:XAUUSD', label:'XAU/USD', sub:'Gold / US Dollar',      cat:'com'},
+  {sym:'OANDA:XAGUSD', label:'XAG/USD', sub:'Silver / US Dollar',    cat:'com'},
+  {sym:'NYMEX:CL1!',   label:'WTI Oil', sub:'Crude Oil Futures',     cat:'com'},
+  {sym:'CME:GC1!',     label:'Gold Fut',sub:'Gold Futures CME',      cat:'com'},
+  {sym:'NYMEX:NG1!',   label:'Nat Gas', sub:'Natural Gas Futures',   cat:'com'},
+  {sym:'BINANCE:BTCUSDT',label:'BTC',   sub:'Bitcoin / USD',         cat:'cry'},
+  {sym:'BINANCE:ETHUSDT',label:'ETH',   sub:'Ethereum / USD',        cat:'cry'},
 ];
 
-let activeSym='OANDA:EURUSD';
-let tvWidget=null;
+const CAT_LABELS={fx:'Forex',idx:'Indices',com:'Commodities',cry:'Crypto'};
+const CAT_CLASS={fx:'cat-fx',idx:'cat-idx',com:'cat-com',cry:'cat-cry'};
 
-function buildWl(){
-  document.getElementById('wlList').innerHTML=PAIRS.map((p,i)=>`
-    <div class="wl-item${i===0?' active':''}" onclick="changeSym('${p.sym}',this)">
-      <div>
-        <div class="wl-sym">${p.label}</div>
-        <div class="wl-desc">${p.desc}</div>
-      </div>
-    </div>`).join('');
+let activeSym='OANDA:EURUSD';
+let allPairs=[...PAIRS];
+
+function buildWl(filter=''){
+  const cats=['fx','idx','com','cry'];
+  let html='';
+  cats.forEach(cat=>{
+    const items=PAIRS.filter(p=>p.cat===cat&&(p.label+p.sub).toLowerCase().includes(filter.toLowerCase()));
+    if(!items.length)return;
+    html+=`<div class="wl-cat">${CAT_LABELS[cat]}</div>`;
+    items.forEach((p,i)=>{
+      const isActive=p.sym===activeSym;
+      html+=`<div class="wl-item${isActive?' active':''}" onclick="changeSym('${p.sym}',this)">
+        <div><div class="wl-sym">${p.label}</div><div class="wl-sub">${p.sub}</div></div>
+        <span class="wl-cat-badge ${CAT_CLASS[cat]}">${cat.toUpperCase()}</span>
+      </div>`;
+    });
+  });
+  document.getElementById('wlList').innerHTML=html||'<div style="padding:1rem;font-size:.75rem;color:var(--muted2);text-align:center">No results</div>';
 }
+
+function filterWl(v){buildWl(v);}
 
 function changeSym(sym,el){
   activeSym=sym;
   document.querySelectorAll('.wl-item').forEach(i=>i.classList.remove('active'));
-  el.classList.add('active');
-  if(tvWidget){tvWidget.setSymbol(sym,'60',function(){});}
+  if(el)el.classList.add('active');
+  if(tvWidget){tvWidget.setSymbol(sym,currentTf,function(){});}
 }
 
-function toggleWl(){
-  document.getElementById('wlPanel').classList.toggle('hidden');
+// ── INDICATORS DATA ──
+const INDS=[
+  // TREND
+  {cat:'trend',id:'SMA@tv-basicstudies',name:'SMA',full:'Simple Moving Average',color:'#f59e0b',
+   brief:'Average price over time',
+   explain:'The average closing price over a set number of candles. When price is above the SMA, the trend is generally up. When below, it\'s down. The most widely-used tool in all of trading. Use the 20, 50, and 200 period SMAs together.'},
+  {cat:'trend',id:'EMA@tv-basicstudies',name:'EMA',full:'Exponential Moving Average',color:'#3b82f6',
+   brief:'Faster-reacting average',
+   explain:'Like the SMA but gives more weight to recent prices, so it reacts faster to new price moves. When a faster EMA crosses above a slower one (e.g. 9 EMA crossing 21 EMA), it\'s often a buy signal. When it crosses below, a sell signal.'},
+  {cat:'trend',id:'BB@tv-basicstudies',name:'Bollinger Bands',full:'Bollinger Bands',color:'#8b5cf6',
+   brief:'Volatility envelope',
+   explain:'Three lines: a 20-period SMA in the middle, and two bands 2 standard deviations above and below. When price touches the upper band, it may be overbought. Lower band — oversold. When bands squeeze very tight, a big breakout is often coming.'},
+  {cat:'trend',id:'IchimokuCloud@tv-basicstudies',name:'Ichimoku',full:'Ichimoku Cloud',color:'#06b6d4',
+   brief:'Japanese all-in-one system',
+   explain:'A complete trend system from Japan showing support, resistance, trend direction, and momentum all at once. Price above the cloud = bullish. Below the cloud = bearish. The cloud itself acts as dynamic support/resistance.'},
+  {cat:'trend',id:'VWAP@tv-basicstudies',name:'VWAP',full:'Volume Weighted Average Price',color:'#ec4899',
+   brief:'Institutional fair value line',
+   explain:'The average price weighted by volume — meaning it considers how much was traded at each price level. Institutions use VWAP as a target for entries. Price above VWAP = bullish bias for the day. Most useful on intraday charts.'},
+  {cat:'trend',id:'ParabolicSAR@tv-basicstudies',name:'Parabolic SAR',full:'Parabolic SAR',color:'#f97316',
+   brief:'Dots that flip on trend change',
+   explain:'Dots appear above or below price. Dots below price = uptrend is in place. Dots above = downtrend. When the dots flip to the other side, the trend has potentially reversed. Excellent for trailing stop losses and exit timing.'},
+  {cat:'trend',id:'HullMA@tv-basicstudies',name:'Hull MA',full:'Hull Moving Average',color:'#84cc16',
+   brief:'Smooth, reduced-lag average',
+   explain:'A smarter moving average that significantly reduces the lag found in standard averages while keeping the line smooth. It responds faster to price changes without as many false signals. Popular among professional algorithmic traders.'},
+  {cat:'trend',id:'DEMA@tv-basicstudies',name:'DEMA',full:'Double Exponential MA',color:'#14b8a6',
+   brief:'Double-smoothed, faster EMA',
+   explain:'Uses two EMAs together to create an average that is both faster and smoother than a single EMA. Less lag means you get earlier signals on trend changes. Useful for medium-term trend following strategies.'},
+  // MOMENTUM
+  {cat:'momentum',id:'RSI@tv-basicstudies',name:'RSI',full:'Relative Strength Index',color:'#a855f7',
+   brief:'Overbought / oversold meter (0–100)',
+   explain:'Scores price momentum from 0 to 100. Above 70 = overbought (price may soon pull back). Below 30 = oversold (price may soon bounce). One of the most used indicators in the world. Works best when combined with trend direction — don\'t fight the trend.'},
+  {cat:'momentum',id:'MACD@tv-basicstudies',name:'MACD',full:'Moving Avg Convergence Divergence',color:'#2563eb',
+   brief:'Trend direction and momentum',
+   explain:'Shows the relationship between two EMAs. When the MACD line crosses above the signal line = bullish momentum. Crosses below = bearish. The histogram bars show how strong the momentum is. Divergence between MACD and price is one of the most powerful signals in trading.'},
+  {cat:'momentum',id:'Stochastic@tv-basicstudies',name:'Stochastic',full:'Stochastic Oscillator',color:'#f59e0b',
+   brief:'Where price is in its range',
+   explain:'Compares the closing price to its range over a set period. Above 80 = price is near its recent high (overbought). Below 20 = price is near its recent low (oversold). When the K line crosses the D line in the oversold zone, it\'s a common buy signal.'},
+  {cat:'momentum',id:'CCI@tv-basicstudies',name:'CCI',full:'Commodity Channel Index',color:'#10b981',
+   brief:'Deviation from average price',
+   explain:'Measures how far price has moved from its statistical average. Above +100 = strong uptrend or overbought. Below -100 = strong downtrend or oversold. Originated in commodities trading but now used across all markets. Good for spotting when a trend is exhausting.'},
+  {cat:'momentum',id:'WilliamsR@tv-basicstudies',name:'Williams %R',full:'Williams Percent Range',color:'#ef4444',
+   brief:'Reversal signal at highs/lows',
+   explain:'Measures where price is relative to its recent high. Ranges from 0 to -100. Near 0 = price is at its recent high (potentially overbought). Near -100 = price is at its recent low (potentially oversold). Similar to Stochastic but inverted. Good for spotting short-term reversals.'},
+  {cat:'momentum',id:'ATR@tv-basicstudies',name:'ATR',full:'Average True Range',color:'#8b5cf6',
+   brief:'How volatile the market is right now',
+   explain:'Measures the average size of price moves. A high ATR = volatile market with big candles. Low ATR = quiet, tight trading. Essential for stop loss sizing: many professionals place stops at 1.5x or 2x ATR from entry. Does not show direction — only volatility.'},
+  {cat:'momentum',id:'ADX@tv-basicstudies',name:'ADX',full:'Average Directional Index',color:'#06b6d4',
+   brief:'How strong is the current trend?',
+   explain:'Measures trend strength from 0 to 100, regardless of direction. Below 20 = weak trend or ranging market. Above 25 = developing trend. Above 50 = very strong trend. Does not tell you direction — pair it with a directional indicator like EMA or MACD.'},
+  // VOLUME
+  {cat:'volume',id:'Volume@tv-basicstudies',name:'Volume',full:'Volume Bars',color:'#6b7280',
+   brief:'Number of trades each candle',
+   explain:'Shows how many units were traded in each period. High volume confirms a price move — it shows real conviction. Low volume on a big move is suspicious and often reverses. Volume spikes on breakouts are a strong confirmation signal.'},
+  {cat:'volume',id:'OBV@tv-basicstudies',name:'OBV',full:'On Balance Volume',color:'#10b981',
+   brief:'Cumulative buying vs selling',
+   explain:'Adds volume on up days and subtracts it on down days to create a running total. If OBV is rising while price is flat, it means buyers are quietly accumulating — often before a breakout. OBV diverging from price is a powerful early warning signal.'},
+  {cat:'volume',id:'MFI@tv-basicstudies',name:'MFI',full:'Money Flow Index',color:'#3b82f6',
+   brief:'RSI that includes volume',
+   explain:'Like RSI but factors in volume, making its signals more meaningful. Above 80 = overbought. Below 20 = oversold. If price reaches a new high but MFI does not, it suggests the move is weakening — this divergence is a warning sign before reversals.'},
+];
+
+let selectedStudies=new Set(['RSI@tv-basicstudies','Volume@tv-basicstudies']);
+
+function buildIndList(){
+  const cats=['trend','momentum','volume'];
+  const labels={trend:'Trend',momentum:'Momentum & Oscillators',volume:'Volume'};
+  let html='';
+  cats.forEach(cat=>{
+    const items=INDS.filter(i=>i.cat===cat);
+    html+=`<div class="ind-cat-hd">${labels[cat]}</div>`;
+    items.forEach(ind=>{
+      const on=selectedStudies.has(ind.id);
+      html+=`<div class="ind-item${on?' on':''}" onclick="toggleInd('${ind.id}',this)">
+        <div class="ind-check"></div>
+        <div class="ind-dot" style="background:${ind.color}"></div>
+        <div class="ind-info">
+          <div class="ind-name">${ind.name}<span class="ind-tag">${ind.full}</span></div>
+          <div class="ind-brief">${ind.brief}</div>
+          <div class="ind-explain">${ind.explain}</div>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('indList').innerHTML=html;
+  updateSelCount();
 }
 
-buildWl();
+function toggleInd(id,el){
+  if(selectedStudies.has(id)){selectedStudies.delete(id);el.classList.remove('on');}
+  else{selectedStudies.add(id);el.classList.add('on');}
+  updateSelCount();
+}
 
-if(typeof TradingView!=='undefined'){
+function updateSelCount(){
+  const n=selectedStudies.size;
+  document.getElementById('selCount').textContent=n===0?'None selected':n+' selected';
+}
+
+function resetIndicators(){
+  selectedStudies=new Set(['RSI@tv-basicstudies','Volume@tv-basicstudies']);
+  buildIndList();
+  applyIndicators();
+}
+
+function applyIndicators(){
+  rebuildChart();
+}
+
+// ── TV WIDGET ──
+let tvWidget=null;
+let currentTf='60';
+let currentStyle=1;
+
+function buildChart(){
+  const container=document.getElementById('tv_chart_container');
+  container.innerHTML='';
   tvWidget=new TradingView.widget({
     container_id:'tv_chart_container',
     autosize:true,
     symbol:activeSym,
-    interval:'60',
+    interval:currentTf,
     timezone:'Europe/London',
     theme:'dark',
-    style:'1',
+    style:currentStyle,
     locale:'en',
     toolbar_bg:'#0e0e10',
     enable_publishing:false,
     hide_side_toolbar:false,
     allow_symbol_change:true,
     save_image:true,
-    studies:['RSI@tv-basicstudies','MACD@tv-basicstudies'],
+    withdateranges:true,
+    hide_volume:false,
+    studies:[...selectedStudies],
     overrides:{
       'paneProperties.background':'#0a0a0c',
       'paneProperties.backgroundType':'solid',
-      'scalesProperties.textColor':'#a0a0a0',
+      'paneProperties.vertGridProperties.color':'rgba(255,255,255,.03)',
+      'paneProperties.horzGridProperties.color':'rgba(255,255,255,.03)',
+      'scalesProperties.textColor':'#606060',
+      'scalesProperties.lineColor':'#2a2a2c',
       'mainSeriesProperties.candleStyle.upColor':'#10b981',
       'mainSeriesProperties.candleStyle.downColor':'#ef4444',
       'mainSeriesProperties.candleStyle.borderUpColor':'#10b981',
       'mainSeriesProperties.candleStyle.borderDownColor':'#ef4444',
       'mainSeriesProperties.candleStyle.wickUpColor':'#10b981',
       'mainSeriesProperties.candleStyle.wickDownColor':'#ef4444',
+      'mainSeriesProperties.lineStyle.color':'#2563eb',
+      'mainSeriesProperties.areaStyle.color1':'rgba(37,99,235,.3)',
+      'mainSeriesProperties.areaStyle.color2':'rgba(37,99,235,0)',
+      'mainSeriesProperties.areaStyle.linecolor':'#2563eb',
     },
   });
+}
+
+function rebuildChart(){
+  if(typeof TradingView!=='undefined'){buildChart();}
+}
+
+// ── TIMEFRAME CONTROLS ──
+function setTf(tf,btn){
+  currentTf=tf;
+  document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tvWidget){tvWidget.setSymbol(activeSym,tf,function(){});}
+}
+
+function setStyle(style,btn){
+  currentStyle=style;
+  document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  rebuildChart();
+}
+
+// ── PANEL TOGGLES ──
+function toggleWl(){
+  const p=document.getElementById('wlPanel');
+  p.classList.toggle('hidden');
+}
+
+function toggleGuide(){
+  const g=document.getElementById('guidePanel');
+  g.classList.toggle('hidden');
+}
+
+// ── GUIDE TABS ──
+function switchTab(id,el){
+  document.querySelectorAll('.gtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.gpanel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ── LEARN ACCORDIONS ──
+function toggleLearn(el){
+  const isOpen=el.classList.contains('open');
+  document.querySelectorAll('.learn-q.open').forEach(q=>{q.classList.remove('open');});
+  if(!isOpen)el.classList.add('open');
+}
+
+// ── INIT ──
+buildWl();
+buildIndList();
+
+if(typeof TradingView!=='undefined'){
+  buildChart();
 } else {
-  document.addEventListener('DOMContentLoaded',function(){
-    tvWidget=new TradingView.widget({
-      container_id:'tv_chart_container',
-      autosize:true,symbol:activeSym,interval:'60',timezone:'Europe/London',
-      theme:'dark',style:'1',locale:'en',toolbar_bg:'#0e0e10',
-      enable_publishing:false,allow_symbol_change:true,save_image:true,
-      studies:['RSI@tv-basicstudies','MACD@tv-basicstudies'],
-      overrides:{'paneProperties.background':'#0a0a0c','paneProperties.backgroundType':'solid','scalesProperties.textColor':'#a0a0a0','mainSeriesProperties.candleStyle.upColor':'#10b981','mainSeriesProperties.candleStyle.downColor':'#ef4444','mainSeriesProperties.candleStyle.borderUpColor':'#10b981','mainSeriesProperties.candleStyle.borderDownColor':'#ef4444','mainSeriesProperties.candleStyle.wickUpColor':'#10b981','mainSeriesProperties.candleStyle.wickDownColor':'#ef4444'},
-    });
-  });
+  const s=document.createElement('script');
+  s.src='https://s3.tradingview.com/tv.js';
+  s.onload=buildChart;
+  document.head.appendChild(s);
 }
 </script>
 </body>
