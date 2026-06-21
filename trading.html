@@ -137,6 +137,64 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .chart-footer{display:flex;align-items:center;justify-content:flex-end;padding:.25rem .75rem;border-top:1px solid var(--line);background:var(--bg2);font-size:.62rem;color:var(--muted2);gap:.4rem;flex-shrink:0;}
 .chart-footer a{color:var(--muted2);text-decoration:none;}
 .chart-footer a:hover{color:var(--muted);}
+
+/* ── BOTTOM PANEL ── */
+.btm-outer{flex-shrink:0;height:178px;background:var(--bg2);border-top:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;transition:height .22s cubic-bezier(.4,0,.2,1);}
+.btm-outer.collapsed{height:30px;}
+.btm-header{height:30px;flex-shrink:0;display:flex;align-items:stretch;border-bottom:1px solid var(--line2);}
+.btab{padding:0 1rem;font-size:.7rem;font-weight:700;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;}
+.btab:hover{color:var(--muted);}
+.btab.active{color:var(--fg);border-bottom-color:var(--cobalt);}
+.btm-gap{flex:1;}
+.btm-tog{padding:0 .8rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;color:var(--muted2);border-left:1px solid var(--line2);font-size:.65rem;font-weight:600;transition:color .15s;white-space:nowrap;}
+.btm-tog:hover{color:var(--fg);}
+.btm-tog svg{width:10px;height:10px;transition:transform .22s;}
+.btm-outer.collapsed .btm-tog svg{transform:rotate(180deg);}
+.btm-body{flex:1;display:flex;overflow:hidden;}
+.bpanel{display:none;flex:1;overflow-x:auto;overflow-y:hidden;align-items:center;padding:.55rem 1.1rem;gap:.9rem;}
+.bpanel.active{display:flex;}
+
+/* Account tab */
+.acell{display:flex;flex-direction:column;justify-content:center;padding:0 1.1rem;border-right:1px solid var(--line2);flex-shrink:0;white-space:nowrap;}
+.acell:first-child{padding-left:0;}
+.acell:last-child{border-right:none;}
+.albl{font-size:.58rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:.28rem;}
+.aval{font-family:'Space Grotesk',sans-serif;font-size:.88rem;font-weight:700;}
+.aval.pos{color:var(--green);}
+.aval.neg{color:var(--red);}
+.aval.warn{color:var(--gold);}
+.astat-live{display:flex;align-items:center;gap:.4rem;}
+
+/* Risk calculator tab */
+.rc-field{display:flex;flex-direction:column;gap:.22rem;flex-shrink:0;}
+.rc-lbl{font-size:.58rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:700;}
+.rc-field input,.rc-field select{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:.3rem .5rem;font-size:.78rem;color:var(--fg);font-family:'Space Grotesk',sans-serif;outline:none;width:100%;}
+.rc-field input:focus,.rc-field select:focus{border-color:rgba(37,99,235,.45);}
+.rc-field select option{background:var(--bg2);}
+.rc-divider{width:1px;background:var(--line);height:75%;flex-shrink:0;align-self:center;}
+.rc-out{display:flex;align-items:center;gap:1.3rem;flex-shrink:0;}
+.rc-stat{display:flex;flex-direction:column;gap:.22rem;}
+.rc-slbl{font-size:.58rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:700;}
+.rc-sval{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;}
+.rc-sval.green{color:var(--green);}
+.rc-sval.gold{color:var(--gold);}
+
+/* Journal tab */
+#bp-journal{flex-direction:column;gap:.4rem;padding:.5rem 1.1rem;align-items:flex-start;overflow-y:hidden;}
+#bp-journal.active{display:flex;}
+.jlist{flex:1;width:100%;overflow-y:auto;display:flex;flex-direction:column;gap:.2rem;max-height:100px;}
+.jlist::-webkit-scrollbar{width:2px;}
+.jentry{display:flex;align-items:flex-start;gap:.55rem;font-size:.72rem;padding:.2rem .4rem;background:rgba(255,255,255,.03);border-radius:4px;border-left:2px solid var(--line);}
+.jentry-time{color:var(--muted2);font-size:.6rem;white-space:nowrap;flex-shrink:0;margin-top:.05rem;}
+.jentry-txt{color:var(--muted);flex:1;line-height:1.4;}
+.jdel{color:var(--muted2);cursor:pointer;flex-shrink:0;font-size:.65rem;opacity:0;transition:opacity .1s;}
+.jentry:hover .jdel{opacity:1;}
+.jdel:hover{color:var(--red);}
+.jinrow{display:flex;gap:.4rem;width:100%;flex-shrink:0;}
+.jinrow input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:.3rem .6rem;font-size:.75rem;color:var(--fg);font-family:'Inter',sans-serif;outline:none;}
+.jinrow input:focus{border-color:rgba(37,99,235,.45);}
+.jinrow button{padding:.3rem .75rem;background:rgba(37,99,235,.14);border:1px solid rgba(37,99,235,.3);border-radius:5px;color:#60a5fa;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s;}
+.jinrow button:hover{background:var(--cobalt);color:#fff;border-color:var(--cobalt);}
 </style>
 </head>
 <body>
@@ -360,6 +418,83 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 
 </div><!-- end layout -->
 
+<!-- BOTTOM PANEL -->
+<div class="btm-outer" id="btmOuter">
+  <div class="btm-header">
+    <div class="btab active" onclick="switchBtab('account',this)">Account</div>
+    <div class="btab" onclick="switchBtab('risk',this)">Risk Calculator</div>
+    <div class="btab" onclick="switchBtab('journal',this)">Journal</div>
+    <div class="btm-gap"></div>
+    <div class="btm-tog" onclick="toggleBtm()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+      <span id="btmTog">Collapse</span>
+    </div>
+  </div>
+  <div class="btm-body">
+
+    <!-- ACCOUNT TAB -->
+    <div class="bpanel active" id="bp-account">
+      <div class="acell"><div class="albl">Account</div><div class="aval" id="bp-name">—</div></div>
+      <div class="acell"><div class="albl">Login</div><div class="aval" id="bp-login">—</div></div>
+      <div class="acell"><div class="albl">Platform</div><div class="aval" id="bp-platform">—</div></div>
+      <div class="acell"><div class="albl">Server</div><div class="aval" id="bp-server" style="font-size:.75rem">—</div></div>
+      <div class="acell"><div class="albl">Balance</div><div class="aval pos" id="bp-balance">—</div></div>
+      <div class="acell"><div class="albl">Daily Loss Limit</div><div class="aval" id="bp-daily">—</div></div>
+      <div class="acell"><div class="albl">Drawdown Floor</div><div class="aval" id="bp-floor">—</div></div>
+      <div class="acell"><div class="albl">Profit Target</div><div class="aval" id="bp-target">—</div></div>
+      <div class="acell"><div class="albl">Status</div><div class="aval"><div class="astat-live"><span class="live-dot"></span><span style="font-size:.78rem;color:var(--green);font-weight:700">Active</span></div></div></div>
+    </div>
+
+    <!-- RISK CALCULATOR TAB -->
+    <div class="bpanel" id="bp-risk">
+      <div class="rc-field" style="width:110px">
+        <div class="rc-lbl">Balance (£)</div>
+        <input type="number" id="rc-bal" step="1000" oninput="calcRisk()">
+      </div>
+      <div class="rc-field" style="width:72px">
+        <div class="rc-lbl">Risk %</div>
+        <input type="number" id="rc-pct" value="1" step="0.1" min="0.1" max="10" oninput="calcRisk()">
+      </div>
+      <div class="rc-field" style="width:105px">
+        <div class="rc-lbl">Entry Price</div>
+        <input type="number" id="rc-entry" step="any" placeholder="1.2540" oninput="calcRisk()">
+      </div>
+      <div class="rc-field" style="width:105px">
+        <div class="rc-lbl">Stop Loss</div>
+        <input type="number" id="rc-stop" step="any" placeholder="1.2490" oninput="calcRisk()">
+      </div>
+      <div class="rc-field" style="width:150px">
+        <div class="rc-lbl">Instrument Type</div>
+        <select id="rc-type" onchange="calcRisk()">
+          <option value="forex4">Forex (4-decimal)</option>
+          <option value="forex2">Forex JPY (2-decimal)</option>
+          <option value="gold">Gold (XAU/USD)</option>
+          <option value="silver">Silver (XAG/USD)</option>
+          <option value="oil">Oil / Commodities</option>
+          <option value="idx">Indices (per point)</option>
+        </select>
+      </div>
+      <div class="rc-divider"></div>
+      <div class="rc-out">
+        <div class="rc-stat"><div class="rc-slbl">Risk Amount</div><div class="rc-sval gold" id="rc-ramt">—</div></div>
+        <div class="rc-stat"><div class="rc-slbl">Pips / Points</div><div class="rc-sval" id="rc-pips">—</div></div>
+        <div class="rc-stat"><div class="rc-slbl">Lot Size</div><div class="rc-sval green" id="rc-lots">—</div></div>
+        <div class="rc-stat"><div class="rc-slbl">Units</div><div class="rc-sval" id="rc-units">—</div></div>
+      </div>
+    </div>
+
+    <!-- JOURNAL TAB -->
+    <div class="bpanel" id="bp-journal">
+      <div class="jlist" id="jList"></div>
+      <div class="jinrow">
+        <input type="text" id="jInput" placeholder="Log a setup, entry reason or trade note…" onkeydown="if(event.key==='Enter')addJournal()">
+        <button onclick="addJournal()">+ Add</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script>
 // ── URL PARAMS ──
@@ -565,6 +700,117 @@ function toggleLearn(el){
   document.querySelectorAll('.learn-q.open').forEach(q=>{q.classList.remove('open');});
   if(!isOpen)el.classList.add('open');
 }
+
+// ── BOTTOM PANEL ──
+function switchBtab(id,el){
+  document.querySelectorAll('.btab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.bpanel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('bp-'+id).classList.add('active');
+}
+
+function toggleBtm(){
+  const o=document.getElementById('btmOuter');
+  const t=document.getElementById('btmTog');
+  o.classList.toggle('collapsed');
+  t.textContent=o.classList.contains('collapsed')?'Expand':'Collapse';
+}
+
+// ── ACCOUNT TAB POPULATE ──
+(function populateAccount(){
+  const name=P.get('name')||'—';
+  const login=P.get('login')||'—';
+  const platform=P.get('platform')||'—';
+  const server=P.get('server')||'—';
+  const bal=P.get('bal');   // pence from dashboard
+  const daily=P.get('daily');
+  const floor=P.get('floor');
+  const target=P.get('target');
+
+  document.getElementById('bp-name').textContent=name;
+  document.getElementById('bp-login').textContent=login;
+  document.getElementById('bp-platform').textContent=platform;
+  document.getElementById('bp-server').textContent=server;
+
+  const fmt=v=>v?'£'+(parseInt(v)/100).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+  document.getElementById('bp-balance').textContent=fmt(bal);
+  document.getElementById('bp-daily').textContent=fmt(daily);
+  document.getElementById('bp-floor').textContent=fmt(floor);
+  document.getElementById('bp-target').textContent=fmt(target);
+
+  // Pre-fill risk calculator balance
+  if(bal){document.getElementById('rc-bal').value=Math.round(parseInt(bal)/100);}
+})();
+
+// ── RISK CALCULATOR ──
+function calcRisk(){
+  const bal=parseFloat(document.getElementById('rc-bal').value)||0;
+  const pct=parseFloat(document.getElementById('rc-pct').value)||1;
+  const entry=parseFloat(document.getElementById('rc-entry').value);
+  const stop=parseFloat(document.getElementById('rc-stop').value);
+  const type=document.getElementById('rc-type').value;
+
+  const riskAmt=(bal*pct/100);
+  document.getElementById('rc-ramt').textContent=riskAmt>0?'£'+riskAmt.toFixed(2):'—';
+
+  if(!entry||!stop||entry===stop){
+    document.getElementById('rc-pips').textContent='—';
+    document.getElementById('rc-lots').textContent='—';
+    document.getElementById('rc-units').textContent='—';
+    return;
+  }
+
+  const dist=Math.abs(entry-stop);
+  let pipFactor,pipVal,unitLabel;
+
+  if(type==='forex4'){pipFactor=10000;pipVal=10;unitLabel='units';}         // 1 std lot = 100k units, pip=$10
+  else if(type==='forex2'){pipFactor=100;pipVal=10;unitLabel='units';}      // JPY pairs
+  else if(type==='gold'){pipFactor=10;pipVal=100;unitLabel='oz';}           // 1 lot=100oz, $1 move=$100
+  else if(type==='silver'){pipFactor=100;pipVal=50;unitLabel='oz';}
+  else if(type==='oil'){pipFactor=100;pipVal=100;unitLabel='barrels';}
+  else{pipFactor=1;pipVal=1;unitLabel='contracts';}                         // indices: per point
+
+  const pips=(dist*pipFactor).toFixed(type==='idx'?2:1);
+  const lots=(riskAmt/(dist*pipFactor*pipVal/pipFactor)).toFixed(2);
+  const units=type==='idx'?lots:Math.round(parseFloat(lots)*100000).toLocaleString();
+
+  document.getElementById('rc-pips').textContent=pips;
+  document.getElementById('rc-lots').textContent=lots+' lots';
+  document.getElementById('rc-units').textContent=units+' '+unitLabel;
+}
+calcRisk();
+
+// ── JOURNAL ──
+const JKEY='ipfx_journal';
+function loadJournal(){
+  const entries=JSON.parse(localStorage.getItem(JKEY)||'[]');
+  const list=document.getElementById('jList');
+  list.innerHTML=entries.length?entries.map((e,i)=>`
+    <div class="jentry">
+      <span class="jentry-time">${e.t}</span>
+      <span class="jentry-txt">${e.n}</span>
+      <span class="jdel" onclick="delJournal(${i})">✕</span>
+    </div>`).join(''):'<div style="font-size:.7rem;color:var(--muted2);padding:.2rem 0">No entries yet. Log your first trade setup.</div>';
+  list.scrollTop=list.scrollHeight;
+}
+function addJournal(){
+  const inp=document.getElementById('jInput');
+  const txt=inp.value.trim();
+  if(!txt)return;
+  const entries=JSON.parse(localStorage.getItem(JKEY)||'[]');
+  const now=new Date();
+  entries.unshift({t:now.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),n:txt});
+  localStorage.setItem(JKEY,JSON.stringify(entries.slice(0,200)));
+  inp.value='';
+  loadJournal();
+}
+function delJournal(i){
+  const entries=JSON.parse(localStorage.getItem(JKEY)||'[]');
+  entries.splice(i,1);
+  localStorage.setItem(JKEY,JSON.stringify(entries));
+  loadJournal();
+}
+loadJournal();
 
 // ── INIT ──
 buildIndList();

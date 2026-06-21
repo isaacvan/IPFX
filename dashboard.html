@@ -808,7 +808,7 @@ function renderAccounts(list){
         <div class="ac-acts">${actions}</div>
       </div>
       <div class="ac-creds">
-        <a href="trading.html?login=${encodeURIComponent(loginCode)}&name=${encodeURIComponent(acName)}&platform=${encodeURIComponent(platform)}&server=${encodeURIComponent(tvServer)}" class="trade-btn" target="_blank">
+        <a href="trading.html?login=${encodeURIComponent(loginCode)}&name=${encodeURIComponent(acName)}&platform=${encodeURIComponent(platform)}&server=${encodeURIComponent(tvServer)}&bal=${bal}&daily=${e.total_loss_limit||0}&floor=${drawdownFloor}&target=${pTarget}" class="trade-btn" target="_blank">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Go to Markets
         </a>
