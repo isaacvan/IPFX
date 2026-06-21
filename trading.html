@@ -455,8 +455,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <div class="guide" id="guidePanel">
     <div class="guide-tabs">
       <div class="gtab" onclick="switchTab('scalp',this)">Scalp</div>
-      <div class="gtab active" onclick="switchTab('dom',this)">DOM</div>
-      <div class="gtab" onclick="switchTab('order',this)">Order</div>
+      <div class="gtab" onclick="switchTab('dom',this)">DOM</div>
+      <div class="gtab active" onclick="switchTab('order',this)">Order</div>
     </div>
     <div class="guide-body">
 
@@ -593,10 +593,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 
       <!-- SCALP TAB -->
       <div class="gpanel" id="tab-scalp" style="overflow-y:auto;height:100%">
-        <div class="binfo" style="margin:.55rem .6rem .3rem;padding:.55rem .65rem">
-          <div class="binfo-title">⚡ What is Scalping?</div>
-          Scalping means making many small, fast trades — usually held for seconds to minutes. Scalpers aim for small gains on each trade but make many of them. It requires focus, fast reactions, and tight risk management.
-        </div>
         <div class="scalp-sym">Scalp Tools</div>
 
         <div class="scalp-grid">
@@ -654,11 +650,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       </div>
 
       <!-- DOM TAB -->
-      <div class="gpanel active" id="tab-dom" style="height:100%;padding:0">
-        <div class="binfo" style="margin:.55rem .6rem .1rem;padding:.55rem .65rem">
-          <div class="binfo-title">📊 What is the DOM?</div>
-          The <b>Depth of Market</b> shows all buy &amp; sell orders queued at every price level in real time. <b style="color:#6ee7b7">Green = buyers (Bid)</b>. <b style="color:#fca5a5">Red = sellers (Ask)</b>. The blue row is the current price. Bigger bars = more orders waiting there.
-        </div>
+      <div class="gpanel" id="tab-dom" style="height:100%;padding:0">
         <div class="dom-top">
           <span class="dom-sym" id="dom-sym-label">—</span>
           <span class="dom-badge">SIMULATED</span>
@@ -676,12 +668,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       </div>
 
       <!-- ORDER TAB -->
-      <div class="gpanel" id="tab-order" style="height:100%;padding:0">
+      <div class="gpanel active" id="tab-order" style="height:100%;padding:0">
         <div class="ord-wrap">
-          <div class="binfo" style="margin:0 0 .5rem;padding:.5rem .65rem">
-            <div class="binfo-title">🎯 Paper Trading — Safe to practise</div>
-            <b>BUY</b> = you think price will go up. <b>SELL</b> = you think price will go down. This uses <b>no real money</b> — it's a simulator so you can practise without any risk.
-          </div>
           <div class="ord-price-row">
             <span class="ord-price-lbl">Live Price</span>
             <span class="ord-cur-price" id="ord-live-price">—</span>
@@ -715,12 +703,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
           </div>
 
           <div class="ord-actions">
-            <div class="ord-act" onclick="joinSide('bid')">Join Bid</div>
-            <div class="ord-act" onclick="joinSide('ask')">Join Ask</div>
-            <div class="ord-act" onclick="closePosition()">Close Position</div>
-            <div class="ord-act" onclick="reversePosition()">Reverse</div>
-            <div class="ord-act danger" onclick="cancelAll()">Cancel All</div>
-            <div class="ord-act danger" onclick="flattenAll()">Flatten All</div>
+            <div class="ord-act" onclick="closePosition()">Close Trade</div>
+            <div class="ord-act danger" onclick="flattenAll()">Close All</div>
           </div>
 
           <div class="ord-positions-hd">Open Positions</div>
@@ -728,7 +712,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
             <div style="font-size:.68rem;color:var(--muted2);padding:.3rem 0">No open positions</div>
           </div>
 
-          <div class="ord-sim-note">Paper trading — no real money at risk</div>
+          <div class="ord-sim-note">Practice mode — no real money</div>
         </div>
       </div>
 
@@ -770,32 +754,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 <!-- WELCOME CARD -->
 <div id="welcomeCard">
   <div class="wc-box">
-    <div class="wc-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>First time here?</div>
-    <div class="wc-title">Welcome to IPFX Markets</div>
-    <div class="wc-sub">This is your trading dashboard. Here's what everything does — it'll make sense in 60 seconds.</div>
-    <div class="wc-sections">
-      <div class="wc-sec">
-        <div class="wc-sec-icon">📈</div>
-        <div class="wc-sec-title">Price Chart (centre)</div>
-        <div class="wc-sec-desc">Live market prices shown as candles. Each candle = one time period. Green = price went up. Red = price went down.</div>
-      </div>
-      <div class="wc-sec">
-        <div class="wc-sec-icon">📊</div>
-        <div class="wc-sec-title">DOM Panel (right)</div>
-        <div class="wc-sec-desc">Depth of Market — shows all queued buy and sell orders at each price. Green rows = buyers. Red rows = sellers.</div>
-      </div>
-      <div class="wc-sec">
-        <div class="wc-sec-icon">🎯</div>
-        <div class="wc-sec-title">Order Panel (right)</div>
-        <div class="wc-sec-desc">Practice placing buy and sell orders. This is <b>paper trading</b> — no real money. Safe to explore.</div>
-      </div>
-      <div class="wc-sec">
-        <div class="wc-sec-icon">📋</div>
-        <div class="wc-sec-title">Bottom Panel</div>
-        <div class="wc-sec-desc">Your account stats, a risk calculator to size trades correctly, and a journal to log your thoughts.</div>
-      </div>
-    </div>
-    <button class="wc-start" onclick="dismissWelcome()">Got it — Take me to the markets</button>
+    <div class="wc-badge">IPFX Markets</div>
+    <div class="wc-title">Your trading platform.</div>
+    <div class="wc-sub">The chart is live. The Order panel on the right lets you practise trades with no real money. Ask the chat button anything.</div>
+    <button class="wc-start" onclick="dismissWelcome()">Open Platform</button>
   </div>
 </div>
 
@@ -842,9 +804,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       <div class="acell"><div class="albl">Platform</div><div class="aval" id="bp-platform">—</div></div>
       <div class="acell"><div class="albl">Server</div><div class="aval" id="bp-server" style="font-size:.75rem">—</div></div>
       <div class="acell"><div class="albl">Balance</div><div class="aval pos" id="bp-balance">—</div></div>
-      <div class="acell"><div class="albl">Daily Loss Limit</div><div class="aval" id="bp-daily">—</div></div>
-      <div class="acell"><div class="albl">Drawdown Floor</div><div class="aval" id="bp-floor">—</div></div>
-      <div class="acell"><div class="albl">Profit Target</div><div class="aval" id="bp-target">—</div></div>
+      <div class="acell"><div class="albl">Max Daily Loss</div><div class="aval" id="bp-daily">—</div></div>
+      <div class="acell"><div class="albl">Account Floor</div><div class="aval" id="bp-floor">—</div></div>
+      <div class="acell"><div class="albl">Target Profit</div><div class="aval" id="bp-target">—</div></div>
       <div class="acell"><div class="albl">Status</div><div class="aval"><div class="astat-live"><span class="live-dot"></span><span style="font-size:.78rem;color:var(--green);font-weight:700">Active</span></div></div></div>
     </div>
 
@@ -1424,7 +1386,7 @@ function closeTVModal(){
   document.getElementById('tvModal').classList.remove('open');
 }
 function openTVLogin(){
-  window.open('https://www.tradingview.com/accounts/sso/login/?service=chart','_blank','noopener');
+  window.open('https://www.tradingview.com/signin/','_blank','noopener');
 }
 function tvLoginDone(){
   closeTVModal();
