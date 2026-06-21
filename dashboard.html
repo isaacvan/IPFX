@@ -878,6 +878,7 @@ function navHome(btn){
     var acBtn=document.querySelector('[onclick*="nav(\'accounts\'"]');
     if(acBtn) acBtn.classList.add('active');
     document.getElementById('pageTitle').textContent='Accounts';
+    const cw=document.getElementById('chatW');if(cw)cw.style.display='';
   } else {
     // Always set src so re-opening after switching pages works
     if(!frame.getAttribute('data-loaded')){
@@ -885,6 +886,7 @@ function navHome(btn){
       frame.setAttribute('data-loaded','1');
     }
     panel.style.display='block';
+    const cw=document.getElementById('chatW');if(cw)cw.style.display='none';
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
     btn.classList.add('active');

@@ -5854,6 +5854,16 @@ function cToggle(){const w=document.getElementById('chatW');w.classList.toggle('
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// Hide chat widget and nav auth buttons when embedded inside the dashboard iframe
+if(window!==window.top){
+  const chatEl=document.getElementById('chatW');
+  if(chatEl)chatEl.style.display='none';
+  const authArea=document.getElementById('navAuthArea');
+  const gs=document.getElementById('navGetStarted');
+  if(authArea)authArea.style.display='none';
+  if(gs)gs.style.display='none';
+}
+
 (async()=>{
   try{
     const sb=window.supabase.createClient(
