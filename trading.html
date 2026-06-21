@@ -341,6 +341,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">MT5</strong></div>
   <div class="tb-pill">Server&nbsp;<strong id="tbServer">IPFX-MT5-Live</strong></div>
   <div class="tb-right">
+    <button id="tvConnectBtn" onclick="connectTV()" title="Connect your TradingView account for unlimited indicators" style="background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:.7rem;font-weight:600;padding:.3rem .7rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:all .15s;white-space:nowrap;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12V8a8 8 0 0 1 16 0v4"/><rect x="2" y="12" width="20" height="10" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+      <span id="tvConnectLbl">Connect TradingView</span>
+    </button>
     <div class="live-dot"></div>
     <div class="live-lbl">Live</div>
   </div>
@@ -917,7 +921,6 @@ function buildChart(){
     save_image:true,
     withdateranges:true,
     hide_volume:false,
-    studies:[...selectedStudies],
     overrides:{
       'paneProperties.background':'#0a0a0c',
       'paneProperties.backgroundType':'solid',
@@ -1274,6 +1277,28 @@ setInterval(()=>{
   updateOrdPrices(domPrice);
 },1500);
 
+// ── TRADINGVIEW CONNECT ──
+let tvConnected=false;
+function connectTV(){
+  if(tvConnected){
+    // Already connected — rebuild chart to refresh session
+    rebuildChart();
+    addBotMsg('Chart refreshed with your TradingView session ✓');
+    return;
+  }
+  const popup=window.open('https://www.tradingview.com/accounts/sso/login/?service=chart','tvlogin','width=520,height=640,top=100,left=200');
+  const poll=setInterval(()=>{
+    if(!popup||popup.closed){
+      clearInterval(poll);
+      tvConnected=true;
+      document.getElementById('tvConnectLbl').textContent='TradingView Connected';
+      document.getElementById('tvConnectBtn').style.borderColor='rgba(16,185,129,.4)';
+      document.getElementById('tvConnectBtn').style.color='#10b981';
+      rebuildChart();
+    }
+  },600);
+}
+
 // ── CHATBOT ──
 const KB=[
   {keys:['candle','candlestick','wick','body','green candle','red candle'],
@@ -1375,26 +1400,22 @@ function botReply(q){
   const m=matchKB(q);
   if(!m)return{text:`I'm not sure about that — try asking about specific indicators (RSI, MACD, Bollinger), timeframes, sessions, or trading concepts like support/resistance and risk management.`};
   if(m.type==='add'){
-    selectedStudies.add(m.ind.id);
-    rebuildChart();
-    return{text:`<b>${m.ind.name}</b> added to the chart ✓\n\n${m.ind.explain}`,color:m.ind.color};
+    const ind=m.ind;
+    return{text:`<b>${ind.name} — ${ind.full}</b>\n\n${ind.explain}\n\n<b>To add it:</b> Click the <b>Indicators</b> button (⚗ flask icon) in the chart toolbar and search "<i>${ind.name}</i>".\n\nFor unlimited indicators, connect your TradingView account using the button in the top bar.`,addGuide:ind.name};
   }
   if(m.type==='remove'){
-    selectedStudies.delete(m.ind.id);
-    rebuildChart();
-    return{text:`<b>${m.ind.name}</b> removed from the chart.`};
+    return{text:`To remove <b>${m.ind.name}</b>: hover over the indicator name on the chart and click the ✕ that appears, or right-click it and choose Remove.`};
   }
   const e=m.entry;
   if(e.action==='reset'){
-    selectedStudies=new Set(['RSI@tv-basicstudies','Volume@tv-basicstudies']);
-    rebuildChart();
-    return{text:e.reply};
+    return{text:`To clear all indicators: click the <b>Indicators</b> button in the chart toolbar → then remove each one, or right-click the chart → Reset chart.`};
   }
   if(e.showAll){
     return{text:e.reply,showAll:true};
   }
   if(e.ind){
-    return{text:e.reply,ind:e.ind,entry:e};
+    const ind=INDS.find(i=>i.id===e.ind);
+    return{text:e.reply+(ind?`\n\n<b>To add it:</b> Click the <b>Indicators</b> button in the chart toolbar and search "<i>${ind.name}</i>".`:'')};
   }
   return{text:e.reply};
 }
