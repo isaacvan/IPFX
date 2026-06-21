@@ -24,9 +24,9 @@
             align-items: center;
             gap: 2rem;
             backdrop-filter: blur(10px);
-            background: rgba(10, 10, 12, 0);
-            border-bottom: 1px solid rgba(42, 42, 44, 0);
-            transform: translateY(-100%);
+            background: rgba(10, 10, 12, 0.8);
+            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
+            transform: translateY(0);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .nav-center {
@@ -285,16 +285,15 @@
             justify-content: space-between;
             align-items: center;
             backdrop-filter: blur(10px);
-            background: rgba(10, 10, 12, 0);
-            border-bottom: 1px solid rgba(42, 42, 44, 0);
-            transform: translateY(-100%);
+            background: rgba(10, 10, 12, 0.8);
+            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
+            transform: translateY(0);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         nav.scrolled {
-            background: rgba(10, 10, 12, 0.8);
-            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
-            transform: translateY(0);
+            background: rgba(10, 10, 12, 0.9);
+            border-bottom: 1px solid rgba(42, 42, 44, 0.5);
         }
 
         .logo {
@@ -398,12 +397,11 @@
 
         /* Hero Area */
         .hero-area {
-            min-height: 88vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 2rem;
-            padding-bottom: 6rem;
+            padding: 68px 2rem 4rem;
             position: relative;
         }
 
@@ -2262,10 +2260,8 @@
                 canvas.style.opacity = 0.5 * (1 - fadeProgress);
             }
 
-            // Show navigation when animation is fading out (70% through viewport)
-            const navTriggerPoint = viewportHeight * 0.7;
-
-            if (currentScrollY > navTriggerPoint) {
+            // Deepen nav background slightly on scroll
+            if (currentScrollY > 10) {
                 nav.classList.add('scrolled');
             } else {
                 nav.classList.remove('scrolled');
