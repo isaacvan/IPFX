@@ -845,6 +845,8 @@ const INDS=[
 let selectedStudies=new Set(['RSI@tv-basicstudies','Volume@tv-basicstudies']);
 
 function buildIndList(){
+  const listEl=document.getElementById('indList');
+  if(!listEl)return;
   const cats=['trend','momentum','volume'];
   const labels={trend:'Trend',momentum:'Momentum & Oscillators',volume:'Volume'};
   let html='';
@@ -864,7 +866,7 @@ function buildIndList(){
       </div>`;
     });
   });
-  document.getElementById('indList').innerHTML=html;
+  listEl.innerHTML=html;
   updateSelCount();
 }
 
@@ -875,8 +877,10 @@ function toggleInd(id,el){
 }
 
 function updateSelCount(){
+  const el=document.getElementById('selCount');
+  if(!el)return;
   const n=selectedStudies.size;
-  document.getElementById('selCount').textContent=n===0?'None selected':n+' selected';
+  el.textContent=n===0?'None selected':n+' selected';
 }
 
 function resetIndicators(){
