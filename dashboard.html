@@ -819,11 +819,15 @@ function renderAccounts(list){
 }
 
 async function signOut(){
-  await sb.auth.signOut();
+  // Instantly cover the page so there's no flash during the async sign-out
+  const cover=document.createElement('div');
+  cover.style.cssText='position:fixed;inset:0;z-index:9999;background:#0a0a0c';
+  document.body.appendChild(cover);
+  try{await sb.auth.signOut();}catch(e){}
   localStorage.removeItem('ipfx_auth_token');
   localStorage.removeItem('ipfx_user_data');
   sessionStorage.removeItem('ipfx_user_session');
-  window.location.href='login.html';
+  window.location.replace('login.html');
 }
 
 initDashboard();
