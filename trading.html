@@ -139,6 +139,49 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .chart-footer a{color:var(--muted2);text-decoration:none;}
 .chart-footer a:hover{color:var(--muted);}
 
+/* ── CHATBOT ── */
+#chatBtn{position:fixed;bottom:24px;right:24px;z-index:900;width:52px;height:52px;border-radius:50%;background:var(--cobalt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,99,235,.45);transition:transform .15s,box-shadow .15s;}
+#chatBtn:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(37,99,235,.6);}
+#chatBtn svg{width:22px;height:22px;color:#fff;}
+#chatPing{position:absolute;top:0;right:0;width:12px;height:12px;border-radius:50%;background:#10b981;border:2px solid var(--bg);animation:ping 2s infinite;}
+@keyframes ping{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.2)}}
+#chatWin{position:fixed;bottom:90px;right:24px;z-index:901;width:320px;height:460px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;display:none;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden;}
+#chatWin.open{display:flex;}
+.chat-hd{display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;background:rgba(37,99,235,.12);border-bottom:1px solid var(--line);flex-shrink:0;}
+.chat-hd-icon{width:28px;height:28px;border-radius:50%;background:var(--cobalt);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-hd-icon svg{width:14px;height:14px;color:#fff;}
+.chat-hd-title{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;flex:1;}
+.chat-hd-sub{font-size:.62rem;color:var(--green);font-weight:600;}
+.chat-close{background:none;border:none;color:var(--muted2);cursor:pointer;padding:.2rem;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:color .1s;}
+.chat-close:hover{color:var(--fg);}
+.chat-chips{display:flex;gap:.35rem;padding:.55rem .75rem;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--line2);}
+.chat-chips::-webkit-scrollbar{display:none;}
+.cchip{white-space:nowrap;padding:.22rem .6rem;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-size:.66rem;font-weight:600;cursor:pointer;transition:all .12s;}
+.cchip:hover{border-color:var(--cobalt);color:#60a5fa;background:rgba(37,99,235,.08);}
+.chat-msgs{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.6rem;}
+.chat-msgs::-webkit-scrollbar{width:2px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);}
+.cmsg{max-width:88%;font-size:.72rem;line-height:1.55;padding:.5rem .7rem;border-radius:10px;}
+.cmsg.bot{background:rgba(255,255,255,.05);border:1px solid var(--line2);color:var(--fg);align-self:flex-start;border-bottom-left-radius:3px;}
+.cmsg.usr{background:var(--cobalt);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.cmsg .ind-chip-row{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem;}
+.cmsg .ic{padding:.18rem .5rem;border-radius:4px;font-size:.65rem;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .12s;}
+.cmsg .ic.on{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);}
+.cmsg .ic.off{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);opacity:.6;}
+.cmsg .ic:hover{opacity:1;border-color:rgba(255,255,255,.3);}
+.chat-typing{display:none;align-self:flex-start;padding:.4rem .7rem;background:rgba(255,255,255,.05);border:1px solid var(--line2);border-radius:10px;border-bottom-left-radius:3px;}
+.chat-typing span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--muted);animation:tdot 1.2s infinite;}
+.chat-typing span:nth-child(2){animation-delay:.2s;}
+.chat-typing span:nth-child(3){animation-delay:.4s;}
+@keyframes tdot{0%,80%,100%{transform:scale(1);opacity:.4}40%{transform:scale(1.3);opacity:1}}
+.chat-input-row{display:flex;gap:.4rem;padding:.6rem .75rem;border-top:1px solid var(--line);flex-shrink:0;}
+.chat-input-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:.4rem .65rem;color:var(--fg);font-size:.75rem;font-family:'Inter',sans-serif;outline:none;}
+.chat-input-row input::placeholder{color:var(--muted2);}
+.chat-input-row input:focus{border-color:rgba(37,99,235,.5);}
+.chat-send{width:30px;height:30px;border-radius:7px;background:var(--cobalt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s;}
+.chat-send:hover{background:#1d4ed8;}
+.chat-send svg{width:13px;height:13px;color:#fff;}
+
 /* ── SCALP TAB ── */
 .scalp-sym{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:700;padding:.6rem .8rem .3rem;color:var(--muted2);}
 .scalp-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;padding:.4rem .8rem;}
@@ -348,28 +391,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide" id="guidePanel">
     <div class="guide-tabs">
-      <div class="gtab active" onclick="switchTab('indicators',this)">Indicators</div>
-      <div class="gtab" onclick="switchTab('learn',this)">Learn</div>
-      <div class="gtab" onclick="switchTab('timeframes',this)">Timeframes</div>
-      <div class="gtab" onclick="switchTab('scalp',this)">Scalp</div>
+      <div class="gtab active" onclick="switchTab('scalp',this)">Scalp</div>
       <div class="gtab" onclick="switchTab('dom',this)">DOM</div>
       <div class="gtab" onclick="switchTab('order',this)">Order</div>
     </div>
     <div class="guide-body">
 
-      <!-- INDICATORS TAB -->
-      <div class="gpanel active" id="tab-indicators">
-        <div class="ind-apply-bar">
-          <span id="selCount">0 selected</span>
-          <button class="reset-btn" onclick="resetIndicators()">Reset</button>
-          <button class="apply-btn" onclick="applyIndicators()">Apply to Chart</button>
-        </div>
-        <div id="indList"></div>
-        <div class="ind-more">100+ more indicators available via the chart toolbar above</div>
-      </div>
-
-      <!-- LEARN TAB -->
-      <div class="gpanel" id="tab-learn">
+      <!-- LEARN TAB (hidden, content served by chatbot) -->
+      <div class="gpanel" id="tab-learn" style="display:none!important">
 
         <div class="learn-section">
           <div class="learn-q" onclick="toggleLearn(this)">
@@ -463,8 +492,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 
       </div>
 
-      <!-- TIMEFRAMES TAB -->
-      <div class="gpanel" id="tab-timeframes">
+      <!-- TIMEFRAMES TAB (hidden, content served by chatbot) -->
+      <div class="gpanel" id="tab-timeframes" style="display:none!important">
 
         <div class="tf-section">
           <div style="font-size:.68rem;color:var(--muted);padding:.1rem 0 .7rem;line-height:1.6">
@@ -500,7 +529,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       </div>
 
       <!-- SCALP TAB -->
-      <div class="gpanel" id="tab-scalp" style="overflow-y:auto;height:100%">
+      <div class="gpanel active" id="tab-scalp" style="overflow-y:auto;height:100%">
         <div class="scalp-sym">Scalp Tools</div>
 
         <div class="scalp-grid">
@@ -632,6 +661,36 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   </div>
 
 </div><!-- end layout -->
+
+<!-- CHATBOT -->
+<button id="chatBtn" onclick="toggleChat()" title="IPFX Assist">
+  <span id="chatPing"></span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div id="chatWin">
+  <div class="chat-hd">
+    <div class="chat-hd-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div>
+    <div><div class="chat-hd-title">IPFX Assist</div><div class="chat-hd-sub">● Online</div></div>
+    <button class="chat-close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="chat-chips">
+    <div class="cchip" onclick="askChip('Show me all indicators')">Indicators</div>
+    <div class="cchip" onclick="askChip('Add RSI to the chart')">+ RSI</div>
+    <div class="cchip" onclick="askChip('Add MACD to the chart')">+ MACD</div>
+    <div class="cchip" onclick="askChip('What are the trading sessions?')">Sessions</div>
+    <div class="cchip" onclick="askChip('Explain timeframes')">Timeframes</div>
+    <div class="cchip" onclick="askChip('What is support and resistance?')">S&R</div>
+    <div class="cchip" onclick="askChip('Risk management tips')">Risk</div>
+    <div class="cchip" onclick="askChip('Reset all indicators')">Reset chart</div>
+  </div>
+  <div class="chat-msgs" id="chatMsgs">
+    <div class="chat-typing" id="chatTyping"><span></span><span></span><span></span></div>
+  </div>
+  <div class="chat-input-row">
+    <input id="chatInput" placeholder="Ask anything about trading…" onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="chat-send" onclick="sendChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
 
 <!-- BOTTOM PANEL -->
 <div class="btm-outer" id="btmOuter">
@@ -1210,6 +1269,226 @@ setInterval(()=>{
   domPrice+=jitter;
   updateOrdPrices(domPrice);
 },1500);
+
+// ── CHATBOT ──
+const KB=[
+  {keys:['candle','candlestick','wick','body','green candle','red candle'],
+   title:'Candlesticks',
+   reply:`A candle shows one time period of price action:\n\n• <b>Body</b> = open vs close price\n• <b>Green/white</b> = closed higher (bullish)\n• <b>Red</b> = closed lower (bearish)\n• <b>Wicks</b> = how far price was rejected\n\nLong wicks show the market tested a level but got rejected — often a sign of reversal.`},
+  {keys:['trend','uptrend','downtrend','direction','higher high','lower low'],
+   title:'Trends',
+   reply:`<b>Uptrend</b> — higher highs and higher lows. Look to buy dips.\n\n<b>Downtrend</b> — lower highs and lower lows. Look to sell rallies.\n\n<b>Sideways</b> — price bounces between two levels. Wait for a breakout before trading.\n\n<i>Always trade with the higher timeframe trend, not against it.</i>`},
+  {keys:['support','resistance','level','floor','ceiling','s&r','s/r'],
+   title:'Support & Resistance',
+   reply:`<b>Support</b> is a price level where buyers stepped in repeatedly — acts as a floor.\n\n<b>Resistance</b> is where sellers push price back repeatedly — acts as a ceiling.\n\nKey rule: when support breaks it often becomes resistance, and vice versa. These level flips are prime trading setups.`},
+  {keys:['timeframe','timeframes','1m','5m','15m','1h','4h','1d','1w','higher timeframe','lower timeframe'],
+   title:'Timeframes',
+   reply:`<b>1m / 5m</b> — Scalping only. Very noisy.\n<b>15m</b> — Day trading entries. Balanced.\n<b>1H</b> — Most popular for day traders.\n<b>4H</b> — Swing trading setups.\n<b>Daily</b> — Position trading, big picture.\n<b>Weekly</b> — Institutional view.\n\n<b>Multi-TF approach:</b> Use Daily for trend direction → 4H for setup → 1H for entry timing. Always trade in the direction of the higher timeframe.`},
+  {keys:['session','sessions','london','new york','asia','overlap','market hours','open','close'],
+   title:'Market Sessions (GMT)',
+   reply:`<b>🟡 Asia</b> — 00:00–09:00 GMT. Low volatility. JPY pairs most active.\n\n<b>🟢 London</b> — 08:00–17:00 GMT. Highest volume. Best for EUR, GBP.\n\n<b>🔵 New York</b> — 13:00–22:00 GMT. High volume. USD pairs most active.\n\n<b>🟣 Overlap</b> — 13:00–17:00 GMT. London + NY overlap. Highest volatility window of the day.`},
+  {keys:['risk','risk management','stop loss','take profit','r:r','risk reward','1%','2%','drawdown'],
+   title:'Risk Management',
+   reply:`Core rules every IPFX trader follows:\n\n• Never risk more than <b>1–2%</b> per trade\n• Always define your stop loss <i>before</i> entering\n• Minimum <b>1:1.5 R:R</b> — target must be larger than stop\n• 3 losses in a row → stop trading for the day\n• Protect capital first, profits follow\n\nUse the Risk Calculator in the bottom panel to size positions correctly.`},
+  {keys:['pip','pips','lot','lots','leverage','spread','margin'],
+   title:'Key Terms',
+   reply:`<b>Pip</b> — smallest price move in forex (0.0001 for 4-decimal pairs)\n<b>Lot</b> — trade size unit. 1 standard lot = 100,000 units\n<b>Spread</b> — difference between buy/sell price — your entry cost\n<b>Leverage</b> — trading more than your balance. Magnifies both wins and losses\n<b>Margin</b> — collateral held to keep position open\n<b>Drawdown</b> — how far your account dropped from its peak`},
+  {keys:['rsi','relative strength'],
+   title:'RSI',
+   reply:`<b>RSI (Relative Strength Index)</b> measures momentum from 0–100.\n\n• Above 70 → potentially overbought\n• Below 30 → potentially oversold\n• <b>Divergence</b> between RSI and price is a powerful reversal signal\n\nDon't trade RSI alone — combine with trend direction.`,ind:'RSI@tv-basicstudies'},
+  {keys:['macd','moving average convergence'],
+   title:'MACD',
+   reply:`<b>MACD</b> shows trend direction and momentum.\n\n• MACD line crosses above signal → bullish\n• Crosses below → bearish\n• Histogram shows momentum strength\n• Divergence between MACD and price = early warning signal`,ind:'MACD@tv-basicstudies'},
+  {keys:['bollinger','bb','bands'],
+   title:'Bollinger Bands',
+   reply:`<b>Bollinger Bands</b> = 20-period SMA + 2 standard deviation bands.\n\n• Price touching upper band → potentially overbought\n• Price touching lower band → potentially oversold\n• <b>Squeeze</b> (bands tightening) → big breakout often incoming`,ind:'BB@tv-basicstudies'},
+  {keys:['ema','exponential moving average'],
+   title:'EMA',
+   reply:`<b>EMA</b> reacts faster to price than SMA by weighting recent candles more.\n\nCommon setups:\n• 9 EMA crossing above 21 EMA → buy signal\n• Crossing below → sell signal\n• Price above 200 EMA → long-term uptrend`,ind:'EMA@tv-basicstudies'},
+  {keys:['sma','simple moving average','moving average','200 ma','50 ma'],
+   title:'SMA',
+   reply:`<b>SMA</b> = average closing price over N candles. The most widely used tool in trading.\n\n• Price above SMA → trend is up\n• Price below SMA → trend is down\n• Use 20, 50, and 200-period SMAs together for a full picture`,ind:'SMA@tv-basicstudies'},
+  {keys:['volume','volumes'],
+   title:'Volume',
+   reply:`<b>Volume</b> shows how many units were traded per candle.\n\n• High volume confirms a move — real conviction\n• Low volume on a big move = suspicious, often reverses\n• Volume spike on a breakout = strong confirmation`,ind:'Volume@tv-basicstudies'},
+  {keys:['vwap'],
+   title:'VWAP',
+   reply:`<b>VWAP</b> = average price weighted by volume. Institutions use it as a fair value reference.\n\n• Price above VWAP → bullish intraday bias\n• Price below → bearish bias\n• Best used on intraday charts (1H and below)`,ind:'VWAP@tv-basicstudies'},
+  {keys:['ichimoku','cloud','kumo'],
+   title:'Ichimoku Cloud',
+   reply:`<b>Ichimoku Cloud</b> is a complete Japanese trend system showing support, resistance, trend, and momentum all at once.\n\n• Price above cloud → bullish\n• Price below cloud → bearish\n• Cloud acts as dynamic support/resistance`,ind:'IchimokuCloud@tv-basicstudies'},
+  {keys:['atr','average true range','volatility'],
+   title:'ATR',
+   reply:`<b>ATR</b> measures how volatile the market is — the average size of price moves.\n\n• High ATR → big moves, widen stops\n• Low ATR → quiet market, tighten stops\n• Many pros use 1.5–2× ATR for stop loss placement`,ind:'ATR@tv-basicstudies'},
+  {keys:['stochastic','stoch'],
+   title:'Stochastic',
+   reply:`<b>Stochastic</b> shows where price sits within its recent range (0–100).\n\n• Above 80 → overbought\n• Below 20 → oversold\n• K line crossing D line in oversold zone → classic buy signal`,ind:'Stochastic@tv-basicstudies'},
+  {keys:['adx','directional index','trend strength'],
+   title:'ADX',
+   reply:`<b>ADX</b> measures trend strength (0–100) regardless of direction.\n\n• Below 20 → ranging, no clear trend\n• Above 25 → trend developing\n• Above 50 → very strong trend\n\nPair with EMA or MACD for direction.`,ind:'ADX@tv-basicstudies'},
+  {keys:['parabolic','sar','trailing stop'],
+   title:'Parabolic SAR',
+   reply:`<b>Parabolic SAR</b> plots dots above or below price.\n\n• Dots below → uptrend active\n• Dots above → downtrend active\n• When dots flip side → potential trend reversal\n\nExcellent for trailing stop loss placement.`,ind:'ParabolicSAR@tv-basicstudies'},
+  {keys:['obv','on balance','balance volume'],
+   title:'OBV',
+   reply:`<b>OBV</b> adds volume on up days and subtracts on down days — cumulative buying vs selling pressure.\n\nIf OBV rises while price is flat → smart money accumulating → breakout likely.`,ind:'OBV@tv-basicstudies'},
+  {keys:['indicator','indicators','all indicators','show indicators','list indicators','what indicators'],
+   title:'Indicators',
+   reply:`Here are the indicators available to add to your chart:`,showAll:true},
+  {keys:['reset','clear indicators','remove all','reset chart','no indicators'],
+   title:'Reset',
+   reply:`Done — all indicators removed from the chart. Starting clean.`,action:'reset'},
+];
+
+function matchKB(q){
+  const lq=q.toLowerCase();
+  let best=null,bestScore=0;
+  KB.forEach(entry=>{
+    const score=entry.keys.reduce((acc,k)=>{
+      if(lq.includes(k))acc+=k.length;
+      return acc;
+    },0);
+    if(score>bestScore){bestScore=score;best=entry;}
+  });
+  // check for "add X" / "remove X" / "turn on X" patterns
+  const addMatch=lq.match(/(?:add|put|enable|turn on|show|apply)\s+(.+?)(?:\s+(?:to|on|the|chart).*)?$/);
+  const remMatch=lq.match(/(?:remove|hide|turn off|disable|take off)\s+(.+?)(?:\s+(?:from|off|the|chart).*)?$/);
+  if(addMatch){
+    const target=addMatch[1].replace(/(?:to|on|the|chart)/g,'').trim();
+    const found=INDS.find(i=>i.name.toLowerCase().includes(target)||i.full.toLowerCase().includes(target));
+    if(found)return{type:'add',ind:found};
+  }
+  if(remMatch){
+    const target=remMatch[1].replace(/(?:from|off|the|chart)/g,'').trim();
+    const found=INDS.find(i=>i.name.toLowerCase().includes(target)||i.full.toLowerCase().includes(target));
+    if(found)return{type:'remove',ind:found};
+  }
+  if(bestScore>0)return{type:'kb',entry:best};
+  return null;
+}
+
+function botReply(q){
+  const m=matchKB(q);
+  if(!m)return{text:`I'm not sure about that — try asking about specific indicators (RSI, MACD, Bollinger), timeframes, sessions, or trading concepts like support/resistance and risk management.`};
+  if(m.type==='add'){
+    selectedStudies.add(m.ind.id);
+    rebuildChart();
+    return{text:`<b>${m.ind.name}</b> added to the chart ✓\n\n${m.ind.explain}`,color:m.ind.color};
+  }
+  if(m.type==='remove'){
+    selectedStudies.delete(m.ind.id);
+    rebuildChart();
+    return{text:`<b>${m.ind.name}</b> removed from the chart.`};
+  }
+  const e=m.entry;
+  if(e.action==='reset'){
+    selectedStudies=new Set(['RSI@tv-basicstudies','Volume@tv-basicstudies']);
+    rebuildChart();
+    return{text:e.reply};
+  }
+  if(e.showAll){
+    return{text:e.reply,showAll:true};
+  }
+  if(e.ind){
+    return{text:e.reply,ind:e.ind,entry:e};
+  }
+  return{text:e.reply};
+}
+
+function renderBotMsg(result){
+  const msgs=document.getElementById('chatMsgs');
+  const el=document.createElement('div');
+  el.className='cmsg bot';
+  let html=result.text.replace(/\n/g,'<br>');
+  if(result.showAll){
+    html+='<div class="ind-chip-row">';
+    INDS.forEach(ind=>{
+      const on=selectedStudies.has(ind.id);
+      html+=`<span class="ic ${on?'on':'off'}" style="color:${ind.color}" onclick="chatToggleInd('${ind.id}',this)">${ind.name}</span>`;
+    });
+    html+='</div>';
+  } else if(result.ind){
+    const id=result.ind;
+    const on=selectedStudies.has(id);
+    html+=`<div class="ind-chip-row"><span class="ic ${on?'on':'off'}" style="color:${INDS.find(i=>i.id===id)?.color||'#fff'}" onclick="chatToggleInd('${id}',this)">${on?'✓ Added':'+ Add to chart'}</span></div>`;
+  }
+  el.innerHTML=html;
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function chatToggleInd(id,el){
+  if(selectedStudies.has(id)){
+    selectedStudies.delete(id);
+    el.className='ic off';
+    el.style.color=INDS.find(i=>i.id===id)?.color||'#fff';
+    const nm=INDS.find(i=>i.id===id)?.name||id;
+    el.textContent=`+ Add to chart`;
+    addBotMsg(`${nm} removed from chart.`);
+  } else {
+    selectedStudies.add(id);
+    el.className='ic on';
+    el.style.color=INDS.find(i=>i.id===id)?.color||'#fff';
+    const nm=INDS.find(i=>i.id===id)?.name||id;
+    el.textContent=`✓ Added`;
+    addBotMsg(`${nm} added to chart ✓`);
+  }
+  rebuildChart();
+}
+
+function addBotMsg(txt){
+  const msgs=document.getElementById('chatMsgs');
+  const el=document.createElement('div');
+  el.className='cmsg bot';
+  el.innerHTML=txt.replace(/\n/g,'<br>');
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addUserMsg(txt){
+  const msgs=document.getElementById('chatMsgs');
+  const el=document.createElement('div');
+  el.className='cmsg usr';
+  el.textContent=txt;
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function sendChat(){
+  const inp=document.getElementById('chatInput');
+  const q=inp.value.trim();
+  if(!q)return;
+  inp.value='';
+  addUserMsg(q);
+  const typing=document.getElementById('chatTyping');
+  typing.style.display='flex';
+  document.getElementById('chatMsgs').scrollTop=99999;
+  setTimeout(()=>{
+    typing.style.display='none';
+    renderBotMsg(botReply(q));
+  },420+Math.random()*300);
+}
+
+function askChip(q){
+  if(!document.getElementById('chatWin').classList.contains('open'))toggleChat();
+  addUserMsg(q);
+  const typing=document.getElementById('chatTyping');
+  typing.style.display='flex';
+  setTimeout(()=>{
+    typing.style.display='none';
+    renderBotMsg(botReply(q));
+  },380);
+}
+
+function toggleChat(){
+  const win=document.getElementById('chatWin');
+  const isOpen=win.classList.toggle('open');
+  if(isOpen&&document.getElementById('chatMsgs').children.length<=1){
+    setTimeout(()=>{
+      addBotMsg(`Hey 👋 I'm <b>IPFX Assist</b> — ask me anything about trading, or use the chips above to add indicators directly to your chart.\n\nTry: <i>"add RSI"</i>, <i>"what is MACD?"</i>, or <i>"explain timeframes"</i>`);
+    },200);
+  }
+}
 
 // ── INIT ──
 buildIndList();
