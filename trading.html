@@ -139,6 +139,65 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .chart-footer a{color:var(--muted2);text-decoration:none;}
 .chart-footer a:hover{color:var(--muted);}
 
+/* ── TV CONNECT BUTTON ── */
+.tv-connect-btn{background:var(--cobalt);border:none;border-radius:7px;color:#fff;font-size:.72rem;font-weight:700;padding:.38rem .85rem;cursor:pointer;display:flex;align-items:center;gap:.45rem;transition:all .15s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;box-shadow:0 0 16px rgba(37,99,235,.35);letter-spacing:.3px;}
+.tv-connect-btn:hover{background:#1d4ed8;box-shadow:0 0 22px rgba(37,99,235,.55);transform:translateY(-1px);}
+.tv-connect-btn.connected{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#10b981;box-shadow:none;}
+.tv-connect-btn.connected:hover{background:rgba(16,185,129,.22);}
+
+/* ── TV CONNECT MODAL ── */
+#tvModal{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);}
+#tvModal.open{display:flex;}
+.tvmodal-box{background:#131316;border:1px solid var(--line);border-radius:16px;padding:1.6rem;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.tvmodal-logo{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;}
+.tvmodal-logo svg{width:28px;height:28px;color:var(--cobalt);}
+.tvmodal-logo-text{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;}
+.tvmodal-title{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:.4rem;}
+.tvmodal-sub{font-size:.75rem;color:var(--muted);line-height:1.6;margin-bottom:1.1rem;}
+.tvmodal-steps{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.2rem;}
+.tvmodal-step{display:flex;align-items:flex-start;gap:.7rem;font-size:.75rem;color:var(--muted);}
+.tvmodal-step-num{width:20px;height:20px;border-radius:50%;background:var(--cobalt);color:#fff;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem;}
+.tvmodal-step b{color:var(--fg);}
+.tvmodal-btns{display:flex;flex-direction:column;gap:.45rem;}
+.tvmodal-open{width:100%;padding:.55rem;border-radius:8px;background:var(--cobalt);border:none;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:background .15s;}
+.tvmodal-open:hover{background:#1d4ed8;}
+.tvmodal-done{width:100%;padding:.5rem;border-radius:8px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#10b981;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s;}
+.tvmodal-done:hover{background:rgba(16,185,129,.2);}
+.tvmodal-cancel{width:100%;padding:.4rem;background:none;border:none;color:var(--muted2);font-size:.72rem;cursor:pointer;transition:color .1s;}
+.tvmodal-cancel:hover{color:var(--muted);}
+
+/* ── WELCOME CARD ── */
+#welcomeCard{position:fixed;inset:0;z-index:1800;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);}
+.wc-box{background:#131316;border:1px solid var(--line);border-radius:18px;padding:1.8rem;max-width:480px;width:92%;box-shadow:0 24px 70px rgba(0,0,0,.7);}
+.wc-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.3);border-radius:20px;padding:.25rem .75rem;font-size:.68rem;font-weight:700;color:#60a5fa;margin-bottom:.9rem;}
+.wc-title{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:800;margin-bottom:.3rem;}
+.wc-sub{font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:1.2rem;}
+.wc-sections{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.3rem;}
+.wc-sec{background:rgba(255,255,255,.03);border:1px solid var(--line2);border-radius:10px;padding:.7rem .8rem;}
+.wc-sec-icon{font-size:1.1rem;margin-bottom:.3rem;}
+.wc-sec-title{font-size:.72rem;font-weight:700;margin-bottom:.18rem;font-family:'Space Grotesk',sans-serif;}
+.wc-sec-desc{font-size:.64rem;color:var(--muted);line-height:1.5;}
+.wc-start{width:100%;padding:.65rem;border-radius:10px;background:var(--cobalt);border:none;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:background .15s;}
+.wc-start:hover{background:#1d4ed8;}
+
+/* ── BEGINNER INFO CARDS ── */
+.binfo{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18);border-radius:8px;padding:.6rem .75rem;margin:.5rem .8rem;font-size:.68rem;color:var(--muted);line-height:1.6;}
+.binfo b{color:#93c5fd;}
+.binfo-title{font-size:.7rem;font-weight:700;color:#93c5fd;margin-bottom:.2rem;display:flex;align-items:center;gap:.3rem;}
+.dom-col-hint{display:grid;grid-template-columns:1fr 80px 1fr;padding:.1rem .5rem;font-size:.58rem;color:var(--muted2);border-bottom:1px solid var(--line2);}
+.dom-col-hint span{text-align:center;}
+.dom-col-hint span:first-child{text-align:left;color:#6ee7b7;}
+.dom-col-hint span:last-child{text-align:right;color:#fca5a5;}
+
+/* ── CHART OVERLAY HINT ── */
+.chart-hint{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(10,10,12,.9);border:1px solid var(--line);border-radius:8px;padding:.5rem .9rem;font-size:.72rem;color:var(--muted);white-space:nowrap;pointer-events:none;z-index:5;opacity:0;transition:opacity .3s;display:flex;align-items:center;gap:.5rem;}
+.chart-hint.show{opacity:1;}
+
+/* ── TF TOOLTIP ── */
+.tf-btn{position:relative;}
+.tf-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a1e;border:1px solid var(--line);border-radius:6px;padding:.3rem .6rem;font-size:.62rem;color:var(--muted);white-space:nowrap;pointer-events:none;z-index:100;}
+.tf-btn:hover .tf-tip{display:block;}
+
 /* ── CHATBOT ── */
 #chatBtn{position:fixed;bottom:24px;right:24px;z-index:900;width:52px;height:52px;border-radius:50%;background:var(--cobalt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,99,235,.45);transition:transform .15s,box-shadow .15s;}
 #chatBtn:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(37,99,235,.6);}
@@ -341,9 +400,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">MT5</strong></div>
   <div class="tb-pill">Server&nbsp;<strong id="tbServer">IPFX-MT5-Live</strong></div>
   <div class="tb-right">
-    <button id="tvConnectBtn" onclick="connectTV()" title="Connect your TradingView account for unlimited indicators" style="background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:.7rem;font-weight:600;padding:.3rem .7rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:all .15s;white-space:nowrap;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12V8a8 8 0 0 1 16 0v4"/><rect x="2" y="12" width="20" height="10" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
-      <span id="tvConnectLbl">Connect TradingView</span>
+    <button id="tvConnectBtn" onclick="openTVModal()" class="tv-connect-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12V8a8 8 0 0 1 16 0v4"/><rect x="2" y="12" width="20" height="10" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+      <span id="tvConnectLbl">Unlock Indicators</span>
     </button>
     <div class="live-dot"></div>
     <div class="live-lbl">Live</div>
@@ -357,15 +416,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <div class="chart-wrap">
     <div class="chart-toolbar" id="chartToolbar">
       <span class="ct-label">Timeframe</span>
-      <button class="tf-btn" onclick="setTf('1',this)">1m</button>
-      <button class="tf-btn" onclick="setTf('3',this)">3m</button>
-      <button class="tf-btn" onclick="setTf('5',this)">5m</button>
-      <button class="tf-btn" onclick="setTf('15',this)">15m</button>
-      <button class="tf-btn" onclick="setTf('30',this)">30m</button>
-      <button class="tf-btn active" onclick="setTf('60',this)">1H</button>
-      <button class="tf-btn" onclick="setTf('240',this)">4H</button>
-      <button class="tf-btn" onclick="setTf('D',this)">1D</button>
-      <button class="tf-btn" onclick="setTf('W',this)">1W</button>
+      <button class="tf-btn" onclick="setTf('1',this)" title="1 Minute — each candle = 1 min. Scalping only.">1m</button>
+      <button class="tf-btn" onclick="setTf('3',this)" title="3 Minutes — fast scalping timeframe.">3m</button>
+      <button class="tf-btn" onclick="setTf('5',this)" title="5 Minutes — popular for news-event scalps.">5m</button>
+      <button class="tf-btn" onclick="setTf('15',this)" title="15 Minutes — good balance for day trading.">15m</button>
+      <button class="tf-btn" onclick="setTf('30',this)" title="30 Minutes — intraday swing entries.">30m</button>
+      <button class="tf-btn active" onclick="setTf('60',this)" title="1 Hour — most popular for day traders.">1H</button>
+      <button class="tf-btn" onclick="setTf('240',this)" title="4 Hours — swing trading setups.">4H</button>
+      <button class="tf-btn" onclick="setTf('D',this)" title="Daily — one candle per day. Position trading.">1D</button>
+      <button class="tf-btn" onclick="setTf('W',this)" title="Weekly — big picture institutional view.">1W</button>
       <div class="ct-sep"></div>
       <span class="ct-label">Style</span>
       <button class="style-btn active" onclick="setStyle(1,this)" title="Candles">
@@ -395,8 +454,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide" id="guidePanel">
     <div class="guide-tabs">
-      <div class="gtab active" onclick="switchTab('scalp',this)">Scalp</div>
-      <div class="gtab" onclick="switchTab('dom',this)">DOM</div>
+      <div class="gtab" onclick="switchTab('scalp',this)">Scalp</div>
+      <div class="gtab active" onclick="switchTab('dom',this)">DOM</div>
       <div class="gtab" onclick="switchTab('order',this)">Order</div>
     </div>
     <div class="guide-body">
@@ -533,7 +592,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       </div>
 
       <!-- SCALP TAB -->
-      <div class="gpanel active" id="tab-scalp" style="overflow-y:auto;height:100%">
+      <div class="gpanel" id="tab-scalp" style="overflow-y:auto;height:100%">
+        <div class="binfo" style="margin:.55rem .6rem .3rem;padding:.55rem .65rem">
+          <div class="binfo-title">⚡ What is Scalping?</div>
+          Scalping means making many small, fast trades — usually held for seconds to minutes. Scalpers aim for small gains on each trade but make many of them. It requires focus, fast reactions, and tight risk management.
+        </div>
         <div class="scalp-sym">Scalp Tools</div>
 
         <div class="scalp-grid">
@@ -591,15 +654,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       </div>
 
       <!-- DOM TAB -->
-      <div class="gpanel" id="tab-dom" style="height:100%;padding:0">
+      <div class="gpanel active" id="tab-dom" style="height:100%;padding:0">
+        <div class="binfo" style="margin:.55rem .6rem .1rem;padding:.55rem .65rem">
+          <div class="binfo-title">📊 What is the DOM?</div>
+          The <b>Depth of Market</b> shows all buy &amp; sell orders queued at every price level in real time. <b style="color:#6ee7b7">Green = buyers (Bid)</b>. <b style="color:#fca5a5">Red = sellers (Ask)</b>. The blue row is the current price. Bigger bars = more orders waiting there.
+        </div>
         <div class="dom-top">
           <span class="dom-sym" id="dom-sym-label">—</span>
           <span class="dom-badge">SIMULATED</span>
         </div>
         <div class="dom-cols">
-          <div class="dom-ch left">Bid Vol</div>
-          <div class="dom-ch">Price</div>
-          <div class="dom-ch right">Ask Vol</div>
+          <div class="dom-ch left" title="Volume of buy orders at this price">Bid Vol</div>
+          <div class="dom-ch" title="The price level">Price</div>
+          <div class="dom-ch right" title="Volume of sell orders at this price">Ask Vol</div>
         </div>
         <div class="dom-ladder" id="domLadder"></div>
         <div class="dom-footer">
@@ -611,6 +678,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       <!-- ORDER TAB -->
       <div class="gpanel" id="tab-order" style="height:100%;padding:0">
         <div class="ord-wrap">
+          <div class="binfo" style="margin:0 0 .5rem;padding:.5rem .65rem">
+            <div class="binfo-title">🎯 Paper Trading — Safe to practise</div>
+            <b>BUY</b> = you think price will go up. <b>SELL</b> = you think price will go down. This uses <b>no real money</b> — it's a simulator so you can practise without any risk.
+          </div>
           <div class="ord-price-row">
             <span class="ord-price-lbl">Live Price</span>
             <span class="ord-cur-price" id="ord-live-price">—</span>
@@ -693,6 +764,60 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <div class="chat-input-row">
     <input id="chatInput" placeholder="Ask anything about trading…" onkeydown="if(event.key==='Enter')sendChat()">
     <button class="chat-send" onclick="sendChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+
+<!-- WELCOME CARD -->
+<div id="welcomeCard">
+  <div class="wc-box">
+    <div class="wc-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>First time here?</div>
+    <div class="wc-title">Welcome to IPFX Markets</div>
+    <div class="wc-sub">This is your trading dashboard. Here's what everything does — it'll make sense in 60 seconds.</div>
+    <div class="wc-sections">
+      <div class="wc-sec">
+        <div class="wc-sec-icon">📈</div>
+        <div class="wc-sec-title">Price Chart (centre)</div>
+        <div class="wc-sec-desc">Live market prices shown as candles. Each candle = one time period. Green = price went up. Red = price went down.</div>
+      </div>
+      <div class="wc-sec">
+        <div class="wc-sec-icon">📊</div>
+        <div class="wc-sec-title">DOM Panel (right)</div>
+        <div class="wc-sec-desc">Depth of Market — shows all queued buy and sell orders at each price. Green rows = buyers. Red rows = sellers.</div>
+      </div>
+      <div class="wc-sec">
+        <div class="wc-sec-icon">🎯</div>
+        <div class="wc-sec-title">Order Panel (right)</div>
+        <div class="wc-sec-desc">Practice placing buy and sell orders. This is <b>paper trading</b> — no real money. Safe to explore.</div>
+      </div>
+      <div class="wc-sec">
+        <div class="wc-sec-icon">📋</div>
+        <div class="wc-sec-title">Bottom Panel</div>
+        <div class="wc-sec-desc">Your account stats, a risk calculator to size trades correctly, and a journal to log your thoughts.</div>
+      </div>
+    </div>
+    <button class="wc-start" onclick="dismissWelcome()">Got it — Take me to the markets</button>
+  </div>
+</div>
+
+<!-- TV CONNECT MODAL -->
+<div id="tvModal">
+  <div class="tvmodal-box">
+    <div class="tvmodal-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span class="tvmodal-logo-text">Unlock Unlimited Indicators</span>
+    </div>
+    <div class="tvmodal-title">Connect your TradingView account</div>
+    <div class="tvmodal-sub">The chart is powered by TradingView. By logging into your TradingView account, you unlock your plan's full indicator limit — up to 25 indicators at once on Premium plans.</div>
+    <div class="tvmodal-steps">
+      <div class="tvmodal-step"><div class="tvmodal-step-num">1</div><div>Click <b>Open TradingView Login</b> below — it opens in a new tab</div></div>
+      <div class="tvmodal-step"><div class="tvmodal-step-num">2</div><div>Sign in or create a free TradingView account</div></div>
+      <div class="tvmodal-step"><div class="tvmodal-step-num">3</div><div>Come back to this tab and click <b>I've Logged In</b></div></div>
+    </div>
+    <div class="tvmodal-btns">
+      <button class="tvmodal-open" onclick="openTVLogin()">Open TradingView Login</button>
+      <button class="tvmodal-done" onclick="tvLoginDone()">✓ I've Logged In — Refresh Chart</button>
+      <button class="tvmodal-cancel" onclick="closeTVModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1277,27 +1402,41 @@ setInterval(()=>{
   updateOrdPrices(domPrice);
 },1500);
 
-// ── TRADINGVIEW CONNECT ──
-let tvConnected=false;
-function connectTV(){
-  if(tvConnected){
-    // Already connected — rebuild chart to refresh session
-    rebuildChart();
-    addBotMsg('Chart refreshed with your TradingView session ✓');
-    return;
-  }
-  const popup=window.open('https://www.tradingview.com/accounts/sso/login/?service=chart','tvlogin','width=520,height=640,top=100,left=200');
-  const poll=setInterval(()=>{
-    if(!popup||popup.closed){
-      clearInterval(poll);
-      tvConnected=true;
-      document.getElementById('tvConnectLbl').textContent='TradingView Connected';
-      document.getElementById('tvConnectBtn').style.borderColor='rgba(16,185,129,.4)';
-      document.getElementById('tvConnectBtn').style.color='#10b981';
-      rebuildChart();
-    }
-  },600);
+// ── WELCOME CARD ──
+function dismissWelcome(){
+  const card=document.getElementById('welcomeCard');
+  if(card){card.style.opacity='0';card.style.transition='opacity .3s';setTimeout(()=>card.remove(),300);}
+  localStorage.setItem('ipfx_welcomed','1');
+  setTimeout(()=>refreshDom(),400);
 }
+if(localStorage.getItem('ipfx_welcomed')){
+  const card=document.getElementById('welcomeCard');
+  if(card)card.remove();
+  setTimeout(()=>refreshDom(),600);
+}
+
+// ── TV CONNECT MODAL ──
+let tvConnected=false;
+function openTVModal(){
+  document.getElementById('tvModal').classList.add('open');
+}
+function closeTVModal(){
+  document.getElementById('tvModal').classList.remove('open');
+}
+function openTVLogin(){
+  window.open('https://www.tradingview.com/accounts/sso/login/?service=chart','_blank','noopener');
+}
+function tvLoginDone(){
+  closeTVModal();
+  tvConnected=true;
+  const btn=document.getElementById('tvConnectBtn');
+  const lbl=document.getElementById('tvConnectLbl');
+  if(btn)btn.classList.add('connected');
+  if(lbl)lbl.textContent='TradingView Connected ✓';
+  rebuildChart();
+}
+// keep old name as alias
+function connectTV(){openTVModal();}
 
 // ── CHATBOT ──
 const KB=[
