@@ -832,6 +832,10 @@ async function signOut(){
 
 initDashboard();
 
+window.addEventListener('pageshow',function(e){
+  if(e.persisted){sb.auth.getSession().then(function(r){if(!r.data.session)window.location.replace('login.html');});}
+});
+
 // Timer
 function tick(){const n=new Date(),e=new Date();e.setHours(17,0,0,0);if(n>e)e.setDate(e.getDate()+1);const d=e-n,h=Math.floor(d/3600000).toString().padStart(2,'0'),m=Math.floor((d%3600000)/60000).toString().padStart(2,'0'),s=Math.floor((d%60000)/1000).toString().padStart(2,'0');document.getElementById('dayTimer').textContent=`${h}:${m}:${s}`;}
 setInterval(tick,1000);tick();

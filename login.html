@@ -457,7 +457,7 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body style="visibility:hidden">
 <nav>
     <a href="/" class="logo">
         <img src="/assets/images/favicon.ico" alt="IPFX Logo">
@@ -579,11 +579,20 @@
         (async function checkExistingSession() {
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    window.location.replace('dashboard.html');
-                }
+                if (session) { window.location.replace('dashboard.html'); return; }
             } catch(e) {}
+            document.body.style.visibility = 'visible';
         })();
+
+        window.addEventListener('pageshow', function(e){
+            if(e.persisted){
+                document.body.style.visibility = 'hidden';
+                supabaseClient.auth.getSession().then(function(r){
+                    if(r.data.session) window.location.replace('dashboard.html');
+                    else document.body.style.visibility = 'visible';
+                }).catch(function(){ document.body.style.visibility = 'visible'; });
+            }
+        });
 
         // ============================================
         // LOGIN FORM HANDLER
