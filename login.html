@@ -575,14 +575,14 @@
         // ============================================
         // AUTO-REDIRECT IF ALREADY LOGGED IN
         // ============================================
-        (function checkExistingSession() {
-            const authToken = localStorage.getItem('ipfx_auth_token');
-            const userSession = sessionStorage.getItem('ipfx_user_session');
-
-            // If already logged in, redirect to dashboard
-            if (authToken || userSession) {
-                window.location.href = 'dashboard.html';
-            }
+        // Check actual Supabase session — not stale localStorage keys
+        (async function checkExistingSession() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) {
+                    window.location.replace('dashboard.html');
+                }
+            } catch(e) {}
         })();
 
         // ============================================
