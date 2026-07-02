@@ -554,6 +554,56 @@
             color: var(--error);
         }
 
+        .promo-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .promo-input-wrap input { padding-right: 44px; }
+        .promo-spinner {
+            position: absolute;
+            right: 14px;
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: var(--cobalt);
+            border-radius: 50%;
+            animation: promo-spin 0.7s linear infinite;
+            display: none;
+        }
+        .promo-spinner.show { display: block; }
+        @keyframes promo-spin { to { transform: rotate(360deg); } }
+        .promo-status {
+            display: none;
+            margin-top: 0.6rem;
+            padding: 0.65rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .promo-status.valid {
+            display: block;
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: var(--success);
+        }
+        .promo-status.invalid {
+            display: block;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: var(--error);
+        }
+        .promo-label-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.72rem;
+            color: var(--muted);
+            font-weight: 500;
+            margin-left: 0.4rem;
+            opacity: 0.75;
+            vertical-align: middle;
+        }
         @media (max-width: 480px) {
             .signup-card {
                 padding: 2rem 1.5rem;
@@ -624,9 +674,9 @@
                 <img src="assets/images/favicon.ico" alt="IPFX Capital">
             </div>
 
-            <div class="launch-badge">Launching March 2026</div>
+            <div class="launch-badge">Launching October 2026</div>
             <h1>Pre-Register for Launch</h1>
-            <p class="subtitle">Secure your spot for our March 2026 launch</p>
+            <p class="subtitle">Secure your spot for our October 2026 launch</p>
             <p class="pre-register-info">Be among the first to access our platform and start your funded trading journey when we go live.</p>
 
             <div id="alertBox" class="alert"></div>
@@ -665,6 +715,21 @@
                     <label for="referralCode">Referral Code (Optional)</label>
                     <input type="text" id="referralCode" placeholder="Enter referral code if you have one" maxlength="10" style="text-transform: uppercase;">
                     <div class="error-message" id="referralError">Invalid referral code format</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="promoCode">
+                        Free Challenge Code
+                        <span class="promo-label-tag">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg>
+                            From TikTok
+                        </span>
+                    </label>
+                    <div class="promo-input-wrap">
+                        <input type="text" id="promoCode" placeholder="Enter promo code for a free challenge" maxlength="24" style="text-transform: uppercase;">
+                        <div class="promo-spinner" id="promoSpinner"></div>
+                    </div>
+                    <div class="promo-status" id="promoStatus"></div>
                 </div>
 
                 <div class="password-requirements">
@@ -706,9 +771,14 @@
         const passwordInput = document.getElementById('password');
         const confirmPasswordInput = document.getElementById('confirmPassword');
         const referralCodeInput = document.getElementById('referralCode');
+        const promoCodeInput = document.getElementById('promoCode');
+        const promoStatus = document.getElementById('promoStatus');
+        const promoSpinner = document.getElementById('promoSpinner');
         const submitBtn = document.getElementById('submitBtn');
         const alertBox = document.getElementById('alertBox');
         const strengthFill = document.getElementById('strengthFill');
+        let validatedPromo = null;
+        let promoTimer = null;
 
         // ============================================
         // CHECK URL FOR REFERRAL CODE
@@ -720,6 +790,51 @@
             referralCodeInput.readOnly = true;
             referralCodeInput.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
             referralCodeInput.style.borderColor = 'var(--cobalt)';
+        }
+
+        // ============================================
+        // PROMO CODE LIVE VALIDATION
+        // ============================================
+        promoCodeInput.addEventListener('input', function() {
+            const code = this.value.trim().toUpperCase();
+            clearTimeout(promoTimer);
+            validatedPromo = null;
+            promoStatus.className = 'promo-status';
+            promoStatus.textContent = '';
+            promoCodeInput.classList.remove('error', 'success');
+            promoSpinner.classList.remove('show');
+            if (code.length < 3) return;
+            promoSpinner.classList.add('show');
+            promoTimer = setTimeout(() => checkPromoCode(code), 600);
+        });
+
+        async function checkPromoCode(code) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('promo_codes')
+                    .select('code, challenge_name, challenge_type')
+                    .eq('code', code)
+                    .eq('is_active', true)
+                    .single();
+                promoSpinner.classList.remove('show');
+                if (data && !error) {
+                    validatedPromo = data;
+                    promoCodeInput.classList.remove('error');
+                    promoCodeInput.classList.add('success');
+                    promoStatus.className = 'promo-status valid';
+                    promoStatus.innerHTML = `✓ Valid &mdash; <strong>${data.challenge_name}</strong> will be added free to your account`;
+                } else {
+                    validatedPromo = null;
+                    promoCodeInput.classList.add('error');
+                    promoCodeInput.classList.remove('success');
+                    promoStatus.className = 'promo-status invalid';
+                    promoStatus.textContent = '✕ Invalid or expired promo code';
+                }
+            } catch(e) {
+                promoSpinner.classList.remove('show');
+                promoStatus.className = 'promo-status invalid';
+                promoStatus.textContent = '✕ Could not verify — please try again';
+            }
         }
 
         // ============================================
@@ -905,14 +1020,36 @@
                     options: {
                         data: {
                             full_name: fullNameInput.value,
-                            referral_code: referralCodeInput.value.trim().toUpperCase() || null
+                            referral_code: referralCodeInput.value.trim().toUpperCase() || null,
+                            promo_code: validatedPromo ? validatedPromo.code : null
                         }
                     }
                 });
 
                 if (error) throw error;
 
-                showAlert('Account created! Check your email to verify your account.', 'success');
+                // Claim free challenge if a valid promo code was entered
+                if (validatedPromo && data.user) {
+                    try {
+                        await supabaseClient.from('challenge_claims').insert({
+                            user_id: data.user.id,
+                            promo_code: validatedPromo.code,
+                            challenge_type: validatedPromo.challenge_type,
+                            challenge_name: validatedPromo.challenge_name
+                        });
+                    } catch(claimErr) {
+                        console.warn('Promo claim insert failed:', claimErr);
+                    }
+                }
+
+                const msg = validatedPromo
+                    ? `Account created! Your free <strong>${validatedPromo.challenge_name}</strong> has been applied. Check your email to verify.`
+                    : 'Account created! Check your email to verify your account.';
+                alertBox.innerHTML = msg;
+                alertBox.className = 'alert alert-success show';
+                setTimeout(() => {
+                    alertBox.classList.remove('show');
+                }, 5000);
 
                 // Redirect to login after 2 seconds
                 setTimeout(() => {
