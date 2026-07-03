@@ -763,15 +763,36 @@
             background: rgba(255, 255, 255, 0.02);
         }
 
-        /* Phase 3: Prominent */
+        /* Phase 3: Qualification */
         .phase-card:nth-child(3) {
+            border-color: rgba(16, 185, 129, 0.25);
+            background: rgba(16, 185, 129, 0.03);
+        }
+
+        .phase-card:nth-child(3)::before {
+            content: 'QUALIFICATION';
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Phase 4: Prominent */
+        .phase-card:nth-child(4) {
             transform: scale(1.02);
             border: 2px solid rgba(37, 99, 235, 0.4);
             background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(30, 58, 138, 0.05));
             box-shadow: 0 8px 32px rgba(37, 99, 235, 0.15);
         }
 
-        .phase-card:nth-child(3)::before {
+        .phase-card:nth-child(4)::before {
             content: 'PROFESSIONAL';
             position: absolute;
             top: 1rem;
@@ -790,7 +811,7 @@
             border-color: rgba(37, 99, 235, 0.25);
         }
 
-        .phase-card:nth-child(3):hover {
+        .phase-card:nth-child(4):hover {
             transform: scale(1.03);
             box-shadow: 0 12px 40px rgba(37, 99, 235, 0.25);
         }
@@ -1748,7 +1769,7 @@
                     <h1>The <span class="highlight">Infinity Challenge</span></h1>
                     <p class="hero-description">
                         Start with £1K free capital. Scale to £200K+.<br>
-                        No fees. Unlimited attempts.
+                        No fees. 4 stages. Pure skill — no luck passes.
                     </p>
                     <div class="hero-cta">
                         <a href="/signup.html" class="btn-primary">Start Free Challenge →</a>
@@ -1782,8 +1803,8 @@
                 </div>
                 <div class="peek-stat">
                     <span class="peek-stat-dot"></span>
-                    <span class="peek-stat-value">∞</span>
-                    <span>Retry attempts</span>
+                    <span class="peek-stat-value">4</span>
+                    <span>Stage pathway</span>
                 </div>
             </div>
 
@@ -1791,28 +1812,35 @@
             <section class="info-section" id="how-it-works">
                 <div class="section-content">
                     <h2 class="section-title">How It Works</h2>
-                    <p class="section-subtitle">Three phases from evaluation to funded trader</p>
+                    <p class="section-subtitle">Four stages from evaluation to professional funded trader</p>
 
                     <div class="how-it-works-flow">
                         <div class="step-card reveal">
                             <div class="step-badge">1</div>
                             <div class="step-capital">£1,000</div>
-                            <h3>Start Free</h3>
-                            <p>Begin evaluation. Hit 10% profit target. Zero costs, 60 days, unlimited attempts.</p>
+                            <h3>Prove It</h3>
+                            <p>10% target. Min 10 days, 20 trades. Max 1% risk/trade. 3% daily profit cap. Max 3 attempts/month.</p>
                         </div>
 
                         <div class="step-card reveal">
                             <div class="step-badge">2</div>
                             <div class="step-capital">£5,000</div>
                             <h3>Get Funded</h3>
-                            <p>Real profit sharing. 90% to you. Prove consistency over 60 days.</p>
+                            <p>90% profit split. 30 trading days min. 60%+ profitable days required. Payout locked pending Stage 3.</p>
                         </div>
 
                         <div class="step-card reveal">
                             <div class="step-badge">3</div>
-                            <div class="step-capital">£200K+</div>
+                            <div class="step-capital">£10,000</div>
+                            <h3>Qualify</h3>
+                            <p>Make 3%+ (£300) to unlock your Stage 2 payout. Quant team reviews every trade before Stage 4 entry.</p>
+                        </div>
+
+                        <div class="step-card reveal">
+                            <div class="step-badge">4</div>
+                            <div class="step-capital">£25K–£200K</div>
                             <h3>Go Professional</h3>
-                            <p>Real market trading. Keep 90% profits. Weekly payouts. Long-term partnership.</p>
+                            <p>Capital allocated by analysts. 90% split. Bi-weekly payouts. Scaling based on Sharpe, drawdown &amp; R:R.</p>
                         </div>
                     </div>
                 </div>
@@ -1820,29 +1848,28 @@
                 <!-- Inline CTA -->
                 <div style="text-align: center; margin-top: 3rem;">
                     <a href="/signup.html" class="btn-primary">Start Your Free Challenge →</a>
-                    <p style="color: var(--muted); margin-top: 1rem; font-size: 0.9rem;">No credit card required • Instant access • £1,000 starting capital</p>
+                    <p style="color: var(--muted); margin-top: 1rem; font-size: 0.9rem;">No credit card required • Instant access • Free £1,000 evaluation account</p>
                 </div>
             </section>
 
             <!-- Transparency Section -->
             <section class="info-section">
                 <div class="section-content">
-                    <h2 class="section-title">Full Transparency: How We Both Win</h2>
-                    <p class="section-subtitle">Detailed breakdown of each phase and our revenue model</p>
+                    <h2 class="section-title">Full Transparency: The 4-Stage Pathway</h2>
+                    <p class="section-subtitle">Every rule exists to ensure only genuinely profitable traders reach funded status</p>
 
-                    <!-- Phase 1 -->
+                    <!-- Stage 1 -->
                 <div class="phase-card reveal">
                     <div class="phase-header">
                         <div class="phase-title-group">
-                            <h3>Phase 1: Evaluation</h3>
-                            <div class="phase-subtitle">Start Here</div>
+                            <h3>Stage 1: Evaluation</h3>
+                            <div class="phase-subtitle">Free • Prove Your Skill</div>
                         </div>
                         <div class="phase-capital">£1,000</div>
                     </div>
 
                     <p class="phase-description">
-                        Begin with a £1,000 evaluation account. This is your opportunity to demonstrate your trading skills in a risk-free environment.
-                        Hit 10% profit (£100) to advance to Phase 2. This phase is purely for evaluation purposes, with no revenue generation.
+                        Start completely free. Hit 10% profit (£100) while respecting every rule below. There are no shortcuts here — the requirements are specifically designed so that luck-based or over-leveraged trading cannot pass. Only consistent, disciplined traders advance.
                     </p>
 
                     <div class="phase-details-grid">
@@ -1852,19 +1879,31 @@
                         </div>
                         <div class="detail-item">
                             <span>Daily Loss Limit</span>
-                            <span>£50 (5%)</span>
+                            <span>£30 (3%)</span>
                         </div>
                         <div class="detail-item">
-                            <span>Total Loss Limit</span>
-                            <span>£100 (10%)</span>
+                            <span>Trailing Drawdown</span>
+                            <span>£80 (8%)</span>
                         </div>
                         <div class="detail-item">
-                            <span>Time Limit</span>
-                            <span>60 Days</span>
+                            <span>Min Trading Days</span>
+                            <span>10 Days</span>
                         </div>
                         <div class="detail-item">
-                            <span>Attempts</span>
-                            <span>Unlimited</span>
+                            <span>Min Trades</span>
+                            <span>20 Trades</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Max Risk / Trade</span>
+                            <span>1% (£10)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Daily Profit Cap</span>
+                            <span>3% (£30)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Max Attempts</span>
+                            <span>3 / Month</span>
                         </div>
                         <div class="detail-item">
                             <span>Cost</span>
@@ -1873,20 +1912,18 @@
                     </div>
                 </div>
 
-                <!-- Phase 2 -->
+                <!-- Stage 2 -->
                 <div class="phase-card reveal">
                     <div class="phase-header">
                         <div class="phase-title-group">
-                            <h3>Phase 2: Funded (B-Book)</h3>
-                            <div class="phase-subtitle">Simulated Funded Trading</div>
+                            <h3>Stage 2: Funded Simulation (B-Book)</h3>
+                            <div class="phase-subtitle">Earn Real Profit Share • Payout Locked</div>
                         </div>
                         <div class="phase-capital">£5,000</div>
                     </div>
 
                     <p class="phase-description">
-                        <strong>You're funded!</strong> Trade on our proprietary platform with real profit sharing (80% to you).
-                        This phase uses a B-book model where we manage risk internally through our simulated trading environment.
-                        Hit 10% profit (£500) to advance to Phase 3. Your profits here are tracked and included when you reach Phase 3 for payout eligibility.
+                        <strong>You're funded.</strong> Trade on our platform with a 90% profit split. Your earnings accumulate here, but <strong>payouts remain locked</strong> until you pass Stage 3 — ensuring your Stage 2 performance is not a fluke. Hit 10% profit (£500) with the consistency rules below to advance.
                     </p>
 
                     <div class="phase-details-grid">
@@ -1900,59 +1937,119 @@
                         </div>
                         <div class="detail-item">
                             <span>Daily Loss Limit</span>
-                            <span>£250 (5%)</span>
+                            <span>£150 (3%)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Trailing Drawdown</span>
+                            <span>£300 (6%)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Min Trading Days</span>
+                            <span>30 Days</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Profitable Days</span>
+                            <span>60%+ Required</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Max Risk / Trade</span>
+                            <span>1% (£50)</span>
                         </div>
                         <div class="detail-item">
                             <span>Model Type</span>
                             <span>B-Book (Sim)</span>
                         </div>
                         <div class="detail-item">
-                            <span>Time Limit</span>
-                            <span>60 Days</span>
-                        </div>
-                        <div class="detail-item">
                             <span>Payouts</span>
-                            <span>After Phase 3</span>
+                            <span style="color:#f59e0b;">Locked Until Stage 3</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Phase 3 -->
+                <!-- Stage 3 -->
                 <div class="phase-card reveal">
                     <div class="phase-header">
                         <div class="phase-title-group">
-                            <h3>Phase 3: Professional (A-Book)</h3>
-                            <div class="phase-subtitle">Real Market Trading</div>
+                            <h3>Stage 3: Qualification</h3>
+                            <div class="phase-subtitle">Unlock Your Payout • Quant Review</div>
                         </div>
-                        <div class="phase-capital">£25K - £200K+</div>
+                        <div class="phase-capital">£10,000</div>
                     </div>
 
                     <p class="phase-description">
-                        <strong>This is where we both profit.</strong> Your orders are routed to real financial markets (A-book model).
-                        We earn revenue from trading volume and market spreads. You earn 90% of all trading profits.
-                        Weekly payouts. Scaling based on consistent performance. This represents a genuine long-term partnership where your success directly benefits both parties.
+                        Make <strong>3%+ (£300) on the £10K account</strong> and your Stage 2 earnings (£500 target, 90% split) are released as your first payout. Our quant team then reviews <em>every trade</em> — risk management, position sizing, session discipline, R:R — before you can enter Stage 4. There is no bypass.
                     </p>
 
                     <div class="phase-details-grid">
                         <div class="detail-item">
-                            <span>Starting Capital</span>
-                            <span>£25,000</span>
+                            <span>Profit Target</span>
+                            <span>3%+ (£300)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Unlocks</span>
+                            <span style="color: var(--success);">Stage 2 £500 Payout</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Daily Loss Limit</span>
+                            <span>£250 (2.5%)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Min Trading Days</span>
+                            <span>10 Days</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Quant Review</span>
+                            <span>All Trades Assessed</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Review Criteria</span>
+                            <span>R:R, Sharpe, Risk Mgmt</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Max Risk / Trade</span>
+                            <span>1% (£100)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Stage 4 Entry</span>
+                            <span>Analyst Decision</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 4 -->
+                <div class="phase-card reveal">
+                    <div class="phase-header">
+                        <div class="phase-title-group">
+                            <h3>Stage 4: Professional (A-Book)</h3>
+                            <div class="phase-subtitle">Real Markets • Capital Decided by Analysts</div>
+                        </div>
+                        <div class="phase-capital">£25K–£200K</div>
+                    </div>
+
+                    <p class="phase-description">
+                        <strong>This is the real deal.</strong> Your capital allocation (£25K–£200K) is decided by our quantitative analysts based on your Stage 3 performance metrics. Orders are routed to real financial markets (A-book). We earn from volume and spreads. You earn 90% of every pound of profit, bi-weekly. Your success is our business model.
+                    </p>
+
+                    <div class="phase-details-grid">
+                        <div class="detail-item">
+                            <span>Capital Range</span>
+                            <span>£25K–£200K</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Allocation Basis</span>
+                            <span>Sharpe, DD, R:R, Discipline</span>
                         </div>
                         <div class="detail-item">
                             <span>Profit Split</span>
                             <span>90% to You</span>
                         </div>
                         <div class="detail-item">
-                            <span>Maximum Scaling</span>
-                            <span>£200K+</span>
-                        </div>
-                        <div class="detail-item">
                             <span>Model Type</span>
-                            <span>A-Book (Real)</span>
+                            <span>A-Book (Real Markets)</span>
                         </div>
                         <div class="detail-item">
                             <span>Payouts</span>
-                            <span>Weekly</span>
+                            <span style="color: var(--success);">Bi-Weekly</span>
                         </div>
                         <div class="detail-item">
                             <span>Duration</span>
@@ -1977,7 +2074,7 @@
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-card">
                                     <h4>Industry Standard</h4>
-                                    <p>Most firms profit from evaluation fees and trader failures</p>
+                                    <p>Most firms profit from evaluation fees and trader failures — they <em>need</em> you to fail</p>
                                 </div>
                             </div>
 
@@ -1985,7 +2082,7 @@
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-card">
                                     <h4>Our Approach</h4>
-                                    <p>We only profit when you succeed in Phase 3 real market trading</p>
+                                    <p>We earn nothing until you reach Stage 4. Our revenue comes from real-market volume and spreads — only possible with profitable traders</p>
                                 </div>
                             </div>
 
@@ -1993,7 +2090,7 @@
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-card">
                                     <h4>Perfect Alignment</h4>
-                                    <p>Your success is our success - genuine long-term partnership</p>
+                                    <p>The strict 4-stage pathway isn't designed to filter you out — it's designed to make sure when you arrive at Stage 4, you stay there</p>
                                 </div>
                             </div>
                         </div>
@@ -2003,7 +2100,7 @@
                 <!-- Inline CTA -->
                 <div style="text-align: center; margin-top: 3rem;">
                     <a href="/signup.html" class="btn-primary">Begin Your Trading Journey →</a>
-                    <p style="color: var(--muted); margin-top: 1rem; font-size: 0.9rem;">Join traders earning 90% profit share • Start today with £1,000 capital</p>
+                    <p style="color: var(--muted); margin-top: 1rem; font-size: 0.9rem;">90% profit split from Stage 2 onwards • First payout unlocked at Stage 3</p>
                 </div>
             </section>
 
@@ -2030,8 +2127,8 @@
                         </div>
 
                         <div class="stat-item reveal">
-                            <div class="stat-number">∞</div>
-                            <div class="stat-label">Attempts</div>
+                            <div class="stat-number">4</div>
+                            <div class="stat-label">Stages to Scale</div>
                         </div>
                     </div>
                 </div>
@@ -2050,37 +2147,57 @@
                             <span class="faq-icon">+</span>
                         </div>
                         <div class="faq-answer">
-                            <p>Yes, absolutely. No payment required, no credit card needed, no hidden fees. You receive instant access to a £1,000 evaluation account. The only investment required is your time and trading skill.</p>
+                            <p>Yes. No payment, no credit card, no hidden fees. You get instant access to a £1,000 Stage 1 evaluation account. You may retry up to 3 times per month at no cost. The only requirement is demonstrating real trading skill.</p>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <div class="faq-question">
-                            <span>When do I start receiving payouts?</span>
+                            <span>When do I receive my first payout?</span>
                             <span class="faq-icon">+</span>
                         </div>
                         <div class="faq-answer">
-                            <p>Payouts begin once you reach Phase 3 (A-book funded status). Your Phase 2 profits are tracked and added to your Phase 3 account balance. Once in Phase 3, you receive weekly payouts on your trading profits.</p>
+                            <p>Your first payout (your Stage 2 earnings — up to £450 at 90% of the £500 target) is released once you make 3%+ on the Stage 3 £10K account. This ensures your Stage 2 performance was genuine before we pay out. From Stage 4 onwards, payouts are bi-weekly with no payout threshold.</p>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <div class="faq-question">
-                            <span>What happens if I fail a phase?</span>
+                            <span>What happens if I fail a stage?</span>
                             <span class="faq-icon">+</span>
                         </div>
                         <div class="faq-answer">
-                            <p>You can restart immediately with unlimited attempts. If you violate rules in Phase 1, simply restart Phase 1. If you fail in Phase 2 or 3, you'll restart from Phase 1. This ensures consistent performance across all levels and protects both parties.</p>
+                            <p>If you breach any rule in Stage 1, you restart Stage 1 (max 3 times per calendar month). Failing in Stage 2, 3, or 4 resets you to Stage 1. This protects both you and us — only traders who demonstrate sustained discipline across all stages make it through.</p>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <div class="faq-question">
-                            <span>How is this business model sustainable?</span>
+                            <span>Why is there a daily profit cap in Stage 1?</span>
                             <span class="faq-icon">+</span>
                         </div>
                         <div class="faq-answer">
-                            <p>Unlike firms that profit from evaluation fees, we generate revenue from Phase 3 trading volume and market spreads. It's slower to become profitable as a business, but it ensures we're genuinely invested in your long-term success. Quality traders who reach Phase 3 become long-term revenue sources for both parties.</p>
+                            <p>The 3% daily profit cap (£30) prevents traders from getting lucky on a single outsized trade and calling it "skill." Consistent traders spread their profits across multiple days. If your entire target comes from one trade on one day, that's gambling — not trading. The cap ensures your results are repeatable.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <span>What does the quant team review in Stage 3?</span>
+                            <span class="faq-icon">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Our quantitative analysts review your full trading history from all stages: Sharpe ratio, maximum drawdown behaviour, average risk-to-reward per trade, position sizing consistency, session and instrument concentration, and whether your profitability was driven by edge or noise. Only traders who pass this review are allocated Stage 4 capital.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <span>How is the Stage 4 capital amount decided?</span>
+                            <span class="faq-icon">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Capital allocation (£25K–£200K) is determined by our analysts based on your Stage 3 metrics. Traders with strong Sharpe ratios, low drawdown, positive R:R, and disciplined sizing will be allocated larger amounts. This is not arbitrary — it's a quantitative decision based on risk-adjusted performance.</p>
                         </div>
                     </div>
 
@@ -2090,7 +2207,7 @@
                             <span class="faq-icon">+</span>
                         </div>
                         <div class="faq-answer">
-                            <p>Yes. You can maintain one Infinity Challenge account while also purchasing Traditional Challenge accounts. Many traders use Infinity for skill development and learning while using Traditional for faster access to larger capital.</p>
+                            <p>Yes. You can maintain one active Infinity Challenge account alongside Traditional Challenge accounts. Many traders use the Infinity path for long-term funded capital while using Traditional for faster access to larger initial allocations.</p>
                         </div>
                     </div>
 
@@ -2113,7 +2230,7 @@
                     <h2>Ready to Begin?</h2>
                     <p>Start your trading career with zero financial risk. Build your skills with IPFX Capital.</p>
                     <a href="/signup.html" class="btn-primary">Start Free Challenge →</a>
-                    <p class="trust-text">No credit card required • Instant activation • Unlimited attempts</p>
+                    <p class="trust-text">No credit card required • Instant activation • Max 3 attempts per month</p>
                 </div>
             </section>
         </div>
