@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -924,46 +924,46 @@
                 <div class="tier-grid">
                     <div class="tier-card" data-tier="10k" data-price="99">
                         <div class="checkmark">✓</div>
-                        <h3>£10K</h3>
-                        <div class="tier-price">£99</div>
+                        <h3>$10K</h3>
+                        <div class="tier-price">$99</div>
                         <div class="tier-refund">Fully refundable</div>
                         <div class="tier-features">
-                            <div class="tier-feature">£500 daily loss limit</div>
-                            <div class="tier-feature">£1,000 total loss limit</div>
-                            <div class="tier-feature">£800 profit target</div>
+                            <div class="tier-feature">$500 daily loss limit</div>
+                            <div class="tier-feature">$1,000 total loss limit</div>
+                            <div class="tier-feature">$800 profit target</div>
                         </div>
                     </div>
                     <div class="tier-card" data-tier="25k" data-price="249">
                         <div class="checkmark">✓</div>
-                        <h3>£25K</h3>
-                        <div class="tier-price">£249</div>
+                        <h3>$25K</h3>
+                        <div class="tier-price">$249</div>
                         <div class="tier-refund">Fully refundable</div>
                         <div class="tier-features">
-                            <div class="tier-feature">£1,250 daily loss limit</div>
-                            <div class="tier-feature">£2,500 total loss limit</div>
-                            <div class="tier-feature">£2,000 profit target</div>
+                            <div class="tier-feature">$1,250 daily loss limit</div>
+                            <div class="tier-feature">$2,500 total loss limit</div>
+                            <div class="tier-feature">$2,000 profit target</div>
                         </div>
                     </div>
                     <div class="tier-card" data-tier="50k" data-price="399">
                         <div class="checkmark">✓</div>
-                        <h3>£50K</h3>
-                        <div class="tier-price">£399</div>
+                        <h3>$50K</h3>
+                        <div class="tier-price">$399</div>
                         <div class="tier-refund">Fully refundable</div>
                         <div class="tier-features">
-                            <div class="tier-feature">£2,500 daily loss limit</div>
-                            <div class="tier-feature">£5,000 total loss limit</div>
-                            <div class="tier-feature">£4,000 profit target</div>
+                            <div class="tier-feature">$2,500 daily loss limit</div>
+                            <div class="tier-feature">$5,000 total loss limit</div>
+                            <div class="tier-feature">$4,000 profit target</div>
                         </div>
                     </div>
                     <div class="tier-card" data-tier="100k" data-price="599">
                         <div class="checkmark">✓</div>
-                        <h3>£100K</h3>
-                        <div class="tier-price">£599</div>
+                        <h3>$100K</h3>
+                        <div class="tier-price">$599</div>
                         <div class="tier-refund">Fully refundable</div>
                         <div class="tier-features">
-                            <div class="tier-feature">£5,000 daily loss limit</div>
-                            <div class="tier-feature">£10,000 total loss limit</div>
-                            <div class="tier-feature">£8,000 profit target</div>
+                            <div class="tier-feature">$5,000 daily loss limit</div>
+                            <div class="tier-feature">$10,000 total loss limit</div>
+                            <div class="tier-feature">$8,000 profit target</div>
                         </div>
                     </div>
                 </div>
@@ -1243,7 +1243,7 @@
 
         function updateReview() {
             const tierText = selectedTier.toUpperCase();
-            document.getElementById('reviewTier').textContent = '£' + tierText.replace('K', ',000');
+            document.getElementById('reviewTier').textContent = '$' + tierText.replace('K', ',000');
             document.getElementById('reviewName').textContent =
                 document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value;
             document.getElementById('reviewEmail').textContent = document.getElementById('email').value;
@@ -1256,7 +1256,7 @@
                 'crypto': 'Cryptocurrency'
             };
             document.getElementById('reviewPayment').textContent = paymentText[selectedPayment] || '-';
-            document.getElementById('reviewTotal').textContent = '£' + selectedPrice;
+            document.getElementById('reviewTotal').textContent = '$' + selectedPrice;
         }
 
         // Step navigation

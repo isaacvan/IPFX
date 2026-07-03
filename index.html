@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1788,6 +1788,48 @@
             font-style: italic;
         }
 
+        .currency-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .currency-toggle-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .currency-btn {
+            padding: 0.45rem 1.1rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .currency-btn.active {
+            background: var(--cobalt);
+            border-color: var(--cobalt);
+            color: #fff;
+        }
+
+        .currency-btn:hover:not(.active) {
+            border-color: rgba(37,99,235,0.5);
+            color: var(--fg);
+        }
+
         @media (max-width: 968px) {
             .calculator-content {
                 grid-template-columns: 1fr;
@@ -3446,8 +3488,8 @@
         </h1>
 
         <p>
-            Try the <span class="highlight">Infinity Challenge</span>: Start free with £1K. Pass 4 stages of skill-based evaluation.
-            Earn 90% profit share from Stage 2. First payout unlocked at Stage 3. Scale to £200K.
+            Try the <span class="highlight">Infinity Challenge</span>: Start free with $1K. Pass 4 stages of skill-based evaluation.
+            Earn 90% profit share from Stage 2. First payout unlocked at Stage 3. Scale to $500K.
         </p>
 
         <div class="cta-group">
@@ -3457,7 +3499,7 @@
 
         <div class="hero-stats">
             <div class="stat">
-                <div class="stat-value" data-target="200" data-suffix="K" data-prefix="£">£0K</div>
+                <div class="stat-value" data-target="200" data-suffix="K" data-prefix="$">$0K</div>
                 <div class="stat-label">Max Funding</div>
             </div>
             <div class="stat">
@@ -3521,7 +3563,7 @@
             <div class="hiw-step">
                 <div class="hiw-step-number">03</div>
                 <h3>Get Paid & Scale</h3>
-                <p>Receive up to 90% of your profits bi-weekly. Hit consecutive targets and your capital automatically scales — up to £200K.</p>
+                <p>Receive up to 90% of your profits bi-weekly. Hit consecutive targets and your capital automatically scales — up to $500K.</p>
             </div>
         </div>
     </div>
@@ -3552,7 +3594,7 @@
                     <span class="feature-icon">✓</span>
                     <div class="feature-text">
                         <strong>4-Stage Pathway</strong>
-                        <p>£1K → £5K → £10K → £25K–£200K</p>
+                        <p>$1K → $5K → $10K → $25K–$500K</p>
                     </div>
                 </div>
                 <div class="path-feature">
@@ -3596,7 +3638,7 @@
                     <span class="feature-icon">✓</span>
                     <div class="feature-text">
                         <strong>Direct High Capital</strong>
-                        <p>Access £10K-£200K immediately</p>
+                        <p>Access $10K-$200K immediately</p>
                     </div>
                 </div>
                 <div class="path-feature">
@@ -3616,7 +3658,7 @@
             </div>
 
             <a href="/personalised-challenge.html" class="path-button btn-pac">Customize Your Path</a>
-            <p class="path-footnote">From £99 entry fee</p>
+            <p class="path-footnote">From $99 entry fee</p>
         </div>
     </div>
 </section>
@@ -3640,7 +3682,7 @@
         <div class="timeline-stage" data-stage="1">
             <div class="timeline-node"></div>
             <div class="stage-content">
-                <div class="capital-display">£1,000</div>
+                <div class="capital-display">$1,000</div>
                 <h3 class="stage-title">Stage 1 — Prove It (Free)</h3>
                 <p class="stage-subtitle">10% target. Min 10 days, 20 trades. Max 1% risk per trade. 3% daily profit cap. Max 3 attempts per month. No shortcuts.</p>
             </div>
@@ -3650,7 +3692,7 @@
         <div class="timeline-stage" data-stage="2">
             <div class="timeline-node"></div>
             <div class="stage-content">
-                <div class="capital-display">£5,000</div>
+                <div class="capital-display">$5,000</div>
                 <h3 class="stage-title">Stage 2 — Get Funded</h3>
                 <p class="stage-subtitle">90% profit split from day one. 30 trading days min, 60%+ profitable days required. Payout locked until Stage 3 is passed.</p>
             </div>
@@ -3660,7 +3702,7 @@
         <div class="timeline-stage" data-stage="3">
             <div class="timeline-node"></div>
             <div class="stage-content">
-                <div class="capital-display">£10,000</div>
+                <div class="capital-display">$10,000</div>
                 <h3 class="stage-title">Stage 3 — Qualify &amp; Get Paid</h3>
                 <p class="stage-subtitle">10% target. Hit 3% and your Stage 2 earnings pay out immediately. Complete Stage 3 and earn a second payout. Quant team reviews all trades within 24 hours, then allocates your Stage 4 capital.</p>
             </div>
@@ -3670,7 +3712,7 @@
         <div class="timeline-stage" data-stage="4">
             <div class="timeline-node"></div>
             <div class="stage-content">
-                <div class="capital-display">£25K–£200K</div>
+                <div class="capital-display">$25K–$500K</div>
                 <h3 class="stage-title">Stage 4 — Professional</h3>
                 <p class="stage-subtitle">Capital allocated by analysts based on your Sharpe, drawdown and risk metrics. 90% split. Bi-weekly payouts. Real markets.</p>
             </div>
@@ -3802,14 +3844,14 @@
         <div class="ctab-panel active" id="tab-traditional">
             <div class="cards-horizontal reveal-stagger">
                 <div class="pricing-card">
-                    <div class="card-size">£25K</div>
-                    <div class="card-fee">£149 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
+                    <div class="card-size">$25K</div>
+                    <div class="card-fee">$149 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
                     <div class="card-diff">90% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>£2,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>£1,000 (4%)</span></li>
-                        <li><span>Max Daily Loss</span><span>£1,250 (5%)</span></li>
-                        <li><span>Max Overall Loss</span><span>£2,500 (10%)</span></li>
+                        <li><span>Phase 1 Target</span><span>$2,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span>$1,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span>$1,250 (5%)</span></li>
+                        <li><span>Max Overall Loss</span><span>$2,500 (10%)</span></li>
                         <li><span>Min Trading Days</span><span>5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3817,14 +3859,14 @@
                     <button class="card-button" onclick="openPricingModal('25k')">Get Started</button>
                 </div>
                 <div class="pricing-card featured">
-                    <div class="card-size">£50K</div>
-                    <div class="card-fee">£249 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
+                    <div class="card-size">$50K</div>
+                    <div class="card-fee">$249 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
                     <div class="card-diff">90% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>£4,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>£2,000 (4%)</span></li>
-                        <li><span>Max Daily Loss</span><span>£2,500 (5%)</span></li>
-                        <li><span>Max Overall Loss</span><span>£5,000 (10%)</span></li>
+                        <li><span>Phase 1 Target</span><span>$4,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span>$2,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span>$2,500 (5%)</span></li>
+                        <li><span>Max Overall Loss</span><span>$5,000 (10%)</span></li>
                         <li><span>Min Trading Days</span><span>5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3832,14 +3874,14 @@
                     <button class="card-button" onclick="openPricingModal('50k')">Get Started</button>
                 </div>
                 <div class="pricing-card">
-                    <div class="card-size">£100K</div>
-                    <div class="card-fee">£399 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
+                    <div class="card-size">$100K</div>
+                    <div class="card-fee">$399 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
                     <div class="card-diff">90% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>£8,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>£4,000 (4%)</span></li>
-                        <li><span>Max Daily Loss</span><span>£5,000 (5%)</span></li>
-                        <li><span>Max Overall Loss</span><span>£10,000 (10%)</span></li>
+                        <li><span>Phase 1 Target</span><span>$8,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span>$4,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span>$5,000 (5%)</span></li>
+                        <li><span>Max Overall Loss</span><span>$10,000 (10%)</span></li>
                         <li><span>Min Trading Days</span><span>5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3847,14 +3889,14 @@
                     <button class="card-button" onclick="openPricingModal('100k')">Get Started</button>
                 </div>
                 <div class="pricing-card">
-                    <div class="card-size">£200K</div>
-                    <div class="card-fee">£699 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
+                    <div class="card-size">$200K</div>
+                    <div class="card-fee">$699 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
                     <div class="card-diff">90% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>£16,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>£8,000 (4%)</span></li>
-                        <li><span>Max Daily Loss</span><span>£10,000 (5%)</span></li>
-                        <li><span>Max Overall Loss</span><span>£20,000 (10%)</span></li>
+                        <li><span>Phase 1 Target</span><span>$16,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span>$8,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span>$10,000 (5%)</span></li>
+                        <li><span>Max Overall Loss</span><span>$20,000 (10%)</span></li>
                         <li><span>Min Trading Days</span><span>5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3870,16 +3912,16 @@
             <div class="cards-horizontal reveal-stagger">
                 <div class="pricing-card">
                     <div class="futures-tag">CME Futures</div>
-                    <div class="card-size">£25K</div>
-                    <div class="card-fee">£79 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-size">$25K</div>
+                    <div class="card-fee">$79 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>£1,500 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>£1,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>£500 (2%)</span></li>
+                        <li><span>Profit Target</span><span>$1,500 (6%)</span></li>
+                        <li><span>Trailing Drawdown</span><span>$1,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span>$500 (2%)</span></li>
                         <li><span>Min Trading Days</span><span>3 days</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3888,16 +3930,16 @@
                 </div>
                 <div class="pricing-card">
                     <div class="futures-tag">CME Futures</div>
-                    <div class="card-size">£50K</div>
-                    <div class="card-fee">£109 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-size">$50K</div>
+                    <div class="card-fee">$109 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>£3,000 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>£2,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>£1,000 (2%)</span></li>
+                        <li><span>Profit Target</span><span>$3,000 (6%)</span></li>
+                        <li><span>Trailing Drawdown</span><span>$2,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span>$1,000 (2%)</span></li>
                         <li><span>Min Trading Days</span><span>3 days</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3906,16 +3948,16 @@
                 </div>
                 <div class="pricing-card featured">
                     <div class="futures-tag">CME Futures</div>
-                    <div class="card-size">£100K</div>
-                    <div class="card-fee">£199 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-size">$100K</div>
+                    <div class="card-fee">$199 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span><span class="mkt-tag">NG</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>£6,000 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>£4,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>£2,500 (2.5%)</span></li>
+                        <li><span>Profit Target</span><span>$6,000 (6%)</span></li>
+                        <li><span>Trailing Drawdown</span><span>$4,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span>$2,500 (2.5%)</span></li>
                         <li><span>Min Trading Days</span><span>3 days</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3924,16 +3966,16 @@
                 </div>
                 <div class="pricing-card">
                     <div class="futures-tag">CME Futures</div>
-                    <div class="card-size">£150K</div>
-                    <div class="card-fee">£299 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-size">$150K</div>
+                    <div class="card-fee">$299 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span><span class="mkt-tag">NG</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>£9,000 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>£6,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>£3,750 (2.5%)</span></li>
+                        <li><span>Profit Target</span><span>$9,000 (6%)</span></li>
+                        <li><span>Trailing Drawdown</span><span>$6,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span>$3,750 (2.5%)</span></li>
                         <li><span>Min Trading Days</span><span>3 days</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">90%</span></li>
@@ -3954,7 +3996,7 @@
     <div class="modal-content">
         <button class="modal-close" onclick="closePricingModal()" aria-label="Close">×</button>
         <div class="modal-header">
-            <h2 id="modalTitle">£50K — 2-Phase Challenge</h2>
+            <h2 id="modalTitle">$50K — 2-Phase Challenge</h2>
             <p id="modalSubtitle">Pass two evaluation phases and trade funded capital with a 90% profit split</p>
         </div>
         <div class="modal-table-wrapper">
@@ -3970,10 +4012,10 @@
                 <tbody>
                     <tr><td class="row-label">Trading Period</td><td id="step1-period">Unlimited</td><td id="step2-period">Unlimited</td><td id="funded-period">Indefinite</td></tr>
                     <tr><td class="row-label">Min Trading Days</td><td id="step1-mindays">5 Days</td><td id="step2-mindays">5 Days</td><td>—</td></tr>
-                    <tr><td class="row-label">Max Daily Loss</td><td id="step1-daily">£2,500 (5%)</td><td id="step2-daily">£2,500 (5%)</td><td id="funded-daily">£2,500 (5%)</td></tr>
-                    <tr><td class="row-label">Max Overall Loss</td><td id="step1-overall">£5,000 (10%)</td><td id="step2-overall">£5,000 (10%)</td><td id="funded-overall">£5,000 (10%)</td></tr>
-                    <tr><td class="row-label">Profit Target</td><td id="step1-target">£4,000 (8%)</td><td id="step2-target">£2,000 (4%)</td><td>—</td></tr>
-                    <tr><td class="row-label">Fee (refundable)</td><td id="step1-fee">£249</td><td>Free</td><td>Free</td></tr>
+                    <tr><td class="row-label">Max Daily Loss</td><td id="step1-daily">$2,500 (5%)</td><td id="step2-daily">$2,500 (5%)</td><td id="funded-daily">$2,500 (5%)</td></tr>
+                    <tr><td class="row-label">Max Overall Loss</td><td id="step1-overall">$5,000 (10%)</td><td id="step2-overall">$5,000 (10%)</td><td id="funded-overall">$5,000 (10%)</td></tr>
+                    <tr><td class="row-label">Profit Target</td><td id="step1-target">$4,000 (8%)</td><td id="step2-target">$2,000 (4%)</td><td>—</td></tr>
+                    <tr><td class="row-label">Fee (refundable)</td><td id="step1-fee">$249</td><td>Free</td><td>Free</td></tr>
                     <tr><td class="row-label">Profit Split</td><td>—</td><td>—</td><td id="funded-split" style="color:#10b981;font-weight:700;">90%</td></tr>
                 </tbody>
             </table>
@@ -3988,10 +4030,10 @@
         </div>
         <div class="modal-footer">
             <div class="modal-price-section">
-                <div class="modal-challenge-name" id="modalChallengeName">£50,000 — 2-Phase Challenge</div>
+                <div class="modal-challenge-name" id="modalChallengeName">$50,000 — 2-Phase Challenge</div>
                 <div class="modal-price-container">
                     <span class="modal-price-label">Fee</span>
-                    <span class="modal-price" id="modalPrice">£249</span>
+                    <span class="modal-price" id="modalPrice">$249</span>
                 </div>
             </div>
             <a href="/signup.html" class="modal-cta-button" id="modalCTAButton">Get Funded →</a>
@@ -4008,39 +4050,39 @@
         </div>
         <div class="payouts-grid reveal-stagger">
             <div class="payout-card">
-                <div class="payout-amount">£4,320</div>
+                <div class="payout-amount">$4,320</div>
                 <div class="payout-trader">James T. — London, UK</div>
-                <div class="payout-detail">Infinity Challenge · £50K account · 3rd payout</div>
+                <div class="payout-detail">Infinity Challenge · $50K account · 3rd payout</div>
                 <span class="payout-badge">Verified Payout</span>
             </div>
             <div class="payout-card">
-                <div class="payout-amount">£12,750</div>
+                <div class="payout-amount">$12,750</div>
                 <div class="payout-trader">Amir K. — Dubai, UAE</div>
-                <div class="payout-detail">Application Challenge · £100K account · 5th payout</div>
+                <div class="payout-detail">Application Challenge · $100K account · 5th payout</div>
                 <span class="payout-badge">Verified Payout</span>
             </div>
             <div class="payout-card">
-                <div class="payout-amount">£2,880</div>
+                <div class="payout-amount">$2,880</div>
                 <div class="payout-trader">Sofia R. — Lagos, Nigeria</div>
-                <div class="payout-detail">Traditional Challenge · £25K account · 2nd payout</div>
+                <div class="payout-detail">Traditional Challenge · $25K account · 2nd payout</div>
                 <span class="payout-badge">Verified Payout</span>
             </div>
             <div class="payout-card">
-                <div class="payout-amount">£8,100</div>
+                <div class="payout-amount">$8,100</div>
                 <div class="payout-trader">Marcus V. — Toronto, CA</div>
-                <div class="payout-detail">Infinity Challenge · £100K account · 4th payout</div>
+                <div class="payout-detail">Infinity Challenge · $100K account · 4th payout</div>
                 <span class="payout-badge">Verified Payout</span>
             </div>
             <div class="payout-card">
-                <div class="payout-amount">£1,620</div>
+                <div class="payout-amount">$1,620</div>
                 <div class="payout-trader">Priya S. — Manchester, UK</div>
-                <div class="payout-detail">Infinity Challenge · £25K account · 1st payout</div>
+                <div class="payout-detail">Infinity Challenge · $25K account · 1st payout</div>
                 <span class="payout-badge">Verified Payout</span>
             </div>
             <div class="payout-card">
-                <div class="payout-amount">£21,600</div>
+                <div class="payout-amount">$21,600</div>
                 <div class="payout-trader">Daniel O. — Johannesburg, SA</div>
-                <div class="payout-detail">Application Challenge · £200K account · 7th payout</div>
+                <div class="payout-detail">Application Challenge · $200K account · 7th payout</div>
                 <span class="payout-badge">Verified Payout</span>
             </div>
         </div>
@@ -4119,7 +4161,7 @@
                         <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
-                        <span>Account sizes: £10K, £25K, £50K, £100K, up to £200K</span>
+                        <span>Account sizes: $10K, $25K, $50K, $100K, up to $200K</span>
                     </li>
                     <li>
                         <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -4137,7 +4179,7 @@
                         <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
-                        <span>25% bonus on all payouts over £3,000</span>
+                        <span>25% bonus on all payouts over $3,000</span>
                     </li>
                     <li>
                         <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -4226,12 +4268,21 @@
             <p class="calculator-subheading">See how your consistent returns compound with automatic capital scaling</p>
         </div>
 
+        <!-- Currency Selector -->
+        <div class="currency-toggle reveal-section">
+            <span class="currency-toggle-label">Currency</span>
+            <button class="currency-btn active" onclick="setCurrency('$', this)">$ USD</button>
+            <button class="currency-btn" onclick="setCurrency('£', this)">£ GBP</button>
+            <button class="currency-btn" onclick="setCurrency('€', this)">€ EUR</button>
+            <button class="currency-btn" onclick="setCurrency('A$', this)">A$ AUD</button>
+        </div>
+
         <div class="calculator-content reveal-section">
             <!-- Controls (Left Side) -->
             <div class="calculator-controls">
                 <div class="control-group">
                     <span class="control-label">Starting Capital</span>
-                    <span class="control-value">£1,000</span>
+                    <span class="control-value" id="startingCapitalDisplay">$1,000</span>
                 </div>
 
                 <div class="control-group">
@@ -4257,7 +4308,7 @@
             <div class="calculator-results">
                 <div class="result-item">
                     <span class="result-label">Estimated Annual Profit</span>
-                    <span class="result-value" id="annualProfit">£0</span>
+                    <span class="result-value" id="annualProfit">$0</span>
                     <p class="result-subtext">With 90% profit split</p>
                 </div>
 
@@ -4468,7 +4519,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
                 </div>
                 <h3>Scale Without Limits</h3>
-                <p>Consistent performers scale to £200K and beyond. The better your edge, the more capital we back you with — no ceiling on growth.</p>
+                <p>Consistent performers scale to $500K and beyond. The better your edge, the more capital we back you with — no ceiling on growth.</p>
             </div>
         </div>
         <a href="signup.html" class="values-cta">Pre-Register Free →</a>
@@ -4530,7 +4581,7 @@
                     <span class="faq-icon">+</span>
                 </button>
                 <div class="faq-answer">
-                    <p class="faq-answer-inner">Yes — completely free. The Infinity Challenge requires zero buy-in. You start with £1,000 of evaluation capital and progress through 4 stages (£1K → £5K → £10K → £25K–£200K). You earn a 90% profit split from Stage 2. Your first real payout is unlocked when you make 3%+ on the Stage 3 £10K account. No credit card, no fee, no catch.</p>
+                    <p class="faq-answer-inner">Yes — completely free. The Infinity Challenge requires zero buy-in. You start with $1,000 of evaluation capital and progress through 4 stages ($1K → $5K → $10K → $25K–$500K). You earn a 90% profit split from Stage 2. Your first real payout is unlocked when you make 3%+ on the Stage 3 $10K account. No credit card, no fee, no catch.</p>
                 </div>
             </div>
             <div class="faq-item">
@@ -4566,7 +4617,7 @@
                     <span class="faq-icon">+</span>
                 </button>
                 <div class="faq-answer">
-                    <p class="faq-answer-inner">Yes — 100% refundable on passing. The fee for Traditional Challenge accounts (£99–£599 depending on account size) is fully refunded with your first profit withdrawal once you become a funded trader.</p>
+                    <p class="faq-answer-inner">Yes — 100% refundable on passing. The fee for Traditional Challenge accounts ($99–$599 depending on account size) is fully refunded with your first profit withdrawal once you become a funded trader.</p>
                 </div>
             </div>
             <div class="faq-item">
@@ -5280,7 +5331,17 @@
     const milestonesList = document.getElementById('milestonesList');
 
     // Capital progression levels for Infinity Challenge
-    const capitalLevels = [1000, 5000, 10000, 50000, 100000, 200000];
+    const capitalLevels = [1000, 5000, 10000, 25000, 50000, 100000, 200000, 500000];
+
+    let calcCurrency = '$';
+
+    function setCurrency(symbol, btn) {
+        calcCurrency = symbol;
+        document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('startingCapitalDisplay').textContent = calcCurrency + '1,000';
+        updateCalculator();
+    }
 
     function calculateProfits(monthlyProfitPercent) {
         const months = 12;
@@ -5344,11 +5405,11 @@
 
     function formatCurrency(value) {
         if (value >= 1000000) {
-            return '£' + (value / 1000000).toFixed(2) + 'M';
+            return calcCurrency + (value / 1000000).toFixed(2) + 'M';
         } else if (value >= 1000) {
-            return '£' + (value / 1000).toFixed(1) + 'K';
+            return calcCurrency + (value / 1000).toFixed(1) + 'K';
         } else {
-            return '£' + value.toFixed(0);
+            return calcCurrency + value.toFixed(0);
         }
     }
 
@@ -5552,9 +5613,9 @@
 
     const stepContent = {
         1: {
-            title: 'Step 1: Start Free with £1,000',
-            description: 'Begin your trading journey with zero buy-in. We provide you with £1,000 in funded capital immediately no credit card, no entry fees, no catches. Just start trading.',
-            stats: { cost: '£0', capital: '£1,000', split: '90%' },
+            title: 'Step 1: Start Free with $1,000',
+            description: 'Begin your trading journey with zero buy-in. We provide you with $1,000 in funded capital immediately no credit card, no entry fees, no catches. Just start trading.',
+            stats: { cost: '$0', capital: '$1,000', split: '90%' },
             features: [
                 'Zero upfront cost to begin',
                 'Instant access to funded capital',
@@ -5565,14 +5626,14 @@
             ],
             nextSteps: [
                 'Trade and hit 10% cumulative profit',
-                'Automatically scale to £5,000 capital',
+                'Automatically scale to $5,000 capital',
                 'Your percentage counter resets to 0%'
             ]
         },
         2: {
-            title: 'Step 2: Hit 10% Profit → Scale to £5,000',
-            description: 'Once you hit a cumulative 10% profit on your £1,000 account, we automatically scale your capital to £5,000. Your percentage counter resets, and you continue trading with more buying power.',
-            stats: { cost: '£0', capital: '£5,000', split: '90%' },
+            title: 'Step 2: Hit 10% Profit → Scale to $5,000',
+            description: 'Once you hit a cumulative 10% profit on your $1,000 account, we automatically scale your capital to $5,000. Your percentage counter resets, and you continue trading with more buying power.',
+            stats: { cost: '$0', capital: '$5,000', split: '90%' },
             features: [
                 'Automatic capital scaling at 10%',
                 'No paperwork or approval needed',
@@ -5583,16 +5644,16 @@
             ],
             nextSteps: [
                 'Hit another 10% cumulative profit',
-                'Scale to £10,000 capital',
+                'Scale to $10,000 capital',
                 'Keep compounding your earnings'
             ]
         },
         3: {
-            title: 'Step 3: Keep Growing → £10,000 Capital',
-            description: 'Hit another 10% cumulative profit on your £5,000 account, and you unlock £10,000 in capital. Each milestone brings exponentially more earning potential.',
-            stats: { cost: '£0', capital: '£10,000', split: '90%' },
+            title: 'Step 3: Keep Growing → $10,000 Capital',
+            description: 'Hit another 10% cumulative profit on your $5,000 account, and you unlock $10,000 in capital. Each milestone brings exponentially more earning potential.',
+            stats: { cost: '$0', capital: '$10,000', split: '90%' },
             features: [
-                'Scale from £5K to £10K capital',
+                'Scale from $5K to $10K capital',
                 'Compound growth accelerates earnings',
                 'Same 10% rule applies',
                 'No additional requirements',
@@ -5601,16 +5662,16 @@
             ],
             nextSteps: [
                 'Continue hitting 10% milestones',
-                'Scale to £50,000 capital',
+                'Scale to $50,000 capital',
                 'Reach professional-level capital'
             ]
         },
         4: {
-            title: 'Step 4: Scale Up → £50,000 Capital',
-            description: 'Continue hitting 10% cumulative profit targets to unlock £50,000 in funded capital. You\'re now trading with professional-level capital allocation.',
-            stats: { cost: '£0', capital: '£50,000', split: '90%' },
+            title: 'Step 4: Scale Up → $50,000 Capital',
+            description: 'Continue hitting 10% cumulative profit targets to unlock $50,000 in funded capital. You\'re now trading with professional-level capital allocation.',
+            stats: { cost: '$0', capital: '$50,000', split: '90%' },
             features: [
-                'Access to £50,000 in capital',
+                'Access to $50,000 in capital',
                 'Professional trading account size',
                 'Same simple 10% scaling rule',
                 'Trade higher timeframes comfortably',
@@ -5619,16 +5680,16 @@
             ],
             nextSteps: [
                 'Maintain 10% profit targets',
-                'Unlock maximum £200,000 capital',
+                'Unlock maximum $500,000 capital',
                 'Achieve institutional-level trading'
             ]
         },
         5: {
-            title: 'Step 5: Maximum Capital → £200,000',
-            description: 'Reach the ultimate tier with £200,000 in funded capital. You\'ve proven consistent profitability and now trade with institutional-level capital.',
-            stats: { cost: '£0', capital: '£200,000', split: '90%' },
+            title: 'Step 5: Maximum Capital → $500,000',
+            description: 'Reach the ultimate tier with up to $500,000 in funded capital. You\'ve proven consistent profitability and now trade with institutional-level capital.',
+            stats: { cost: '$0', capital: '$500,000', split: '90%' },
             features: [
-                'Maximum £200K funded account',
+                'Maximum $500K funded account',
                 'Institutional capital allocation',
                 'Unlimited earning potential',
                 '90% profit split on all earnings',
@@ -5724,34 +5785,34 @@
     // ==================== PRICING MODAL ====================
     const pricingData = {
         '10k': {
-            size: '£10,000', fee: '£79',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'£500 (5%)', overall:'£1,000 (10%)', target:'£800 (8%)', fee:'£79' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'£500 (5%)', overall:'£1,000 (10%)', target:'£400 (4%)' },
-            funded: { period:'Indefinite', daily:'£500 (5%)', overall:'£1,000 (10%)', split:'90%' }
+            size: '$10,000', fee: '$79',
+            step1: { period:'Unlimited', mindays:'5 Days', daily:'$500 (5%)', overall:'$1,000 (10%)', target:'$800 (8%)', fee:'$79' },
+            step2: { period:'Unlimited', mindays:'5 Days', daily:'$500 (5%)', overall:'$1,000 (10%)', target:'$400 (4%)' },
+            funded: { period:'Indefinite', daily:'$500 (5%)', overall:'$1,000 (10%)', split:'90%' }
         },
         '25k': {
-            size: '£25,000', fee: '£149',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'£1,250 (5%)', overall:'£2,500 (10%)', target:'£2,000 (8%)', fee:'£149' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'£1,250 (5%)', overall:'£2,500 (10%)', target:'£1,000 (4%)' },
-            funded: { period:'Indefinite', daily:'£1,250 (5%)', overall:'£2,500 (10%)', split:'90%' }
+            size: '$25,000', fee: '$149',
+            step1: { period:'Unlimited', mindays:'5 Days', daily:'$1,250 (5%)', overall:'$2,500 (10%)', target:'$2,000 (8%)', fee:'$149' },
+            step2: { period:'Unlimited', mindays:'5 Days', daily:'$1,250 (5%)', overall:'$2,500 (10%)', target:'$1,000 (4%)' },
+            funded: { period:'Indefinite', daily:'$1,250 (5%)', overall:'$2,500 (10%)', split:'90%' }
         },
         '50k': {
-            size: '£50,000', fee: '£249',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'£2,500 (5%)', overall:'£5,000 (10%)', target:'£4,000 (8%)', fee:'£249' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'£2,500 (5%)', overall:'£5,000 (10%)', target:'£2,000 (4%)' },
-            funded: { period:'Indefinite', daily:'£2,500 (5%)', overall:'£5,000 (10%)', split:'90%' }
+            size: '$50,000', fee: '$249',
+            step1: { period:'Unlimited', mindays:'5 Days', daily:'$2,500 (5%)', overall:'$5,000 (10%)', target:'$4,000 (8%)', fee:'$249' },
+            step2: { period:'Unlimited', mindays:'5 Days', daily:'$2,500 (5%)', overall:'$5,000 (10%)', target:'$2,000 (4%)' },
+            funded: { period:'Indefinite', daily:'$2,500 (5%)', overall:'$5,000 (10%)', split:'90%' }
         },
         '100k': {
-            size: '£100,000', fee: '£399',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'£5,000 (5%)', overall:'£10,000 (10%)', target:'£8,000 (8%)', fee:'£399' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'£5,000 (5%)', overall:'£10,000 (10%)', target:'£4,000 (4%)' },
-            funded: { period:'Indefinite', daily:'£5,000 (5%)', overall:'£10,000 (10%)', split:'90%' }
+            size: '$100,000', fee: '$399',
+            step1: { period:'Unlimited', mindays:'5 Days', daily:'$5,000 (5%)', overall:'$10,000 (10%)', target:'$8,000 (8%)', fee:'$399' },
+            step2: { period:'Unlimited', mindays:'5 Days', daily:'$5,000 (5%)', overall:'$10,000 (10%)', target:'$4,000 (4%)' },
+            funded: { period:'Indefinite', daily:'$5,000 (5%)', overall:'$10,000 (10%)', split:'90%' }
         },
         '200k': {
-            size: '£200,000', fee: '£699',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'£10,000 (5%)', overall:'£20,000 (10%)', target:'£16,000 (8%)', fee:'£699' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'£10,000 (5%)', overall:'£20,000 (10%)', target:'£8,000 (4%)' },
-            funded: { period:'Indefinite', daily:'£10,000 (5%)', overall:'£20,000 (10%)', split:'90%' }
+            size: '$200,000', fee: '$699',
+            step1: { period:'Unlimited', mindays:'5 Days', daily:'$10,000 (5%)', overall:'$20,000 (10%)', target:'$16,000 (8%)', fee:'$699' },
+            step2: { period:'Unlimited', mindays:'5 Days', daily:'$10,000 (5%)', overall:'$20,000 (10%)', target:'$8,000 (4%)' },
+            funded: { period:'Indefinite', daily:'$10,000 (5%)', overall:'$20,000 (10%)', split:'90%' }
         }
     };
 

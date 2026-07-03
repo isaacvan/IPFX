@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -813,7 +813,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
     <!-- RISK CALCULATOR TAB -->
     <div class="bpanel" id="bp-risk">
       <div class="rc-field" style="width:110px">
-        <div class="rc-lbl">Balance (£)</div>
+        <div class="rc-lbl">Balance ($)</div>
         <input type="number" id="rc-bal" step="1000" oninput="calcRisk()">
       </div>
       <div class="rc-field" style="width:72px">
@@ -1103,7 +1103,7 @@ function toggleBtm(){
   document.getElementById('bp-platform').textContent=platform;
   document.getElementById('bp-server').textContent=server;
 
-  const fmt=v=>v?'£'+(parseInt(v)/100).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+  const fmt=v=>v?'$'+(parseInt(v)/100).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
   document.getElementById('bp-balance').textContent=fmt(bal);
   document.getElementById('bp-daily').textContent=fmt(daily);
   document.getElementById('bp-floor').textContent=fmt(floor);
@@ -1122,7 +1122,7 @@ function calcRisk(){
   const type=document.getElementById('rc-type').value;
 
   const riskAmt=(bal*pct/100);
-  document.getElementById('rc-ramt').textContent=riskAmt>0?'£'+riskAmt.toFixed(2):'—';
+  document.getElementById('rc-ramt').textContent=riskAmt>0?'$'+riskAmt.toFixed(2):'—';
 
   if(!entry||!stop||entry===stop){
     document.getElementById('rc-pips').textContent='—';

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -228,11 +228,11 @@
                 <div class="stat-label">Successful Referrals</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="totalEarned">£0</div>
+                <div class="stat-value" id="totalEarned">$0</div>
                 <div class="stat-label">Total Earned</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="pendingRewards">£0</div>
+                <div class="stat-value" id="pendingRewards">$0</div>
                 <div class="stat-label">Pending Rewards</div>
             </div>
         </div>
@@ -312,10 +312,10 @@
                 // Display stats
                 document.getElementById('referralCount').textContent = profile.referral_count || 0;
 
-                // Calculate earnings (example: £10 per referral)
+                // Calculate earnings (example: $10 per referral)
                 const earningsPerReferral = 10;
                 const totalEarned = (profile.referral_count || 0) * earningsPerReferral;
-                document.getElementById('totalEarned').textContent = `£${totalEarned}`;
+                document.getElementById('totalEarned').textContent = `$${totalEarned}`;
 
                 // Setup share links
                 setupShareLinks(referralCode, referralLink);
