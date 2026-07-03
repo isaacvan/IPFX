@@ -748,13 +748,46 @@ async function initDashboard(){
   document.getElementById('uName').textContent=name;
   document.getElementById('uEmail').textContent=user.email;
 
-  // load accounts
-  const{data:enrollments,error:enErr}=await sb.from('challenge_enrollments').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
-  if(enErr||!enrollments||enrollments.length===0){
+  // load accounts + pending claims in parallel
+  const[{data:enrollments},{data:claims}]=await Promise.all([
+    sb.from('challenge_enrollments').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
+    sb.from('challenge_claims').select('*').eq('user_id',user.id).order('created_at',{ascending:false})
+  ]);
+
+  const hasEnrollments=enrollments&&enrollments.length>0;
+  const hasClaims=claims&&claims.length>0;
+
+  if(!hasEnrollments&&!hasClaims){
     document.getElementById('acList').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem">No accounts found. <a href="start-challenge.html" style="color:var(--cobalt);font-weight:600">Start your first challenge →</a></div>';
     return;
   }
-  renderAccounts(enrollments);
+
+  if(hasClaims) renderClaims(claims);
+  if(hasEnrollments) renderAccounts(enrollments);
+}
+
+function renderClaims(list){
+  const el=document.getElementById('acList');
+  const html=list.map(c=>{
+    const acType=c.account_type==='futures'?'Futures':'Traditional';
+    const acName=c.challenge_name||acType+' Challenge';
+    return`<div class="ac" data-type="${c.account_type||'traditional'}" data-status="pending" style="border-color:rgba(245,158,11,.25)">
+      <div class="ac-head">
+        <div><div class="ac-nr"><span class="ac-name">${acName}</span><span class="badge" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)"><span class="bdot" style="background:#f59e0b"></span>Pending Launch</span></div></div>
+        <div class="ac-id"><span>${acType}</span><span style="color:var(--line)">·</span><span>Free Claim</span></div>
+      </div>
+      <div class="ac-body" style="display:block;padding:1.25rem 1.5rem">
+        <div style="display:flex;align-items:flex-start;gap:.75rem;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:1rem 1.1rem">
+          <svg style="flex-shrink:0;margin-top:2px;color:#f59e0b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div>
+            <div style="font-size:.85rem;font-weight:600;color:#f59e0b;margin-bottom:.25rem">Platform launches October 2026</div>
+            <div style="font-size:.8rem;color:var(--muted2);line-height:1.5">Your <strong style="color:var(--muted)">${acName}</strong> is reserved and will be activated when the platform goes live. No action needed.</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML=(el.innerHTML||'')+html;
 }
 
 function fmt(pence){return'£'+Math.abs(pence/100).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});}

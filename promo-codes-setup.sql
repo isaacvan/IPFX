@@ -28,8 +28,12 @@ CREATE TABLE IF NOT EXISTS challenge_claims (
   promo_code     TEXT REFERENCES promo_codes(code),
   challenge_type TEXT NOT NULL,
   challenge_name TEXT NOT NULL,
+  account_type   TEXT NOT NULL DEFAULT 'traditional', -- 'traditional' or 'futures'
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- If the table already exists, add the column:
+ALTER TABLE challenge_claims ADD COLUMN IF NOT EXISTS account_type TEXT NOT NULL DEFAULT 'traditional';
 
 ALTER TABLE challenge_claims ENABLE ROW LEVEL SECURITY;
 

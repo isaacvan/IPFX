@@ -593,6 +593,41 @@
             border: 1px solid rgba(239,68,68,0.3);
             color: var(--error);
         }
+        .promo-type-picker {
+            display: none;
+            gap: .65rem;
+            margin-top: .65rem;
+        }
+        .promo-type-picker.show { display: flex; }
+        .promo-type-btn {
+            flex: 1;
+            padding: .6rem .9rem;
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            background: rgba(255,255,255,.03);
+            color: var(--text-muted);
+            font-size: .82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color .15s, background .15s, color .15s;
+            text-align: center;
+        }
+        .promo-type-btn:hover {
+            border-color: #2563eb;
+            color: #fff;
+        }
+        .promo-type-btn.selected {
+            border-color: #2563eb;
+            background: rgba(37,99,235,.14);
+            color: #fff;
+        }
+        .promo-type-note {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-top: .45rem;
+            display: none;
+        }
+        .promo-type-note.show { display: block; }
         .promo-label-tag {
             display: inline-flex;
             align-items: center;
@@ -724,6 +759,11 @@
                         <div class="promo-spinner" id="promoSpinner"></div>
                     </div>
                     <div class="promo-status" id="promoStatus"></div>
+                    <div class="promo-type-picker" id="promoTypePicker">
+                        <button type="button" class="promo-type-btn" onclick="selectPromoType('traditional',this)">Traditional Challenge</button>
+                        <button type="button" class="promo-type-btn" onclick="selectPromoType('futures',this)">Futures Challenge</button>
+                    </div>
+                    <div class="promo-type-note" id="promoTypeNote">Select your account type above to continue</div>
                 </div>
 
                 <div class="password-requirements">
@@ -772,6 +812,7 @@
         const alertBox = document.getElementById('alertBox');
         const strengthFill = document.getElementById('strengthFill');
         let validatedPromo = null;
+        let promoAccountType = null;
         let promoTimer = null;
 
         // ============================================
@@ -789,10 +830,28 @@
         // ============================================
         // PROMO CODE LIVE VALIDATION
         // ============================================
+        const promoTypePicker = document.getElementById('promoTypePicker');
+        const promoTypeNote = document.getElementById('promoTypeNote');
+
+        function resetPromoType() {
+            promoAccountType = null;
+            promoTypePicker.classList.remove('show');
+            promoTypeNote.classList.remove('show');
+            promoTypePicker.querySelectorAll('.promo-type-btn').forEach(b => b.classList.remove('selected'));
+        }
+
+        function selectPromoType(type, btn) {
+            promoAccountType = type;
+            promoTypePicker.querySelectorAll('.promo-type-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            promoTypeNote.classList.remove('show');
+        }
+
         promoCodeInput.addEventListener('input', function() {
             const code = this.value.trim().toUpperCase();
             clearTimeout(promoTimer);
             validatedPromo = null;
+            resetPromoType();
             promoStatus.className = 'promo-status';
             promoStatus.textContent = '';
             promoCodeInput.classList.remove('error', 'success');
@@ -817,8 +876,11 @@
                     promoCodeInput.classList.add('success');
                     promoStatus.className = 'promo-status valid';
                     promoStatus.innerHTML = `✓ Valid &mdash; <strong>${data.challenge_name}</strong> will be added free to your account`;
+                    promoTypePicker.classList.add('show');
+                    promoTypeNote.classList.add('show');
                 } else {
                     validatedPromo = null;
+                    resetPromoType();
                     promoCodeInput.classList.add('error');
                     promoCodeInput.classList.remove('success');
                     promoStatus.className = 'promo-status invalid';
@@ -826,6 +888,7 @@
                 }
             } catch(e) {
                 promoSpinner.classList.remove('show');
+                resetPromoType();
                 promoStatus.className = 'promo-status invalid';
                 promoStatus.textContent = '✕ Could not verify — please try again';
             }
@@ -1029,7 +1092,8 @@
                             user_id: data.user.id,
                             promo_code: validatedPromo.code,
                             challenge_type: validatedPromo.challenge_type,
-                            challenge_name: validatedPromo.challenge_name
+                            challenge_name: validatedPromo.challenge_name,
+                            account_type: promoAccountType || 'traditional'
                         });
                     } catch(claimErr) {
                         console.warn('Promo claim insert failed:', claimErr);
