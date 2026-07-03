@@ -1804,118 +1804,6 @@
             }
         }
 
-        /* Platforms Section - Infinite Carousel */
-        .platforms-section {
-            background: var(--bg);
-            padding: 8rem 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Subtle top border accent */
-        .platforms-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            height: 1px;
-            background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(37, 99, 235, 0.3) 50%,
-            transparent 100%);
-        }
-
-        .platforms-heading {
-            font-size: clamp(0.85rem, 1.5vw, 1rem);
-            font-weight: 500;
-            letter-spacing: 0.15em;
-            color: var(--muted);
-            margin-bottom: 4rem;
-            font-family: 'Space Grotesk', sans-serif;
-            text-align: center;
-            text-transform: uppercase;
-        }
-
-        @keyframes marquee {
-            from { transform: translateX(0); }
-            to   { transform: translateX(-50%); }
-        }
-
-        /* Carousel Container */
-        .carousel-container {
-            position: relative;
-            width: 100%;
-            overflow: hidden;
-            mask-image: linear-gradient(
-                    to right,
-                    transparent 0%,
-                    black 12%,
-                    black 88%,
-                    transparent 100%
-            );
-        }
-
-        .carousel-track {
-            display: flex;
-            gap: 4rem;
-            width: max-content;
-            animation: marquee 28s linear infinite;
-        }
-
-        .carousel-track:hover {
-            animation-play-state: paused;
-        }
-
-        .platform-logo {
-            height: 50px;
-            width: auto;
-            opacity: 0.7;
-            filter: brightness(0.9);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0;
-        }
-
-        .platform-logo:hover {
-            opacity: 1;
-            filter: brightness(1.1) drop-shadow(0 0 24px rgba(37, 99, 235, 0.5));
-            transform: scale(1.05);
-        }
-
-        .platforms-subtext {
-            font-size: clamp(0.9rem, 1.2vw, 1rem);
-            color: rgba(160, 160, 160, 0.6);
-            font-weight: 400;
-            text-align: center;
-            margin-top: 4rem;
-            letter-spacing: 0.02em;
-        }
-
-        /* Mobile Adjustments */
-        @media (max-width: 768px) {
-            .platforms-section {
-                padding: 6rem 0;
-            }
-
-            .platforms-heading {
-                margin-bottom: 3rem;
-                font-size: 0.8rem;
-            }
-
-            .carousel-track {
-                gap: 3rem;
-            }
-
-            .platform-logo {
-                height: 36px;
-            }
-
-            .platforms-subtext {
-                margin-top: 3rem;
-                padding: 0 2rem;
-            }
-        }
 
         /* Testimonials Section */
         .testimonials-section {
@@ -3664,35 +3552,6 @@
     </div>
 </div>
 
-<!-- Platforms Section -->
-<section class="platforms-section">
-    <p class="platforms-heading">Trade on the world's best platforms</p>
-    <div class="carousel-container">
-        <div class="carousel-track" id="platformTrack">
-            <img src="/brand-logos/MT4.png" alt="MetaTrader 4" class="platform-logo">
-            <img src="/brand-logos/MT5.png" alt="MetaTrader 5" class="platform-logo">
-            <img src="/brand-logos/cTraderWhite.svg" alt="cTrader" class="platform-logo">
-            <img src="/brand-logos/TradingView.svg" alt="TradingView" class="platform-logo">
-            <img src="/brand-logos/matchTrader.png" alt="MatchTrader" class="platform-logo">
-            <img src="/brand-logos/MT4.png" alt="MetaTrader 4" class="platform-logo">
-            <img src="/brand-logos/MT5.png" alt="MetaTrader 5" class="platform-logo">
-            <img src="/brand-logos/cTraderWhite.svg" alt="cTrader" class="platform-logo">
-            <img src="/brand-logos/TradingView.svg" alt="TradingView" class="platform-logo">
-            <img src="/brand-logos/matchTrader.png" alt="MatchTrader" class="platform-logo">
-            <img src="/brand-logos/MT4.png" alt="MetaTrader 4" class="platform-logo">
-            <img src="/brand-logos/MT5.png" alt="MetaTrader 5" class="platform-logo">
-            <img src="/brand-logos/cTraderWhite.svg" alt="cTrader" class="platform-logo">
-            <img src="/brand-logos/TradingView.svg" alt="TradingView" class="platform-logo">
-            <img src="/brand-logos/matchTrader.png" alt="MatchTrader" class="platform-logo">
-            <img src="/brand-logos/MT4.png" alt="MetaTrader 4" class="platform-logo">
-            <img src="/brand-logos/MT5.png" alt="MetaTrader 5" class="platform-logo">
-            <img src="/brand-logos/cTraderWhite.svg" alt="cTrader" class="platform-logo">
-            <img src="/brand-logos/TradingView.svg" alt="TradingView" class="platform-logo">
-            <img src="/brand-logos/matchTrader.png" alt="MatchTrader" class="platform-logo">
-        </div>
-    </div>
-    <p class="platforms-subtext">MT4 · MT5 · cTrader · TradingView · MatchTrader — your choice, your setup</p>
-</section>
 
 <!-- TRADING POT SECTION - COMMENTED OUT (Uncomment to restore)
 <section class="trading-pot-section">
@@ -4121,7 +3980,7 @@
                         <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
-                        <span>Platforms: MT4, MT5, cTrader, TradingView, and MatchTrader</span>
+                        <span>Platforms: IPFX Markets and TradingView</span>
                     </li>
                 </ul>
             </div>
@@ -4547,7 +4406,7 @@
                     <span class="faq-icon">+</span>
                 </button>
                 <div class="faq-answer">
-                    <p class="faq-answer-inner">We support MetaTrader 4 (MT4), MetaTrader 5 (MT5), cTrader, TradingView, and MatchTrader. You can choose whichever platform you're most comfortable with when you start your challenge.</p>
+                    <p class="faq-answer-inner">We trade on IPFX Markets (our proprietary platform) and TradingView. Your account will be set up and ready to trade on launch in October 2026.</p>
                 </div>
             </div>
             <div class="faq-item">
@@ -4583,14 +4442,8 @@
             <p>Empowering traders with fair, transparent access to capital. No gimmicks, no hidden fees, just real opportunities to scale your trading career.</p>
 
             <div class="footer-platforms">
-                <h4>Supported Platforms</h4>
-                <div class="footer-platform-logos">
-                    <img src="/brand-logos/MT4.png" alt="MetaTrader 4">
-                    <img src="/brand-logos/MT5.png" alt="MetaTrader 5">
-                    <img src="/brand-logos/cTraderWhite.svg" alt="cTrader">
-                    <img src="/brand-logos/TradingView.svg" alt="TradingView">
-                    <img src="/brand-logos/matchTrader.png" alt="MatchTrader">
-                </div>
+                <h4>Platforms</h4>
+                <p style="font-size:.85rem;color:var(--muted,#888);margin-top:.5rem">IPFX Markets &middot; TradingView</p>
             </div>
         </div>
 
