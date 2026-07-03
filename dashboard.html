@@ -757,13 +757,11 @@ async function initDashboard(){
   const hasEnrollments=enrollments&&enrollments.length>0;
   const hasClaims=claims&&claims.length>0;
 
-  if(!hasEnrollments&&!hasClaims){
-    document.getElementById('acList').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem">No accounts found. <a href="start-challenge.html" style="color:var(--cobalt);font-weight:600">Start your first challenge →</a></div>';
-    return;
-  }
-
+  document.getElementById('acList').innerHTML='';
   if(hasClaims) renderClaims(claims);
   if(hasEnrollments) renderAccounts(enrollments);
+  acLoaded=true;
+  applyFilter();
 }
 
 function renderClaims(list){
@@ -795,8 +793,7 @@ function fmtN(pence){return(pence>=0?'+':'-')+'£'+Math.abs(pence/100).toLocaleS
 
 function renderAccounts(list){
   const el=document.getElementById('acList');
-  if(!list.length){el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted2)">No accounts yet.</div>';return;}
-  el.innerHTML=list.map((e,idx)=>{
+  el.innerHTML+=list.map((e,idx)=>{
     const size=e.account_size||0; // pence
     const bal=e.current_balance??size;
     const profit=bal-size;
@@ -848,7 +845,6 @@ function renderAccounts(list){
       </div>
     </div>`;
   }).join('');
-  applyFilter();
 }
 
 async function signOut(){
@@ -888,8 +884,34 @@ function nav(id,btn){
 
 // Account filter
 let af='all';
+let acLoaded=false;
+const FILTER_LINKS={
+  all:{href:'start-challenge.html',label:'Start your first challenge'},
+  infinity:{href:'infinity.html',label:'Start an Infinity challenge'},
+  traditional:{href:'start-challenge.html',label:'Start a Traditional challenge'},
+  application:{href:'personalised-challenge.html',label:'Apply for an Application Challenge'},
+  futures:{href:'futures.html',label:'Explore Futures challenges'}
+};
 function filterAc(t,btn){af=t;document.querySelectorAll('#pg-accounts .filter-tabs .ftab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyFilter();}
-function applyFilter(){const hf=document.getElementById('hideFailed').checked;document.querySelectorAll('.ac').forEach(c=>{const mt=af==='all'||c.dataset.type===af;const mf=!hf||c.dataset.status!=='failed';c.style.display=(mt&&mf)?'':'none';});}
+function applyFilter(){
+  const hf=document.getElementById('hideFailed').checked;
+  let any=false;
+  document.querySelectorAll('#acList .ac').forEach(c=>{
+    const mt=af==='all'||c.dataset.type===af;
+    const mf=!hf||c.dataset.status!=='failed';
+    const show=mt&&mf;
+    c.style.display=show?'':'none';
+    if(show) any=true;
+  });
+  if(!acLoaded) return;
+  let ems=document.getElementById('acEmptyState');
+  if(!ems){ems=document.createElement('div');ems.id='acEmptyState';ems.style.cssText='padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem';document.getElementById('acList').appendChild(ems);}
+  if(!any){
+    const fl=FILTER_LINKS[af]||FILTER_LINKS.all;
+    ems.innerHTML='No '+(af==='all'?'':af+' ')+'accounts found. <a href="'+fl.href+'" style="color:var(--cobalt);font-weight:600">'+fl.label+' →</a>';
+    ems.style.display='';
+  } else {ems.style.display='none';}
+}
 applyFilter();
 
 // Sidebar
