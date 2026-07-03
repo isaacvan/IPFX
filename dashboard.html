@@ -391,6 +391,30 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .trade-btn:hover{background:var(--cobalt-h);}
 .trade-btn svg{width:15px;height:15px;}
 @media(max-width:600px){.cred-grid{grid-template-columns:1fr;}}
+.promo-redeem{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:10px;padding:1.25rem 1.5rem;margin-top:1.5rem;}
+.promo-redeem-hdr{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;}
+.promo-redeem-icon{width:28px;height:28px;border-radius:7px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.promo-redeem-icon svg{width:13px;height:13px;color:#60a5fa;}
+.promo-redeem-title{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;}
+.promo-redeem-sub{font-size:.76rem;color:var(--muted);margin-top:.1rem;}
+.promo-redeem-row{display:flex;gap:.6rem;margin-bottom:.75rem;}
+.promo-redeem-input{flex:1;padding:.55rem .9rem;background:var(--bgcard);border:1px solid var(--line);border-radius:7px;color:var(--fg);font-size:.85rem;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:.5px;outline:none;transition:border-color .2s;}
+.promo-redeem-input:focus{border-color:var(--cobalt);}
+.promo-redeem-input.valid{border-color:#10b981;}
+.promo-redeem-input.invalid{border-color:#ef4444;}
+.promo-redeem-check-btn{padding:.55rem 1.1rem;background:var(--cobalt);border:none;border-radius:7px;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .2s;font-family:'Space Grotesk',sans-serif;}
+.promo-redeem-check-btn:hover{background:var(--cobalt-h);}
+.promo-redeem-check-btn:disabled{opacity:.5;cursor:not-allowed;}
+.promo-redeem-status{font-size:.8rem;margin-bottom:.6rem;}
+.promo-redeem-status.ok{color:#10b981;}
+.promo-redeem-status.err{color:#ef4444;}
+.promo-type-row{display:flex;gap:.6rem;margin-bottom:.75rem;}
+.promo-type-btn2{flex:1;padding:.6rem;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Space Grotesk',sans-serif;}
+.promo-type-btn2:hover{border-color:rgba(37,99,235,.4);color:var(--fg);}
+.promo-type-btn2.sel{background:rgba(37,99,235,.12);border-color:var(--cobalt);color:var(--fg);}
+.promo-claim-btn{width:100%;padding:.65rem;background:var(--cobalt);border:none;border-radius:7px;color:#fff;font-size:.85rem;font-weight:700;cursor:pointer;transition:background .2s;font-family:'Space Grotesk',sans-serif;}
+.promo-claim-btn:hover{background:var(--cobalt-h);}
+.promo-claim-btn:disabled{opacity:.5;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -470,11 +494,31 @@ tr:hover td{background:rgba(255,255,255,.015);}
           <button class="ftab" onclick="filterAc('infinity',this)">Infinity</button>
           <button class="ftab" onclick="filterAc('application',this)">Application</button>
           <button class="ftab" onclick="filterAc('traditional',this)">Traditional</button>
+          <button class="ftab" onclick="filterAc('futures',this)">Futures</button>
         </div>
         <div class="tog-row">Hide Failed<label class="tog"><input type="checkbox" id="hideFailed" checked onchange="applyFilter()"><span class="tog-track"></span></label></div>
       </div>
       <div class="ac-list" id="acList">
         <div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem">Loading your accounts…</div>
+      </div>
+      <div class="promo-redeem" id="promoRedeemPanel">
+        <div class="promo-redeem-hdr">
+          <div class="promo-redeem-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+          <div>
+            <div class="promo-redeem-title">Have a promo code?</div>
+            <div class="promo-redeem-sub">Enter your code to claim a free challenge</div>
+          </div>
+        </div>
+        <div class="promo-redeem-row">
+          <input type="text" id="dashPromoCode" class="promo-redeem-input" placeholder="ENTER CODE" oninput="onDashPromoInput(this)" maxlength="30" />
+          <button class="promo-redeem-check-btn" id="dashPromoCheckBtn" onclick="checkDashPromo()">Check</button>
+        </div>
+        <div class="promo-redeem-status" id="dashPromoStatus" style="display:none"></div>
+        <div class="promo-type-row" id="dashPromoTypePicker" style="display:none">
+          <button class="promo-type-btn2" onclick="selectDashType('traditional',this)">Traditional Challenge</button>
+          <button class="promo-type-btn2" onclick="selectDashType('futures',this)">Futures Challenge</button>
+        </div>
+        <button class="promo-claim-btn" id="dashPromoClaimBtn" style="display:none" onclick="claimDashPromo()">Claim My Challenge →</button>
       </div>
     </div>
 
@@ -857,6 +901,71 @@ async function signOut(){
   sessionStorage.removeItem('ipfx_user_session');
   try{await sb.auth.signOut();}catch(e){}
   window.location.replace('login.html');
+}
+
+// Promo code redemption (Accounts page)
+let dashValidCode=null,dashPromoData=null,dashSelectedType=null;
+function onDashPromoInput(inp){
+  inp.value=inp.value.toUpperCase();
+  dashValidCode=null;dashPromoData=null;dashSelectedType=null;
+  inp.classList.remove('valid','invalid');
+  const s=document.getElementById('dashPromoStatus');
+  s.style.display='none';
+  document.getElementById('dashPromoTypePicker').style.display='none';
+  document.getElementById('dashPromoClaimBtn').style.display='none';
+}
+async function checkDashPromo(){
+  const code=document.getElementById('dashPromoCode').value.trim().toUpperCase();
+  if(!code)return;
+  const btn=document.getElementById('dashPromoCheckBtn');
+  const s=document.getElementById('dashPromoStatus');
+  btn.disabled=true;btn.textContent='Checking…';
+  try{
+    const{data,error}=await sb.from('promo_codes').select('code,challenge_name,challenge_type').eq('code',code).single();
+    if(error||!data){
+      document.getElementById('dashPromoCode').classList.add('invalid');
+      s.className='promo-redeem-status err';s.textContent='✕ Invalid or expired promo code.';s.style.display='';
+    }else{
+      dashValidCode=code;dashPromoData=data;
+      document.getElementById('dashPromoCode').classList.add('valid');
+      s.className='promo-redeem-status ok';s.textContent='✓ Valid code! Select your challenge type below.';s.style.display='';
+      document.getElementById('dashPromoTypePicker').style.display='flex';
+    }
+  }catch(e){
+    s.className='promo-redeem-status err';s.textContent='✕ Error checking code. Try again.';s.style.display='';
+  }
+  btn.disabled=false;btn.textContent='Check';
+}
+function selectDashType(type,btn){
+  dashSelectedType=type;
+  document.querySelectorAll('.promo-type-btn2').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('dashPromoClaimBtn').style.display='';
+}
+async function claimDashPromo(){
+  if(!dashValidCode||!dashSelectedType)return;
+  const btn=document.getElementById('dashPromoClaimBtn');
+  const s=document.getElementById('dashPromoStatus');
+  btn.disabled=true;btn.textContent='Claiming…';
+  try{
+    const{data:{user}}=await sb.auth.getUser();
+    const{data:existing}=await sb.from('challenge_claims').select('id').eq('user_id',user.id).eq('promo_code',dashValidCode).maybeSingle();
+    if(existing){
+      s.className='promo-redeem-status err';s.textContent='✕ You have already claimed this code.';
+      btn.disabled=false;btn.textContent='Claim My Challenge →';return;
+    }
+    const{error}=await sb.from('challenge_claims').insert({user_id:user.id,promo_code:dashValidCode,challenge_type:dashPromoData.challenge_type,challenge_name:dashPromoData.challenge_name,account_type:dashSelectedType});
+    if(error)throw error;
+    s.className='promo-redeem-status ok';s.textContent='✓ Challenge claimed! Reloading your accounts…';
+    document.getElementById('dashPromoTypePicker').style.display='none';
+    btn.style.display='none';
+    document.getElementById('dashPromoCode').value='';
+    document.getElementById('dashPromoCode').classList.remove('valid');
+    setTimeout(()=>{acLoaded=false;document.getElementById('acList').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem">Loading your accounts…</div>';initDashboard();},1500);
+  }catch(e){
+    s.className='promo-redeem-status err';s.textContent='✕ Error claiming code. Please try again.';
+    btn.disabled=false;btn.textContent='Claim My Challenge →';
+  }
 }
 
 initDashboard();
