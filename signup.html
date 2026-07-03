@@ -753,9 +753,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="promoCode">Promo Code</label>
+                    <label for="promoCode">Challenge Code</label>
                     <div class="promo-input-wrap">
-                        <input type="text" id="promoCode" placeholder="Enter promo code for a free challenge" maxlength="24" style="text-transform: uppercase;">
+                        <input type="text" id="promoCode" placeholder="Enter challenge code for a free challenge" maxlength="24" style="text-transform: uppercase;">
                         <div class="promo-spinner" id="promoSpinner"></div>
                     </div>
                     <div class="promo-status" id="promoStatus"></div>
@@ -884,7 +884,7 @@
                     promoCodeInput.classList.add('error');
                     promoCodeInput.classList.remove('success');
                     promoStatus.className = 'promo-status invalid';
-                    promoStatus.textContent = '✕ Invalid or expired promo code';
+                    promoStatus.textContent = '✕ Invalid or expired challenge code';
                 }
             } catch(e) {
                 promoSpinner.classList.remove('show');

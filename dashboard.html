@@ -505,7 +505,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="promo-redeem-hdr">
           <div class="promo-redeem-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
           <div>
-            <div class="promo-redeem-title">Have a promo code?</div>
+            <div class="promo-redeem-title">Have a challenge code?</div>
             <div class="promo-redeem-sub">Enter your code to claim a free challenge</div>
           </div>
         </div>
@@ -924,7 +924,7 @@ async function checkDashPromo(){
     const{data,error}=await sb.from('promo_codes').select('code,challenge_name,challenge_type').eq('code',code).single();
     if(error||!data){
       document.getElementById('dashPromoCode').classList.add('invalid');
-      s.className='promo-redeem-status err';s.textContent='✕ Invalid or expired promo code.';s.style.display='';
+      s.className='promo-redeem-status err';s.textContent='✕ Invalid or expired challenge code.';s.style.display='';
     }else{
       dashValidCode=code;dashPromoData=data;
       document.getElementById('dashPromoCode').classList.add('valid');
