@@ -3461,8 +3461,8 @@
                 <div class="stat-label">Up to 90% Profit Split</div>
             </div>
             <div class="stat">
-                <div class="stat-value">Weekly</div>
-                <div class="stat-label">Payouts</div>
+                <div class="stat-value" style="font-size:2rem">Bi-Weekly</div>
+                <div class="stat-label">Payouts Issued</div>
             </div>
         </div>
     </div>
@@ -5124,9 +5124,10 @@
             if (entry.isIntersecting && !entry.target.classList.contains('counted')) {
                 entry.target.classList.add('counted');
 
-                const statValues = entry.target.querySelectorAll('.stat-value');
+                const statValues = entry.target.querySelectorAll('.stat-value[data-target]');
                 statValues.forEach(stat => {
                     const target = parseInt(stat.dataset.target);
+                    if (isNaN(target)) return;
                     const prefix = stat.dataset.prefix || '';
                     const suffix = stat.dataset.suffix || '';
 
