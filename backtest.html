@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Free Strategy Backtest | IPFX Capital</title>
+    <meta name="description" content="Submit your trading strategy — in code or plain English — and our quant analyst team will run an institutional-grade backtest, find improvements, and recommend the best instruments.">
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --bg2: #0e0e10;
+            --fg: #f8f8f8;
+            --muted: #888;
+            --muted2: #555;
+            --line: #2a2a2c;
+            --cobalt: #2563eb;
+            --cobalt-dim: rgba(37,99,235,.12);
+            --green: #10b981;
+            --amber: #f59e0b;
+            --radius: 12px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+        /* ===== NAV ===== */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+            padding: 0 2.5rem; height: 68px;
+            display: flex; align-items: center; gap: 2rem;
+            backdrop-filter: blur(10px);
+            background: rgba(10,10,12,.85);
+            border-bottom: 1px solid rgba(42,42,44,.4);
+        }
+        .logo { display: inline-flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--fg); }
+        .logo img { width: 32px; height: 32px; object-fit: contain; }
+        .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: .5px; }
+        .nav-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+        .nav-right a { color: var(--muted); text-decoration: none; font-family: 'Space Grotesk', sans-serif; font-size: .9rem; font-weight: 600; transition: color .2s; }
+        .nav-right a:hover { color: var(--fg); }
+        .btn-primary { background: var(--cobalt); color: #fff !important; padding: .5rem 1.2rem; border-radius: 8px; font-size: .875rem !important; }
+        .btn-primary:hover { background: #1d4ed8 !important; }
+
+        /* ===== HERO ===== */
+        .bt-hero {
+            padding: 140px 2rem 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .bt-hero::before {
+            content: '';
+            position: absolute;
+            top: -100px; left: 50%; transform: translateX(-50%);
+            width: 800px; height: 600px;
+            background: radial-gradient(ellipse, rgba(37,99,235,.08) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        .bt-eyebrow {
+            display: inline-flex; align-items: center; gap: .5rem;
+            font-size: .72rem; font-weight: 600; letter-spacing: .16em;
+            color: var(--cobalt); text-transform: uppercase;
+            border: 1px solid rgba(37,99,235,.3);
+            background: rgba(37,99,235,.08);
+            padding: .35rem .85rem; border-radius: 100px;
+            margin-bottom: 1.75rem;
+        }
+        .bt-hero h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700; letter-spacing: -.03em;
+            color: var(--fg); line-height: 1.1;
+            margin-bottom: 1.25rem;
+        }
+        .bt-hero h1 span { color: var(--cobalt); }
+        .bt-hero > p {
+            font-size: clamp(1rem, 1.5vw, 1.15rem);
+            color: var(--muted); max-width: 620px;
+            margin: 0 auto 2.5rem; line-height: 1.75;
+        }
+        .bt-perks {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem 2rem;
+            max-width: 640px; margin: 0 auto;
+        }
+        .bt-perks span {
+            font-size: .85rem; color: var(--fg);
+            display: flex; align-items: center; gap: .4rem;
+        }
+        .bt-perks span::before {
+            content: '';
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green); flex-shrink: 0;
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .bt-main {
+            max-width: 1100px; margin: 0 auto;
+            padding: 0 2rem 8rem;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        /* ===== FORM ===== */
+        .bt-form { display: flex; flex-direction: column; gap: 2rem; }
+
+        .bt-step {
+            background: rgba(255,255,255,.025);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+        .bt-step-label {
+            font-size: .7rem; font-weight: 700; letter-spacing: .14em;
+            text-transform: uppercase; color: var(--cobalt);
+            margin-bottom: 1.5rem;
+        }
+        .bt-fields { display: flex; flex-direction: column; gap: 1.25rem; }
+        .bt-fields-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+        .bt-field { display: flex; flex-direction: column; gap: .45rem; }
+        .bt-field label { font-size: .8rem; font-weight: 600; color: var(--fg); }
+        .opt { color: var(--muted2); font-weight: 400; }
+        .req { color: var(--cobalt); }
+        .bt-field input, .bt-field select, .bt-field textarea {
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            color: var(--fg);
+            font-family: 'Inter', sans-serif;
+            font-size: .9rem;
+            padding: .7rem 1rem;
+            outline: none;
+            transition: border-color .15s;
+            resize: vertical;
+        }
+        .bt-field input::placeholder, .bt-field textarea::placeholder { color: var(--muted2); }
+        .bt-field input:focus, .bt-field select:focus, .bt-field textarea:focus { border-color: var(--cobalt); }
+        .bt-field input.error, .bt-field textarea.error { border-color: #ef4444; }
+        .bt-field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem; }
+        .bt-field select option { background: #1a1a1e; color: var(--fg); }
+        .bt-field textarea { min-height: 100px; line-height: 1.55; }
+        .bt-field textarea.code-area { font-family: 'Courier New', monospace; font-size: .82rem; min-height: 280px; background: rgba(0,0,0,.3); border-color: rgba(37,99,235,.2); }
+        .bt-field textarea.code-area:focus { border-color: var(--cobalt); }
+
+        /* Instrument chips */
+        .bt-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
+        .bt-chip {
+            padding: .4rem .9rem;
+            border-radius: 100px;
+            border: 1px solid var(--line);
+            background: transparent;
+            color: var(--muted);
+            font-size: .8rem; font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .bt-chip:hover { border-color: rgba(37,99,235,.4); color: var(--fg); }
+        .bt-chip.active { border-color: var(--cobalt); background: var(--cobalt-dim); color: var(--fg); }
+
+        /* Mode toggle */
+        .bt-mode-toggle {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: .75rem; margin-bottom: 1.5rem;
+        }
+        .bt-mode {
+            display: flex; align-items: center; justify-content: center; gap: .6rem;
+            padding: .85rem 1rem;
+            border-radius: 10px;
+            border: 1.5px solid var(--line);
+            background: transparent;
+            color: var(--muted);
+            font-family: 'Inter', sans-serif;
+            font-size: .875rem; font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .bt-mode svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .bt-mode:hover { border-color: rgba(37,99,235,.4); color: var(--fg); }
+        .bt-mode.active { border-color: var(--cobalt); background: var(--cobalt-dim); color: var(--fg); }
+
+        /* Lang badge */
+        .lang-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+        .lang-row label { font-size: .8rem; font-weight: 600; color: var(--fg); white-space: nowrap; }
+        .lang-row select { flex: 1; }
+
+        /* Submit */
+        .bt-submit-wrap { display: flex; flex-direction: column; gap: 1rem; }
+        .bt-submit {
+            width: 100%;
+            padding: 1rem;
+            background: var(--cobalt);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem; font-weight: 700;
+            cursor: pointer;
+            letter-spacing: .02em;
+            transition: background .2s, transform .15s, box-shadow .2s;
+        }
+        .bt-submit:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(37,99,235,.35); }
+        .bt-submit:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+        .bt-status {
+            display: none;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            font-size: .875rem;
+            line-height: 1.55;
+        }
+        .bt-status.success { display: block; background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.25); color: #34d399; }
+        .bt-status.error { display: block; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); color: #f87171; }
+
+        /* ===== SIDEBAR ===== */
+        .bt-sidebar { position: sticky; top: 88px; display: flex; flex-direction: column; gap: 1.25rem; }
+
+        .bt-sidebar-card {
+            background: rgba(255,255,255,.025);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 1.75rem;
+        }
+        .bt-sidebar-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem; font-weight: 700;
+            color: var(--fg); margin-bottom: 1.25rem;
+        }
+        .bt-deliver-list { display: flex; flex-direction: column; gap: .9rem; }
+        .bt-deliver-item { display: flex; gap: .75rem; align-items: flex-start; }
+        .bt-deliver-icon {
+            width: 32px; height: 32px; flex-shrink: 0;
+            background: var(--cobalt-dim);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--cobalt);
+        }
+        .bt-deliver-icon svg { width: 16px; height: 16px; }
+        .bt-deliver-title { font-size: .83rem; font-weight: 600; color: var(--fg); margin-bottom: .15rem; }
+        .bt-deliver-sub { font-size: .77rem; color: var(--muted); line-height: 1.5; }
+
+        .bt-sidebar-eta {
+            background: rgba(245,158,11,.06);
+            border: 1px solid rgba(245,158,11,.2);
+            border-radius: 12px;
+            padding: 1.1rem 1.25rem;
+            display: flex; align-items: flex-start; gap: .75rem;
+        }
+        .bt-sidebar-eta svg { width: 18px; height: 18px; color: var(--amber); flex-shrink: 0; margin-top: 1px; }
+        .bt-sidebar-eta strong { font-size: .83rem; color: var(--amber); display: block; margin-bottom: .2rem; }
+        .bt-sidebar-eta span { font-size: .78rem; color: var(--muted); line-height: 1.5; }
+
+        .bt-sidebar-privacy {
+            font-size: .75rem; color: var(--muted2); line-height: 1.6; padding: 0 .25rem;
+        }
+        .bt-sidebar-privacy a { color: var(--muted); text-decoration: underline; }
+
+        /* ===== SUCCESS STATE ===== */
+        .bt-success-full {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+        .bt-success-full.show { display: block; }
+        .bt-success-icon {
+            width: 72px; height: 72px;
+            background: rgba(16,185,129,.1);
+            border: 2px solid rgba(16,185,129,.3);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: var(--green);
+        }
+        .bt-success-icon svg { width: 32px; height: 32px; }
+        .bt-success-full h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.75rem; font-weight: 700; margin-bottom: .75rem; }
+        .bt-success-full p { color: var(--muted); font-size: .95rem; line-height: 1.7; margin-bottom: 2rem; }
+        .bt-success-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .bt-btn-outline { padding: .7rem 1.5rem; border-radius: 9px; border: 1px solid var(--line); color: var(--muted); text-decoration: none; font-size: .875rem; font-weight: 600; transition: all .15s; }
+        .bt-btn-outline:hover { border-color: rgba(255,255,255,.2); color: var(--fg); }
+        .bt-btn-filled { padding: .7rem 1.5rem; border-radius: 9px; background: var(--cobalt); color: #fff; text-decoration: none; font-size: .875rem; font-weight: 600; transition: background .15s; }
+        .bt-btn-filled:hover { background: #1d4ed8; }
+
+        /* ===== FOOTER ===== */
+        .bt-footer {
+            border-top: 1px solid var(--line);
+            padding: 2rem;
+            text-align: center;
+            font-size: .8rem;
+            color: var(--muted2);
+        }
+        .bt-footer a { color: var(--muted); text-decoration: none; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 860px) {
+            .bt-main { grid-template-columns: 1fr; }
+            .bt-sidebar { position: static; }
+            .bt-fields-2col { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .bt-mode-toggle { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/" class="logo">
+        <img src="/assets/images/favicon.ico" alt="IPFX Logo">
+        <span class="logo-text">IPFX Capital</span>
+    </a>
+    <div class="nav-right">
+        <a href="/">Home</a>
+        <a href="/signup.html" class="btn-primary">Pre-Register</a>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="bt-hero">
+    <div class="bt-eyebrow">Free Service &mdash; No Catch</div>
+    <h1>Backtest Your <span>Strategy</span></h1>
+    <p>Submit your trading strategy — in code or plain English — and our quant analyst team runs it against real institutional-grade data, finds ways to improve it, and identifies which instruments suit it best.</p>
+    <div class="bt-perks">
+        <span>Institutional-level backtest</span>
+        <span>Strategy improvement report</span>
+        <span>Instrument recommendations</span>
+        <span>Results in 3–5 business days</span>
+        <span>100% free, no account needed</span>
+    </div>
+</section>
+
+<!-- Main -->
+<div class="bt-main" id="btMain">
+    <!-- Form column -->
+    <div class="bt-form" id="btFormWrap">
+
+        <!-- Step 1 -->
+        <div class="bt-step">
+            <div class="bt-step-label">01 &mdash; Your Details</div>
+            <div class="bt-fields">
+                <div class="bt-fields-2col">
+                    <div class="bt-field">
+                        <label for="btName">Full Name <span class="opt">(optional)</span></label>
+                        <input type="text" id="btName" placeholder="Your name">
+                    </div>
+                    <div class="bt-field">
+                        <label for="btEmail">Email Address <span class="req">*</span></label>
+                        <input type="email" id="btEmail" placeholder="you@example.com">
+                    </div>
+                </div>
+                <div class="bt-field">
+                    <label for="btStratName">Strategy Name <span class="opt">(optional)</span></label>
+                    <input type="text" id="btStratName" placeholder="e.g. London Breakout v2, My EMA Crossover System">
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="bt-step">
+            <div class="bt-step-label">02 &mdash; Strategy Profile</div>
+            <div class="bt-fields">
+                <div class="bt-fields-2col">
+                    <div class="bt-field">
+                        <label for="btStyle">Trading Style <span class="req">*</span></label>
+                        <select id="btStyle">
+                            <option value="">Select your style…</option>
+                            <option value="scalper">Scalper (&lt; 15 min holds)</option>
+                            <option value="day_trader">Day Trader (intraday)</option>
+                            <option value="swing">Swing Trader (days to weeks)</option>
+                            <option value="position">Position Trader (weeks to months)</option>
+                            <option value="algo">Algorithmic / Fully Automated</option>
+                        </select>
+                    </div>
+                    <div class="bt-field">
+                        <label for="btTimeframe">Primary Timeframe</label>
+                        <select id="btTimeframe">
+                            <option value="">Select timeframe…</option>
+                            <option value="M1">M1 — 1 Minute</option>
+                            <option value="M5">M5 — 5 Minutes</option>
+                            <option value="M15">M15 — 15 Minutes</option>
+                            <option value="M30">M30 — 30 Minutes</option>
+                            <option value="H1">H1 — 1 Hour</option>
+                            <option value="H4">H4 — 4 Hours</option>
+                            <option value="D1">D1 — Daily</option>
+                            <option value="W1">W1 — Weekly</option>
+                            <option value="multi">Multi-Timeframe</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bt-field">
+                    <label>Instruments You Currently Trade <span class="opt">(select all that apply)</span></label>
+                    <div class="bt-chips" id="btInstruments">
+                        <button type="button" class="bt-chip" data-val="forex">Forex</button>
+                        <button type="button" class="bt-chip" data-val="indices">Indices</button>
+                        <button type="button" class="bt-chip" data-val="gold_silver">Gold / Silver</button>
+                        <button type="button" class="bt-chip" data-val="oil">Oil / Energy</button>
+                        <button type="button" class="bt-chip" data-val="crypto">Crypto</button>
+                        <button type="button" class="bt-chip" data-val="futures">Futures</button>
+                        <button type="button" class="bt-chip" data-val="stocks">Stocks / Equities</button>
+                        <button type="button" class="bt-chip" data-val="bonds">Bonds / Rates</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="bt-step">
+            <div class="bt-step-label">03 &mdash; Your Strategy</div>
+
+            <div class="bt-mode-toggle">
+                <button type="button" class="bt-mode active" id="modeCode" onclick="setMode('code')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    Submit as Code
+                </button>
+                <button type="button" class="bt-mode" id="modeDesc" onclick="setMode('description')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    Describe in Detail
+                </button>
+            </div>
+
+            <!-- Code panel -->
+            <div id="codePanel">
+                <div class="bt-field" style="margin-bottom:1rem">
+                    <label for="btLang">Language / Format</label>
+                    <select id="btLang">
+                        <option value="pine_script">Pine Script (TradingView)</option>
+                        <option value="python">Python (Backtrader, Pandas, etc.)</option>
+                        <option value="mql4">MQL4 (MetaTrader 4)</option>
+                        <option value="mql5">MQL5 (MetaTrader 5)</option>
+                        <option value="javascript">JavaScript / TypeScript</option>
+                        <option value="pseudocode">Pseudocode / Plain Logic</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="bt-field">
+                    <label for="btCode">Paste Your Code <span class="req">*</span></label>
+                    <textarea class="code-area" id="btCode" placeholder="// Paste your full strategy code here
+// Our analysts handle the rest — no formatting required"></textarea>
+                </div>
+            </div>
+
+            <!-- Description panel -->
+            <div id="descPanel" style="display:none">
+                <div class="bt-fields" style="gap:1.25rem">
+                    <div class="bt-field">
+                        <label for="btEntry">Entry Conditions <span class="req">*</span></label>
+                        <textarea id="btEntry" rows="5" placeholder="Describe exactly when you enter a trade. e.g. 'I enter long when the 20 EMA crosses above the 50 EMA on the H1 chart, confirmed by RSI crossing above 50 and price being above the 200 EMA. I only take trades during the London session (8am–12pm GMT).'"></textarea>
+                    </div>
+                    <div class="bt-field">
+                        <label for="btExit">Exit Conditions <span class="req">*</span></label>
+                        <textarea id="btExit" rows="5" placeholder="Describe when and how you exit. e.g. 'I set a take profit at the next significant resistance level or when RSI reaches 70. I use a trailing stop of 20 pips once in 15 pips of profit. I always close positions before the NY session close.'"></textarea>
+                    </div>
+                    <div class="bt-field">
+                        <label for="btRisk">Risk Management <span class="req">*</span></label>
+                        <textarea id="btRisk" rows="4" placeholder="e.g. 'I risk 1% of account per trade. Stop loss is placed 2 ATR below entry. I never have more than 3 concurrent open trades. I stop trading after 2 consecutive losses in a day.'"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bt-field" style="margin-top:1.25rem">
+                <label for="btNotes">Additional Context <span class="opt">(optional)</span></label>
+                <textarea id="btNotes" rows="4" placeholder="Anything else our analysts should know — e.g. market conditions it performs best in, filters you apply, known weaknesses, what you'd like us to focus on, specific improvements you're looking for, pairs you've already tested it on…"></textarea>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="bt-submit-wrap">
+            <button type="button" class="bt-submit" id="btSubmit" onclick="submitStrategy()">
+                Submit for Analysis →
+            </button>
+            <div class="bt-status" id="btStatus"></div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="bt-sidebar">
+        <div class="bt-sidebar-card">
+            <h3>What You'll Receive</h3>
+            <div class="bt-deliver-list">
+                <div class="bt-deliver-item">
+                    <div class="bt-deliver-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div>
+                        <div class="bt-deliver-title">Institutional Backtest Report</div>
+                        <div class="bt-deliver-sub">Win rate, profit factor, max drawdown, Sharpe ratio — run on 5+ years of real price data across multiple market conditions.</div>
+                    </div>
+                </div>
+                <div class="bt-deliver-item">
+                    <div class="bt-deliver-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </div>
+                    <div>
+                        <div class="bt-deliver-title">Strategy Improvement Notes</div>
+                        <div class="bt-deliver-sub">Our quants identify parameter optimisations, filter additions, and rule tweaks that could improve performance or reduce drawdown.</div>
+                    </div>
+                </div>
+                <div class="bt-deliver-item">
+                    <div class="bt-deliver-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                    </div>
+                    <div>
+                        <div class="bt-deliver-title">Instrument Recommendations</div>
+                        <div class="bt-deliver-sub">We test your strategy across correlated instruments and flag which ones show statistically stronger edge for your specific logic.</div>
+                    </div>
+                </div>
+                <div class="bt-deliver-item">
+                    <div class="bt-deliver-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <div>
+                        <div class="bt-deliver-title">Full Written Analysis</div>
+                        <div class="bt-deliver-sub">A plain-English summary of our findings — written by a human analyst, not auto-generated. No jargon, just actionable insights.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bt-sidebar-eta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div>
+                <strong>Turnaround: 3–5 Business Days</strong>
+                <span>Results sent directly to your email. Complex algorithmic strategies may take slightly longer.</span>
+            </div>
+        </div>
+
+        <p class="bt-sidebar-privacy">
+            Your strategy is handled in strict confidence. We never share, publish, or trade submitted strategies. By submitting you agree to our <a href="/contact.html">privacy policy</a>.
+        </p>
+    </div>
+</div>
+
+<!-- Success state (shown after submission) -->
+<div class="bt-success-full" id="btSuccess">
+    <div class="bt-success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h2>Strategy Submitted</h2>
+    <p id="btSuccessMsg">Our quant analyst team will review your strategy and send a full backtest report, improvement notes, and instrument recommendations to your email within 3–5 business days.</p>
+    <div class="bt-success-actions">
+        <a href="/" class="bt-btn-outline">Back to Home</a>
+        <a href="/signup.html" class="bt-btn-filled">Pre-Register for Launch →</a>
+    </div>
+</div>
+
+<footer class="bt-footer">
+    <p>&copy; 2026 IPFX Capital. All rights reserved. &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/contact.html">Contact</a></p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+    const { createClient } = window.supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentMode = 'code';
+    let selectedInstruments = [];
+
+    // ── Chip toggles ──────────────────────────────────────────
+    document.getElementById('btInstruments').addEventListener('click', function(e) {
+        const chip = e.target.closest('.bt-chip');
+        if (!chip) return;
+        chip.classList.toggle('active');
+        const val = chip.dataset.val;
+        if (chip.classList.contains('active')) {
+            selectedInstruments.push(val);
+        } else {
+            selectedInstruments = selectedInstruments.filter(v => v !== val);
+        }
+    });
+
+    // ── Mode toggle ───────────────────────────────────────────
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('codePanel').style.display = mode === 'code' ? '' : 'none';
+        document.getElementById('descPanel').style.display = mode === 'description' ? '' : 'none';
+        document.getElementById('modeCode').classList.toggle('active', mode === 'code');
+        document.getElementById('modeDesc').classList.toggle('active', mode === 'description');
+    }
+
+    // ── Validation ────────────────────────────────────────────
+    function validate() {
+        let ok = true;
+        const email = document.getElementById('btEmail');
+        const style = document.getElementById('btStyle');
+        const statusEl = document.getElementById('btStatus');
+
+        email.classList.remove('error');
+        style.classList.remove('error');
+
+        if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
+            email.classList.add('error');
+            ok = false;
+        }
+        if (!style.value) {
+            style.classList.add('error');
+            ok = false;
+        }
+
+        if (currentMode === 'code') {
+            const code = document.getElementById('btCode');
+            code.classList.remove('error');
+            if (!code.value.trim()) { code.classList.add('error'); ok = false; }
+        } else {
+            const entry = document.getElementById('btEntry');
+            const exit = document.getElementById('btExit');
+            const risk = document.getElementById('btRisk');
+            [entry, exit, risk].forEach(el => el.classList.remove('error'));
+            if (!entry.value.trim()) { entry.classList.add('error'); ok = false; }
+            if (!exit.value.trim()) { exit.classList.add('error'); ok = false; }
+            if (!risk.value.trim()) { risk.classList.add('error'); ok = false; }
+        }
+
+        if (!ok) {
+            statusEl.className = 'bt-status error';
+            statusEl.textContent = 'Please fill in the required fields marked above.';
+        }
+        return ok;
+    }
+
+    // ── Submit ────────────────────────────────────────────────
+    async function submitStrategy() {
+        if (!validate()) return;
+
+        const btn = document.getElementById('btSubmit');
+        const statusEl = document.getElementById('btStatus');
+        btn.disabled = true;
+        btn.textContent = 'Submitting…';
+        statusEl.className = 'bt-status';
+
+        const payload = {
+            name: document.getElementById('btName').value.trim() || null,
+            email: document.getElementById('btEmail').value.trim(),
+            strategy_name: document.getElementById('btStratName').value.trim() || null,
+            trading_style: document.getElementById('btStyle').value || null,
+            timeframe: document.getElementById('btTimeframe').value || null,
+            instruments: selectedInstruments.length ? selectedInstruments : null,
+            submission_type: currentMode,
+            additional_notes: document.getElementById('btNotes').value.trim() || null
+        };
+
+        if (currentMode === 'code') {
+            payload.code_language = document.getElementById('btLang').value;
+            payload.strategy_code = document.getElementById('btCode').value.trim();
+        } else {
+            payload.entry_conditions = document.getElementById('btEntry').value.trim();
+            payload.exit_conditions = document.getElementById('btExit').value.trim();
+            payload.risk_management = document.getElementById('btRisk').value.trim();
+        }
+
+        try {
+            const { error } = await sb.from('strategy_submissions').insert(payload);
+            if (error) throw error;
+
+            // Show success
+            document.getElementById('btMain').style.display = 'none';
+            const successEl = document.getElementById('btSuccess');
+            successEl.classList.add('show');
+            document.getElementById('btSuccessMsg').textContent =
+                `Our quant analyst team will review${payload.strategy_name ? ' "'+payload.strategy_name+'"' : ' your strategy'} and send a full backtest report, improvement notes, and instrument recommendations to ${payload.email} within 3–5 business days.`;
+
+        } catch(err) {
+            console.error(err);
+            statusEl.className = 'bt-status error';
+            statusEl.textContent = 'Something went wrong — please try again or email us directly at support@ipfxcapital.com';
+            btn.disabled = false;
+            btn.textContent = 'Submit for Analysis →';
+        }
+    }
+</script>
+</body>
+</html>

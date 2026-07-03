@@ -3209,6 +3209,91 @@
         .values-cta:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(37,99,235,.35); }
         @media (max-width: 768px) { .values-grid { grid-template-columns: 1fr; } }
 
+        /* ===== BACKTEST TEASER ===== */
+        .btt-section {
+            padding: 8rem 2rem;
+            background: #0e0e10;
+            position: relative;
+            overflow: hidden;
+        }
+        .btt-section::before {
+            content: '';
+            position: absolute;
+            top: 50%; right: -100px;
+            transform: translateY(-50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(37,99,235,.07) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        .btt-inner {
+            max-width: 1100px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 5rem; align-items: center;
+            position: relative; z-index: 1;
+        }
+        .btt-eyebrow {
+            font-size: .7rem; font-weight: 700; letter-spacing: .15em;
+            text-transform: uppercase; color: #2563eb;
+            margin-bottom: 1.25rem;
+        }
+        .btt-left h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.9rem, 3.5vw, 2.75rem);
+            font-weight: 700; letter-spacing: -.025em;
+            line-height: 1.15; color: var(--fg);
+            margin-bottom: 1.1rem;
+        }
+        .btt-left > p {
+            font-size: .95rem; color: var(--muted);
+            line-height: 1.75; margin-bottom: 1.75rem;
+            max-width: 480px;
+        }
+        .btt-bullets { display: flex; flex-direction: column; gap: .65rem; margin-bottom: 2rem; }
+        .btt-bullet { display: flex; align-items: center; gap: .65rem; font-size: .875rem; color: var(--fg); }
+        .btt-dot { width: 6px; height: 6px; border-radius: 50%; background: #2563eb; flex-shrink: 0; }
+        .btt-cta {
+            display: inline-flex; align-items: center;
+            padding: .85rem 2rem;
+            background: #2563eb; color: #fff;
+            border-radius: 10px; text-decoration: none;
+            font-weight: 700; font-size: .95rem;
+            transition: background .2s, transform .15s, box-shadow .2s;
+        }
+        .btt-cta:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(37,99,235,.35); }
+
+        /* Mock report card */
+        .btt-card {
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 16px; overflow: hidden;
+            box-shadow: 0 24px 80px rgba(0,0,0,.4);
+        }
+        .btt-card-header {
+            display: flex; align-items: center; gap: .5rem;
+            padding: .85rem 1.1rem;
+            background: rgba(255,255,255,.03);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+        .btt-card-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .btt-card-dot.red { background: #ef4444; }
+        .btt-card-dot.amber { background: #f59e0b; }
+        .btt-card-dot.green { background: #10b981; }
+        .btt-card-title { font-size: .72rem; color: var(--muted); margin-left: .35rem; font-family: 'Courier New', monospace; }
+        .btt-card-body { padding: 1.25rem 1.4rem; display: flex; flex-direction: column; gap: .6rem; }
+        .btt-metric { display: flex; justify-content: space-between; align-items: center; }
+        .btt-metric-label { font-size: .78rem; color: var(--muted); }
+        .btt-metric-val { font-size: .82rem; font-weight: 600; color: var(--fg); font-family: 'Space Grotesk', sans-serif; }
+        .btt-metric-val.pos { color: #10b981; }
+        .btt-metric-val.neg { color: #ef4444; }
+        .btt-divider { height: 1px; background: rgba(255,255,255,.06); margin: .5rem 0; }
+        .btt-analyst-label { font-size: .65rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2563eb; margin-bottom: .4rem; }
+        .btt-analyst-text { font-size: .78rem; color: var(--muted); line-height: 1.6; }
+
+        @media (max-width: 860px) {
+            .btt-inner { grid-template-columns: 1fr; gap: 3rem; }
+            .btt-right { order: -1; }
+        }
+
         /* ===== FAQ SECTION ===== */
         .faq-section {
             padding: 10rem 2rem;
@@ -3310,6 +3395,7 @@
                 <a href="#profit-calculator">Profit Calculator</a>
                 <a href="futures.html">Futures Trading</a>
                 <a href="personalised-challenge.html">Personalised Challenge</a>
+                <a href="backtest.html">Free Strategy Backtest</a>
             </div>
         </li>
         <li><a href="about.html">About</a></li>
@@ -4376,6 +4462,47 @@
             </div>
         </div>
         <a href="signup.html" class="values-cta">Pre-Register Free →</a>
+    </div>
+</section>
+
+<!-- Backtest Teaser Section -->
+<section class="btt-section reveal-section">
+    <div class="btt-inner">
+        <div class="btt-left">
+            <div class="btt-eyebrow">Free Service &mdash; No Account Required</div>
+            <h2>Let Our Quant Team<br>Backtest Your Strategy</h2>
+            <p>Submit your strategy — in code or plain English — and our analysts run it against years of real institutional-grade data. We find the weaknesses, suggest improvements, and tell you which instruments suit your logic best.</p>
+            <div class="btt-bullets">
+                <div class="btt-bullet"><span class="btt-dot"></span>Institutional-level backtest across 5+ years of data</div>
+                <div class="btt-bullet"><span class="btt-dot"></span>Strategy improvement notes from a human analyst</div>
+                <div class="btt-bullet"><span class="btt-dot"></span>Instrument recommendations based on your edge</div>
+                <div class="btt-bullet"><span class="btt-dot"></span>Results in 3–5 business days — completely free</div>
+            </div>
+            <a href="backtest.html" class="btt-cta">Submit Your Strategy →</a>
+        </div>
+        <div class="btt-right">
+            <div class="btt-card">
+                <div class="btt-card-header">
+                    <div class="btt-card-dot red"></div>
+                    <div class="btt-card-dot amber"></div>
+                    <div class="btt-card-dot green"></div>
+                    <span class="btt-card-title">Backtest Report — EMA Crossover H1</span>
+                </div>
+                <div class="btt-card-body">
+                    <div class="btt-metric"><span class="btt-metric-label">Win Rate</span><span class="btt-metric-val pos">63.4%</span></div>
+                    <div class="btt-metric"><span class="btt-metric-label">Profit Factor</span><span class="btt-metric-val pos">1.87</span></div>
+                    <div class="btt-metric"><span class="btt-metric-label">Max Drawdown</span><span class="btt-metric-val neg">−12.3%</span></div>
+                    <div class="btt-metric"><span class="btt-metric-label">Sharpe Ratio</span><span class="btt-metric-val pos">1.42</span></div>
+                    <div class="btt-metric"><span class="btt-metric-label">Total Trades</span><span class="btt-metric-val">847</span></div>
+                    <div class="btt-metric"><span class="btt-metric-label">Test Period</span><span class="btt-metric-val">Jan 2019 – Dec 2024</span></div>
+                    <div class="btt-divider"></div>
+                    <div class="btt-analyst-note">
+                        <div class="btt-analyst-label">Analyst Note</div>
+                        <div class="btt-analyst-text">Strong edge on GBPJPY and EURJPY — currently underperforming on EURUSD due to ranging conditions 2022–23. Recommend adding ADX &gt; 25 filter. See full report for instrument rankings.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
