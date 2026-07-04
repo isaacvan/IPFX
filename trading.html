@@ -379,6 +379,66 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .jinrow input:focus{border-color:rgba(37,99,235,.45);}
 .jinrow button{padding:.3rem .75rem;background:rgba(37,99,235,.14);border:1px solid rgba(37,99,235,.3);border-radius:5px;color:#60a5fa;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s;}
 .jinrow button:hover{background:var(--cobalt);color:#fff;border-color:var(--cobalt);}
+
+/* ── LEFT WATCHLIST ── */
+.wl-panel{width:195px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:visible;transition:width .22s cubic-bezier(.4,0,.2,1);position:relative;z-index:10;}
+.wl-panel.hidden{width:0;border-right:none;overflow:hidden;}
+.wl-head{padding:.5rem .7rem .38rem;flex-shrink:0;border-bottom:1px solid var(--line);}
+.wl-search{display:flex;align-items:center;gap:.38rem;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;padding:.26rem .48rem;margin-bottom:.38rem;}
+.wl-search svg{width:10px;height:10px;color:var(--muted2);flex-shrink:0;}
+.wl-search input{flex:1;background:none;border:none;color:var(--fg);font-size:.7rem;font-family:'Inter',sans-serif;outline:none;min-width:0;}
+.wl-search input::placeholder{color:var(--muted2);}
+.wl-cats{display:flex;gap:.16rem;flex-wrap:wrap;}
+.wcat{padding:.13rem .35rem;border-radius:4px;border:1px solid var(--line);background:none;color:var(--muted2);font-size:.59rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .12s;font-family:'Inter',sans-serif;}
+.wcat:hover{color:var(--fg);}
+.wcat.active{background:var(--cobalt-d);border-color:rgba(37,99,235,.4);color:#60a5fa;}
+.wl-list{flex:1;overflow-y:auto;}
+.wl-list::-webkit-scrollbar{width:2px;}
+.wl-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);}
+.wl-item{display:flex;align-items:center;padding:.36rem .7rem;cursor:pointer;border-left:2px solid transparent;transition:all .1s;gap:.35rem;}
+.wl-item:hover{background:rgba(255,255,255,.04);}
+.wl-item.active{background:rgba(37,99,235,.09);border-left-color:var(--cobalt);}
+.wl-sym{font-family:'Space Grotesk',sans-serif;font-size:.73rem;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.wl-prices{display:flex;flex-direction:column;align-items:flex-end;gap:.03rem;flex-shrink:0;}
+.wl-bid{font-family:'Space Grotesk',sans-serif;font-size:.67rem;font-weight:600;}
+.wl-chg{font-size:.56rem;font-weight:700;}
+.wl-chg.pos{color:var(--green);}
+.wl-chg.neg{color:var(--red);}
+.wl-tog{position:absolute;top:50%;right:-11px;transform:translateY(-50%);z-index:50;width:11px;height:30px;background:var(--bg2);border:1px solid var(--line);border-left:none;border-radius:0 4px 4px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:color .15s;}
+.wl-tog:hover{color:var(--fg);}
+.wl-tog svg{width:7px;height:7px;transition:transform .22s;}
+.wl-panel.hidden .wl-tog svg{transform:rotate(180deg);}
+
+/* ── ORDER PANEL ENHANCEMENTS ── */
+.ord-sec-hd{font-size:.58rem;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.28rem;}
+.sltp-section{display:flex;flex-direction:column;gap:.35rem;}
+.sltp-row{display:flex;gap:.35rem;}
+.sltp-toggle{display:flex;align-items:center;gap:.32rem;padding:.26rem .42rem;background:rgba(255,255,255,.03);border:1px solid var(--line2);border-radius:6px;cursor:pointer;transition:all .15s;flex:1;user-select:none;}
+.sltp-toggle:hover{border-color:rgba(255,255,255,.15);}
+.sltp-toggle.on.sl-t{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);}
+.sltp-toggle.on.tp-t{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);}
+.sltp-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--muted2);flex-shrink:0;transition:all .15s;}
+.sltp-toggle.on.sl-t .sltp-dot{background:var(--red);border-color:var(--red);}
+.sltp-toggle.on.tp-t .sltp-dot{background:var(--green);border-color:var(--green);}
+.sltp-lbl{font-size:.64rem;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--muted);}
+.sltp-toggle.on.sl-t .sltp-lbl{color:var(--red);}
+.sltp-toggle.on.tp-t .sltp-lbl{color:var(--green);}
+.sltp-fields{display:none;grid-template-columns:1fr 1fr;gap:.32rem;}
+.sltp-fields.vis{display:grid;}
+.sltp-field label{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:.14rem;}
+.sltp-field.sl-f label{color:rgba(239,68,68,.75);}
+.sltp-field.tp-f label{color:rgba(16,185,129,.75);}
+.sltp-field input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:5px;padding:.26rem .42rem;font-size:.75rem;color:var(--fg);font-family:'Space Grotesk',sans-serif;outline:none;text-align:right;}
+.sltp-field.sl-f input:focus{border-color:rgba(239,68,68,.4);}
+.sltp-field.tp-f input:focus{border-color:rgba(16,185,129,.4);}
+.pnl-preview{display:grid;grid-template-columns:1fr 1fr;gap:.28rem;}
+.pnl-side{padding:.28rem .42rem;border-radius:6px;text-align:center;}
+.pnl-side.buy-p{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.14);}
+.pnl-side.sell-p{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.14);}
+.pnl-lbl{font-size:.54rem;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.pnl-val{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:700;margin-top:.07rem;}
+.pnl-side.buy-p .pnl-val{color:var(--green);}
+.pnl-side.sell-p .pnl-val{color:var(--red);}
 </style>
 </head>
 <body>
@@ -411,6 +471,26 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 
 <!-- LAYOUT -->
 <div class="layout">
+
+  <!-- LEFT WATCHLIST -->
+  <div class="wl-panel" id="wlPanel">
+    <div class="wl-head">
+      <div class="wl-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="wlSearch" placeholder="Search…" oninput="filterWatchlist(this.value)">
+      </div>
+      <div class="wl-cats">
+        <button class="wcat active" onclick="switchWlCat('forex',this)">Forex</button>
+        <button class="wcat" onclick="switchWlCat('metals',this)">Metals</button>
+        <button class="wcat" onclick="switchWlCat('indices',this)">Indices</button>
+        <button class="wcat" onclick="switchWlCat('crypto',this)">Crypto</button>
+      </div>
+    </div>
+    <div class="wl-list" id="wlList"></div>
+    <div class="wl-tog" onclick="toggleWatchlist()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </div>
+  </div>
 
   <!-- CENTER: CHART -->
   <div class="chart-wrap">
@@ -454,9 +534,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide" id="guidePanel">
     <div class="guide-tabs">
+      <div class="gtab active" onclick="switchTab('order',this)">Order</div>
+      <div class="gtab" onclick="switchTab('ind',this)">Indicators</div>
       <div class="gtab" onclick="switchTab('scalp',this)">Scalp</div>
       <div class="gtab" onclick="switchTab('dom',this)">DOM</div>
-      <div class="gtab active" onclick="switchTab('order',this)">Order</div>
     </div>
     <div class="guide-body">
 
@@ -591,6 +672,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 
       </div>
 
+      <!-- INDICATORS TAB -->
+      <div class="gpanel" id="tab-ind" style="flex-direction:column;">
+        <div class="ind-apply-bar" style="flex-shrink:0;">
+          <span id="selCount">2 selected</span>
+          <button class="reset-btn" onclick="resetIndicators()">Reset</button>
+          <button class="apply-btn" onclick="applyIndicators()">Apply to Chart</button>
+        </div>
+        <div id="indList" style="flex:1;overflow-y:auto;"></div>
+        <div style="flex-shrink:0;padding:.4rem .8rem;border-top:1px solid var(--line2);font-size:.62rem;color:var(--cobalt);text-align:center;">Hover any indicator for a full explanation</div>
+      </div>
+
       <!-- SCALP TAB -->
       <div class="gpanel" id="tab-scalp" style="overflow-y:auto;height:100%">
         <div class="scalp-sym">Scalp Tools</div>
@@ -686,11 +778,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
           </div>
 
           <div class="ord-presets">
-            <div class="ord-preset" onclick="setLots(1)">1</div>
-            <div class="ord-preset" onclick="setLots(3)">3</div>
-            <div class="ord-preset" onclick="setLots(5)">5</div>
-            <div class="ord-preset" onclick="setLots(10)">10</div>
-            <div class="ord-preset" onclick="setLots(15)">15</div>
+            <div class="ord-preset" onclick="setLots(0.01)">0.01</div>
+            <div class="ord-preset" onclick="setLots(0.1)">0.10</div>
+            <div class="ord-preset" onclick="setLots(0.5)">0.50</div>
+            <div class="ord-preset active" onclick="setLots(1)">1.00</div>
+            <div class="ord-preset" onclick="setLots(2)">2.00</div>
           </div>
 
           <div class="ord-buy-sell">
@@ -700,6 +792,48 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
             <button class="ord-sell" onclick="placeOrder('sell')">
               SELL<br><span style="font-size:.68rem;font-weight:400;opacity:.8" id="ord-bid-price">—</span>
             </button>
+          </div>
+
+          <!-- SL / TP -->
+          <div>
+            <div class="ord-sec-hd">Stop Loss / Take Profit</div>
+            <div class="sltp-section">
+              <div class="sltp-row">
+                <div class="sltp-toggle sl-t" id="slToggle" onclick="toggleSLTP('sl')">
+                  <div class="sltp-dot"></div>
+                  <span class="sltp-lbl">Stop Loss</span>
+                </div>
+                <div class="sltp-toggle tp-t" id="tpToggle" onclick="toggleSLTP('tp')">
+                  <div class="sltp-dot"></div>
+                  <span class="sltp-lbl">Take Profit</span>
+                </div>
+              </div>
+              <div class="sltp-fields" id="sltpFields">
+                <div class="sltp-field sl-f" id="slField" style="display:none">
+                  <label>SL Price</label>
+                  <input type="number" id="slPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
+                </div>
+                <div class="sltp-field tp-f" id="tpField" style="display:none">
+                  <label>TP Price</label>
+                  <input type="number" id="tpPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- P&L PREVIEW -->
+          <div>
+            <div class="ord-sec-hd">Est. Value per Pip</div>
+            <div class="pnl-preview">
+              <div class="pnl-side buy-p">
+                <div class="pnl-lbl">BUY profit / pip</div>
+                <div class="pnl-val" id="pnl-buy">+$10.00</div>
+              </div>
+              <div class="pnl-side sell-p">
+                <div class="pnl-lbl">SELL profit / pip</div>
+                <div class="pnl-val" id="pnl-sell">+$10.00</div>
+              </div>
+            </div>
           </div>
 
           <div class="ord-actions">
@@ -1297,12 +1431,18 @@ setInterval(animateDom,600);
 
 // ── PAPER ORDER ──
 let ordLots=1,paperPositions=[],ordMidPrice=1.0850;
-function adjLots(d){ordLots=Math.max(0.1,Math.round((ordLots+d)*10)/10);document.getElementById('ord-lots').textContent=ordLots;}
+function adjLots(d){
+  const step=ordLots<0.1?0.01:ordLots<1?0.1:1;
+  ordLots=Math.round(Math.max(0.01,ordLots+(d>0?step:-step))*100)/100;
+  document.getElementById('ord-lots').textContent=ordLots;
+  updatePnlPreview();
+}
 function setLots(n){
   ordLots=n;
   document.getElementById('ord-lots').textContent=n;
   document.querySelectorAll('.ord-preset').forEach(p=>p.classList.remove('active'));
   event.target.classList.add('active');
+  updatePnlPreview();
 }
 function placeOrder(side){
   const step=domDigits<=2?0.5:domDigits<=4?0.0002:0.01;
@@ -1616,8 +1756,139 @@ function toggleChat(){
   }
 }
 
+// ── WATCHLIST ──
+const WL_DATA={
+  forex:[
+    {sym:'OANDA:EURUSD',name:'EUR/USD',base:1.0850,d:4,sp:0.0002},
+    {sym:'OANDA:GBPUSD',name:'GBP/USD',base:1.2540,d:4,sp:0.0003},
+    {sym:'OANDA:USDJPY',name:'USD/JPY',base:149.50,d:2,sp:0.03},
+    {sym:'OANDA:AUDUSD',name:'AUD/USD',base:0.6530,d:4,sp:0.0003},
+    {sym:'OANDA:USDCAD',name:'USD/CAD',base:1.3520,d:4,sp:0.0003},
+    {sym:'OANDA:USDCHF',name:'USD/CHF',base:0.8950,d:4,sp:0.0004},
+    {sym:'OANDA:NZDUSD',name:'NZD/USD',base:0.5920,d:4,sp:0.0004},
+    {sym:'OANDA:GBPJPY',name:'GBP/JPY',base:188.50,d:2,sp:0.05},
+    {sym:'OANDA:EURJPY',name:'EUR/JPY',base:162.30,d:2,sp:0.04},
+    {sym:'OANDA:EURGBP',name:'EUR/GBP',base:0.8650,d:4,sp:0.0003},
+    {sym:'OANDA:EURCAD',name:'EUR/CAD',base:1.4660,d:4,sp:0.0005},
+    {sym:'OANDA:AUDCAD',name:'AUD/CAD',base:0.8820,d:4,sp:0.0006},
+  ],
+  metals:[
+    {sym:'OANDA:XAUUSD',name:'Gold',base:2320,d:2,sp:0.30},
+    {sym:'OANDA:XAGUSD',name:'Silver',base:27.50,d:2,sp:0.05},
+    {sym:'OANDA:XPTUSD',name:'Platinum',base:952,d:2,sp:0.80},
+    {sym:'OANDA:XPDUSD',name:'Palladium',base:1020,d:2,sp:1.20},
+  ],
+  indices:[
+    {sym:'FOREXCOM:SPXUSD',name:'S&P 500',base:5210,d:1,sp:0.5},
+    {sym:'FOREXCOM:NSXUSD',name:'NASDAQ 100',base:18250,d:1,sp:1.5},
+    {sym:'FOREXCOM:DJI',name:'Dow Jones',base:39050,d:0,sp:2.0},
+    {sym:'FOREXCOM:UK100',name:'FTSE 100',base:8060,d:1,sp:1.0},
+    {sym:'FOREXCOM:GER40',name:'DAX 40',base:18520,d:1,sp:1.5},
+    {sym:'FOREXCOM:FRA40',name:'CAC 40',base:8120,d:1,sp:1.5},
+    {sym:'FOREXCOM:JPN225',name:'Nikkei 225',base:39800,d:0,sp:8.0},
+    {sym:'FOREXCOM:US2000',name:'Russell 2000',base:2040,d:1,sp:0.8},
+  ],
+  crypto:[
+    {sym:'BITSTAMP:BTCUSD',name:'Bitcoin',base:67000,d:0,sp:50},
+    {sym:'BITSTAMP:ETHUSD',name:'Ethereum',base:3500,d:1,sp:2},
+    {sym:'BITSTAMP:XRPUSD',name:'XRP/USD',base:0.5500,d:4,sp:0.0010},
+    {sym:'COINBASE:SOLUSD',name:'Solana',base:165,d:2,sp:0.25},
+    {sym:'BINANCE:BNBUSDT',name:'BNB',base:580,d:2,sp:0.50},
+  ]
+};
+
+let wlCat='forex';
+const wlPrices={};
+Object.values(WL_DATA).flat().forEach(inst=>{
+  wlPrices[inst.sym]={mid:inst.base*(1+(Math.random()-.5)*.001),chgPct:(Math.random()-.48)*1.5,inst};
+});
+
+function buildWatchlist(){
+  const list=document.getElementById('wlList');
+  if(!list)return;
+  const items=WL_DATA[wlCat]||[];
+  const qry=(document.getElementById('wlSearch')?.value||'').toLowerCase();
+  let html='';
+  items.filter(i=>!qry||i.name.toLowerCase().includes(qry)||i.sym.toLowerCase().includes(qry)).forEach(inst=>{
+    const d=wlPrices[inst.sym];if(!d)return;
+    const bid=(d.mid-inst.sp/2).toFixed(inst.d);
+    const chgC=d.chgPct>=0?'pos':'neg';
+    const chgS=(d.chgPct>=0?'+':'')+d.chgPct.toFixed(2)+'%';
+    html+=`<div class="wl-item${activeSym===inst.sym?' active':''}" onclick="changeInstrument('${inst.sym}')">
+      <div class="wl-sym">${inst.name}</div>
+      <div class="wl-prices"><div class="wl-bid">${bid}</div><div class="wl-chg ${chgC}">${chgS}</div></div>
+    </div>`;
+  });
+  list.innerHTML=html||'<div style="padding:.5rem .7rem;font-size:.68rem;color:var(--muted2)">No results</div>';
+}
+
+function filterWatchlist(){buildWatchlist();}
+
+function switchWlCat(cat,btn){
+  wlCat=cat;
+  document.querySelectorAll('.wcat').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildWatchlist();
+}
+
+function toggleWatchlist(){document.getElementById('wlPanel').classList.toggle('hidden');}
+
+function changeInstrument(sym){
+  activeSym=sym;
+  rebuildChart();
+  refreshDom();
+  buildWatchlist();
+  updatePnlPreview();
+}
+
+setInterval(()=>{
+  Object.values(wlPrices).forEach(d=>{
+    const drift=(Math.random()-.5)*d.inst.base*.0001;
+    d.mid+=drift;
+    d.chgPct=Math.max(-3,Math.min(3,d.chgPct+drift/d.inst.base*100));
+  });
+  buildWatchlist();
+},1500);
+
+// ── SL/TP ──
+let slOn=false,tpOn=false;
+function toggleSLTP(type){
+  if(type==='sl'){
+    slOn=!slOn;
+    document.getElementById('slToggle').classList.toggle('on',slOn);
+    document.getElementById('slField').style.display=slOn?'block':'none';
+  } else {
+    tpOn=!tpOn;
+    document.getElementById('tpToggle').classList.toggle('on',tpOn);
+    document.getElementById('tpField').style.display=tpOn?'block':'none';
+  }
+  document.getElementById('sltpFields').classList.toggle('vis',slOn||tpOn);
+}
+
+// ── P&L PREVIEW ──
+function getPipValue(){
+  const sym=(activeSym||'').replace(/[^A-Z0-9]/g,'');
+  if(['USDJPY','GBPJPY','EURJPY','AUDJPY','CADJPY'].some(s=>sym.includes(s.replace('/','')))){return 9.09;}
+  if(sym.includes('XAUUSD'))return 100;
+  if(sym.includes('XAGUSD'))return 50;
+  if(sym.includes('BTC'))return 1;
+  if(['SPXUSD','US500'].some(s=>sym.includes(s)))return 25;
+  if(sym.includes('NSXUSD')||sym.includes('NAS'))return 20;
+  if(sym.includes('GER')||sym.includes('JPN')||sym.includes('FRA'))return 10;
+  return 10;
+}
+function updatePnlPreview(){
+  const v=(ordLots*getPipValue()).toFixed(2);
+  const buyEl=document.getElementById('pnl-buy');
+  const sellEl=document.getElementById('pnl-sell');
+  if(buyEl)buyEl.textContent='+$'+v;
+  if(sellEl)sellEl.textContent='+$'+v;
+}
+
 // ── INIT ──
 buildIndList();
+buildWatchlist();
+updatePnlPreview();
 
 if(typeof TradingView!=='undefined'){
   buildChart();
