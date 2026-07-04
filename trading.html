@@ -57,7 +57,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 #tv_chart_container{width:100%;height:100%;}
 
 /* ── RIGHT GUIDE PANEL ── */
-.guide{width:300px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+.guide{width:220px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
 .guide.hidden{width:0;border-left:none;}
 .guide-tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;}
 .guide-tabs::-webkit-scrollbar{height:0;}
@@ -123,7 +123,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .tf-who{font-size:.63rem;padding:.1rem .35rem;border-radius:3px;font-weight:700;background:rgba(255,255,255,.06);color:var(--muted2);}
 
 /* RIGHT TOGGLE */
-.guide-tog{position:absolute;top:50%;right:300px;transform:translateY(-50%);z-index:100;width:14px;height:36px;background:var(--bg2);border:1px solid var(--line);border-right:none;border-radius:5px 0 0 5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:right .22s cubic-bezier(.4,0,.2,1),color .15s;}
+.guide-tog{position:absolute;top:50%;right:220px;transform:translateY(-50%);z-index:100;width:14px;height:36px;background:var(--bg2);border:1px solid var(--line);border-right:none;border-radius:5px 0 0 5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:right .22s cubic-bezier(.4,0,.2,1),color .15s;}
 .guide-tog:hover{color:var(--fg);}
 .guide-tog svg{width:8px;height:8px;transition:transform .22s;}
 .guide.hidden~.guide-tog{right:0;}
@@ -439,6 +439,87 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .pnl-val{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:700;margin-top:.07rem;}
 .pnl-side.buy-p .pnl-val{color:var(--green);}
 .pnl-side.sell-p .pnl-val{color:var(--red);}
+
+/* ── FLOATING ORDER PANEL ── */
+.ord-float{position:fixed;right:236px;top:62px;width:228px;background:rgba(8,8,10,.94);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(37,99,235,.18);border-radius:16px;box-shadow:0 0 0 .5px rgba(37,99,235,.06),0 24px 80px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.04);z-index:500;overflow:hidden;transition:box-shadow .2s;}
+.ord-float:hover{box-shadow:0 0 0 .5px rgba(37,99,235,.2),0 24px 80px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.06);}
+.ord-float.minimized .ord-float-body{display:none;}
+.ord-float-hd{display:flex;align-items:center;gap:.42rem;padding:.62rem .82rem;cursor:grab;background:linear-gradient(135deg,rgba(37,99,235,.1),rgba(37,99,235,.03));border-bottom:1px solid rgba(37,99,235,.12);user-select:none;flex-shrink:0;}
+.ord-float-hd:active{cursor:grabbing;}
+.ord-float-grip{color:rgba(255,255,255,.18);flex-shrink:0;}
+.ord-float-title{font-family:'Space Grotesk',sans-serif;font-size:.67rem;font-weight:700;letter-spacing:.9px;color:rgba(255,255,255,.45);text-transform:uppercase;flex:1;}
+.ord-float-btn{background:none;border:none;color:rgba(255,255,255,.2);cursor:pointer;width:19px;height:19px;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:all .12s;line-height:1;flex-shrink:0;padding:0;}
+.ord-float-btn:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.65);}
+.ord-float-body{display:flex;flex-direction:column;gap:.58rem;padding:.82rem;}
+/* Hero */
+.of-hero{display:flex;justify-content:space-between;align-items:flex-start;}
+.of-sym-grp{display:flex;flex-direction:column;gap:.05rem;}
+.of-sym{font-size:.58rem;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.7px;}
+.of-price{font-family:'Space Grotesk',sans-serif;font-size:1.52rem;font-weight:700;color:#60a5fa;letter-spacing:-.5px;line-height:1.05;}
+.of-meta{display:flex;flex-direction:column;align-items:flex-end;gap:.16rem;}
+.of-spread{font-size:.58rem;color:rgba(255,255,255,.2);font-family:'Space Grotesk',sans-serif;}
+.of-live-badge{display:flex;align-items:center;gap:.28rem;font-size:.56rem;font-weight:700;color:var(--green);}
+.of-live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pd 2s ease infinite;}
+/* Lot */
+.of-lot-ctrl{display:flex;align-items:center;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);}
+.of-lot-btn{width:34px;height:36px;border:none;background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);font-size:1.1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
+.of-lot-btn:hover{background:rgba(255,255,255,.1);color:var(--fg);}
+.of-lot-mid{flex:1;text-align:center;padding:.3rem .2rem;}
+.of-lot-num{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;display:block;}
+.of-lot-lbl{font-size:.5rem;color:rgba(255,255,255,.2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+/* Presets */
+.of-presets{display:flex;gap:.2rem;}
+.of-preset{flex:1;padding:.2rem 0;border-radius:6px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);color:rgba(255,255,255,.3);font-size:.58rem;font-weight:700;cursor:pointer;text-align:center;transition:all .12s;font-family:'Space Grotesk',sans-serif;}
+.of-preset:hover,.of-preset.active{background:rgba(37,99,235,.16);border-color:rgba(37,99,235,.38);color:#60a5fa;}
+/* Buy/Sell */
+.of-bs{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;}
+.of-buy{padding:.72rem .4rem;border-radius:10px;border:none;background:linear-gradient(160deg,#047857,#10b981);color:#fff;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.14rem;box-shadow:0 4px 18px rgba(16,185,129,.22);}
+.of-buy:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(16,185,129,.42);}
+.of-buy:active{transform:scale(.97);}
+.of-sell{padding:.72rem .4rem;border-radius:10px;border:none;background:linear-gradient(160deg,#b91c1c,#ef4444);color:#fff;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.14rem;box-shadow:0 4px 18px rgba(239,68,68,.22);}
+.of-sell:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(239,68,68,.42);}
+.of-sell:active{transform:scale(.97);}
+.of-bs-lbl{font-size:.8rem;font-weight:800;letter-spacing:1.2px;}
+.of-bs-px{font-size:.62rem;font-weight:400;opacity:.75;font-family:'Inter',sans-serif;}
+/* SL/TP */
+.of-sltp-row{display:flex;gap:.26rem;}
+.of-sltp-tog{display:flex;align-items:center;gap:.26rem;padding:.22rem .38rem;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);cursor:pointer;transition:all .15s;flex:1;user-select:none;}
+.of-sltp-tog.on.sl{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);}
+.of-sltp-tog.on.tp{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);}
+.of-sltp-dot{width:6px;height:6px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0;transition:all .15s;}
+.of-sltp-tog.on.sl .of-sltp-dot{background:var(--red);border-color:var(--red);}
+.of-sltp-tog.on.tp .of-sltp-dot{background:var(--green);border-color:var(--green);}
+.of-sltp-lbl{font-size:.62rem;font-weight:700;font-family:'Space Grotesk',sans-serif;color:rgba(255,255,255,.28);}
+.of-sltp-tog.on.sl .of-sltp-lbl{color:rgba(239,68,68,.9);}
+.of-sltp-tog.on.tp .of-sltp-lbl{color:rgba(16,185,129,.9);}
+.of-sltp-fields{display:none;grid-template-columns:1fr 1fr;gap:.26rem;}
+.of-sltp-fields.vis{display:grid;}
+.of-sltp-field label{font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:.1rem;}
+.of-sltp-field.sl label{color:rgba(239,68,68,.55);}
+.of-sltp-field.tp label{color:rgba(16,185,129,.55);}
+.of-sltp-field input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:.22rem .35rem;font-size:.72rem;color:var(--fg);font-family:'Space Grotesk',sans-serif;outline:none;text-align:right;}
+.of-sltp-field.sl input:focus{border-color:rgba(239,68,68,.4);}
+.of-sltp-field.tp input:focus{border-color:rgba(16,185,129,.4);}
+/* P&L */
+.of-pnl{display:grid;grid-template-columns:1fr 1fr;gap:.25rem;}
+.of-pnl-side{padding:.26rem .36rem;border-radius:6px;text-align:center;}
+.of-pnl-side.buy{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.1);}
+.of-pnl-side.sell{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.1);}
+.of-pnl-lbl{font-size:.5rem;color:rgba(255,255,255,.2);font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.of-pnl-val{font-family:'Space Grotesk',sans-serif;font-size:.72rem;font-weight:700;margin-top:.04rem;}
+.of-pnl-side.buy .of-pnl-val{color:var(--green);}
+.of-pnl-side.sell .of-pnl-val{color:rgba(239,68,68,.8);}
+/* Divider */
+.of-div{height:1px;background:rgba(255,255,255,.04);flex-shrink:0;}
+/* Actions */
+.of-actions{display:grid;grid-template-columns:1fr 1fr;gap:.24rem;}
+.of-act{padding:.28rem .38rem;border-radius:7px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);color:rgba(255,255,255,.3);font-size:.63rem;font-weight:600;cursor:pointer;text-align:center;transition:all .12s;font-family:'Inter',sans-serif;}
+.of-act:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);}
+.of-act.danger:hover{background:rgba(239,68,68,.08);color:var(--red);}
+/* Positions */
+.of-pos-hd{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.2);}
+.of-pos-empty{font-size:.64rem;color:rgba(255,255,255,.18);padding:.15rem 0;}
+.of-note{font-size:.55rem;color:rgba(255,255,255,.12);text-align:center;font-style:italic;padding-bottom:.1rem;}
 </style>
 </head>
 <body>
@@ -534,8 +615,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide" id="guidePanel">
     <div class="guide-tabs">
-      <div class="gtab active" onclick="switchTab('order',this)">Order</div>
-      <div class="gtab" onclick="switchTab('ind',this)">Indicators</div>
+      <div class="gtab active" onclick="switchTab('ind',this)">Indicators</div>
       <div class="gtab" onclick="switchTab('scalp',this)">Scalp</div>
       <div class="gtab" onclick="switchTab('dom',this)">DOM</div>
     </div>
@@ -673,7 +753,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
       </div>
 
       <!-- INDICATORS TAB -->
-      <div class="gpanel" id="tab-ind" style="flex-direction:column;">
+      <div class="gpanel active" id="tab-ind" style="flex-direction:column;">
         <div class="ind-apply-bar" style="flex-shrink:0;">
           <span id="selCount">2 selected</span>
           <button class="reset-btn" onclick="resetIndicators()">Reset</button>
@@ -759,101 +839,126 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
         </div>
       </div>
 
-      <!-- ORDER TAB -->
-      <div class="gpanel active" id="tab-order" style="height:100%;padding:0">
-        <div class="ord-wrap">
-          <div class="ord-price-row">
-            <span class="ord-price-lbl">Live Price</span>
-            <span class="ord-cur-price" id="ord-live-price">—</span>
-          </div>
-
-          <div>
-            <div style="font-size:.62rem;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.35rem">Lot Size</div>
-            <div class="ord-lots-ctrl">
-              <button class="ord-adj" onclick="adjLots(-1)">−</button>
-              <span class="ord-lots-val" id="ord-lots">1</span>
-              <span class="ord-lots-lbl">lots</span>
-              <button class="ord-adj" onclick="adjLots(1)">+</button>
-            </div>
-          </div>
-
-          <div class="ord-presets">
-            <div class="ord-preset" onclick="setLots(0.01)">0.01</div>
-            <div class="ord-preset" onclick="setLots(0.1)">0.10</div>
-            <div class="ord-preset" onclick="setLots(0.5)">0.50</div>
-            <div class="ord-preset active" onclick="setLots(1)">1.00</div>
-            <div class="ord-preset" onclick="setLots(2)">2.00</div>
-          </div>
-
-          <div class="ord-buy-sell">
-            <button class="ord-buy" onclick="placeOrder('buy')">
-              BUY<br><span style="font-size:.68rem;font-weight:400;opacity:.8" id="ord-ask-price">—</span>
-            </button>
-            <button class="ord-sell" onclick="placeOrder('sell')">
-              SELL<br><span style="font-size:.68rem;font-weight:400;opacity:.8" id="ord-bid-price">—</span>
-            </button>
-          </div>
-
-          <!-- SL / TP -->
-          <div>
-            <div class="ord-sec-hd">Stop Loss / Take Profit</div>
-            <div class="sltp-section">
-              <div class="sltp-row">
-                <div class="sltp-toggle sl-t" id="slToggle" onclick="toggleSLTP('sl')">
-                  <div class="sltp-dot"></div>
-                  <span class="sltp-lbl">Stop Loss</span>
-                </div>
-                <div class="sltp-toggle tp-t" id="tpToggle" onclick="toggleSLTP('tp')">
-                  <div class="sltp-dot"></div>
-                  <span class="sltp-lbl">Take Profit</span>
-                </div>
-              </div>
-              <div class="sltp-fields" id="sltpFields">
-                <div class="sltp-field sl-f" id="slField" style="display:none">
-                  <label>SL Price</label>
-                  <input type="number" id="slPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
-                </div>
-                <div class="sltp-field tp-f" id="tpField" style="display:none">
-                  <label>TP Price</label>
-                  <input type="number" id="tpPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- P&L PREVIEW -->
-          <div>
-            <div class="ord-sec-hd">Est. Value per Pip</div>
-            <div class="pnl-preview">
-              <div class="pnl-side buy-p">
-                <div class="pnl-lbl">BUY profit / pip</div>
-                <div class="pnl-val" id="pnl-buy">+$10.00</div>
-              </div>
-              <div class="pnl-side sell-p">
-                <div class="pnl-lbl">SELL profit / pip</div>
-                <div class="pnl-val" id="pnl-sell">+$10.00</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="ord-actions">
-            <div class="ord-act" onclick="closePosition()">Close Trade</div>
-            <div class="ord-act danger" onclick="flattenAll()">Close All</div>
-          </div>
-
-          <div class="ord-positions-hd">Open Positions</div>
-          <div class="ord-pos-list" id="ord-pos-list">
-            <div style="font-size:.68rem;color:var(--muted2);padding:.3rem 0">No open positions</div>
-          </div>
-
-          <div class="ord-sim-note">Practice mode — no real money</div>
-        </div>
-      </div>
 
     </div>
   </div>
 
 </div><!-- end layout -->
+
+<!-- FLOATING ORDER PANEL -->
+<div class="ord-float" id="ordFloat">
+  <div class="ord-float-hd" id="ordFloatHd">
+    <svg class="ord-float-grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2" r="1.2"/><circle cx="7.5" cy="2" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="2.5" cy="12" r="1.2"/><circle cx="7.5" cy="12" r="1.2"/></svg>
+    <span class="ord-float-title">Order</span>
+    <button class="ord-float-btn" title="Expand / Compact" onclick="toggleOrdSize()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+    </button>
+    <button class="ord-float-btn" title="Minimise" onclick="toggleOrdMin()">
+      <svg width="11" height="2" viewBox="0 0 11 2" fill="currentColor"><rect width="11" height="2" rx="1"/></svg>
+    </button>
+  </div>
+  <div class="ord-float-body" id="ordFloatBody">
+
+    <!-- Symbol + live price -->
+    <div class="of-hero">
+      <div class="of-sym-grp">
+        <div class="of-sym" id="of-sym">EUR/USD</div>
+        <div class="of-price" id="ord-live-price">—</div>
+      </div>
+      <div class="of-meta">
+        <div class="of-spread" id="of-spread">Spread: —</div>
+        <div class="of-live-badge"><span class="of-live-dot"></span>LIVE</div>
+      </div>
+    </div>
+
+    <!-- Lot size -->
+    <div>
+      <div style="font-size:.52rem;color:rgba(255,255,255,.18);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.3rem">Lot Size</div>
+      <div class="of-lot-ctrl">
+        <button class="of-lot-btn" onclick="adjLots(-1)">−</button>
+        <div class="of-lot-mid">
+          <span class="of-lot-num" id="ord-lots">1.00</span>
+          <span class="of-lot-lbl">lots</span>
+        </div>
+        <button class="of-lot-btn" onclick="adjLots(1)">+</button>
+      </div>
+    </div>
+    <div class="of-presets">
+      <div class="of-preset" onclick="setLots(0.01,this)">0.01</div>
+      <div class="of-preset" onclick="setLots(0.10,this)">0.10</div>
+      <div class="of-preset" onclick="setLots(0.50,this)">0.50</div>
+      <div class="of-preset active" onclick="setLots(1,this)">1.00</div>
+      <div class="of-preset" onclick="setLots(2,this)">2.00</div>
+    </div>
+
+    <!-- Buy / Sell -->
+    <div class="of-bs">
+      <button class="of-buy" onclick="placeOrder('buy')">
+        <span class="of-bs-lbl">BUY</span>
+        <span class="of-bs-px" id="ord-ask-price">—</span>
+      </button>
+      <button class="of-sell" onclick="placeOrder('sell')">
+        <span class="of-bs-lbl">SELL</span>
+        <span class="of-bs-px" id="ord-bid-price">—</span>
+      </button>
+    </div>
+
+    <div class="of-div"></div>
+
+    <!-- SL / TP -->
+    <div>
+      <div style="font-size:.52rem;color:rgba(255,255,255,.18);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.3rem">Stop Loss / Take Profit</div>
+      <div class="of-sltp-row">
+        <div class="of-sltp-tog sl" id="slToggle" onclick="toggleSLTP('sl')">
+          <div class="of-sltp-dot"></div>
+          <span class="of-sltp-lbl">Stop Loss</span>
+        </div>
+        <div class="of-sltp-tog tp" id="tpToggle" onclick="toggleSLTP('tp')">
+          <div class="of-sltp-dot"></div>
+          <span class="of-sltp-lbl">Take Profit</span>
+        </div>
+      </div>
+      <div class="of-sltp-fields" id="sltpFields" style="margin-top:.3rem">
+        <div class="of-sltp-field sl" id="slField" style="display:none">
+          <label>SL Price</label>
+          <input type="number" id="slPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
+        </div>
+        <div class="of-sltp-field tp" id="tpField" style="display:none">
+          <label>TP Price</label>
+          <input type="number" id="tpPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
+        </div>
+      </div>
+    </div>
+
+    <!-- P&L preview -->
+    <div class="of-pnl">
+      <div class="of-pnl-side buy">
+        <div class="of-pnl-lbl">Buy / pip</div>
+        <div class="of-pnl-val" id="pnl-buy">+$10.00</div>
+      </div>
+      <div class="of-pnl-side sell">
+        <div class="of-pnl-lbl">Sell / pip</div>
+        <div class="of-pnl-val" id="pnl-sell">+$10.00</div>
+      </div>
+    </div>
+
+    <div class="of-div"></div>
+
+    <!-- Actions + positions -->
+    <div class="of-actions">
+      <div class="of-act" onclick="closePosition()">Close Trade</div>
+      <div class="of-act danger" onclick="flattenAll()">Close All</div>
+    </div>
+
+    <div class="of-pos-hd">Open Positions</div>
+    <div id="ord-pos-list">
+      <div class="of-pos-empty">No open positions</div>
+    </div>
+
+    <div class="of-note">Practice mode — no real money</div>
+
+  </div>
+</div>
 
 <!-- CHATBOT -->
 <button id="chatBtn" onclick="toggleChat()" title="IPFX Assist">
@@ -1142,6 +1247,7 @@ function buildChart(){
     save_image:true,
     withdateranges:true,
     hide_volume:false,
+    studies:[...selectedStudies],
     overrides:{
       'paneProperties.background':'#0a0a0c',
       'paneProperties.backgroundType':'solid',
@@ -1195,7 +1301,6 @@ function switchTab(id,el){
   el.classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
   if(id==='dom')refreshDom();
-  if(id==='order'){refreshDom();updateOrdPrices(domPrice);}
   if(id==='scalp')updateScalpSession();
 }
 
@@ -1434,14 +1539,14 @@ let ordLots=1,paperPositions=[],ordMidPrice=1.0850;
 function adjLots(d){
   const step=ordLots<0.1?0.01:ordLots<1?0.1:1;
   ordLots=Math.round(Math.max(0.01,ordLots+(d>0?step:-step))*100)/100;
-  document.getElementById('ord-lots').textContent=ordLots;
+  document.getElementById('ord-lots').textContent=ordLots.toFixed(2);
   updatePnlPreview();
 }
-function setLots(n){
+function setLots(n,btn){
   ordLots=n;
-  document.getElementById('ord-lots').textContent=n;
-  document.querySelectorAll('.ord-preset').forEach(p=>p.classList.remove('active'));
-  event.target.classList.add('active');
+  document.getElementById('ord-lots').textContent=(+n).toFixed(2);
+  document.querySelectorAll('.of-preset,.ord-preset').forEach(p=>p.classList.remove('active'));
+  if(btn)btn.classList.add('active');
   updatePnlPreview();
 }
 function placeOrder(side){
@@ -1467,7 +1572,7 @@ function flattenAll(){paperPositions=[];renderPositions();}
 function renderPositions(){
   const list=document.getElementById('ord-pos-list');
   if(!list)return;
-  if(!paperPositions.length){list.innerHTML='<div style="font-size:.68rem;color:var(--muted2);padding:.3rem 0">No open positions</div>';return;}
+  if(!paperPositions.length){list.innerHTML='<div class="of-pos-empty">No open positions</div>';return;}
   const step=domDigits<=2?0.5:domDigits<=4?0.0002:0.01;
   const fmt=v=>v.toFixed(domDigits<=2?2:domDigits<=4?4:2);
   list.innerHTML=paperPositions.map((p,i)=>{
@@ -1496,6 +1601,8 @@ function updateOrdPrices(mid){
   if(bp)bp.textContent=fmt(mid-step/2);
   const scSp=document.getElementById('sc-spread');
   if(scSp)scSp.textContent=(step*2).toFixed(domDigits<=2?2:domDigits<=4?4:2);
+  const ofSp=document.getElementById('of-spread');
+  if(ofSp)ofSp.textContent='Spread: '+(step*2).toFixed(domDigits<=2?2:domDigits<=4?4:2);
   renderPositions();
 }
 setInterval(()=>{
@@ -1839,6 +1946,11 @@ function changeInstrument(sym){
   refreshDom();
   buildWatchlist();
   updatePnlPreview();
+  const symEl=document.getElementById('of-sym');
+  if(symEl){
+    const inst=Object.values(WL_DATA).flat().find(i=>i.sym===sym);
+    symEl.textContent=inst?inst.name:sym.replace(/^[^:]+:/,'');
+  }
 }
 
 setInterval(()=>{
@@ -1862,7 +1974,8 @@ function toggleSLTP(type){
     document.getElementById('tpToggle').classList.toggle('on',tpOn);
     document.getElementById('tpField').style.display=tpOn?'block':'none';
   }
-  document.getElementById('sltpFields').classList.toggle('vis',slOn||tpOn);
+  const f=document.getElementById('sltpFields');
+  if(f){f.classList.toggle('vis',slOn||tpOn);f.style.display=(slOn||tpOn)?'grid':'none';}
 }
 
 // ── P&L PREVIEW ──
@@ -1883,6 +1996,56 @@ function updatePnlPreview(){
   const sellEl=document.getElementById('pnl-sell');
   if(buyEl)buyEl.textContent='+$'+v;
   if(sellEl)sellEl.textContent='+$'+v;
+}
+
+// ── FLOATING PANEL: DRAG + CONTROLS ──
+(function(){
+  const el=document.getElementById('ordFloat');
+  const hd=document.getElementById('ordFloatHd');
+  if(!el||!hd)return;
+  let sx,sy,sl,st;
+  function startDrag(cx,cy){
+    const r=el.getBoundingClientRect();
+    sx=cx;sy=cy;sl=r.left;st=r.top;
+    el.style.right='auto';
+    el.style.left=sl+'px';
+    el.style.top=st+'px';
+  }
+  function moveDrag(cx,cy){
+    const nx=Math.max(0,Math.min(window.innerWidth-el.offsetWidth,sl+(cx-sx)));
+    const ny=Math.max(0,Math.min(window.innerHeight-40,st+(cy-sy)));
+    el.style.left=nx+'px';
+    el.style.top=ny+'px';
+  }
+  hd.addEventListener('mousedown',e=>{
+    if(e.target.closest('button'))return;
+    e.preventDefault();
+    startDrag(e.clientX,e.clientY);
+    const mm=e2=>{moveDrag(e2.clientX,e2.clientY);};
+    const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+    document.addEventListener('mousemove',mm);
+    document.addEventListener('mouseup',mu);
+  });
+  hd.addEventListener('touchstart',e=>{
+    if(e.target.closest('button'))return;
+    const t=e.touches[0];
+    startDrag(t.clientX,t.clientY);
+    const tm=e2=>{const t2=e2.touches[0];moveDrag(t2.clientX,t2.clientY);};
+    const te=()=>{document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',te);};
+    document.addEventListener('touchmove',tm,{passive:true});
+    document.addEventListener('touchend',te);
+  },{passive:true});
+})();
+
+function toggleOrdMin(){
+  const el=document.getElementById('ordFloat');
+  el.classList.toggle('minimized');
+}
+function toggleOrdSize(){
+  const el=document.getElementById('ordFloat');
+  const wide=el.dataset.wide==='1';
+  el.style.width=wide?'228px':'300px';
+  el.dataset.wide=wide?'':'1';
 }
 
 // ── INIT ──
