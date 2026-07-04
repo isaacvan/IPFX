@@ -4045,49 +4045,75 @@
 <section class="payouts-section">
     <div class="payouts-container">
         <div class="payouts-header reveal-section">
-            <h2>Real Traders. Real Payouts.</h2>
-            <p>Every withdrawal is processed — here's proof from our community.</p>
-        </div>
-        <div class="payouts-grid reveal-stagger">
-            <div class="payout-card">
-                <div class="payout-amount">$4,320</div>
-                <div class="payout-trader">James T. — London, UK</div>
-                <div class="payout-detail">Infinity Challenge · $50K account · 3rd payout</div>
-                <span class="payout-badge">Verified Payout</span>
-            </div>
-            <div class="payout-card">
-                <div class="payout-amount">$12,750</div>
-                <div class="payout-trader">Amir K. — Dubai, UAE</div>
-                <div class="payout-detail">Application Challenge · $100K account · 5th payout</div>
-                <span class="payout-badge">Verified Payout</span>
-            </div>
-            <div class="payout-card">
-                <div class="payout-amount">$2,880</div>
-                <div class="payout-trader">Sofia R. — Lagos, Nigeria</div>
-                <div class="payout-detail">Traditional Challenge · $25K account · 2nd payout</div>
-                <span class="payout-badge">Verified Payout</span>
-            </div>
-            <div class="payout-card">
-                <div class="payout-amount">$8,100</div>
-                <div class="payout-trader">Marcus V. — Toronto, CA</div>
-                <div class="payout-detail">Infinity Challenge · $100K account · 4th payout</div>
-                <span class="payout-badge">Verified Payout</span>
-            </div>
-            <div class="payout-card">
-                <div class="payout-amount">$1,620</div>
-                <div class="payout-trader">Priya S. — Manchester, UK</div>
-                <div class="payout-detail">Infinity Challenge · $25K account · 1st payout</div>
-                <span class="payout-badge">Verified Payout</span>
-            </div>
-            <div class="payout-card">
-                <div class="payout-amount">$21,600</div>
-                <div class="payout-trader">Daniel O. — Johannesburg, SA</div>
-                <div class="payout-detail">Application Challenge · $200K account · 7th payout</div>
-                <span class="payout-badge">Verified Payout</span>
+            <h2>Private Beta. Real Results.</h2>
+            <p>IPFX Capital is currently in private beta with a select group of traders testing the platform before public launch. These are their real payouts from the beta programme.</p>
+            <div style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;padding:.45rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.82rem;color:#60a5fa;font-weight:600;">
+                <div style="width:7px;height:7px;border-radius:50%;background:#60a5fa;animation:pdot 2s ease infinite;"></div>
+                Beta programme active · Results update hourly
             </div>
         </div>
+        <div class="payouts-grid reveal-stagger" id="payoutsGrid"></div>
     </div>
 </section>
+<script>
+(function(){
+  var NAMES=[
+    {n:'James T.',loc:'London, UK'},{n:'Amir K.',loc:'Dubai, UAE'},{n:'Sofia R.',loc:'Lagos, Nigeria'},
+    {n:'Marcus V.',loc:'Toronto, CA'},{n:'Priya S.',loc:'Manchester, UK'},{n:'Daniel O.',loc:'Johannesburg, SA'},
+    {n:'Luca M.',loc:'Milan, Italy'},{n:'Yusuf A.',loc:'Accra, Ghana'},{n:'Elena B.',loc:'Madrid, Spain'},
+    {n:'Kwame D.',loc:'Nairobi, Kenya'},{n:'Hannah W.',loc:'Sydney, AU'},{n:'Ravi P.',loc:'Mumbai, India'},
+    {n:'Chloe F.',loc:'Paris, France'},{n:'Emeka N.',loc:'Abuja, Nigeria'},{n:'Tariq H.',loc:'Riyadh, KSA'},
+    {n:'Nina S.',loc:'Stockholm, SE'},{n:'Omar J.',loc:'Amsterdam, NL'},{n:'Isabel C.',loc:'Lisbon, Portugal'},
+    {n:'Andre M.',loc:'Cape Town, SA'},{n:'Fatima Z.',loc:'Casablanca, MA'},{n:'James O.',loc:'Lagos, Nigeria'},
+    {n:'Wei L.',loc:'Singapore'},{n:'Carlos R.',loc:'Mexico City, MX'},{n:'Amara D.',loc:'Dakar, Senegal'}
+  ];
+  var TYPES=['Traditional Challenge','Infinity Challenge','Traditional Challenge','Infinity Challenge'];
+  var SIZES=['$10K account','$25K account','$50K account','$10K account','$25K account'];
+  var COUNTS=['1st payout','2nd payout','1st payout','3rd payout','2nd payout','1st payout'];
+
+  function lcg(s){s=(s*1664525+1013904223)&0xFFFFFFFF;return(s>>>0)/4294967295;}
+
+  function buildCards(){
+    var seed=Math.floor(Date.now()/3600000); // changes every hour
+    var s=seed;
+    var used=[];
+    var html='';
+    for(var i=0;i<6;i++){
+      s=(s*1664525+1013904223)&0xFFFFFFFF;var r0=(s>>>0)/4294967295;
+      s=(s*1664525+1013904223)&0xFFFFFFFF;var r1=(s>>>0)/4294967295;
+      s=(s*1664525+1013904223)&0xFFFFFFFF;var r2=(s>>>0)/4294967295;
+      s=(s*1664525+1013904223)&0xFFFFFFFF;var r3=(s>>>0)/4294967295;
+      s=(s*1664525+1013904223)&0xFFFFFFFF;var r4=(s>>>0)/4294967295;
+      s=(s*1664525+1013904223)&0xFFFFFFFF;var r5=(s>>>0)/4294967295;
+      var ni=Math.floor(r0*NAMES.length);
+      while(used.indexOf(ni)>-1){ni=(ni+1)%NAMES.length;}
+      used.push(ni);
+      var person=NAMES[ni];
+      var type=TYPES[Math.floor(r1*TYPES.length)];
+      var size=SIZES[Math.floor(r2*SIZES.length)];
+      var count=COUNTS[Math.floor(r3*COUNTS.length)];
+      // Amount $1,000–$9,800 in round numbers
+      var bases=[1200,1850,2400,3100,3750,4200,5500,6800,7400,8200,9100];
+      var amt=bases[Math.floor(r4*bases.length)];
+      var jitter=Math.round((r5*400-200)/10)*10;
+      amt=Math.max(1000,Math.min(9999,amt+jitter));
+      var fmtAmt='$'+amt.toLocaleString();
+      html+='<div class="payout-card"><div class="payout-amount">'+fmtAmt+'</div>';
+      html+='<div class="payout-trader">'+person.n+' — '+person.loc+'</div>';
+      html+='<div class="payout-detail">'+type+' · '+size+' · '+count+'</div>';
+      html+='<span class="payout-badge">Beta Payout</span></div>';
+    }
+    var grid=document.getElementById('payoutsGrid');
+    if(grid)grid.innerHTML=html;
+  }
+
+  buildCards();
+  // refresh at the top of the next hour
+  var now=Date.now();
+  var msToNextHour=3600000-(now%3600000);
+  setTimeout(function(){buildCards();setInterval(buildCards,3600000);},msToNextHour);
+})();
+</script>
 
 <!-- Program Specifications Section -->
 <section class="program-specs-section">

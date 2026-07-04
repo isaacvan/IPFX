@@ -590,39 +590,46 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
     <!-- LEADERBOARD -->
     <div class="page" id="pg-leaderboard">
-      <div class="promo-banner">
-        <div class="promo-left"><div class="promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><div><div class="promo-title">Monthly Leaderboard — June 2026</div><div class="promo-sub">Top 3 traders each month win <b>bonus capital allocation</b>. Rankings update in real-time.</div></div></div>
-        <span class="pill pg" style="padding:.4rem .9rem;font-size:.78rem">Live</span>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;text-align:center;min-height:420px;">
+        <div style="width:62px;height:62px;border-radius:16px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.75rem;flex-shrink:0;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Coming October 2026</div>
+        <div style="font-size:.9rem;color:var(--muted);max-width:390px;line-height:1.7;margin-bottom:1.6rem;">The IPFX Leaderboard will rank funded traders by monthly return, profit and consistency — with real capital prizes for the top performers each month.</div>
+        <div style="display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.78rem;color:#60a5fa;font-weight:600;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;flex-shrink:0;"></div>
+          Launching with public release — Q4 2026
+        </div>
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Trader</th><th>Account</th><th>Return %</th><th>P&amp;L</th><th>Win Rate</th><th>Trades</th></tr></thead><tbody>
-        <tr><td colspan="7" style="text-align:center;color:var(--muted2);padding:2.5rem 1rem;font-size:.875rem">The leaderboard will populate as funded traders record results. Check back at the end of the month.</td></tr>
-      </tbody></table></div>
     </div>
 
     <!-- COMPETITIONS -->
     <div class="page" id="pg-competitions">
-      <div class="sec-hd"><div><div class="sec-title">Live &amp; Upcoming Competitions</div><div class="sec-sub">Real capital prizes and recognition for top performers</div></div></div>
-      <div class="comp-grid">
-        <div class="comp-card"><div class="comp-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="live-badge">LIVE</span></div><div class="comp-body"><div class="comp-title">June Sprint Challenge</div><div class="comp-meta"><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>13 days left</div><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>48 traders</div></div><div class="comp-prize">$5,000 <small>prize pool</small></div><button class="comp-btn">Join Competition</button></div></div>
-        <div class="comp-card"><div class="comp-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><div class="comp-body"><div class="comp-title">Q3 Consistency Cup</div><div class="comp-meta"><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Starts 1 Jul</div><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>0 registered</div></div><div class="comp-prize">$10,000 <small>prize pool</small></div><button class="comp-btn">Register Interest</button></div></div>
-        <div class="comp-card"><div class="comp-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="comp-body"><div class="comp-title">Algo Trading Championship</div><div class="comp-meta"><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Starts 1 Aug</div><div class="comp-mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Application only</div></div><div class="comp-prize">$25,000 <small>+ capital scaling</small></div><button class="comp-btn off" disabled>Application Only</button></div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;text-align:center;min-height:420px;">
+        <div style="width:62px;height:62px;border-radius:16px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.75rem;flex-shrink:0;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+        </div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Coming October 2026</div>
+        <div style="font-size:.9rem;color:var(--muted);max-width:390px;line-height:1.7;margin-bottom:1.6rem;">IPFX Competitions will pit funded traders against each other for real cash prizes. Monthly sprints, quarterly cups and invitation-only championships for elite performers.</div>
+        <div style="display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.78rem;color:#60a5fa;font-weight:600;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;flex-shrink:0;"></div>
+          Launching with public release — Q4 2026
+        </div>
       </div>
-      <div class="sec-hd"><div><div class="sec-title">Past Results</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Competition</th><th>Period</th><th>Winner</th><th>Prize</th><th>Your Rank</th></tr></thead><tbody>
-        <tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No past competitions yet. Results will appear here once events conclude.</td></tr>
-      </tbody></table></div>
     </div>
 
     <!-- EDUCATION -->
     <div class="page" id="pg-education">
-      <div class="filter-bar"><div class="filter-tabs"><button class="ftab active">All</button><button class="ftab">Risk Management</button><button class="ftab">Psychology</button><button class="ftab">Strategy</button></div></div>
-      <div class="edu-grid">
-        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="edu-tag pill pr">Video</span></div><div class="edu-body"><div class="edu-title">Understanding Drawdown: Why Most Traders Blow Up</div><div class="edu-meta">Risk Management · 18 min</div></div></a>
-        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="edu-tag pill pb">Article</span></div><div class="edu-body"><div class="edu-title">Position Sizing for Funded Accounts</div><div class="edu-meta">Risk Management · 8 min read</div></div></a>
-        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="edu-tag pill pr">Video</span></div><div class="edu-body"><div class="edu-title">Trading Psychology: Consistency Like an Institution</div><div class="edu-meta">Psychology · 24 min</div></div></a>
-        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="edu-tag pill pb">Article</span></div><div class="edu-body"><div class="edu-title">Backtesting: Walk-Forward vs Curve-Fitting</div><div class="edu-meta">Strategy · 12 min read</div></div></a>
-        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="edu-tag pill pr">Video</span></div><div class="edu-body"><div class="edu-title">News Trading: Managing Risk Around High-Impact Events</div><div class="edu-meta">Strategy · 31 min</div></div></a>
-        <a href="#" class="edu-card"><div class="edu-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="edu-tag pill po">Guide</span></div><div class="edu-body"><div class="edu-title">How to Get Paid: Maximising Your Profit Split</div><div class="edu-meta">Payouts · 6 min read</div></div></a>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;text-align:center;min-height:420px;">
+        <div style="width:62px;height:62px;border-radius:16px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.75rem;flex-shrink:0;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Coming October 2026</div>
+        <div style="font-size:.9rem;color:var(--muted);max-width:390px;line-height:1.7;margin-bottom:1.6rem;">IPFX Education will include video courses, written guides and live webinars covering risk management, trading psychology, strategy development and funded account rules.</div>
+        <div style="display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.78rem;color:#60a5fa;font-weight:600;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;flex-shrink:0;"></div>
+          Launching with public release — Q4 2026
+        </div>
       </div>
     </div>
 
@@ -651,11 +658,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
       <div class="sec-hd"><div><div class="sec-title">Referred Traders</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Joined</th><th>Account</th><th>Status</th><th>Commission</th></tr></thead><tbody>
-        <tr><td>M. R***ds</td><td>14 May 2026</td><td>Infinity $25K</td><td><span class="pill pg">Funded</span></td><td style="color:var(--green);font-weight:700">+$9.90</td></tr>
-        <tr><td>T. O***o</td><td>02 May 2026</td><td>Application $100K</td><td><span class="pill pg">Funded</span></td><td style="color:var(--green);font-weight:700">+$39.90</td></tr>
-        <tr><td>C. B***n</td><td>18 Apr 2026</td><td>Infinity $50K</td><td><span class="pill pg">Funded</span></td><td style="color:var(--green);font-weight:700">+$24.90</td></tr>
-        <tr><td>H. F***r</td><td>01 Apr 2026</td><td>Traditional $10K</td><td><span class="pill pr">Failed</span></td><td><span class="pill pm">$0</span></td></tr>
-        <tr><td>P. A***s</td><td>10 Mar 2026</td><td>Application $250K</td><td><span class="pill pb">In Review</span></td><td><span class="pill pm">Pending</span></td></tr>
+        <tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No referred traders yet. Share your link above to start earning.</td></tr>
       </tbody></table></div>
     </div>
 
