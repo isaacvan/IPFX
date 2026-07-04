@@ -415,6 +415,15 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .promo-claim-btn{width:100%;padding:.65rem;background:var(--cobalt);border:none;border-radius:7px;color:#fff;font-size:.85rem;font-weight:700;cursor:pointer;transition:background .2s;font-family:'Space Grotesk',sans-serif;}
 .promo-claim-btn:hover{background:var(--cobalt-h);}
 .promo-claim-btn:disabled{opacity:.5;cursor:not-allowed;}
+.trade-now-banner{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(37,99,235,.04));border:1px solid rgba(37,99,235,.35);border-radius:12px;padding:1.1rem 1.5rem;margin-bottom:1.25rem;}
+.trade-now-left{display:flex;align-items:center;gap:.9rem;}
+.trade-now-icon{width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,.2);border:1px solid rgba(37,99,235,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#60a5fa;}
+.trade-now-icon svg{width:18px;height:18px;}
+.trade-now-title{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:.2rem;}
+.trade-now-sub{font-size:.78rem;color:var(--muted);line-height:1.45;}
+.trade-now-btn{padding:.65rem 1.4rem;background:var(--cobalt);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:700;text-decoration:none;white-space:nowrap;transition:background .2s;flex-shrink:0;font-family:'Space Grotesk',sans-serif;}
+.trade-now-btn:hover{background:var(--cobalt-h);}
+@media(max-width:600px){.trade-now-banner{flex-direction:column;align-items:flex-start;}.trade-now-btn{width:100%;text-align:center;display:block;}}
 </style>
 </head>
 <body>
@@ -497,6 +506,16 @@ tr:hover td{background:rgba(255,255,255,.015);}
           <button class="ftab" onclick="filterAc('futures',this)">Futures</button>
         </div>
         <div class="tog-row">Hide Failed<label class="tog"><input type="checkbox" id="hideFailed" checked onchange="applyFilter()"><span class="tog-track"></span></label></div>
+      </div>
+      <div class="trade-now-banner">
+        <div class="trade-now-left">
+          <div class="trade-now-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div>
+            <div class="trade-now-title">Your trading happens on IPFX Markets</div>
+            <div class="trade-now-sub">Place trades, track your P&amp;L and manage your funded account — all inside the platform.</div>
+          </div>
+        </div>
+        <a href="trading.html" target="_blank" class="trade-now-btn">Open IPFX Markets →</a>
       </div>
       <div class="ac-list" id="acList">
         <div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem">Loading your accounts…</div>
