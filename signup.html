@@ -746,6 +746,14 @@
                     <div class="error-message" id="confirmError">Passwords do not match</div>
                 </div>
 
+                <div class="password-requirements">
+                    <h4>Password Requirements:</h4>
+                    <div class="requirement" id="req-length">At least 8 characters</div>
+                    <div class="requirement" id="req-uppercase">One uppercase letter</div>
+                    <div class="requirement" id="req-lowercase">One lowercase letter</div>
+                    <div class="requirement" id="req-number">One number</div>
+                </div>
+
                 <div class="form-group">
                     <label for="referralCode">Referral Code (Optional)</label>
                     <input type="text" id="referralCode" placeholder="Enter referral code if you have one" maxlength="10" style="text-transform: uppercase;">
@@ -764,14 +772,6 @@
                         <button type="button" class="promo-type-btn" onclick="selectPromoType('futures',this)">Futures Challenge</button>
                     </div>
                     <div class="promo-type-note" id="promoTypeNote">Select your account type above to continue</div>
-                </div>
-
-                <div class="password-requirements">
-                    <h4>Password Requirements:</h4>
-                    <div class="requirement" id="req-length">At least 8 characters</div>
-                    <div class="requirement" id="req-uppercase">One uppercase letter</div>
-                    <div class="requirement" id="req-lowercase">One lowercase letter</div>
-                    <div class="requirement" id="req-number">One number</div>
                 </div>
 
                 <button type="submit" class="btn-signup" id="submitBtn">Pre-Register Now</button>
@@ -1101,8 +1101,8 @@
                 }
 
                 const msg = validatedPromo
-                    ? `Account created! Your free <strong>${validatedPromo.challenge_name}</strong> has been applied. Check your email to verify.`
-                    : 'Account created! Check your email to verify your account.';
+                    ? `Account created! Your free <strong>${validatedPromo.challenge_name}</strong> has been reserved. Redirecting to login…`
+                    : 'Account created! Redirecting to login…';
                 alertBox.innerHTML = msg;
                 alertBox.className = 'alert alert-success show';
                 setTimeout(() => {
@@ -1116,7 +1116,12 @@
 
             } catch (error) {
                 console.error('Signup error:', error);
-                showAlert(error.message || 'An error occurred during pre-registration. Please try again.', 'error');
+                const errMsg = error.message?.toLowerCase().includes('rate limit')
+                    ? 'Too many sign-up attempts — please wait a few minutes and try again.'
+                    : error.message?.toLowerCase().includes('already registered') || error.message?.toLowerCase().includes('already been registered')
+                    ? 'An account with this email already exists. <a href="login.html" style="color:var(--cobalt)">Login here</a>.'
+                    : error.message || 'An error occurred during pre-registration. Please try again.';
+                showAlert(errMsg, 'error');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Pre-Register Now';
             }
