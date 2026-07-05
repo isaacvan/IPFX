@@ -521,6 +521,91 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .of-pos-empty{font-size:.64rem;color:rgba(255,255,255,.18);padding:.15rem 0;}
 .of-note{font-size:.55rem;color:rgba(255,255,255,.12);text-align:center;font-style:italic;padding-bottom:.1rem;}
 
+/* ── ORDER PANEL (guide tab) ── */
+.op-sym-hd{display:flex;align-items:center;gap:.4rem;margin-bottom:.55rem;}
+.op-sym-name{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:800;flex:1;}
+.op-live-dot{width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 5px #10b981;flex-shrink:0;animation:pulse 2s ease infinite;}
+.op-type-bar{display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.05);border-radius:8px;padding:2px;margin-bottom:.55rem;}
+.op-type-btn{padding:.35rem;text-align:center;border-radius:6px;font-size:.68rem;font-weight:800;font-family:'Space Grotesk',sans-serif;cursor:pointer;color:rgba(255,255,255,.3);transition:all .15s;letter-spacing:.05em;}
+.op-type-btn.active{background:rgba(37,99,235,.22);color:#93c5fd;}
+.op-side-row{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:.5rem;}
+.op-exec-btn{padding:.5rem .3rem;border-radius:8px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.06rem;transition:filter .12s;}
+.op-exec-btn:hover{filter:brightness(1.12);}
+.op-exec-sell{background:linear-gradient(160deg,#7f1d1d,#b91c1c);}
+.op-exec-buy{background:linear-gradient(160deg,#064e3b,#047857);}
+.op-exec-lbl{font-family:'Space Grotesk',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;color:#fff;}
+.op-exec-px{font-size:.65rem;color:rgba(255,255,255,.65);font-family:'Space Grotesk',sans-serif;}
+.op-checks{display:flex;align-items:center;gap:.32rem;margin-bottom:.42rem;}
+.op-chk-grp{display:flex;align-items:center;gap:.22rem;cursor:pointer;}
+.op-chk{width:13px;height:13px;border-radius:3px;border:1.5px solid rgba(255,255,255,.2);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.op-chk.on{border-color:var(--cobalt);background:var(--cobalt);}
+.op-chk.on::after{content:'';width:5px;height:3px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block;}
+.op-chk-lbl{font-size:.62rem;color:rgba(255,255,255,.4);font-weight:600;user-select:none;}
+.op-chk-sep{flex:1;}
+.op-sltp-inputs{display:none;flex-direction:column;gap:.28rem;margin-bottom:.42rem;}
+.op-sltp-inputs.show{display:flex;}
+.op-sltp-row{display:grid;grid-template-columns:1fr 1fr;gap:.28rem;}
+.op-sltp-inp{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:.28rem .4rem;color:var(--fg);font-size:.72rem;outline:none;width:100%;}
+.op-sltp-inp:focus{border-color:rgba(37,99,235,.5);}
+.op-sltp-inp::placeholder{color:rgba(255,255,255,.2);}
+.op-price-grid{display:grid;grid-template-columns:1fr auto 1fr;border:1px solid rgba(255,255,255,.07);border-radius:9px;overflow:hidden;margin-bottom:.42rem;background:rgba(255,255,255,.02);}
+.op-pg-col{display:flex;flex-direction:column;}
+.op-pg-left{align-items:flex-start;}
+.op-pg-right{align-items:flex-end;}
+.op-pg-center{align-items:center;background:rgba(255,255,255,.025);border-left:1px solid rgba(255,255,255,.05);border-right:1px solid rgba(255,255,255,.05);}
+.op-pg-cell{padding:.28rem .45rem;width:100%;border-bottom:1px solid rgba(255,255,255,.04);}
+.op-pg-cell:last-child{border-bottom:none;}
+.op-pg-price{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:800;line-height:1.2;}
+.op-sell-price{color:#ef4444;}
+.op-buy-price{color:#10b981;}
+.op-pg-lbl{font-size:.58rem;color:rgba(255,255,255,.25);font-weight:700;text-align:center;letter-spacing:.05em;}
+.op-pg-val{font-size:.7rem;color:rgba(255,255,255,.45);}
+.op-pg-sfx{font-size:.55rem;color:rgba(255,255,255,.22);margin-left:1px;}
+.op-margin{font-size:.61rem;color:rgba(255,255,255,.22);text-align:center;margin-bottom:.42rem;}
+.op-lot-row{display:flex;align-items:center;gap:.32rem;margin-bottom:.38rem;}
+.op-risk-grp{display:flex;align-items:center;gap:.22rem;cursor:pointer;flex-shrink:0;}
+.op-risk-lbl{font-size:.6rem;color:rgba(255,255,255,.3);font-weight:600;user-select:none;}
+.op-lot-ctrl{display:flex;align-items:center;flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;height:30px;}
+.op-lot-minus,.op-lot-plus{width:26px;height:30px;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:rgba(255,255,255,.35);cursor:pointer;background:none;border:none;transition:all .12s;}
+.op-lot-minus:hover,.op-lot-plus:hover{color:var(--fg);background:rgba(255,255,255,.07);}
+.op-lot-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.op-lot-num{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;line-height:1.1;}
+.op-lot-sub{font-size:.5rem;color:rgba(255,255,255,.22);letter-spacing:.04em;}
+.op-lot-unit{padding:0 .38rem;font-size:.6rem;color:rgba(255,255,255,.28);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.18rem;flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;height:30px;white-space:nowrap;}
+.op-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:.42rem;}
+.op-preset{font-size:.6rem;font-weight:700;text-align:center;padding:.22rem 0;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.3);cursor:pointer;transition:all .12s;}
+.op-preset:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.65);}
+.op-preset.active{background:rgba(37,99,235,.18);border-color:rgba(37,99,235,.4);color:#93c5fd;}
+.op-div{height:1px;background:rgba(255,255,255,.06);margin:.38rem 0;}
+.op-actions{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:.4rem;}
+.op-act{padding:.35rem;text-align:center;border-radius:7px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:.65rem;font-weight:700;color:rgba(255,255,255,.3);cursor:pointer;transition:all .12s;font-family:'Space Grotesk',sans-serif;}
+.op-act:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);}
+.op-act.danger{border-color:rgba(239,68,68,.15);color:rgba(239,68,68,.4);}
+.op-act.danger:hover{background:rgba(239,68,68,.1);color:#ef4444;}
+.op-pos-hd{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin-bottom:.3rem;}
+/* light mode overrides for order panel */
+body.light .op-type-bar{background:rgba(0,0,0,.05);}
+body.light .op-type-btn{color:rgba(0,0,0,.3);}
+body.light .op-type-btn.active{background:rgba(37,99,235,.12);color:#2563eb;}
+body.light .op-chk{border-color:rgba(0,0,0,.2);}
+body.light .op-chk-lbl{color:rgba(0,0,0,.35);}
+body.light .op-pg-lbl{color:rgba(0,0,0,.25);}
+body.light .op-pg-center{background:rgba(0,0,0,.025);}
+body.light .op-price-grid{border-color:rgba(0,0,0,.08);}
+body.light .op-pg-cell{border-bottom-color:rgba(0,0,0,.05);}
+body.light .op-pg-val{color:rgba(0,0,0,.4);}
+body.light .op-margin{color:rgba(0,0,0,.25);}
+body.light .op-lot-ctrl{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.1);}
+body.light .op-lot-minus,.op-lot-plus{color:rgba(0,0,0,.3);}
+body.light .op-lot-unit{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.1);color:rgba(0,0,0,.3);}
+body.light .op-preset{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.07);color:rgba(0,0,0,.3);}
+body.light .op-preset.active{background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.3);color:#2563eb;}
+body.light .op-act{border-color:rgba(0,0,0,.08);background:rgba(0,0,0,.02);color:rgba(0,0,0,.3);}
+body.light .op-div{background:rgba(0,0,0,.07);}
+body.light .op-risk-lbl{color:rgba(0,0,0,.3);}
+body.light .op-pos-hd{color:rgba(0,0,0,.22);}
+body.light .op-sltp-inp{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.1);}
+
 /* ── LIGHT MODE ── */
 body.light{--bg:#f4f6fb;--bg2:#ffffff;--bg3:#edf0f7;--fg:#0c0c16;--muted:#555770;--muted2:#9899b2;--line:#dde1ef;--line2:#e8ebf4;--cobalt-d:rgba(37,99,235,.08);}
 body.light .topbar,body.light .wl-panel,body.light .chart-toolbar,body.light .guide,body.light .btm-outer,body.light .chart-footer{background:#fff;}
@@ -771,11 +856,130 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide" id="guidePanel">
     <div class="guide-tabs">
+      <div class="gtab" onclick="switchTab('order',this)">Order</div>
       <div class="gtab active" onclick="switchTab('ind',this)">Indicators</div>
       <div class="gtab" onclick="switchTab('scalp',this)">Scalp</div>
       <div class="gtab" onclick="switchTab('dom',this)">DOM</div>
     </div>
     <div class="guide-body">
+
+      <!-- ORDER TAB -->
+      <div class="gpanel" id="tab-order">
+
+        <div class="op-sym-hd">
+          <span class="op-sym-name" id="op-sym">EUR/USD</span>
+          <span class="op-live-dot"></span>
+        </div>
+
+        <!-- Market / Pending -->
+        <div class="op-type-bar">
+          <div class="op-type-btn active" onclick="setOrdType('market',this)">MARKET</div>
+          <div class="op-type-btn" onclick="setOrdType('pending',this)">PENDING</div>
+        </div>
+
+        <!-- Sell / Buy execute buttons -->
+        <div class="op-side-row">
+          <button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')">
+            <span class="op-exec-lbl">SELL</span>
+            <span class="op-exec-px" id="ord-bid-price">—</span>
+          </button>
+          <button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')">
+            <span class="op-exec-lbl">BUY</span>
+            <span class="op-exec-px" id="ord-ask-price">—</span>
+          </button>
+        </div>
+
+        <!-- Trail / SL / TP checkboxes -->
+        <div class="op-checks">
+          <div class="op-chk-grp" onclick="toggleTrail()">
+            <div class="op-chk" id="opTrailChk"></div>
+            <span class="op-chk-lbl">Trail</span>
+          </div>
+          <div class="op-chk-grp" onclick="toggleSLTP('sl')">
+            <div class="op-chk" id="slToggle"></div>
+            <span class="op-chk-lbl">Stop Loss</span>
+          </div>
+          <div class="op-chk-sep"></div>
+          <div class="op-chk-grp" onclick="toggleSLTP('tp')">
+            <div class="op-chk" id="tpToggle"></div>
+            <span class="op-chk-lbl">Take Profit</span>
+          </div>
+        </div>
+
+        <!-- SL / TP inputs -->
+        <div class="op-sltp-inputs" id="sltpFields">
+          <div class="op-sltp-row">
+            <input type="number" class="op-sltp-inp" id="slPrice" placeholder="SL Price" step="0.0001" oninput="updatePnlPreview()">
+            <input type="number" class="op-sltp-inp" id="tpPrice" placeholder="TP Price" step="0.0001" oninput="updatePnlPreview()">
+          </div>
+        </div>
+
+        <!-- Price grid -->
+        <div class="op-price-grid">
+          <div class="op-pg-col op-pg-left">
+            <div class="op-pg-cell op-pg-price op-sell-price" id="op-bid-val">—</div>
+            <div class="op-pg-cell op-pg-val" id="op-ticks-l">—</div>
+            <div class="op-pg-cell op-pg-val" id="pnl-sell">—<span class="op-pg-sfx">$</span></div>
+            <div class="op-pg-cell op-pg-val" id="op-bal-sell">—<span class="op-pg-sfx">%</span></div>
+          </div>
+          <div class="op-pg-col op-pg-center">
+            <div class="op-pg-cell op-pg-lbl">Price</div>
+            <div class="op-pg-cell op-pg-lbl">Ticks</div>
+            <div class="op-pg-cell op-pg-lbl">P&amp;L</div>
+            <div class="op-pg-cell op-pg-lbl">Balance</div>
+          </div>
+          <div class="op-pg-col op-pg-right">
+            <div class="op-pg-cell op-pg-price op-buy-price" id="op-ask-val">—</div>
+            <div class="op-pg-cell op-pg-val" id="op-ticks-r">—</div>
+            <div class="op-pg-cell op-pg-val" id="pnl-buy">—<span class="op-pg-sfx">$</span></div>
+            <div class="op-pg-cell op-pg-val" id="op-bal-buy">—<span class="op-pg-sfx">%</span></div>
+          </div>
+        </div>
+
+        <!-- Init. Margin -->
+        <div class="op-margin">Init. Margin: <span id="op-margin">~$0.00 (0.00%)</span></div>
+
+        <!-- Lot size + Risk -->
+        <div class="op-lot-row">
+          <div class="op-risk-grp" onclick="toggleRisk()">
+            <div class="op-chk" id="opRiskChk"></div>
+            <span class="op-risk-lbl">Risk</span>
+          </div>
+          <div class="op-lot-ctrl">
+            <button class="op-lot-minus" onclick="adjLots(-1)">−</button>
+            <div class="op-lot-mid">
+              <div class="op-lot-num" id="ord-lots">0.01</div>
+              <div class="op-lot-sub">LOTS</div>
+            </div>
+            <button class="op-lot-plus" onclick="adjLots(1)">+</button>
+          </div>
+          <div class="op-lot-unit">lots <svg width="7" height="5" viewBox="0 0 7 5" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,1 3.5,4 6,1"/></svg></div>
+        </div>
+
+        <!-- Lot presets -->
+        <div class="op-presets">
+          <div class="op-preset" onclick="setLots(0.01,this)">0.01</div>
+          <div class="op-preset" onclick="setLots(0.1,this)">0.10</div>
+          <div class="op-preset" onclick="setLots(0.5,this)">0.50</div>
+          <div class="op-preset active" onclick="setLots(1,this)">1.00</div>
+          <div class="op-preset" onclick="setLots(2,this)">2.00</div>
+        </div>
+
+        <div class="op-div"></div>
+
+        <!-- Actions -->
+        <div class="op-actions">
+          <div class="op-act" onclick="closePosition()">Close Trade</div>
+          <div class="op-act danger" onclick="flattenAll()">Close All</div>
+        </div>
+
+        <!-- Open positions -->
+        <div class="op-pos-hd">Open Positions</div>
+        <div id="ord-pos-list"><div class="of-pos-empty">No open positions</div></div>
+
+        <div class="of-note">Practice mode — no real money</div>
+
+      </div>
 
       <!-- LEARN TAB (hidden, content served by chatbot) -->
       <div class="gpanel" id="tab-learn" style="display:none!important">
@@ -1002,119 +1206,6 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 </div><!-- end layout -->
 
 <!-- FLOATING ORDER PANEL -->
-<div class="ord-float" id="ordFloat">
-  <div class="ord-float-hd" id="ordFloatHd">
-    <svg class="ord-float-grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2" r="1.2"/><circle cx="7.5" cy="2" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="2.5" cy="12" r="1.2"/><circle cx="7.5" cy="12" r="1.2"/></svg>
-    <span class="ord-float-title">Order</span>
-    <button class="ord-float-btn" title="Expand / Compact" onclick="toggleOrdSize()">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-    </button>
-    <button class="ord-float-btn" title="Minimise" onclick="toggleOrdMin()">
-      <svg width="11" height="2" viewBox="0 0 11 2" fill="currentColor"><rect width="11" height="2" rx="1"/></svg>
-    </button>
-  </div>
-  <div class="ord-float-body" id="ordFloatBody">
-
-    <!-- Symbol + live price -->
-    <div class="of-hero">
-      <div class="of-sym-grp">
-        <div class="of-sym" id="of-sym">EUR/USD</div>
-        <div class="of-price" id="ord-live-price">—</div>
-      </div>
-      <div class="of-meta">
-        <div class="of-spread" id="of-spread">Spread: —</div>
-        <div class="of-live-badge"><span class="of-live-dot"></span>LIVE</div>
-      </div>
-    </div>
-
-    <!-- Lot size -->
-    <div>
-      <div style="font-size:.52rem;color:rgba(255,255,255,.18);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.3rem">Lot Size</div>
-      <div class="of-lot-ctrl">
-        <button class="of-lot-btn" onclick="adjLots(-1)">−</button>
-        <div class="of-lot-mid">
-          <span class="of-lot-num" id="ord-lots">1.00</span>
-          <span class="of-lot-lbl">lots</span>
-        </div>
-        <button class="of-lot-btn" onclick="adjLots(1)">+</button>
-      </div>
-    </div>
-    <div class="of-presets">
-      <div class="of-preset" onclick="setLots(0.01,this)">0.01</div>
-      <div class="of-preset" onclick="setLots(0.10,this)">0.10</div>
-      <div class="of-preset" onclick="setLots(0.50,this)">0.50</div>
-      <div class="of-preset active" onclick="setLots(1,this)">1.00</div>
-      <div class="of-preset" onclick="setLots(2,this)">2.00</div>
-    </div>
-
-    <!-- Buy / Sell -->
-    <div class="of-bs">
-      <button class="of-buy" onclick="placeOrder('buy')">
-        <span class="of-bs-lbl">BUY</span>
-        <span class="of-bs-px" id="ord-ask-price">—</span>
-      </button>
-      <button class="of-sell" onclick="placeOrder('sell')">
-        <span class="of-bs-lbl">SELL</span>
-        <span class="of-bs-px" id="ord-bid-price">—</span>
-      </button>
-    </div>
-
-    <div class="of-div"></div>
-
-    <!-- SL / TP -->
-    <div>
-      <div style="font-size:.52rem;color:rgba(255,255,255,.18);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.3rem">Stop Loss / Take Profit</div>
-      <div class="of-sltp-row">
-        <div class="of-sltp-tog sl" id="slToggle" onclick="toggleSLTP('sl')">
-          <div class="of-sltp-dot"></div>
-          <span class="of-sltp-lbl">Stop Loss</span>
-        </div>
-        <div class="of-sltp-tog tp" id="tpToggle" onclick="toggleSLTP('tp')">
-          <div class="of-sltp-dot"></div>
-          <span class="of-sltp-lbl">Take Profit</span>
-        </div>
-      </div>
-      <div class="of-sltp-fields" id="sltpFields" style="margin-top:.3rem">
-        <div class="of-sltp-field sl" id="slField" style="display:none">
-          <label>SL Price</label>
-          <input type="number" id="slPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
-        </div>
-        <div class="of-sltp-field tp" id="tpField" style="display:none">
-          <label>TP Price</label>
-          <input type="number" id="tpPrice" placeholder="0.0000" step="0.0001" oninput="updatePnlPreview()">
-        </div>
-      </div>
-    </div>
-
-    <!-- P&L preview -->
-    <div class="of-pnl">
-      <div class="of-pnl-side buy">
-        <div class="of-pnl-lbl">Buy / pip</div>
-        <div class="of-pnl-val" id="pnl-buy">+$10.00</div>
-      </div>
-      <div class="of-pnl-side sell">
-        <div class="of-pnl-lbl">Sell / pip</div>
-        <div class="of-pnl-val" id="pnl-sell">+$10.00</div>
-      </div>
-    </div>
-
-    <div class="of-div"></div>
-
-    <!-- Actions + positions -->
-    <div class="of-actions">
-      <div class="of-act" onclick="closePosition()">Close Trade</div>
-      <div class="of-act danger" onclick="flattenAll()">Close All</div>
-    </div>
-
-    <div class="of-pos-hd">Open Positions</div>
-    <div id="ord-pos-list">
-      <div class="of-pos-empty">No open positions</div>
-    </div>
-
-    <div class="of-note">Practice mode — no real money</div>
-
-  </div>
-</div>
 
 <!-- CHATBOT -->
 <button id="chatBtn" onclick="toggleChat()" title="IPFX Assist">
@@ -1708,7 +1799,7 @@ function adjLots(d){
 function setLots(n,btn){
   ordLots=n;
   document.getElementById('ord-lots').textContent=(+n).toFixed(2);
-  document.querySelectorAll('.of-preset,.ord-preset').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>p.classList.remove('active'));
   if(btn)btn.classList.add('active');
   updatePnlPreview();
 }
@@ -1756,16 +1847,31 @@ function updateOrdPrices(mid){
   ordMidPrice=mid;
   const step=domDigits<=2?0.5:domDigits<=4?0.0002:0.01;
   const fmt=v=>v.toFixed(domDigits<=2?2:domDigits<=4?4:2);
-  const lp=document.getElementById('ord-live-price');
+  const ask=mid+step/2, bid=mid-step/2;
   const ap=document.getElementById('ord-ask-price');
   const bp=document.getElementById('ord-bid-price');
-  if(lp)lp.textContent=fmt(mid);
-  if(ap)ap.textContent=fmt(mid+step/2);
-  if(bp)bp.textContent=fmt(mid-step/2);
+  if(ap)ap.textContent=fmt(ask);
+  if(bp)bp.textContent=fmt(bid);
+  // grid cells
+  const ov=document.getElementById('op-ask-val');
+  const bv=document.getElementById('op-bid-val');
+  if(ov)ov.textContent=fmt(ask);
+  if(bv)bv.textContent=fmt(bid);
+  // ticks (spread in points)
+  const ticks=domDigits<=2?(step*2).toFixed(1):(step*2*10000).toFixed(0);
+  const tl=document.getElementById('op-ticks-l'),tr=document.getElementById('op-ticks-r');
+  if(tl)tl.textContent=ticks;
+  if(tr)tr.textContent=ticks;
+  // spread for scalp panel
   const scSp=document.getElementById('sc-spread');
   if(scSp)scSp.textContent=(step*2).toFixed(domDigits<=2?2:domDigits<=4?4:2);
-  const ofSp=document.getElementById('of-spread');
-  if(ofSp)ofSp.textContent='Spread: '+(step*2).toFixed(domDigits<=2?2:domDigits<=4?4:2);
+  // margin estimate (~0.04% of notional for indices, 0.01% forex)
+  const notional=domDigits<=2?ordLots*mid:ordLots*100000*mid;
+  const marginRate=domDigits<=2?0.0004:0.0001;
+  const margin=notional*marginRate;
+  const mEl=document.getElementById('op-margin');
+  if(mEl)mEl.textContent='~$'+margin.toFixed(2)+' ('+(margin/10000*100).toFixed(2)+'%)';
+  updatePnlPreview();
   renderPositions();
 }
 setInterval(()=>{
@@ -2109,11 +2215,10 @@ function changeInstrument(sym){
   refreshDom();
   buildWatchlist();
   updatePnlPreview();
-  const symEl=document.getElementById('of-sym');
-  if(symEl){
-    const inst=Object.values(WL_DATA).flat().find(i=>i.sym===sym);
-    symEl.textContent=inst?inst.name:sym.replace(/^[^:]+:/,'');
-  }
+  const inst=Object.values(WL_DATA).flat().find(i=>i.sym===sym);
+  const name=inst?inst.name:sym.replace(/^[^:]+:/,'');
+  const symEl=document.getElementById('op-sym');
+  if(symEl)symEl.textContent=name;
 }
 
 setInterval(()=>{
@@ -2126,19 +2231,27 @@ setInterval(()=>{
 },1500);
 
 // ── SL/TP ──
-let slOn=false,tpOn=false;
+let slOn=false,tpOn=false,trailOn=false;
 function toggleSLTP(type){
-  if(type==='sl'){
-    slOn=!slOn;
-    document.getElementById('slToggle').classList.toggle('on',slOn);
-    document.getElementById('slField').style.display=slOn?'block':'none';
-  } else {
-    tpOn=!tpOn;
-    document.getElementById('tpToggle').classList.toggle('on',tpOn);
-    document.getElementById('tpField').style.display=tpOn?'block':'none';
-  }
+  if(type==='sl'){slOn=!slOn;document.getElementById('slToggle').classList.toggle('on',slOn);}
+  else {tpOn=!tpOn;document.getElementById('tpToggle').classList.toggle('on',tpOn);}
   const f=document.getElementById('sltpFields');
-  if(f){f.classList.toggle('vis',slOn||tpOn);f.style.display=(slOn||tpOn)?'grid':'none';}
+  if(f)f.classList.toggle('show',slOn||tpOn);
+}
+function toggleTrail(){
+  trailOn=!trailOn;
+  document.getElementById('opTrailChk').classList.toggle('on',trailOn);
+}
+let riskMode=false;
+function toggleRisk(){
+  riskMode=!riskMode;
+  document.getElementById('opRiskChk').classList.toggle('on',riskMode);
+}
+let ordType='market';
+function setOrdType(type,btn){
+  ordType=type;
+  document.querySelectorAll('.op-type-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
 }
 
 // ── P&L PREVIEW ──
@@ -2155,10 +2268,15 @@ function getPipValue(){
 }
 function updatePnlPreview(){
   const v=(ordLots*getPipValue()).toFixed(2);
+  const balPct=(ordLots*getPipValue()/10000*100).toFixed(2);
   const buyEl=document.getElementById('pnl-buy');
   const sellEl=document.getElementById('pnl-sell');
-  if(buyEl)buyEl.textContent='+$'+v;
-  if(sellEl)sellEl.textContent='+$'+v;
+  if(buyEl)buyEl.innerHTML='+$'+v+'<span class="op-pg-sfx">$</span>';
+  if(sellEl)sellEl.innerHTML='+$'+v+'<span class="op-pg-sfx">$</span>';
+  const bb=document.getElementById('op-bal-buy');
+  const bs=document.getElementById('op-bal-sell');
+  if(bb)bb.innerHTML=balPct+'<span class="op-pg-sfx">%</span>';
+  if(bs)bs.innerHTML=balPct+'<span class="op-pg-sfx">%</span>';
 }
 
 // ── THEME & GRID ──
@@ -2437,56 +2555,6 @@ async function submitStrategy(){
     status.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Submission failed. Check your connection and try again.';
   }
   btn.disabled=false;btn.textContent='Submit Strategy';
-}
-
-// ── FLOATING PANEL: DRAG + CONTROLS ──
-(function(){
-  const el=document.getElementById('ordFloat');
-  const hd=document.getElementById('ordFloatHd');
-  if(!el||!hd)return;
-  let sx,sy,sl,st;
-  function startDrag(cx,cy){
-    const r=el.getBoundingClientRect();
-    sx=cx;sy=cy;sl=r.left;st=r.top;
-    el.style.right='auto';
-    el.style.left=sl+'px';
-    el.style.top=st+'px';
-  }
-  function moveDrag(cx,cy){
-    const nx=Math.max(0,Math.min(window.innerWidth-el.offsetWidth,sl+(cx-sx)));
-    const ny=Math.max(0,Math.min(window.innerHeight-40,st+(cy-sy)));
-    el.style.left=nx+'px';
-    el.style.top=ny+'px';
-  }
-  hd.addEventListener('mousedown',e=>{
-    if(e.target.closest('button'))return;
-    e.preventDefault();
-    startDrag(e.clientX,e.clientY);
-    const mm=e2=>{moveDrag(e2.clientX,e2.clientY);};
-    const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
-    document.addEventListener('mousemove',mm);
-    document.addEventListener('mouseup',mu);
-  });
-  hd.addEventListener('touchstart',e=>{
-    if(e.target.closest('button'))return;
-    const t=e.touches[0];
-    startDrag(t.clientX,t.clientY);
-    const tm=e2=>{const t2=e2.touches[0];moveDrag(t2.clientX,t2.clientY);};
-    const te=()=>{document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',te);};
-    document.addEventListener('touchmove',tm,{passive:true});
-    document.addEventListener('touchend',te);
-  },{passive:true});
-})();
-
-function toggleOrdMin(){
-  const el=document.getElementById('ordFloat');
-  el.classList.toggle('minimized');
-}
-function toggleOrdSize(){
-  const el=document.getElementById('ordFloat');
-  const wide=el.dataset.wide==='1';
-  el.style.width=wide?'228px':'300px';
-  el.dataset.wide=wide?'':'1';
 }
 
 // document-level paste for image tab
