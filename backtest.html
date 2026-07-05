@@ -1,677 +1,347 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Free Strategy Backtest | IPFX Capital</title>
-    <meta name="description" content="Submit your trading strategy — in code or plain English — and our quant analyst team will run an institutional-grade backtest, find improvements, and recommend the best instruments.">
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0a0a0c;
-            --bg2: #0e0e10;
-            --fg: #f8f8f8;
-            --muted: #888;
-            --muted2: #555;
-            --line: #2a2a2c;
-            --cobalt: #2563eb;
-            --cobalt-dim: rgba(37,99,235,.12);
-            --green: #10b981;
-            --amber: #f59e0b;
-            --radius: 12px;
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
-
-        /* ===== NAV ===== */
-        nav {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 999;
-            padding: 0 2.5rem; height: 68px;
-            display: flex; align-items: center; gap: 2rem;
-            backdrop-filter: blur(10px);
-            background: rgba(10,10,12,.85);
-            border-bottom: 1px solid rgba(42,42,44,.4);
-        }
-        .logo { display: inline-flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--fg); }
-        .logo img { width: 32px; height: 32px; object-fit: contain; }
-        .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: .5px; }
-        .nav-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
-        .nav-right a { color: var(--muted); text-decoration: none; font-family: 'Space Grotesk', sans-serif; font-size: .9rem; font-weight: 600; transition: color .2s; }
-        .nav-right a:hover { color: var(--fg); }
-        .btn-primary { background: var(--cobalt); color: #fff !important; padding: .5rem 1.2rem; border-radius: 8px; font-size: .875rem !important; }
-        .btn-primary:hover { background: #1d4ed8 !important; }
-
-        /* ===== HERO ===== */
-        .bt-hero {
-            padding: 140px 2rem 80px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .bt-hero::before {
-            content: '';
-            position: absolute;
-            top: -100px; left: 50%; transform: translateX(-50%);
-            width: 800px; height: 600px;
-            background: radial-gradient(ellipse, rgba(37,99,235,.08) 0%, transparent 65%);
-            pointer-events: none;
-        }
-        .bt-eyebrow {
-            display: inline-flex; align-items: center; gap: .5rem;
-            font-size: .72rem; font-weight: 600; letter-spacing: .16em;
-            color: var(--cobalt); text-transform: uppercase;
-            border: 1px solid rgba(37,99,235,.3);
-            background: rgba(37,99,235,.08);
-            padding: .35rem .85rem; border-radius: 100px;
-            margin-bottom: 1.75rem;
-        }
-        .bt-hero h1 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: clamp(2.5rem, 5vw, 4rem);
-            font-weight: 700; letter-spacing: -.03em;
-            color: var(--fg); line-height: 1.1;
-            margin-bottom: 1.25rem;
-        }
-        .bt-hero h1 span { color: var(--cobalt); }
-        .bt-hero > p {
-            font-size: clamp(1rem, 1.5vw, 1.15rem);
-            color: var(--muted); max-width: 620px;
-            margin: 0 auto 2.5rem; line-height: 1.75;
-        }
-        .bt-perks {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem 2rem;
-            max-width: 640px; margin: 0 auto;
-        }
-        .bt-perks span {
-            font-size: .85rem; color: var(--fg);
-            display: flex; align-items: center; gap: .4rem;
-        }
-        .bt-perks span::before {
-            content: '';
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--green); flex-shrink: 0;
-        }
-
-        /* ===== MAIN LAYOUT ===== */
-        .bt-main {
-            max-width: 1100px; margin: 0 auto;
-            padding: 0 2rem 8rem;
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 3rem;
-            align-items: start;
-        }
-
-        /* ===== FORM ===== */
-        .bt-form { display: flex; flex-direction: column; gap: 2rem; }
-
-        .bt-step {
-            background: rgba(255,255,255,.025);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 2rem;
-        }
-        .bt-step-label {
-            font-size: .7rem; font-weight: 700; letter-spacing: .14em;
-            text-transform: uppercase; color: var(--cobalt);
-            margin-bottom: 1.5rem;
-        }
-        .bt-fields { display: flex; flex-direction: column; gap: 1.25rem; }
-        .bt-fields-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-        .bt-field { display: flex; flex-direction: column; gap: .45rem; }
-        .bt-field label { font-size: .8rem; font-weight: 600; color: var(--fg); }
-        .opt { color: var(--muted2); font-weight: 400; }
-        .req { color: var(--cobalt); }
-        .bt-field input, .bt-field select, .bt-field textarea {
-            background: rgba(255,255,255,.04);
-            border: 1px solid var(--line);
-            border-radius: 9px;
-            color: var(--fg);
-            font-family: 'Inter', sans-serif;
-            font-size: .9rem;
-            padding: .7rem 1rem;
-            outline: none;
-            transition: border-color .15s;
-            resize: vertical;
-        }
-        .bt-field input::placeholder, .bt-field textarea::placeholder { color: var(--muted2); }
-        .bt-field input:focus, .bt-field select:focus, .bt-field textarea:focus { border-color: var(--cobalt); }
-        .bt-field input.error, .bt-field textarea.error { border-color: #ef4444; }
-        .bt-field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem; }
-        .bt-field select option { background: #1a1a1e; color: var(--fg); }
-        .bt-field textarea { min-height: 100px; line-height: 1.55; }
-        .bt-field textarea.code-area { font-family: 'Courier New', monospace; font-size: .82rem; min-height: 280px; background: rgba(0,0,0,.3); border-color: rgba(37,99,235,.2); }
-        .bt-field textarea.code-area:focus { border-color: var(--cobalt); }
-
-        /* Instrument chips */
-        .bt-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
-        .bt-chip {
-            padding: .4rem .9rem;
-            border-radius: 100px;
-            border: 1px solid var(--line);
-            background: transparent;
-            color: var(--muted);
-            font-size: .8rem; font-weight: 500;
-            cursor: pointer;
-            transition: all .15s;
-        }
-        .bt-chip:hover { border-color: rgba(37,99,235,.4); color: var(--fg); }
-        .bt-chip.active { border-color: var(--cobalt); background: var(--cobalt-dim); color: var(--fg); }
-
-        /* Mode toggle */
-        .bt-mode-toggle {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: .75rem; margin-bottom: 1.5rem;
-        }
-        .bt-mode {
-            display: flex; align-items: center; justify-content: center; gap: .6rem;
-            padding: .85rem 1rem;
-            border-radius: 10px;
-            border: 1.5px solid var(--line);
-            background: transparent;
-            color: var(--muted);
-            font-family: 'Inter', sans-serif;
-            font-size: .875rem; font-weight: 600;
-            cursor: pointer;
-            transition: all .15s;
-        }
-        .bt-mode svg { width: 18px; height: 18px; flex-shrink: 0; }
-        .bt-mode:hover { border-color: rgba(37,99,235,.4); color: var(--fg); }
-        .bt-mode.active { border-color: var(--cobalt); background: var(--cobalt-dim); color: var(--fg); }
-
-        /* Lang badge */
-        .lang-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-        .lang-row label { font-size: .8rem; font-weight: 600; color: var(--fg); white-space: nowrap; }
-        .lang-row select { flex: 1; }
-
-        /* Submit */
-        .bt-submit-wrap { display: flex; flex-direction: column; gap: 1rem; }
-        .bt-submit {
-            width: 100%;
-            padding: 1rem;
-            background: var(--cobalt);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1rem; font-weight: 700;
-            cursor: pointer;
-            letter-spacing: .02em;
-            transition: background .2s, transform .15s, box-shadow .2s;
-        }
-        .bt-submit:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(37,99,235,.35); }
-        .bt-submit:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
-        .bt-status {
-            display: none;
-            border-radius: 10px;
-            padding: 1rem 1.25rem;
-            font-size: .875rem;
-            line-height: 1.55;
-        }
-        .bt-status.success { display: block; background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.25); color: #34d399; }
-        .bt-status.error { display: block; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); color: #f87171; }
-
-        /* ===== SIDEBAR ===== */
-        .bt-sidebar { position: sticky; top: 88px; display: flex; flex-direction: column; gap: 1.25rem; }
-
-        .bt-sidebar-card {
-            background: rgba(255,255,255,.025);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 1.75rem;
-        }
-        .bt-sidebar-card h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1rem; font-weight: 700;
-            color: var(--fg); margin-bottom: 1.25rem;
-        }
-        .bt-deliver-list { display: flex; flex-direction: column; gap: .9rem; }
-        .bt-deliver-item { display: flex; gap: .75rem; align-items: flex-start; }
-        .bt-deliver-icon {
-            width: 32px; height: 32px; flex-shrink: 0;
-            background: var(--cobalt-dim);
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--cobalt);
-        }
-        .bt-deliver-icon svg { width: 16px; height: 16px; }
-        .bt-deliver-title { font-size: .83rem; font-weight: 600; color: var(--fg); margin-bottom: .15rem; }
-        .bt-deliver-sub { font-size: .77rem; color: var(--muted); line-height: 1.5; }
-
-        .bt-sidebar-eta {
-            background: rgba(245,158,11,.06);
-            border: 1px solid rgba(245,158,11,.2);
-            border-radius: 12px;
-            padding: 1.1rem 1.25rem;
-            display: flex; align-items: flex-start; gap: .75rem;
-        }
-        .bt-sidebar-eta svg { width: 18px; height: 18px; color: var(--amber); flex-shrink: 0; margin-top: 1px; }
-        .bt-sidebar-eta strong { font-size: .83rem; color: var(--amber); display: block; margin-bottom: .2rem; }
-        .bt-sidebar-eta span { font-size: .78rem; color: var(--muted); line-height: 1.5; }
-
-        .bt-sidebar-privacy {
-            font-size: .75rem; color: var(--muted2); line-height: 1.6; padding: 0 .25rem;
-        }
-        .bt-sidebar-privacy a { color: var(--muted); text-decoration: underline; }
-
-        /* ===== SUCCESS STATE ===== */
-        .bt-success-full {
-            display: none;
-            text-align: center;
-            padding: 4rem 2rem;
-            max-width: 560px;
-            margin: 0 auto;
-        }
-        .bt-success-full.show { display: block; }
-        .bt-success-icon {
-            width: 72px; height: 72px;
-            background: rgba(16,185,129,.1);
-            border: 2px solid rgba(16,185,129,.3);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 1.5rem;
-            color: var(--green);
-        }
-        .bt-success-icon svg { width: 32px; height: 32px; }
-        .bt-success-full h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.75rem; font-weight: 700; margin-bottom: .75rem; }
-        .bt-success-full p { color: var(--muted); font-size: .95rem; line-height: 1.7; margin-bottom: 2rem; }
-        .bt-success-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-        .bt-btn-outline { padding: .7rem 1.5rem; border-radius: 9px; border: 1px solid var(--line); color: var(--muted); text-decoration: none; font-size: .875rem; font-weight: 600; transition: all .15s; }
-        .bt-btn-outline:hover { border-color: rgba(255,255,255,.2); color: var(--fg); }
-        .bt-btn-filled { padding: .7rem 1.5rem; border-radius: 9px; background: var(--cobalt); color: #fff; text-decoration: none; font-size: .875rem; font-weight: 600; transition: background .15s; }
-        .bt-btn-filled:hover { background: #1d4ed8; }
-
-        /* ===== FOOTER ===== */
-        .bt-footer {
-            border-top: 1px solid var(--line);
-            padding: 2rem;
-            text-align: center;
-            font-size: .8rem;
-            color: var(--muted2);
-        }
-        .bt-footer a { color: var(--muted); text-decoration: none; }
-
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 860px) {
-            .bt-main { grid-template-columns: 1fr; }
-            .bt-sidebar { position: static; }
-            .bt-fields-2col { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 600px) {
-            .bt-mode-toggle { grid-template-columns: 1fr; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Strategy Backtest | IPFX Capital</title>
+  <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{--bg:#0a0a0c;--fg:#ffffff;--muted:#a0a0a0;--muted2:#6b6b7a;--line:#1e1e22;--line2:#2a2a2e;--cobalt:#2563eb;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--card-bg:rgba(255,255,255,.03);--radius:12px;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;line-height:1.6;-webkit-font-smoothing:antialiased;}
+    nav{position:fixed;top:0;left:0;right:0;z-index:999;padding:0 2.5rem;height:68px;display:flex;align-items:center;gap:2rem;backdrop-filter:blur(10px);background:rgba(10,10,12,0);border-bottom:1px solid rgba(42,42,44,0);transform:translateY(-100%);transition:all .4s cubic-bezier(.4,0,.2,1);}
+    nav.scrolled{background:rgba(10,10,12,.85);border-bottom-color:rgba(42,42,44,.3);transform:translateY(0);}
+    nav.visible{transform:translateY(0);}
+    .logo{display:inline-flex;align-items:center;gap:.7rem;text-decoration:none;color:var(--fg);}
+    .logo img{width:32px;height:32px;object-fit:contain;}
+    .logo-text{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:700;letter-spacing:.5px;}
+    .nav-center{display:flex;align-items:center;gap:2rem;list-style:none;flex:1;justify-content:flex-start;}
+    .nav-center a{color:var(--muted);text-decoration:none;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:600;transition:color .25s;}
+    .nav-center a:hover{color:var(--fg);}
+    .nav-item{position:relative;}
+    .nav-item>a{display:flex;align-items:center;gap:.3rem;}
+    .dropdown-arrow{font-size:.7rem;transition:transform .3s;}
+    .nav-item:hover .dropdown-arrow{transform:rotate(180deg);}
+    .dropdown-menu{position:absolute;top:calc(100% + .4rem);left:50%;transform:translateX(-50%);background:rgba(10,10,12,.97);backdrop-filter:blur(20px);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:.75rem 0;min-width:220px;opacity:0;visibility:hidden;transition:all .25s;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+    .nav-item:hover .dropdown-menu{opacity:1;visibility:visible;}
+    .dropdown-menu a{display:block;padding:.75rem 1.5rem;color:var(--muted);text-decoration:none;font-size:.95rem;transition:all .3s;border-left:3px solid transparent;}
+    .dropdown-menu a:hover{color:var(--fg);background:rgba(37,99,235,.1);border-left-color:var(--cobalt);}
+    .nav-right{display:flex;align-items:center;gap:1rem;flex-shrink:0;}
+    .nav-social{display:flex;align-items:center;gap:.55rem;padding-left:.9rem;border-left:1px solid rgba(255,255,255,.1);}
+    .nav-social a{color:var(--muted);display:flex;align-items:center;justify-content:center;width:26px;height:26px;transition:color .2s;text-decoration:none;}
+    .nav-social a:hover{color:var(--fg);}
+    .nav-social a svg{width:14px;height:14px;fill:currentColor;}
+    .nav-right-sep{width:1px;height:22px;background:rgba(255,255,255,.12);}
+    .nav-right a{color:var(--muted);text-decoration:none;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:600;transition:color .3s;}
+    .nav-right a:hover{color:var(--fg);}
+    .btn-primary{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.4rem;background:var(--cobalt);color:#fff;border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s;}
+    .btn-primary:hover{background:#1d4ed8;transform:translateY(-1px);}
+    .hero{min-height:100vh;display:flex;align-items:center;padding:5rem 2.5rem 4rem;position:relative;overflow:hidden;}
+    .hero::before{content:'';position:absolute;top:-20%;left:-10%;width:70%;height:100%;background:radial-gradient(ellipse at 30% 40%,rgba(37,99,235,.07) 0%,transparent 65%);pointer-events:none;}
+    .hero::after{content:'';position:absolute;bottom:0;right:0;width:50%;height:60%;background:radial-gradient(ellipse at 70% 80%,rgba(37,99,235,.04) 0%,transparent 60%);pointer-events:none;}
+    .hero-inner{max-width:1200px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;}
+    .eyebrow{display:inline-flex;align-items:center;gap:.5rem;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.25);border-radius:100px;padding:.3rem .85rem;font-size:.75rem;font-weight:700;color:#60a5fa;letter-spacing:.8px;text-transform:uppercase;margin-bottom:1.5rem;}
+    .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(1.3);}}
+    .hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:700;line-height:1.15;margin-bottom:1.25rem;letter-spacing:-.5px;}
+    .hero h1 span{background:linear-gradient(135deg,#60a5fa,var(--cobalt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero-lead{font-size:1.05rem;color:var(--muted);line-height:1.7;margin-bottom:2rem;max-width:480px;}
+    .hero-bullets{display:flex;flex-direction:column;gap:.75rem;margin-bottom:2.5rem;}
+    .hero-bullet{display:flex;align-items:flex-start;gap:.75rem;font-size:.95rem;color:var(--muted);}
+    .bullet-icon{width:20px;height:20px;border-radius:50%;background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem;}
+    .bullet-icon svg{width:10px;height:10px;color:#60a5fa;stroke:currentColor;fill:none;stroke-width:2.5;}
+    .hero-cta-row{display:flex;align-items:center;gap:1.25rem;}
+    .cta-note{font-size:.82rem;color:var(--muted2);}
+    .terminal{background:rgba(12,12,16,.95);border:1px solid rgba(37,99,235,.2);border-radius:14px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04);position:relative;}
+    .terminal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(37,99,235,.4),transparent);}
+    .terminal-bar{display:flex;align-items:center;gap:.55rem;padding:.85rem 1rem;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.05);}
+    .tb-dot{width:11px;height:11px;border-radius:50%;}
+    .tb-dot.r{background:#ef4444;}.tb-dot.y{background:#f59e0b;}.tb-dot.g{background:#22c55e;}
+    .terminal-title{margin-left:.5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted2);flex:1;}
+    .terminal-badge{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:#22c55e;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:4px;padding:.1rem .45rem;}
+    .terminal-body{padding:1.25rem;}
+    .t-header{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted2);margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.05);}
+    .t-header span{color:#60a5fa;}
+    .t-row{display:grid;grid-template-columns:1fr auto;align-items:center;padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.035);}
+    .t-row:last-of-type{border-bottom:none;}
+    .t-label{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted2);}
+    .t-val{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:600;}
+    .t-val.pos{color:#22c55e;}.t-val.neg{color:#ef4444;}.t-val.neu{color:#fff;}.t-val.amb{color:#f59e0b;}
+    .t-note{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.15);border-radius:8px;padding:.9rem 1rem;margin-top:.9rem;}
+    .t-note-hd{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:#60a5fa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;}
+    .t-note-body{font-size:.78rem;color:var(--muted);line-height:1.55;}
+    .t-note-body strong{color:var(--fg);}
+    .section-gap{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);margin:0 2.5rem;}
+    .how-section{padding:5rem 2.5rem;}
+    .section-center{max-width:1200px;margin:0 auto;}
+    .section-tag{display:inline-flex;align-items:center;gap:.5rem;font-size:.72rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem;}
+    .section-tag::before{content:'';width:24px;height:1px;background:var(--cobalt);}
+    .section-h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:700;margin-bottom:.75rem;letter-spacing:-.3px;}
+    .section-sub{font-size:1rem;color:var(--muted);max-width:520px;line-height:1.7;margin-bottom:3rem;}
+    .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+    .step-card{background:var(--card-bg);border:1px solid var(--line2);border-radius:var(--radius);padding:1.75rem;position:relative;overflow:hidden;transition:border-color .2s;}
+    .step-card:hover{border-color:rgba(37,99,235,.3);}
+    .step-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cobalt),#818cf8);opacity:0;transition:opacity .2s;}
+    .step-card:hover::before{opacity:1;}
+    .step-num{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;font-weight:700;color:rgba(37,99,235,.15);line-height:1;margin-bottom:1rem;}
+    .step-title{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.5rem;}
+    .step-body{font-size:.88rem;color:var(--muted);line-height:1.6;}
+    .form-section{padding:5rem 2.5rem;}
+    .form-wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1.1fr;gap:4rem;align-items:start;}
+    .form-aside h3{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:.75rem;}
+    .form-aside p{font-size:.95rem;color:var(--muted);line-height:1.7;margin-bottom:1.75rem;}
+    .aside-perks{display:flex;flex-direction:column;gap:1rem;}
+    .perk{display:flex;align-items:flex-start;gap:.85rem;}
+    .perk-icon{width:36px;height:36px;border-radius:8px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .perk-icon svg{width:16px;height:16px;stroke:#60a5fa;fill:none;stroke-width:2;}
+    .perk-text strong{display:block;font-size:.9rem;font-weight:600;margin-bottom:.2rem;}
+    .perk-text span{font-size:.82rem;color:var(--muted);}
+    .form-card{background:rgba(255,255,255,.025);border:1px solid var(--line2);border-radius:14px;padding:2rem;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+    .form-group{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem;}
+    .form-group label{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .form-group input,.form-group select,.form-group textarea{background:rgba(255,255,255,.04);border:1px solid var(--line2);border-radius:8px;padding:.7rem 1rem;color:var(--fg);font-family:'Inter',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:rgba(37,99,235,.5);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+    .form-group select{appearance:none;cursor:pointer;}
+    .form-group textarea{resize:vertical;min-height:120px;line-height:1.6;}
+    .form-group input::placeholder,.form-group textarea::placeholder{color:var(--muted2);}
+    .form-group select option{background:#1a1a1e;}
+    .form-submit{width:100%;padding:.85rem 1.5rem;background:var(--cobalt);color:#fff;border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:.5rem;}
+    .form-submit:hover{background:#1d4ed8;transform:translateY(-1px);}
+    .form-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .form-note{text-align:center;font-size:.78rem;color:var(--muted2);margin-top:.75rem;}
+    .form-success{display:none;text-align:center;padding:2.5rem 1rem;}
+    .form-success.show{display:block;}
+    .success-icon{width:56px;height:56px;border-radius:50%;background:rgba(34,197,94,.1);border:2px solid rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+    .success-icon svg{width:24px;height:24px;stroke:#22c55e;fill:none;stroke-width:2.5;}
+    .success-h{font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;}
+    .success-p{font-size:.9rem;color:var(--muted);line-height:1.6;}
+    .stats-strip{padding:3rem 2.5rem;background:rgba(37,99,235,.04);border-top:1px solid rgba(37,99,235,.1);border-bottom:1px solid rgba(37,99,235,.1);}
+    .stats-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;}
+    .stat-item{text-align:center;}
+    .stat-num{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;}
+    .stat-label{font-size:.82rem;color:var(--muted);margin-top:.25rem;}
+    footer{background:rgba(255,255,255,.015);border-top:1px solid var(--line);}
+    .footer-container{max-width:1200px;margin:0 auto;padding:3rem 2.5rem 2rem;display:grid;grid-template-columns:2fr repeat(4,1fr);gap:2.5rem;}
+    .footer-brand h3{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:.75rem;}
+    .footer-brand p{font-size:.85rem;color:var(--muted);line-height:1.6;}
+    .footer-links h4{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;color:var(--muted);}
+    .footer-links ul{list-style:none;}.footer-links li{margin-bottom:.5rem;}
+    .footer-links a{color:var(--muted);text-decoration:none;font-size:.85rem;transition:color .2s;}
+    .footer-links a:hover{color:var(--fg);}
+    .footer-bottom{max-width:1200px;margin:0 auto;padding:1.25rem 2.5rem;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted2);}
+    .footer-bottom a{color:inherit;text-decoration:underline;text-underline-offset:3px;}
+    .footer-risk{max-width:1200px;margin:0 auto;padding:.75rem 2.5rem 1.5rem;font-size:.78rem;color:var(--muted2);line-height:1.6;}
+    .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s cubic-bezier(.4,0,.2,1),transform .6s cubic-bezier(.4,0,.2,1);}
+    .reveal.is-visible{opacity:1;transform:none;}
+    .reveal-delay-1{transition-delay:.1s;}.reveal-delay-2{transition-delay:.2s;}.reveal-delay-3{transition-delay:.3s;}
+    @media(max-width:900px){.hero-inner,.form-wrap{grid-template-columns:1fr;}.steps-grid{grid-template-columns:1fr;}.stats-inner{grid-template-columns:repeat(2,1fr);}.footer-container{grid-template-columns:1fr 1fr;}nav{padding:0 1.25rem;}}
+  </style>
 </head>
 <body>
-
-<nav>
-    <a href="/" class="logo">
-        <img src="/assets/images/favicon.ico" alt="IPFX Logo">
-        <span class="logo-text">IPFX Capital</span>
-    </a>
-    <div class="nav-right">
-        <a href="/">Home</a>
-        <a href="/signup.html" class="btn-primary">Pre-Register</a>
+<nav id="mainNav">
+  <a href="index.html" class="logo"><img src="/assets/images/favicon.ico" alt="IPFX Logo"><span class="logo-text">IPFX Capital</span></a>
+  <ul class="nav-center">
+    <li class="nav-item"><a href="index.html#programs">Challenges <span class="dropdown-arrow">&#9660;</span></a>
+      <div class="dropdown-menu">
+        <a href="index.html#infinity-challenge">Infinity Challenge</a>
+        <a href="index.html#application-challenge">Application Challenge</a>
+        <a href="index.html#traditional-challenge">Traditional Challenge</a>
+        <a href="futures.html">Futures Challenge</a>
+      </div>
+    </li>
+    <li class="nav-item"><a href="index.html#resources">Resources <span class="dropdown-arrow">&#9660;</span></a>
+      <div class="dropdown-menu">
+        <a href="index.html#profit-calculator">Profit Calculator</a>
+        <a href="futures.html">Futures Trading</a>
+        <a href="personalised-challenge.html">Personalised Challenge</a>
+        <a href="backtest.html" style="color:#60a5fa;border-left-color:#2563eb;">Free Strategy Backtest</a>
+      </div>
+    </li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="index.html#faq">FAQ</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-social">
+      <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
+      <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
     </div>
+    <div class="nav-right-sep"></div>
+    <a href="login.html">Login</a>
+    <a href="signup.html" class="btn-primary" style="font-size:.875rem;padding:.55rem 1.2rem;">Get Started</a>
+  </div>
 </nav>
-
-<!-- Hero -->
-<section class="bt-hero">
-    <div class="bt-eyebrow">Free Service &mdash; No Catch</div>
-    <h1>Backtest Your <span>Strategy</span></h1>
-    <p>Submit your trading strategy — in code or plain English — and our quant analyst team runs it against real institutional-grade data, finds ways to improve it, and identifies which instruments suit it best.</p>
-    <div class="bt-perks">
-        <span>Institutional-level backtest</span>
-        <span>Strategy improvement report</span>
-        <span>Instrument recommendations</span>
-        <span>Results in 3–5 business days</span>
-        <span>100% free, no account needed</span>
+<section class="hero">
+  <div class="hero-inner">
+    <div class="reveal">
+      <div class="eyebrow"><span class="eyebrow-dot"></span>Free Service &mdash; No Account Required</div>
+      <h1>Let Our Quant Team<br><span>Backtest Your Strategy</span></h1>
+      <p class="hero-lead">Submit your trading strategy &mdash; rules, code, or plain English &mdash; and our in-house quant team will run a rigorous historical backtest across 5+ years of institutional-grade data and send you the results within 48 hours.</p>
+      <div class="hero-bullets">
+        <div class="hero-bullet"><div class="bullet-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span>Tested on 5+ years of tick and OHLC data (Jan 2019 &ndash; Dec 2024)</span></div>
+        <div class="hero-bullet"><div class="bullet-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span>Full statistical report: Win Rate, Profit Factor, Max Drawdown, Sharpe Ratio</span></div>
+        <div class="hero-bullet"><div class="bullet-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span>Written analyst notes &mdash; real improvement suggestions from a human quant</span></div>
+        <div class="hero-bullet"><div class="bullet-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><span>Pine Script, Python, MQL5, or plain English rule sets all accepted</span></div>
+      </div>
+      <div class="hero-cta-row">
+        <a href="#submit" class="btn-primary" style="font-size:1rem;padding:.8rem 1.8rem;">Submit Your Strategy &#8594;</a>
+        <span class="cta-note">Results delivered within 48 hours</span>
+      </div>
     </div>
+    <div class="terminal reveal reveal-delay-2">
+      <div class="terminal-bar">
+        <div class="tb-dot r"></div><div class="tb-dot y"></div><div class="tb-dot g"></div>
+        <div class="terminal-title">backtest_report_ema_crossover_h1.json</div>
+        <div class="terminal-badge">COMPLETED</div>
+      </div>
+      <div class="terminal-body">
+        <div class="t-header">$ ipfx-quant run --strategy "EMA Crossover H1" --from <span>2019-01-01</span> --to <span>2024-12-31</span></div>
+        <div class="t-row"><div class="t-label">Win Rate</div><div class="t-val pos">63.4%</div></div>
+        <div class="t-row"><div class="t-label">Profit Factor</div><div class="t-val pos">1.87</div></div>
+        <div class="t-row"><div class="t-label">Max Drawdown</div><div class="t-val neg">-12.3%</div></div>
+        <div class="t-row"><div class="t-label">Sharpe Ratio</div><div class="t-val pos">1.42</div></div>
+        <div class="t-row"><div class="t-label">Total Trades</div><div class="t-val neu">847</div></div>
+        <div class="t-row"><div class="t-label">Test Period</div><div class="t-val neu">Jan 2019 &ndash; Dec 2024</div></div>
+        <div class="t-row"><div class="t-label">Instruments</div><div class="t-val neu">EUR/USD, GBP/USD, XAU/USD</div></div>
+        <div class="t-row" style="border-bottom:none;"><div class="t-label">Risk per trade</div><div class="t-val amb">1.0% fixed</div></div>
+        <div class="t-note">
+          <div class="t-note-hd">// Analyst Note</div>
+          <div class="t-note-body">Strong edge on trend-following pairs. <strong>Entry timing tightens P&amp;F on ranging sessions</strong> &mdash; adding an ATR filter to skip low-volatility windows increased Profit Factor from 1.87 &rarr; 2.14 in simulation. Drawdown concentrated in early 2020 flash-crash period; consider reducing size during high-impact news.</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
-
-<!-- Main -->
-<div class="bt-main" id="btMain">
-    <!-- Form column -->
-    <div class="bt-form" id="btFormWrap">
-
-        <!-- Step 1 -->
-        <div class="bt-step">
-            <div class="bt-step-label">01 &mdash; Your Details</div>
-            <div class="bt-fields">
-                <div class="bt-fields-2col">
-                    <div class="bt-field">
-                        <label for="btName">Full Name <span class="opt">(optional)</span></label>
-                        <input type="text" id="btName" placeholder="Your name">
-                    </div>
-                    <div class="bt-field">
-                        <label for="btEmail">Email Address <span class="req">*</span></label>
-                        <input type="email" id="btEmail" placeholder="you@example.com">
-                    </div>
-                </div>
-                <div class="bt-field">
-                    <label for="btStratName">Strategy Name <span class="opt">(optional)</span></label>
-                    <input type="text" id="btStratName" placeholder="e.g. London Breakout v2, My EMA Crossover System">
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="bt-step">
-            <div class="bt-step-label">02 &mdash; Strategy Profile</div>
-            <div class="bt-fields">
-                <div class="bt-fields-2col">
-                    <div class="bt-field">
-                        <label for="btStyle">Trading Style <span class="req">*</span></label>
-                        <select id="btStyle">
-                            <option value="">Select your style…</option>
-                            <option value="scalper">Scalper (&lt; 15 min holds)</option>
-                            <option value="day_trader">Day Trader (intraday)</option>
-                            <option value="swing">Swing Trader (days to weeks)</option>
-                            <option value="position">Position Trader (weeks to months)</option>
-                            <option value="algo">Algorithmic / Fully Automated</option>
-                        </select>
-                    </div>
-                    <div class="bt-field">
-                        <label for="btTimeframe">Primary Timeframe</label>
-                        <select id="btTimeframe">
-                            <option value="">Select timeframe…</option>
-                            <option value="M1">M1 — 1 Minute</option>
-                            <option value="M5">M5 — 5 Minutes</option>
-                            <option value="M15">M15 — 15 Minutes</option>
-                            <option value="M30">M30 — 30 Minutes</option>
-                            <option value="H1">H1 — 1 Hour</option>
-                            <option value="H4">H4 — 4 Hours</option>
-                            <option value="D1">D1 — Daily</option>
-                            <option value="W1">W1 — Weekly</option>
-                            <option value="multi">Multi-Timeframe</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="bt-field">
-                    <label>Instruments You Currently Trade <span class="opt">(select all that apply)</span></label>
-                    <div class="bt-chips" id="btInstruments">
-                        <button type="button" class="bt-chip" data-val="forex">Forex</button>
-                        <button type="button" class="bt-chip" data-val="indices">Indices</button>
-                        <button type="button" class="bt-chip" data-val="gold_silver">Gold / Silver</button>
-                        <button type="button" class="bt-chip" data-val="oil">Oil / Energy</button>
-                        <button type="button" class="bt-chip" data-val="crypto">Crypto</button>
-                        <button type="button" class="bt-chip" data-val="futures">Futures</button>
-                        <button type="button" class="bt-chip" data-val="stocks">Stocks / Equities</button>
-                        <button type="button" class="bt-chip" data-val="bonds">Bonds / Rates</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="bt-step">
-            <div class="bt-step-label">03 &mdash; Your Strategy</div>
-
-            <div class="bt-mode-toggle">
-                <button type="button" class="bt-mode active" id="modeCode" onclick="setMode('code')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                    Submit as Code
-                </button>
-                <button type="button" class="bt-mode" id="modeDesc" onclick="setMode('description')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                    Describe in Detail
-                </button>
-            </div>
-
-            <!-- Code panel -->
-            <div id="codePanel">
-                <div class="bt-field" style="margin-bottom:1rem">
-                    <label for="btLang">Language / Format</label>
-                    <select id="btLang">
-                        <option value="pine_script">Pine Script (TradingView)</option>
-                        <option value="python">Python (Backtrader, Pandas, etc.)</option>
-                        <option value="mql4">MQL4 (MetaTrader 4)</option>
-                        <option value="mql5">MQL5 (MetaTrader 5)</option>
-                        <option value="javascript">JavaScript / TypeScript</option>
-                        <option value="pseudocode">Pseudocode / Plain Logic</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="bt-field">
-                    <label for="btCode">Paste Your Code <span class="req">*</span></label>
-                    <textarea class="code-area" id="btCode" placeholder="// Paste your full strategy code here
-// Our analysts handle the rest — no formatting required"></textarea>
-                </div>
-            </div>
-
-            <!-- Description panel -->
-            <div id="descPanel" style="display:none">
-                <div class="bt-fields" style="gap:1.25rem">
-                    <div class="bt-field">
-                        <label for="btEntry">Entry Conditions <span class="req">*</span></label>
-                        <textarea id="btEntry" rows="5" placeholder="Describe exactly when you enter a trade. e.g. 'I enter long when the 20 EMA crosses above the 50 EMA on the H1 chart, confirmed by RSI crossing above 50 and price being above the 200 EMA. I only take trades during the London session (8am–12pm GMT).'"></textarea>
-                    </div>
-                    <div class="bt-field">
-                        <label for="btExit">Exit Conditions <span class="req">*</span></label>
-                        <textarea id="btExit" rows="5" placeholder="Describe when and how you exit. e.g. 'I set a take profit at the next significant resistance level or when RSI reaches 70. I use a trailing stop of 20 pips once in 15 pips of profit. I always close positions before the NY session close.'"></textarea>
-                    </div>
-                    <div class="bt-field">
-                        <label for="btRisk">Risk Management <span class="req">*</span></label>
-                        <textarea id="btRisk" rows="4" placeholder="e.g. 'I risk 1% of account per trade. Stop loss is placed 2 ATR below entry. I never have more than 3 concurrent open trades. I stop trading after 2 consecutive losses in a day.'"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bt-field" style="margin-top:1.25rem">
-                <label for="btNotes">Additional Context <span class="opt">(optional)</span></label>
-                <textarea id="btNotes" rows="4" placeholder="Anything else our analysts should know — e.g. market conditions it performs best in, filters you apply, known weaknesses, what you'd like us to focus on, specific improvements you're looking for, pairs you've already tested it on…"></textarea>
-            </div>
-        </div>
-
-        <!-- Submit -->
-        <div class="bt-submit-wrap">
-            <button type="button" class="bt-submit" id="btSubmit" onclick="submitStrategy()">
-                Submit for Analysis →
-            </button>
-            <div class="bt-status" id="btStatus"></div>
-        </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="bt-sidebar">
-        <div class="bt-sidebar-card">
-            <h3>What You'll Receive</h3>
-            <div class="bt-deliver-list">
-                <div class="bt-deliver-item">
-                    <div class="bt-deliver-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    </div>
-                    <div>
-                        <div class="bt-deliver-title">Institutional Backtest Report</div>
-                        <div class="bt-deliver-sub">Win rate, profit factor, max drawdown, Sharpe ratio — run on 5+ years of real price data across multiple market conditions.</div>
-                    </div>
-                </div>
-                <div class="bt-deliver-item">
-                    <div class="bt-deliver-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    </div>
-                    <div>
-                        <div class="bt-deliver-title">Strategy Improvement Notes</div>
-                        <div class="bt-deliver-sub">Our quants identify parameter optimisations, filter additions, and rule tweaks that could improve performance or reduce drawdown.</div>
-                    </div>
-                </div>
-                <div class="bt-deliver-item">
-                    <div class="bt-deliver-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                    </div>
-                    <div>
-                        <div class="bt-deliver-title">Instrument Recommendations</div>
-                        <div class="bt-deliver-sub">We test your strategy across correlated instruments and flag which ones show statistically stronger edge for your specific logic.</div>
-                    </div>
-                </div>
-                <div class="bt-deliver-item">
-                    <div class="bt-deliver-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    </div>
-                    <div>
-                        <div class="bt-deliver-title">Full Written Analysis</div>
-                        <div class="bt-deliver-sub">A plain-English summary of our findings — written by a human analyst, not auto-generated. No jargon, just actionable insights.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bt-sidebar-eta">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <div>
-                <strong>Turnaround: 3–5 Business Days</strong>
-                <span>Results sent directly to your email. Complex algorithmic strategies may take slightly longer.</span>
-            </div>
-        </div>
-
-        <p class="bt-sidebar-privacy">
-            Your strategy is handled in strict confidence. We never share, publish, or trade submitted strategies. By submitting you agree to our <a href="/contact.html">privacy policy</a>.
-        </p>
-    </div>
+<div class="stats-strip reveal">
+  <div class="stats-inner">
+    <div class="stat-item"><div class="stat-num">5+ yrs</div><div class="stat-label">Historical Data Coverage</div></div>
+    <div class="stat-item"><div class="stat-num">&lt;48h</div><div class="stat-label">Average Turnaround Time</div></div>
+    <div class="stat-item"><div class="stat-num">12+</div><div class="stat-label">Instruments Supported</div></div>
+    <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">Free &mdash; No Account Needed</div></div>
+  </div>
 </div>
-
-<!-- Success state (shown after submission) -->
-<div class="bt-success-full" id="btSuccess">
-    <div class="bt-success-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+<div class="section-gap"></div>
+<section class="how-section">
+  <div class="section-center">
+    <div class="reveal">
+      <div class="section-tag">Process</div>
+      <h2 class="section-h2">How It Works</h2>
+      <p class="section-sub">Three steps from submission to a full institutional backtest report in your inbox.</p>
     </div>
-    <h2>Strategy Submitted</h2>
-    <p id="btSuccessMsg">Our quant analyst team will review your strategy and send a full backtest report, improvement notes, and instrument recommendations to your email within 3–5 business days.</p>
-    <div class="bt-success-actions">
-        <a href="/" class="bt-btn-outline">Back to Home</a>
-        <a href="/signup.html" class="bt-btn-filled">Pre-Register for Launch →</a>
+    <div class="steps-grid">
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-num">01</div><div class="step-title">Submit Your Strategy</div>
+        <div class="step-body">Describe your entry and exit rules, risk parameters, and preferred instruments. Submit written rules, Pine Script, Python, or MQL5 &mdash; our team handles all formats.</div>
+      </div>
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-num">02</div><div class="step-title">Quant Team Review</div>
+        <div class="step-body">Our in-house quantitative analysts codify your strategy, apply it across 5+ years of institutional tick data, and calculate full performance statistics with rigorous walk-forward testing.</div>
+      </div>
+      <div class="step-card reveal reveal-delay-3">
+        <div class="step-num">03</div><div class="step-title">Results &amp; Recommendations</div>
+        <div class="step-body">You receive a detailed backtest report with Win Rate, Profit Factor, Sharpe Ratio, Max Drawdown, and written analyst notes on how to sharpen your edge &mdash; all within 48 hours.</div>
+      </div>
     </div>
-</div>
-
-<footer class="bt-footer">
-    <p>&copy; 2026 IPFX Capital. All rights reserved. &nbsp;·&nbsp; <a href="/">Home</a> &nbsp;·&nbsp; <a href="/contact.html">Contact</a></p>
+  </div>
+</section>
+<div class="section-gap"></div>
+<section class="form-section" id="submit">
+  <div class="form-wrap">
+    <div class="form-aside reveal">
+      <div class="section-tag">Submit</div>
+      <h3>Ready to See the Numbers?</h3>
+      <p>Fill in the form and our quant team will get to work. No charge, no strings attached &mdash; just an honest, data-driven analysis of your strategy.</p>
+      <div class="aside-perks">
+        <div class="perk"><div class="perk-icon"><svg viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg></div><div class="perk-text"><strong>Full Statistical Report</strong><span>Win rate, profit factor, Sharpe ratio, drawdown analysis and more</span></div></div>
+        <div class="perk"><div class="perk-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="perk-text"><strong>48-Hour Turnaround</strong><span>Results sent to your email within two business days</span></div></div>
+        <div class="perk"><div class="perk-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="perk-text"><strong>Your Strategy Stays Yours</strong><span>We never share or publish submitted strategies &mdash; your edge stays confidential</span></div></div>
+        <div class="perk"><div class="perk-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="perk-text"><strong>Human Analyst Notes</strong><span>Real written feedback &mdash; not just automated raw numbers</span></div></div>
+      </div>
+    </div>
+    <div class="form-card reveal reveal-delay-1">
+      <div id="formContent">
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input type="text" id="bt-fname" placeholder="John" required></div>
+          <div class="form-group"><label>Last Name</label><input type="text" id="bt-lname" placeholder="Smith"></div>
+        </div>
+        <div class="form-group"><label>Email Address</label><input type="email" id="bt-email" placeholder="john@example.com" required></div>
+        <div class="form-group"><label>Strategy Name</label><input type="text" id="bt-name" placeholder="e.g. EMA Crossover H1, London Breakout..." required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Instrument(s)</label><input type="text" id="bt-instruments" placeholder="e.g. EUR/USD, Gold, NASDAQ"></div>
+          <div class="form-group"><label>Timeframe</label>
+            <select id="bt-tf"><option value="">Select...</option><option value="M1">M1 (1-Minute)</option><option value="M5">M5 (5-Minute)</option><option value="M15">M15 (15-Minute)</option><option value="M30">M30 (30-Minute)</option><option value="H1">H1 (1-Hour)</option><option value="H4">H4 (4-Hour)</option><option value="D1">D1 (Daily)</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label>Strategy Format</label>
+          <select id="bt-lang"><option value="">Select format...</option><option value="plain_english">Plain English Rules</option><option value="pine_script">Pine Script (TradingView)</option><option value="python">Python</option><option value="mql5">MQL5 (MetaEditor)</option><option value="mql4">MQL4</option><option value="other">Other</option></select>
+        </div>
+        <div class="form-group"><label>Strategy Description</label>
+          <textarea id="bt-desc" placeholder="Describe your entry rules, exit rules, stop loss logic, take profit levels, and any filters (e.g. session time, ATR threshold, trend filter). The more detail, the more accurate the backtest."></textarea>
+        </div>
+        <button class="form-submit" id="btSubmitBtn" onclick="submitBacktest()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Submit for Backtest
+        </button>
+        <p class="form-note">Free service &middot; No account required &middot; Results within 48 hours</p>
+      </div>
+      <div class="form-success" id="formSuccess">
+        <div class="success-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="success-h">Strategy Submitted!</div>
+        <p class="success-p">Our quant team will review your strategy and send the backtest report to your email within 48 hours. Check your spam folder just in case.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-container">
+    <div class="footer-brand"><h3>IPFX Capital</h3><p>Empowering traders with fair, transparent access to capital. No gimmicks, no hidden fees.</p></div>
+    <div class="footer-links"><h4>Programs</h4><ul><li><a href="index.html#infinity-challenge">Infinity Challenge</a></li><li><a href="personalised-challenge.html">Application Challenge</a></li><li><a href="futures.html">Futures Challenge</a></li></ul></div>
+    <div class="footer-links"><h4>Resources</h4><ul><li><a href="backtest.html">Free Backtest</a></li><li><a href="trading.html">Trading Platform</a></li><li><a href="index.html#profit-calculator">Calculator</a></li></ul></div>
+    <div class="footer-links"><h4>Company</h4><ul><li><a href="about.html">About Us</a></li><li><a href="contact.html">Contact</a></li><li><a href="faq.html">FAQ</a></li></ul></div>
+    <div class="footer-links"><h4>Legal</h4><ul><li><a href="terms.html">Terms &amp; Conditions</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="risk-disclosure.html">Risk Disclosure</a></li></ul></div>
+  </div>
+  <div class="footer-risk"><strong>Risk Disclosure:</strong> Trading involves substantial risk. Past performance is not indicative of future results. The backtest service is for educational purposes only and does not constitute financial advice.</div>
+  <div class="footer-bottom"><p>&copy; 2026 IPFX Capital Ltd. All rights reserved. &nbsp;&middot;&nbsp; <a href="terms.html">Terms &amp; Conditions</a></p></div>
 </footer>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-    const { createClient } = window.supabase;
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let currentMode = 'code';
-    let selectedInstruments = [];
-
-    // ── Chip toggles ──────────────────────────────────────────
-    document.getElementById('btInstruments').addEventListener('click', function(e) {
-        const chip = e.target.closest('.bt-chip');
-        if (!chip) return;
-        chip.classList.toggle('active');
-        const val = chip.dataset.val;
-        if (chip.classList.contains('active')) {
-            selectedInstruments.push(val);
-        } else {
-            selectedInstruments = selectedInstruments.filter(v => v !== val);
-        }
+const SB_URL='https://agulweemteoeagscmppy.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+async function submitBacktest(){
+  const fname=document.getElementById('bt-fname').value.trim();
+  const lname=document.getElementById('bt-lname').value.trim();
+  const email=document.getElementById('bt-email').value.trim();
+  const name=document.getElementById('bt-name').value.trim();
+  const instruments=document.getElementById('bt-instruments').value.trim();
+  const tf=document.getElementById('bt-tf').value;
+  const lang=document.getElementById('bt-lang').value;
+  const desc=document.getElementById('bt-desc').value.trim();
+  if(!fname||!email||!name||!desc){alert('Please fill in your name, email, strategy name, and description.');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('Please enter a valid email address.');return;}
+  const btn=document.getElementById('btSubmitBtn');
+  btn.disabled=true;btn.textContent='Submitting...';
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/backtest_submissions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal'},
+      body:JSON.stringify({first_name:fname,last_name:lname,email,strategy_name:name,instruments:instruments||null,timeframe:tf||null,language:lang||null,description:desc,status:'pending',submitted_at:new Date().toISOString()})
     });
-
-    // ── Mode toggle ───────────────────────────────────────────
-    function setMode(mode) {
-        currentMode = mode;
-        document.getElementById('codePanel').style.display = mode === 'code' ? '' : 'none';
-        document.getElementById('descPanel').style.display = mode === 'description' ? '' : 'none';
-        document.getElementById('modeCode').classList.toggle('active', mode === 'code');
-        document.getElementById('modeDesc').classList.toggle('active', mode === 'description');
-    }
-
-    // ── Validation ────────────────────────────────────────────
-    function validate() {
-        let ok = true;
-        const email = document.getElementById('btEmail');
-        const style = document.getElementById('btStyle');
-        const statusEl = document.getElementById('btStatus');
-
-        email.classList.remove('error');
-        style.classList.remove('error');
-
-        if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
-            email.classList.add('error');
-            ok = false;
-        }
-        if (!style.value) {
-            style.classList.add('error');
-            ok = false;
-        }
-
-        if (currentMode === 'code') {
-            const code = document.getElementById('btCode');
-            code.classList.remove('error');
-            if (!code.value.trim()) { code.classList.add('error'); ok = false; }
-        } else {
-            const entry = document.getElementById('btEntry');
-            const exit = document.getElementById('btExit');
-            const risk = document.getElementById('btRisk');
-            [entry, exit, risk].forEach(el => el.classList.remove('error'));
-            if (!entry.value.trim()) { entry.classList.add('error'); ok = false; }
-            if (!exit.value.trim()) { exit.classList.add('error'); ok = false; }
-            if (!risk.value.trim()) { risk.classList.add('error'); ok = false; }
-        }
-
-        if (!ok) {
-            statusEl.className = 'bt-status error';
-            statusEl.textContent = 'Please fill in the required fields marked above.';
-        }
-        return ok;
-    }
-
-    // ── Submit ────────────────────────────────────────────────
-    async function submitStrategy() {
-        if (!validate()) return;
-
-        const btn = document.getElementById('btSubmit');
-        const statusEl = document.getElementById('btStatus');
-        btn.disabled = true;
-        btn.textContent = 'Submitting…';
-        statusEl.className = 'bt-status';
-
-        const payload = {
-            name: document.getElementById('btName').value.trim() || null,
-            email: document.getElementById('btEmail').value.trim(),
-            strategy_name: document.getElementById('btStratName').value.trim() || null,
-            trading_style: document.getElementById('btStyle').value || null,
-            timeframe: document.getElementById('btTimeframe').value || null,
-            instruments: selectedInstruments.length ? selectedInstruments : null,
-            submission_type: currentMode,
-            additional_notes: document.getElementById('btNotes').value.trim() || null
-        };
-
-        if (currentMode === 'code') {
-            payload.code_language = document.getElementById('btLang').value;
-            payload.strategy_code = document.getElementById('btCode').value.trim();
-        } else {
-            payload.entry_conditions = document.getElementById('btEntry').value.trim();
-            payload.exit_conditions = document.getElementById('btExit').value.trim();
-            payload.risk_management = document.getElementById('btRisk').value.trim();
-        }
-
-        try {
-            const { error } = await sb.from('strategy_submissions').insert(payload);
-            if (error) throw error;
-
-            // Show success
-            document.getElementById('btMain').style.display = 'none';
-            const successEl = document.getElementById('btSuccess');
-            successEl.classList.add('show');
-            document.getElementById('btSuccessMsg').textContent =
-                `Our quant analyst team will review${payload.strategy_name ? ' "'+payload.strategy_name+'"' : ' your strategy'} and send a full backtest report, improvement notes, and instrument recommendations to ${payload.email} within 3–5 business days.`;
-
-        } catch(err) {
-            console.error(err);
-            statusEl.className = 'bt-status error';
-            statusEl.textContent = 'Something went wrong — please try again or email us directly at enquiries@ipfxcapital.com';
-            btn.disabled = false;
-            btn.textContent = 'Submit for Analysis →';
-        }
-    }
+    if(res.ok||res.status===201){document.getElementById('formContent').style.display='none';document.getElementById('formSuccess').classList.add('show');}
+    else{throw new Error('HTTP '+res.status);}
+  }catch(e){
+    btn.disabled=false;
+    btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit for Backtest';
+    alert('Something went wrong. Please try again or contact us directly.');
+  }
+}
+const nav=document.getElementById('mainNav');
+nav.classList.add('visible');
+window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>20);});
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('is-visible');});},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 </script>
 </body>
 </html>

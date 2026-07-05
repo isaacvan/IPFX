@@ -380,35 +380,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .jinrow button{padding:.3rem .75rem;background:rgba(37,99,235,.14);border:1px solid rgba(37,99,235,.3);border-radius:5px;color:#60a5fa;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s;}
 .jinrow button:hover{background:var(--cobalt);color:#fff;border-color:var(--cobalt);}
 
-/* ── LEFT WATCHLIST ── */
-.wl-panel{width:195px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:visible;transition:width .22s cubic-bezier(.4,0,.2,1);position:relative;z-index:10;}
-.wl-panel.hidden{width:0;border-right:none;overflow:hidden;}
-.wl-head{padding:.5rem .7rem .38rem;flex-shrink:0;border-bottom:1px solid var(--line);}
-.wl-search{display:flex;align-items:center;gap:.38rem;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;padding:.26rem .48rem;margin-bottom:.38rem;}
-.wl-search svg{width:10px;height:10px;color:var(--muted2);flex-shrink:0;}
-.wl-search input{flex:1;background:none;border:none;color:var(--fg);font-size:.7rem;font-family:'Inter',sans-serif;outline:none;min-width:0;}
-.wl-search input::placeholder{color:var(--muted2);}
-.wl-cats{display:flex;gap:.16rem;flex-wrap:wrap;}
-.wcat{padding:.13rem .35rem;border-radius:4px;border:1px solid var(--line);background:none;color:var(--muted2);font-size:.59rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .12s;font-family:'Inter',sans-serif;}
-.wcat:hover{color:var(--fg);}
-.wcat.active{background:var(--cobalt-d);border-color:rgba(37,99,235,.4);color:#60a5fa;}
-.wl-list{flex:1;overflow-y:auto;}
-.wl-list::-webkit-scrollbar{width:2px;}
-.wl-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);}
-.wl-item{display:flex;align-items:center;padding:.36rem .7rem;cursor:pointer;border-left:2px solid transparent;transition:all .1s;gap:.35rem;}
-.wl-item:hover{background:rgba(255,255,255,.04);}
-.wl-item.active{background:rgba(37,99,235,.09);border-left-color:var(--cobalt);}
-.wl-sym{font-family:'Space Grotesk',sans-serif;font-size:.73rem;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.wl-prices{display:flex;flex-direction:column;align-items:flex-end;gap:.03rem;flex-shrink:0;}
-.wl-bid{font-family:'Space Grotesk',sans-serif;font-size:.67rem;font-weight:600;}
-.wl-chg{font-size:.56rem;font-weight:700;}
-.wl-chg.pos{color:var(--green);}
-.wl-chg.neg{color:var(--red);}
-.wl-tog{position:absolute;top:50%;right:-11px;transform:translateY(-50%);z-index:50;width:11px;height:30px;background:var(--bg2);border:1px solid var(--line);border-left:none;border-radius:0 4px 4px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:color .15s;}
-.wl-tog:hover{color:var(--fg);}
-.wl-tog svg{width:7px;height:7px;transition:transform .22s;}
-.wl-panel.hidden .wl-tog svg{transform:rotate(180deg);}
-
 /* ── ORDER PANEL ENHANCEMENTS ── */
 .ord-sec-hd{font-size:.58rem;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:.28rem;}
 .sltp-section{display:flex;flex-direction:column;gap:.35rem;}
@@ -608,9 +579,8 @@ body.light .op-sltp-inp{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.1);}
 
 /* ── LIGHT MODE ── */
 body.light{--bg:#f4f6fb;--bg2:#ffffff;--bg3:#edf0f7;--fg:#0c0c16;--muted:#555770;--muted2:#9899b2;--line:#dde1ef;--line2:#e8ebf4;--cobalt-d:rgba(37,99,235,.08);}
-body.light .topbar,body.light .wl-panel,body.light .chart-toolbar,body.light .guide,body.light .btm-outer,body.light .chart-footer{background:#fff;}
+body.light .topbar,body.light .chart-toolbar,body.light .guide,body.light .btm-outer,body.light .chart-footer{background:#fff;}
 body.light .topbar{border-bottom-color:#dde1ef;}
-body.light .wl-panel{border-right-color:#dde1ef;}
 body.light .chart-toolbar{border-bottom-color:#dde1ef;}
 body.light .guide{border-left-color:#dde1ef;}
 body.light .btm-outer{border-top-color:#dde1ef;}
@@ -788,26 +758,6 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 
 <!-- LAYOUT -->
 <div class="layout">
-
-  <!-- LEFT WATCHLIST -->
-  <div class="wl-panel" id="wlPanel">
-    <div class="wl-head">
-      <div class="wl-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="wlSearch" placeholder="Search…" oninput="filterWatchlist(this.value)">
-      </div>
-      <div class="wl-cats">
-        <button class="wcat active" onclick="switchWlCat('forex',this)">Forex</button>
-        <button class="wcat" onclick="switchWlCat('metals',this)">Metals</button>
-        <button class="wcat" onclick="switchWlCat('indices',this)">Indices</button>
-        <button class="wcat" onclick="switchWlCat('crypto',this)">Crypto</button>
-      </div>
-    </div>
-    <div class="wl-list" id="wlList"></div>
-    <div class="wl-tog" onclick="toggleWatchlist()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    </div>
-  </div>
 
   <!-- CENTER: CHART -->
   <div class="chart-wrap">
@@ -2173,62 +2123,16 @@ const WL_DATA={
   ]
 };
 
-let wlCat='forex';
-const wlPrices={};
-Object.values(WL_DATA).flat().forEach(inst=>{
-  wlPrices[inst.sym]={mid:inst.base*(1+(Math.random()-.5)*.001),chgPct:(Math.random()-.48)*1.5,inst};
-});
-
-function buildWatchlist(){
-  const list=document.getElementById('wlList');
-  if(!list)return;
-  const items=WL_DATA[wlCat]||[];
-  const qry=(document.getElementById('wlSearch')?.value||'').toLowerCase();
-  let html='';
-  items.filter(i=>!qry||i.name.toLowerCase().includes(qry)||i.sym.toLowerCase().includes(qry)).forEach(inst=>{
-    const d=wlPrices[inst.sym];if(!d)return;
-    const bid=(d.mid-inst.sp/2).toFixed(inst.d);
-    const chgC=d.chgPct>=0?'pos':'neg';
-    const chgS=(d.chgPct>=0?'+':'')+d.chgPct.toFixed(2)+'%';
-    html+=`<div class="wl-item${activeSym===inst.sym?' active':''}" onclick="changeInstrument('${inst.sym}')">
-      <div class="wl-sym">${inst.name}</div>
-      <div class="wl-prices"><div class="wl-bid">${bid}</div><div class="wl-chg ${chgC}">${chgS}</div></div>
-    </div>`;
-  });
-  list.innerHTML=html||'<div style="padding:.5rem .7rem;font-size:.68rem;color:var(--muted2)">No results</div>';
-}
-
-function filterWatchlist(){buildWatchlist();}
-
-function switchWlCat(cat,btn){
-  wlCat=cat;
-  document.querySelectorAll('.wcat').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  buildWatchlist();
-}
-
-function toggleWatchlist(){document.getElementById('wlPanel').classList.toggle('hidden');}
-
 function changeInstrument(sym){
   activeSym=sym;
   rebuildChart();
   refreshDom();
-  buildWatchlist();
   updatePnlPreview();
   const inst=Object.values(WL_DATA).flat().find(i=>i.sym===sym);
   const name=inst?inst.name:sym.replace(/^[^:]+:/,'');
   const symEl=document.getElementById('op-sym');
   if(symEl)symEl.textContent=name;
 }
-
-setInterval(()=>{
-  Object.values(wlPrices).forEach(d=>{
-    const drift=(Math.random()-.5)*d.inst.base*.0001;
-    d.mid+=drift;
-    d.chgPct=Math.max(-3,Math.min(3,d.chgPct+drift/d.inst.base*100));
-  });
-  buildWatchlist();
-},1500);
 
 // ── SL/TP ──
 let slOn=false,tpOn=false,trailOn=false;
