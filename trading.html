@@ -678,8 +678,8 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   <div class="tb-div"></div>
   <div class="tb-acct" id="tbAcct">Account</div>
   <div class="tb-pill">Login&nbsp;<strong id="tbLogin">—</strong></div>
-  <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">MT5</strong></div>
-  <div class="tb-pill">Server&nbsp;<strong id="tbServer">IPFX-MT5-Live</strong></div>
+  <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">IPFX Capital Markets</strong></div>
+  <div class="tb-pill">Server&nbsp;<strong id="tbServer">IPFX-Live</strong></div>
   <div class="tb-right">
     <div class="tb-tool-grp">
       <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode">
@@ -1261,8 +1261,8 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 const P=new URLSearchParams(location.search);
 document.getElementById('tbAcct').textContent=P.get('name')||'My Account';
 document.getElementById('tbLogin').textContent=P.get('login')||'—';
-document.getElementById('tbPlatform').textContent=P.get('platform')||'MT5';
-document.getElementById('tbServer').textContent=P.get('server')||'IPFX-MT5-Live';
+document.getElementById('tbPlatform').textContent=P.get('platform')||'IPFX Capital Markets';
+document.getElementById('tbServer').textContent=P.get('server')||'IPFX-Live';
 document.title='IPFX Markets | '+(P.get('name')||'Account');
 
 let activeSym='OANDA:EURUSD';
