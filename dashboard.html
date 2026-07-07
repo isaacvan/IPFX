@@ -943,7 +943,7 @@ async function checkDashPromo(){
   const s=document.getElementById('dashPromoStatus');
   btn.disabled=true;btn.textContent='Checking…';
   try{
-    const{data,error}=await sb.from('promo_codes').select('code,challenge_name,challenge_type').eq('code',code).single();
+    const{data,error}=await sb.from('promo_codes').select('code,challenge_name,challenge_type').eq('code',code).eq('is_active',true).single();
     if(error||!data){
       document.getElementById('dashPromoCode').classList.add('invalid');
       s.className='promo-redeem-status err';s.textContent='✕ Invalid or expired challenge code.';s.style.display='';

@@ -56,6 +56,17 @@ ON CONFLICT (code) DO UPDATE
     is_active      = TRUE,
     use_count      = 0;
 
+-- Single-use code: ONJZKD0IWU
+INSERT INTO promo_codes (code, challenge_name, challenge_type, max_uses, is_active)
+VALUES ('ONJZKD0IWU', 'Traditional 100K Challenge', '100k', 1, TRUE)
+ON CONFLICT (code) DO UPDATE
+  SET
+    challenge_name = EXCLUDED.challenge_name,
+    challenge_type = EXCLUDED.challenge_type,
+    max_uses       = EXCLUDED.max_uses,
+    is_active      = TRUE,
+    use_count      = 0;
+
 -- ============================================================
 -- HOW IT WORKS
 -- ============================================================
@@ -69,11 +80,10 @@ ON CONFLICT (code) DO UPDATE
 --    the query (is_active = FALSE) → shown as "Invalid or expired".
 -- ============================================================
 
--- To check current status:
+-- To check current status of all single-use codes:
 --   SELECT code, challenge_name, is_active, use_count, max_uses
---   FROM promo_codes WHERE code = 'G7DKXVFTCH';
+--   FROM promo_codes WHERE code IN ('G7DKXVFTCH', 'ONJZKD0IWU');
 
--- To reset for re-use (e.g. if signup failed after the trigger fired):
---   UPDATE promo_codes
---   SET is_active = TRUE, use_count = 0
---   WHERE code = 'G7DKXVFTCH';
+-- To reset a code (e.g. if signup failed after the trigger fired):
+--   UPDATE promo_codes SET is_active = TRUE, use_count = 0 WHERE code = 'G7DKXVFTCH';
+--   UPDATE promo_codes SET is_active = TRUE, use_count = 0 WHERE code = 'ONJZKD0IWU';
