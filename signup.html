@@ -1013,25 +1013,49 @@
             }
         }
 
-        function validateReferralCode() {
-            const code = referralCodeInput.value.trim();
+        async function validateReferralCode() {
+            const code = referralCodeInput.value.trim().toUpperCase();
+            const errEl = document.getElementById('referralError');
 
             // Empty is valid (optional field)
-            if (code === '') return true;
-
-            // Check format: 8 alphanumeric characters
-            const isValid = /^[A-Z0-9]{8}$/.test(code.toUpperCase());
-
-            if (!isValid) {
-                referralCodeInput.classList.add('error');
-                document.getElementById('referralError').classList.add('show');
-                return false;
-            } else {
-                referralCodeInput.classList.remove('error');
-                referralCodeInput.classList.add('success');
-                document.getElementById('referralError').classList.remove('show');
+            if (code === '') {
+                referralCodeInput.classList.remove('error','success');
+                errEl.classList.remove('show');
                 return true;
             }
+
+            // Format check first
+            if (!/^[A-Z0-9]{6,10}$/.test(code)) {
+                referralCodeInput.classList.add('error');
+                referralCodeInput.classList.remove('success');
+                errEl.textContent = 'Invalid referral code format';
+                errEl.classList.add('show');
+                return false;
+            }
+
+            // DB check — verify code exists in user_profiles
+            try {
+                const { data } = await supabaseClient
+                    .from('user_profiles')
+                    .select('referral_code')
+                    .eq('referral_code', code)
+                    .maybeSingle();
+                if (!data) {
+                    referralCodeInput.classList.add('error');
+                    referralCodeInput.classList.remove('success');
+                    errEl.textContent = 'Referral code not found';
+                    errEl.classList.add('show');
+                    return false;
+                }
+            } catch(_) {
+                // if DB check fails, allow signup to proceed
+            }
+
+            referralCodeInput.value = code;
+            referralCodeInput.classList.remove('error');
+            referralCodeInput.classList.add('success');
+            errEl.classList.remove('show');
+            return true;
         }
 
         // ============================================
@@ -1056,7 +1080,7 @@
             const isEmailValid = validateEmail();
             const isPasswordValid = validatePassword();
             const isPasswordMatchValid = validatePasswordMatch();
-            const isReferralCodeValid = validateReferralCode();
+            const isReferralCodeValid = await validateReferralCode();
 
             if (!isNameValid || !isEmailValid || !isPasswordValid || !isPasswordMatchValid || !isReferralCodeValid) {
                 showAlert('Please fix the errors before submitting', 'error');

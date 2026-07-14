@@ -276,6 +276,12 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .ref-how-num{width:28px;height:28px;border-radius:50%;background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.25);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#60a5fa;margin:0 auto .6rem;}
 .ref-how-title{font-weight:600;font-size:.82rem;margin-bottom:.25rem;}
 .ref-how-sub{font-size:.75rem;color:var(--muted);line-height:1.5;}
+.ref-code-block{display:flex;align-items:center;gap:.75rem;margin:.5rem 0 .35rem;}
+.ref-code-display{font-family:'JetBrains Mono','Courier New',monospace;font-size:1.65rem;font-weight:700;letter-spacing:.18em;color:var(--fg);background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:10px;padding:.5rem 1.25rem;flex:1;text-align:center;}
+.ref-copy-code{display:flex;align-items:center;gap:.45rem;background:var(--cobalt);color:#fff;border:none;border-radius:8px;padding:.65rem 1.1rem;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .2s;white-space:nowrap;}
+.ref-copy-code:hover{background:var(--cobalt-h);}
+.ref-copy-code svg{width:14px;height:14px;}
+.ref-code-hint{font-size:.75rem;color:var(--muted2);margin-bottom:.75rem;}
 /* COMMUNITY */
 .social-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem;}
 .social-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.2rem;text-decoration:none;color:var(--fg);display:flex;flex-direction:column;gap:.65rem;transition:border-color .2s,transform .2s;}
@@ -647,18 +653,24 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="ref-how-step"><div class="ref-how-num">3</div><div class="ref-how-title">You get paid</div><div class="ref-how-sub">10% of their entry fee paid to you within 30 days of their first payout.</div></div>
       </div>
       <div class="ref-box">
-        <div class="ref-lbl">Your referral link</div>
-        <div class="ref-row"><input class="ref-input" id="refLink" value="https://ipfxcapital.com/ref/PA7K3X" readonly><button class="ref-copy" onclick="copyRef()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="cpTxt">Copy Link</span></button></div>
+        <div class="ref-lbl">Your referral code</div>
+        <div class="ref-code-block">
+          <div class="ref-code-display" id="refCodeDisplay">—</div>
+          <button class="ref-copy-code" onclick="copyRefCode()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="cpCodeTxt">Copy Code</span></button>
+        </div>
+        <div class="ref-code-hint">Others enter this code at sign-up — no link needed.</div>
+        <div class="ref-lbl" style="margin-top:1rem">Or share your referral link</div>
+        <div class="ref-row"><input class="ref-input" id="refLink" value="" readonly placeholder="Loading…"><button class="ref-copy" onclick="copyRefLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="cpTxt">Copy Link</span></button></div>
         <div class="ref-note">Earn <strong style="color:var(--fg)">10% commission</strong> on the entry fee for every trader you refer who gets funded. Commission paid within 30 days of their first payout.</div>
         <div class="ref-share-btns">
-          <a class="ref-share-btn" href="https://twitter.com/intent/tweet?text=I%27m%20trading%20with%20IPFX%20Capital%20%E2%80%94%20funded%20accounts%20with%20your%20own%20rules.%20Use%20my%20link%3A%20https%3A%2F%2Fipfxcapital.com%2Fref%2FPA7K3X" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Share on X</a>
-          <a class="ref-share-btn" href="https://wa.me/?text=I%27m%20trading%20with%20IPFX%20Capital%20%E2%80%94%20funded%20accounts%20with%20your%20own%20rules.%20Use%20my%20link%3A%20https%3A%2F%2Fipfxcapital.com%2Fref%2FPA7K3X" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Share on WhatsApp</a>
-          <button class="ref-share-btn" onclick="copyRef()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy link</button>
+          <a class="ref-share-btn" id="refShareX" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Share on X</a>
+          <a class="ref-share-btn" id="refShareWA" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Share on WhatsApp</a>
+          <button class="ref-share-btn" onclick="copyRefLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy link</button>
         </div>
       </div>
       <div class="sec-hd"><div><div class="sec-title">Referred Traders</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Joined</th><th>Account</th><th>Status</th><th>Commission</th></tr></thead><tbody>
-        <tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No referred traders yet. Share your link above to start earning.</td></tr>
+      <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Joined</th><th>Status</th><th>Commission</th></tr></thead><tbody id="refTradersTbody">
+        <tr><td colspan="4" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No referred traders yet. Share your code above to start earning.</td></tr>
       </tbody></table></div>
     </div>
 
@@ -814,11 +826,28 @@ async function initDashboard(){
   document.getElementById('uName').textContent=name;
   document.getElementById('uEmail').textContent=user.email;
 
-  // load accounts + pending claims in parallel
-  const[{data:enrollments},{data:claims}]=await Promise.all([
+  // load accounts, claims, profile + referrals in parallel
+  const[{data:enrollments},{data:claims},{data:profile},{data:referralRows}]=await Promise.all([
     sb.from('challenge_enrollments').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
-    sb.from('challenge_claims').select('*').eq('user_id',user.id).order('created_at',{ascending:false})
+    sb.from('challenge_claims').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
+    sb.from('user_profiles').select('referral_code,referral_count').eq('user_id',user.id).maybeSingle(),
+    sb.from('referrals').select('*,referred:referred_user_id(full_name)').eq('referrer_user_id',user.id).order('created_at',{ascending:false})
   ]);
+
+  // populate referral section
+  const refCode=profile?.referral_code||null;
+  if(refCode){
+    const refLink=`https://ipfxcapital.com/signup?ref=${refCode}`;
+    document.getElementById('refCodeDisplay').textContent=refCode;
+    document.getElementById('refLink').value=refLink;
+    document.getElementById('ref-total').textContent=profile?.referral_count||0;
+    const msg=encodeURIComponent(`Join IPFX Capital — use my referral code ${refCode} at sign-up: ${refLink}`);
+    const xEl=document.getElementById('refShareX');
+    const waEl=document.getElementById('refShareWA');
+    if(xEl)xEl.href=`https://twitter.com/intent/tweet?text=${msg}`;
+    if(waEl)waEl.href=`https://wa.me/?text=${msg}`;
+  }
+  renderReferralTraders(referralRows||[]);
 
   const hasEnrollments=enrollments&&enrollments.length>0;
   const hasClaims=claims&&claims.length>0;
@@ -1107,7 +1136,35 @@ function toggleFaq(el){const item=el.parentElement;const was=item.classList.cont
 function doPayout(){const v=parseFloat(document.getElementById('poutAmt').value);if(!v||v<=0){alert('Enter a valid amount.');return;}alert(`Payout of $${v.toFixed(2)} submitted. Processing in 1–3 business days.`);}
 
 // Referral copy
-function copyRef(){navigator.clipboard.writeText(document.getElementById('refLink').value).then(()=>{const t=document.getElementById('cpTxt');t.textContent='Copied!';setTimeout(()=>t.textContent='Copy Link',2000);});}
+function copyRefCode(){
+  const code=document.getElementById('refCodeDisplay').textContent;
+  if(!code||code==='—')return;
+  navigator.clipboard.writeText(code).then(()=>{const t=document.getElementById('cpCodeTxt');t.textContent='Copied!';setTimeout(()=>t.textContent='Copy Code',2000);});
+}
+function copyRefLink(){
+  const v=document.getElementById('refLink').value;
+  if(!v)return;
+  navigator.clipboard.writeText(v).then(()=>{const t=document.getElementById('cpTxt');t.textContent='Copied!';setTimeout(()=>t.textContent='Copy Link',2000);});
+}
+function copyRef(){copyRefLink();}
+
+function renderReferralTraders(rows){
+  const tbody=document.getElementById('refTradersTbody');
+  if(!tbody)return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No referred traders yet. Share your code above to start earning.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=rows.map(r=>{
+    const name=r.referred?.full_name||'—';
+    const joined=r.created_at?new Date(r.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+    const status=r.status||'pending';
+    const badgeMap={pending:'<span class="badge" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)"><span class="bdot" style="background:#f59e0b"></span>Pending</span>',active:'<span class="badge ba"><span class="bdot"></span>Active</span>',rewarded:'<span class="badge bf"><span class="bdot"></span>Rewarded</span>'};
+    const badge=badgeMap[status]||badgeMap.pending;
+    const commission=r.reward_earned?`$${parseFloat(r.reward_earned).toFixed(2)}`:'—';
+    return`<tr><td>${name}</td><td>${joined}</td><td>${badge}</td><td>${commission}</td></tr>`;
+  }).join('');
+}
 
 // Affiliate form submit
 function submitAffForm(e){

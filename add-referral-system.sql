@@ -41,23 +41,11 @@ RETURNS TRIGGER AS $$
 DECLARE
     new_referral_code VARCHAR(10);
     referrer_id UUID;
+    used_code VARCHAR(10);
 BEGIN
-    -- Generate unique referral code
+    -- Generate unique referral code for this new user
     new_referral_code := generate_referral_code(NEW.id);
-
-    -- Check if user signed up with a referral code
-    IF NEW.raw_user_meta_data->>'referral_code' IS NOT NULL THEN
-        -- Find the referrer and increment their count
-        SELECT user_id INTO referrer_id
-        FROM public.user_profiles
-        WHERE referral_code = NEW.raw_user_meta_data->>'referral_code';
-
-        IF referrer_id IS NOT NULL THEN
-            UPDATE public.user_profiles
-            SET referral_count = referral_count + 1
-            WHERE user_id = referrer_id;
-        END IF;
-    END IF;
+    used_code := NEW.raw_user_meta_data->>'referral_code';
 
     -- Create user profile with referral code
     INSERT INTO public.user_profiles (
@@ -72,8 +60,37 @@ BEGIN
         COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
         COALESCE((NEW.raw_user_meta_data->>'newsletter')::boolean, false),
         new_referral_code,
-        NEW.raw_user_meta_data->>'referral_code'
+        used_code
     );
+
+    -- If a referral code was used, record it and update the referrer
+    IF used_code IS NOT NULL THEN
+        SELECT user_id INTO referrer_id
+        FROM public.user_profiles
+        WHERE referral_code = used_code;
+
+        IF referrer_id IS NOT NULL THEN
+            -- Increment referrer's count
+            UPDATE public.user_profiles
+            SET referral_count = referral_count + 1
+            WHERE user_id = referrer_id;
+
+            -- Insert a row in the referrals tracking table
+            INSERT INTO public.referrals (
+                referrer_user_id,
+                referred_user_id,
+                referral_code,
+                status,
+                reward_earned
+            ) VALUES (
+                referrer_id,
+                NEW.id,
+                used_code,
+                'pending',
+                0
+            ) ON CONFLICT (referred_user_id) DO NOTHING;
+        END IF;
+    END IF;
 
     RETURN NEW;
 END;
