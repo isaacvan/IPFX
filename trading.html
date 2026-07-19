@@ -1738,8 +1738,31 @@ function refreshDom(){
 }
 setInterval(animateDom,600);
 
-// ── PAPER ORDER ──
-let ordLots=1,paperPositions=[],ordMidPrice=1.0850;
+// ── ORDER TICKET (server-side fills via trading-engine) ──
+let ordLots=1,ordMidPrice=1.0850;
+
+const ENGINE_URL='https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine';
+let engineState=null,engineBusy=false;
+function engineToken(){
+  try{const raw=localStorage.getItem('sb-agulweemteoeagscmppy-auth-token');if(!raw)return null;const s=JSON.parse(raw);return s&&s.access_token?s.access_token:null;}catch(_){return null;}
+}
+function engineMsg(txt,ok){
+  let el=document.getElementById('engToast');
+  if(!el){el=document.createElement('div');el.id='engToast';el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:.6rem 1.1rem;border-radius:8px;font-size:.78rem;font-weight:600;box-shadow:0 4px 24px rgba(0,0,0,.35);transition:opacity .3s;max-width:90vw;opacity:0';document.body.appendChild(el);}
+  el.style.background=ok?'#10b981':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3500);
+}
+async function engineCall(body){
+  const tok=engineToken();
+  if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
+  try{
+    const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>null);
+    if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
+    if(!r.ok||!j||j.ok===false){engineMsg((j&&j.error)||'Order rejected');return null;}
+    engineState=j;renderPositions();renderEngineAccount();return j;
+  }catch(_){engineMsg('Network error — order not placed');return null;}
+}
 function adjLots(d){
   const step=ordLots<0.1?0.01:ordLots<1?0.1:1;
   ordLots=Math.round(Math.max(0.01,ordLots+(d>0?step:-step))*100)/100;
@@ -1753,45 +1776,75 @@ function setLots(n,btn){
   if(btn)btn.classList.add('active');
   updatePnlPreview();
 }
-function placeOrder(side){
-  const step=domDigits<=2?0.5:domDigits<=4?0.0002:0.01;
-  const price=side==='buy'?ordMidPrice+step/2:ordMidPrice-step/2;
-  const fmt=v=>v.toFixed(domDigits<=2?2:domDigits<=4?4:2);
-  const pos={id:Date.now(),side,lots:ordLots,entry:price,sym:activeSym||'—',pnl:0};
-  paperPositions.push(pos);
-  renderPositions();
-  const flash=document.querySelector('.ord-'+(side==='buy'?'buy':'sell'));
-  if(flash){flash.style.transform='scale(0.95)';setTimeout(()=>{flash.style.transform='';},120);}
+async function placeOrder(side){
+  if(engineBusy)return;engineBusy=true;
+  const payload={action:'open',symbol:activeSym,side,volume:ordLots};
+  if(slOn){const v=parseFloat(document.getElementById('slPrice').value);if(v)payload.sl=v;}
+  if(tpOn){const v=parseFloat(document.getElementById('tpPrice').value);if(v)payload.tp=v;}
+  const res=await engineCall(payload);
+  engineBusy=false;
+  if(res){
+    engineMsg(side.toUpperCase()+' '+ordLots.toFixed(2)+' lots filled',true);
+    const flash=document.querySelector('.ord-'+(side==='buy'?'buy':'sell'));
+    if(flash){flash.style.transform='scale(0.95)';setTimeout(()=>{flash.style.transform='';},120);}
+  }
 }
 function joinSide(side){placeOrder(side==='bid'?'sell':'buy');}
-function closePosition(){if(paperPositions.length){paperPositions.pop();renderPositions();}}
-function reversePosition(){
-  if(!paperPositions.length){placeOrder('buy');return;}
-  const last=paperPositions[paperPositions.length-1];
-  paperPositions.pop();
+async function closeTradeById(id){
+  if(engineBusy)return;engineBusy=true;
+  const r=await engineCall({action:'close',trade_id:id});
+  engineBusy=false;
+  if(r)engineMsg('Position closed',true);
+}
+function closePosition(){
+  const o=engineState&&engineState.open_trades;
+  if(o&&o.length)closeTradeById(o[o.length-1].id);
+}
+async function reversePosition(){
+  const o=engineState&&engineState.open_trades;
+  if(!o||!o.length){placeOrder('buy');return;}
+  const last=o[o.length-1];
+  await closeTradeById(last.id);
   placeOrder(last.side==='buy'?'sell':'buy');
 }
-function cancelAll(){paperPositions=paperPositions.filter(p=>false);renderPositions();}
-function flattenAll(){paperPositions=[];renderPositions();}
+function cancelAll(){flattenAll();}
+async function flattenAll(){
+  if(engineBusy)return;engineBusy=true;
+  const r=await engineCall({action:'close_all'});
+  engineBusy=false;
+  if(r)engineMsg('All positions closed',true);
+}
+function fmtPx(v){const n=+v;return n>=1000?n.toFixed(1):n>=10?n.toFixed(2):n.toFixed(5).replace(/0{1,3}$/,'');}
 function renderPositions(){
   const list=document.getElementById('ord-pos-list');
   if(!list)return;
-  if(!paperPositions.length){list.innerHTML='<div class="of-pos-empty">No open positions</div>';return;}
-  const step=domDigits<=2?0.5:domDigits<=4?0.0002:0.01;
-  const fmt=v=>v.toFixed(domDigits<=2?2:domDigits<=4?4:2);
-  list.innerHTML=paperPositions.map((p,i)=>{
-    const cur=ordMidPrice+(p.side==='buy'?-step/2:step/2);
-    const pipFactor=domDigits<=2?100:10000;
-    const rawPnl=(cur-p.entry)*(p.side==='buy'?1:-1)*pipFactor*p.lots;
-    const pnl=rawPnl.toFixed(1);
-    const isPos=rawPnl>=0;
+  const o=(engineState&&engineState.open_trades)||[];
+  if(!o.length){list.innerHTML='<div class="of-pos-empty">'+(engineToken()?'No open positions':'Log in to trade')+'</div>';return;}
+  list.innerHTML=o.map(p=>{
+    const pnl=(p.live_pnl==null)?null:+p.live_pnl;
+    const isPos=pnl!=null&&pnl>=0;
     return `<div class="ord-pos">
       <span class="ord-pos-dir ${p.side}">${p.side.toUpperCase()}</span>
-      <span class="ord-pos-info">${p.lots}L @ ${fmt(p.entry)}</span>
-      <span class="ord-pos-pnl ${isPos?'pos':'neg'}">${isPos?'+':''}${pnl} pips</span>
-      <span class="ord-pos-close" onclick="paperPositions.splice(${i},1);renderPositions()">✕</span>
+      <span class="ord-pos-info">${(+p.volume).toFixed(2)}L ${p.symbol} @ ${fmtPx(p.open_price)}</span>
+      <span class="ord-pos-pnl ${isPos?'pos':'neg'}">${pnl==null?'—':(isPos?'+$':'-$')+Math.abs(pnl).toFixed(2)}</span>
+      <span class="ord-pos-close" onclick="closeTradeById('${p.id}')">✕</span>
     </div>`;
   }).join('');
+}
+function renderEngineAccount(){
+  const a=engineState&&engineState.account;if(!a)return;
+  const f=v=>'$'+(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('bp-balance',f(a.balance));
+  set('bp-daily',f(a.limits.daily_floor));
+  set('bp-floor',f(a.limits.max_dd_floor));
+  set('bp-target',f(a.limits.target_balance));
+  if(a.status==='passed')engineMsg('🎉 Challenge PASSED — payout review pending',true);
+  else if(a.status==='breached')engineMsg('Challenge breached: '+(a.breach_reason||'limit hit'));
+}
+if(engineToken()){
+  engineCall({action:'state'});
+  setInterval(()=>{if(!engineBusy&&engineToken())engineCall({action:'state'});},8000);
 }
 function updateOrdPrices(mid){
   ordMidPrice=mid;
