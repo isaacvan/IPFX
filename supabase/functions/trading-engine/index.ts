@@ -335,6 +335,21 @@ Deno.serve(async (req) => {
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return err("Not signed in", 401);
 
+  // Live quote for the order ticket — no account needed. Returns real mid,
+  // plus bid/ask derived from the instrument spread. Fails closed.
+  if (body.action === "price") {
+    const symbol = cleanSymbol(body.symbol);
+    if (!symbol) return err("Unknown instrument");
+    const inst = INSTRUMENTS[symbol];
+    const m = await mid(symbol);
+    if (m === null) return err("No live price", 503);
+    return new Response(JSON.stringify({
+      ok: true, symbol, mid: m,
+      bid: m - inst.spread / 2, ask: m + inst.spread / 2,
+      digits: inst.digits, spread: inst.spread,
+    }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+
   // privileged client for writes (bypasses RLS — server is the only writer)
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 

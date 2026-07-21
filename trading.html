@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IPFX Markets</title>
 <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -1743,8 +1744,28 @@ let ordLots=1,ordMidPrice=1.0850;
 
 const ENGINE_URL='https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine';
 let engineState=null,engineBusy=false;
+const SB_AUTH_KEY='sb-agulweemteoeagscmppy-auth-token';
+// Robust across every supabase-js storage format: raw JSON, base64- prefixed
+// (auth-js >= 2.54), and chunked keys (.0/.1). Falls back gracefully.
 function engineToken(){
-  try{const raw=localStorage.getItem('sb-agulweemteoeagscmppy-auth-token');if(!raw)return null;const s=JSON.parse(raw);return s&&s.access_token?s.access_token:null;}catch(_){return null;}
+  try{
+    let raw=localStorage.getItem(SB_AUTH_KEY);
+    if(raw===null){ // chunked storage
+      let acc='',i=0,part;
+      while((part=localStorage.getItem(SB_AUTH_KEY+'.'+i))!==null){acc+=part;i++;}
+      raw=acc||null;
+    }
+    if(!raw)return null;
+    if(raw.startsWith('base64-')){
+      const bin=atob(raw.slice(7));
+      const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+      raw=new TextDecoder().decode(bytes);
+    }
+    const s=JSON.parse(raw);
+    // some versions nest under currentSession
+    const sess=s&&s.access_token?s:(s&&s.currentSession?s.currentSession:null);
+    return sess&&sess.access_token?sess.access_token:null;
+  }catch(_){return null;}
 }
 function engineMsg(txt,ok){
   let el=document.getElementById('engToast');
@@ -1752,8 +1773,21 @@ function engineMsg(txt,ok){
   el.style.background=ok?'#10b981':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3500);
 }
+// Official client (auto-refreshes tokens). Falls back to raw localStorage
+// parsing if the CDN script failed to load.
+let sbEngine=null;
+try{ if(window.supabase&&window.supabase.createClient){ sbEngine=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); } }catch(_){}
+// Fresh, non-expired token: prefer the client (it silently refreshes), else parse storage.
+async function freshToken(){
+  if(sbEngine){
+    try{const{data}=await sbEngine.auth.getSession();if(data&&data.session&&data.session.access_token)return data.session.access_token;}catch(_){}
+  }
+  return engineToken();
+}
+// Sync check for display only ("Log in to trade" vs "No open positions").
+function hasSession(){return !!engineToken();}
 async function engineCall(body){
-  const tok=engineToken();
+  const tok=await freshToken();
   if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
   try{
     const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body)});
@@ -1819,7 +1853,7 @@ function renderPositions(){
   const list=document.getElementById('ord-pos-list');
   if(!list)return;
   const o=(engineState&&engineState.open_trades)||[];
-  if(!o.length){list.innerHTML='<div class="of-pos-empty">'+(engineToken()?'No open positions':'Log in to trade')+'</div>';return;}
+  if(!o.length){list.innerHTML='<div class="of-pos-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div>';return;}
   list.innerHTML=o.map(p=>{
     const pnl=(p.live_pnl==null)?null:+p.live_pnl;
     const isPos=pnl!=null&&pnl>=0;
@@ -1839,12 +1873,17 @@ function renderEngineAccount(){
   set('bp-daily',f(a.limits.daily_floor));
   set('bp-floor',f(a.limits.max_dd_floor));
   set('bp-target',f(a.limits.target_balance));
-  if(a.status==='passed')engineMsg('🎉 Challenge PASSED — payout review pending',true);
-  else if(a.status==='breached')engineMsg('Challenge breached: '+(a.breach_reason||'limit hit'));
+  // Only announce a status change once, not on every 8s poll.
+  if(a.status!==lastEngineStatus){
+    if(a.status==='passed')engineMsg('🎉 Challenge PASSED — payout review pending',true);
+    else if(a.status==='breached')engineMsg('Challenge breached: '+(a.breach_reason||'limit hit'));
+    lastEngineStatus=a.status;
+  }
 }
-if(engineToken()){
+let lastEngineStatus=null;
+if(hasSession()){
   engineCall({action:'state'});
-  setInterval(()=>{if(!engineBusy&&engineToken())engineCall({action:'state'});},8000);
+  setInterval(()=>{if(!engineBusy&&hasSession())engineCall({action:'state'});},8000);
 }
 function updateOrdPrices(mid){
   ordMidPrice=mid;
@@ -1877,11 +1916,29 @@ function updateOrdPrices(mid){
   updatePnlPreview();
   renderPositions();
 }
-setInterval(()=>{
-  const jitter=(Math.random()-0.5)*0.0002*(domDigits<=2?100:1);
-  domPrice+=jitter;
-  updateOrdPrices(domPrice);
-},1500);
+// Real quote for the active instrument, from the engine's price feed.
+// Between polls we leave the last real price (animateDom keeps the ladder
+// visually alive). Logged-out visitors keep the static seed price.
+let priceFetchBusy=false;
+async function pollTicketPrice(){
+  if(priceFetchBusy||!activeSym||!hasSession())return;
+  priceFetchBusy=true;
+  const tok=await freshToken();
+  if(tok){
+    try{
+      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym})});
+      const j=await r.json().catch(()=>null);
+      if(j&&j.ok&&isFinite(j.mid)){
+        domDigits=j.digits;
+        domPrice=j.mid;
+        updateOrdPrices(j.mid);
+      }
+    }catch(_){}
+  }
+  priceFetchBusy=false;
+}
+pollTicketPrice();
+setInterval(pollTicketPrice,4000);
 
 // ── WELCOME CARD ──
 function dismissWelcome(){
@@ -2185,6 +2242,7 @@ function changeInstrument(sym){
   const name=inst?inst.name:sym.replace(/^[^:]+:/,'');
   const symEl=document.getElementById('op-sym');
   if(symEl)symEl.textContent=name;
+  if(typeof pollTicketPrice==='function')pollTicketPrice(); // real quote for new symbol
 }
 
 // ── SL/TP ──
