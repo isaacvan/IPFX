@@ -1774,13 +1774,25 @@ function engineMsg(txt,ok){
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3500);
 }
 // Official client (auto-refreshes tokens). Falls back to raw localStorage
-// parsing if the CDN script failed to load.
-let sbEngine=null;
-try{ if(window.supabase&&window.supabase.createClient){ sbEngine=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); } }catch(_){}
+// parsing if the CDN script failed to load. Uses local public constants so
+// it has NO dependency on the SUPABASE_URL/KEY consts declared later in the
+// file (referencing those here would hit their temporal dead zone). Created
+// lazily on first use.
+const SB_URL='https://agulweemteoeagscmppy.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+let sbEngine=null,sbEngineInit=false;
+function getSbEngine(){
+  if(!sbEngineInit){
+    sbEngineInit=true;
+    try{ if(window.supabase&&window.supabase.createClient){ sbEngine=window.supabase.createClient(SB_URL,SB_ANON); } }catch(_){}
+  }
+  return sbEngine;
+}
 // Fresh, non-expired token: prefer the client (it silently refreshes), else parse storage.
 async function freshToken(){
-  if(sbEngine){
-    try{const{data}=await sbEngine.auth.getSession();if(data&&data.session&&data.session.access_token)return data.session.access_token;}catch(_){}
+  const c=getSbEngine();
+  if(c){
+    try{const{data}=await c.auth.getSession();if(data&&data.session&&data.session.access_token)return data.session.access_token;}catch(_){}
   }
   return engineToken();
 }
