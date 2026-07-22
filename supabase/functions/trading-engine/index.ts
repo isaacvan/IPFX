@@ -160,6 +160,29 @@ function exitPrice(t: Tr, midPrice: number): number {
   return t.side === "buy" ? midPrice - inst.spread / 2 : midPrice + inst.spread / 2;
 }
 
+// ---------- live copier hook ----------
+// Fire-and-forget a fill to the live-mirror function. Never blocks or fails
+// the trader's order. Only fires when the account has mirror_enabled=true.
+// EdgeRuntime.waitUntil keeps the worker alive until the call completes.
+// deno-lint-ignore no-explicit-any
+declare const EdgeRuntime: any;
+function fireMirror(acct: Acct, t: Tr, event: "open" | "close") {
+  // deno-lint-ignore no-explicit-any
+  if (!(acct as any).mirror_enabled) return;
+  const p = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/live-mirror`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+    },
+    body: JSON.stringify({
+      source_trade_id: t.id, user_id: acct.user_id, event,
+      symbol: t.symbol, side: t.side, volume: Number(t.volume),
+    }),
+  }).catch(() => {});
+  try { EdgeRuntime.waitUntil(p); } catch (_) { /* local/dev: fetch still fired */ }
+}
+
 // ---------- types ----------
 type Acct = {
   id: string; user_id: string; label: string;
@@ -187,6 +210,7 @@ async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: strin
   }).eq("id", t.id).eq("status", "open");
   if (e1) return false;
   acct.balance = round2(Number(acct.balance) + pnl);
+  fireMirror(acct, t, "close"); // mirror the close to the live account (if enabled)
   return true;
 }
 
@@ -410,11 +434,16 @@ Deno.serve(async (req) => {
     const used = await usedMarginUsd(state.open);
     if (used + needed > state.equity) return err("Insufficient margin ($" + Math.round(needed) + " needed)");
 
-    const { error } = await db.from("trades").insert({
+    const { data: inserted, error } = await db.from("trades").insert({
       account_id: (acct as Acct).id, user_id: user.id, symbol, side, volume,
       open_price: fill, sl, tp,
-    });
+    }).select("id").single();
     if (error) return err("Order failed", 500);
+
+    // mirror the open to the live account (fire-and-forget, if enabled)
+    if (inserted?.id) {
+      fireMirror(acct as Acct, { id: inserted.id, symbol, side, volume } as Tr, "open");
+    }
 
     await db.from("equity_snapshots").insert({
       account_id: (acct as Acct).id, user_id: user.id, balance: (acct as Acct).balance, equity: state.equity,
