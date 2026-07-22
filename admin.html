@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPFX Admin — Trader Verification</title>
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#0a0a0c;--bg2:#111114;--bg3:#17171b;--fg:#fff;--muted:#9aa0aa;--muted2:#5f636b;
+--line:#242429;--cobalt:#2563eb;--cobalt-h:#1d4ed8;--green:#10b981;--red:#ef4444;--amber:#f59e0b;}
+body{background:var(--bg);color:var(--fg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+a{color:var(--cobalt);text-decoration:none;}
+.top{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,10,12,.9);backdrop-filter:blur(8px);z-index:20;}
+.top h1{font-size:1.05rem;font-weight:700;letter-spacing:-.01em;}
+.top .sub{color:var(--muted2);font-size:.75rem;margin-top:.1rem;}
+.pill{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:.2rem .55rem;border-radius:999px;}
+.wrap{max-width:1200px;margin:0 auto;padding:1.5rem;}
+.bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;}
+.chip{background:var(--bg2);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:.35rem .85rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:.15s;}
+.chip.on{background:var(--cobalt);border-color:var(--cobalt);color:#fff;}
+.chip:hover{color:#fff;}
+.stat-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem;}
+.stat{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:.85rem 1.1rem;min-width:150px;flex:1;}
+.stat .k{font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700;}
+.stat .v{font-size:1.35rem;font-weight:700;margin-top:.15rem;font-family:'JetBrains Mono',monospace;}
+.tbl-wrap{background:var(--bg2);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+thead th{text-align:left;font-size:.66rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700;padding:.7rem .9rem;border-bottom:1px solid var(--line);background:var(--bg3);white-space:nowrap;}
+tbody td{padding:.7rem .9rem;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.pos{color:var(--green);} .neg{color:var(--red);}
+.st{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:.18rem .5rem;border-radius:6px;}
+.st.active{background:rgba(37,99,235,.15);color:#93b8ff;}
+.st.passed{background:rgba(16,185,129,.15);color:#4ade9f;}
+.st.breached{background:rgba(239,68,68,.15);color:#f98a8a;}
+.mtog{display:inline-flex;align-items:center;gap:.4rem;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);}
+.dot.on{background:var(--green);box-shadow:0 0 8px var(--green);}
+.btn{border:none;border-radius:7px;padding:.4rem .7rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;}
+.btn-b{background:var(--cobalt);color:#fff;} .btn-b:hover{background:var(--cobalt-h);}
+.btn-o{background:transparent;border:1px solid var(--line);color:var(--muted);} .btn-o:hover{color:#fff;border-color:var(--muted2);}
+.btn-g{background:var(--green);color:#04160f;} .btn-g:hover{filter:brightness(1.1);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.msg{padding:2rem;text-align:center;color:var(--muted);}
+.deny{max-width:460px;margin:5rem auto;text-align:center;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:2.5rem 2rem;}
+.deny h2{font-size:1.1rem;margin-bottom:.5rem;}
+.deny p{color:var(--muted);font-size:.85rem;}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:1rem;}
+.modal.open{display:flex;}
+.mbox{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:1.5rem;width:100%;max-width:440px;}
+.mbox h3{font-size:1rem;margin-bottom:.25rem;}
+.mbox .who{color:var(--muted2);font-size:.78rem;margin-bottom:1.1rem;}
+.fld{margin-bottom:.9rem;}
+.fld label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);font-weight:700;margin-bottom:.35rem;}
+.fld input,.fld select{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.55rem .7rem;font-size:.85rem;font-family:inherit;}
+.fld .hint{font-size:.7rem;color:var(--muted2);margin-top:.3rem;}
+.mrow{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem;}
+.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:.6rem .75rem;font-size:.74rem;color:#f5c473;margin-bottom:1rem;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:.6rem 1.1rem;border-radius:8px;font-size:.8rem;font-weight:600;opacity:0;transition:.3s;z-index:99;box-shadow:0 6px 24px rgba(0,0,0,.4);}
+</style>
+</head>
+<body>
+<div class="top">
+  <div>
+    <h1>IPFX Admin · Trader Verification</h1>
+    <div class="sub" id="subline">Loading…</div>
+  </div>
+  <div style="display:flex;gap:.6rem;align-items:center">
+    <a href="dashboard.html" class="chip">← Dashboard</a>
+    <button class="chip" onclick="load()">Refresh</button>
+  </div>
+</div>
+
+<div id="denied" class="deny" style="display:none">
+  <h2>Not authorized</h2>
+  <p>This account isn't an admin. Add your user to <span class="mono">public.admins</span> to access the console.</p>
+</div>
+
+<div id="main" class="wrap" style="display:none">
+  <div class="stat-row" id="stats"></div>
+  <div class="bar" id="filters">
+    <span class="chip on" data-f="all" onclick="setFilter('all',this)">All</span>
+    <span class="chip" data-f="passed" onclick="setFilter('passed',this)">Passed</span>
+    <span class="chip" data-f="active" onclick="setFilter('active',this)">Active</span>
+    <span class="chip" data-f="breached" onclick="setFilter('breached',this)">Breached</span>
+    <span class="chip" data-f="mirrored" onclick="setFilter('mirrored',this)">Mirrored</span>
+    <input id="search" placeholder="Search name / email…" oninput="render()" style="margin-left:auto;background:var(--bg2);border:1px solid var(--line);border-radius:999px;color:var(--fg);padding:.35rem .85rem;font-size:.78rem;font-family:inherit;min-width:200px">
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Trader</th><th>Status</th><th>Balance</th><th>Realized P&amp;L</th>
+        <th>Split</th><th>Owed</th><th>Mirror → Live</th><th></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div id="payoutsWrap" style="margin-top:1.75rem"></div>
+</div>
+
+<!-- mirror config modal -->
+<div class="modal" id="modal">
+  <div class="mbox">
+    <h3 id="mTitle">Configure live mirror</h3>
+    <div class="who" id="mWho"></div>
+    <div class="warn">Live orders use real money. Most prop firms ban copied external signals into funded accounts — check their terms first.</div>
+    <div class="fld">
+      <label>MetaApi account ID (the live MT5 account)</label>
+      <input id="mAcct" placeholder="e.g. 0a1b2c3d-…">
+      <div class="hint">From MetaApi once you've connected the MT5 login.</div>
+    </div>
+    <div class="fld">
+      <label>Region</label>
+      <select id="mRegion">
+        <option value="new-york">new-york</option>
+        <option value="london">london</option>
+        <option value="singapore">singapore</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>Volume multiplier</label>
+      <input id="mMult" type="number" step="0.1" value="1.0">
+      <div class="hint">Scale the trader's lot size onto the live account (1.0 = same).</div>
+    </div>
+    <div class="mrow">
+      <button class="btn btn-o" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-o" id="mDisable" onclick="saveMirror(false)" style="display:none">Disable</button>
+      <button class="btn btn-b" id="mEnable" onclick="saveMirror(true)">Enable mirroring</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://agulweemteoeagscmppy.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+const FN=SB_URL+'/functions/v1/admin-console';
+let sb=null; try{ if(window.supabase)sb=window.supabase.createClient(SB_URL,SB_ANON); }catch(_){}
+const AUTH_KEY='sb-agulweemteoeagscmppy-auth-token';
+
+function parseTokenRaw(){
+  try{
+    let raw=localStorage.getItem(AUTH_KEY);
+    if(raw===null){let a='',i=0,p;while((p=localStorage.getItem(AUTH_KEY+'.'+i))!==null){a+=p;i++;}raw=a||null;}
+    if(!raw)return null;
+    if(raw.startsWith('base64-')){const b=atob(raw.slice(7));raw=new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)));}
+    const s=JSON.parse(raw);const sess=s&&s.access_token?s:(s&&s.currentSession?s.currentSession:null);
+    return sess&&sess.access_token?sess.access_token:null;
+  }catch(_){return null;}
+}
+async function token(){
+  if(sb){try{const{data}=await sb.auth.getSession();if(data&&data.session)return data.session.access_token;}catch(_){}}
+  return parseTokenRaw();
+}
+function toast(t,ok){let e=document.querySelector('.toast');if(!e){e=document.createElement('div');e.className='toast';document.body.appendChild(e);}e.style.background=ok?'var(--green)':'var(--red)';e.style.color=ok?'#04160f':'#fff';e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',3000);}
+async function call(bodyObj){
+  const tok=await token();
+  if(!tok){location.href='login.html';return null;}
+  const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(bodyObj)});
+  const j=await r.json().catch(()=>null);
+  if(!j||j.ok===false){toast((j&&j.error)||'Request failed',false);return null;}
+  return j;
+}
+
+let TRADERS=[],PAYOUTS=[],filter='all';
+const fmt=v=>'$'+Number(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+async function load(){
+  document.getElementById('subline').textContent='Loading…';
+  const j=await call({action:'overview'});
+  if(!j)return;
+  if(!j.is_admin){document.getElementById('denied').style.display='block';document.getElementById('main').style.display='none';document.getElementById('subline').textContent='Access denied';return;}
+  document.getElementById('denied').style.display='none';
+  document.getElementById('main').style.display='block';
+  TRADERS=j.traders||[];PAYOUTS=j.payouts||[];
+  renderStats();render();renderPayouts();
+}
+
+function renderStats(){
+  const passed=TRADERS.filter(t=>t.status==='passed').length;
+  const mirrored=TRADERS.filter(t=>t.mirror_enabled).length;
+  const owed=TRADERS.reduce((s,t)=>s+(t.trader_share_owed||0),0);
+  document.getElementById('subline').textContent=TRADERS.length+' accounts · '+passed+' passed · '+mirrored+' mirrored';
+  document.getElementById('stats').innerHTML=[
+    ['Accounts',TRADERS.length],['Passed',passed],['Mirrored live',mirrored],['Total owed',fmt(owed)]
+  ].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+}
+function setFilter(f,el){filter=f;document.querySelectorAll('#filters .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');render();}
+function render(){
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  let rows=TRADERS.filter(t=>{
+    if(filter==='mirrored'&&!t.mirror_enabled)return false;
+    if(['passed','active','breached'].includes(filter)&&t.status!==filter)return false;
+    if(q&&!((t.full_name||'').toLowerCase().includes(q)||(t.email||'').toLowerCase().includes(q)))return false;
+    return true;
+  });
+  document.getElementById('rows').innerHTML=rows.length?rows.map(t=>{
+    const pnlCls=t.realized_pnl>=0?'pos':'neg';
+    const owed=t.trader_share_owed>0?`<span class="pos mono">${fmt(t.trader_share_owed)}</span>`:'<span class="mono" style="color:var(--muted2)">$0.00</span>';
+    const mdot=t.mirror_enabled?'<span class="dot on"></span>':'<span class="dot"></span>';
+    const mlabel=t.mirror_enabled?(t.mirror_target?('ON · '+String(t.mirror_target.metaapi_account_id).slice(0,10)+'…'):'ON'):'Off';
+    const payBtn=t.trader_share_owed>0?`<button class="btn btn-g" onclick="payout('${t.account_id}')">Pay out</button>`:'';
+    return `<tr>
+      <td><div style="font-weight:600">${esc(t.full_name)}</div><div style="color:var(--muted2);font-size:.72rem">${esc(t.email)}</div></td>
+      <td><span class="st ${t.status}">${t.status}</span></td>
+      <td class="mono">${fmt(t.balance)}</td>
+      <td class="mono ${pnlCls}">${t.realized_pnl>=0?'+':''}${fmt(t.realized_pnl)}</td>
+      <td class="mono">${t.profit_split_pct}%</td>
+      <td>${owed}</td>
+      <td><span class="mtog">${mdot}<span style="font-size:.76rem;color:${t.mirror_enabled?'var(--green)':'var(--muted2)'}">${esc(mlabel)}</span></span></td>
+      <td style="white-space:nowrap;text-align:right">
+        <button class="btn btn-o" onclick='openModal(${JSON.stringify(t.user_id)},${JSON.stringify(t.full_name)},${JSON.stringify(t.mirror_target)})'>${t.mirror_enabled?'Edit':'Approve'}</button>
+        ${payBtn}
+      </td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="8" class="msg">No traders match.</td></tr>';
+}
+function renderPayouts(){
+  if(!PAYOUTS.length){document.getElementById('payoutsWrap').innerHTML='';return;}
+  document.getElementById('payoutsWrap').innerHTML=`
+    <h3 style="font-size:.9rem;margin-bottom:.75rem">Payouts</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Created</th><th>Gross profit</th><th>Split</th><th>Trader share</th><th>Status</th><th></th></tr></thead>
+      <tbody>${PAYOUTS.map(p=>`<tr>
+        <td class="mono" style="font-size:.76rem">${new Date(p.created_at).toLocaleDateString()}</td>
+        <td class="mono">${fmt(p.gross_profit)}</td>
+        <td class="mono">${p.split_pct}%</td>
+        <td class="mono pos">${fmt(p.trader_share)}</td>
+        <td><span class="st ${p.status==='paid'?'passed':p.status==='void'?'breached':'active'}">${p.status}</span></td>
+        <td style="text-align:right">${p.status!=='paid'&&p.status!=='void'?`<button class="btn btn-b" onclick="markPaid('${p.id}')">Mark paid</button>`:''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ---- modal ----
+let modalUser=null;
+function openModal(user_id,name,target){
+  modalUser=user_id;
+  document.getElementById('mWho').textContent=name;
+  document.getElementById('mAcct').value=target?target.metaapi_account_id:'';
+  document.getElementById('mRegion').value=target?target.region:'new-york';
+  document.getElementById('mMult').value=target?target.volume_multiplier:'1.0';
+  document.getElementById('mDisable').style.display=target&&target.enabled?'inline-block':'none';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');modalUser=null;}
+async function saveMirror(enable){
+  const payload={action:'set_mirror',user_id:modalUser,enabled:enable};
+  if(enable){
+    payload.metaapi_account_id=document.getElementById('mAcct').value.trim();
+    payload.region=document.getElementById('mRegion').value;
+    payload.volume_multiplier=parseFloat(document.getElementById('mMult').value)||1;
+    if(!payload.metaapi_account_id){toast('Enter the MetaApi account ID',false);return;}
+  }
+  const j=await call(payload);
+  if(j){toast(enable?'Mirroring enabled':'Mirroring disabled',true);closeModal();load();}
+}
+async function payout(account_id){
+  if(!confirm('Record a payout for the current owed amount?'))return;
+  const j=await call({action:'payout_create',account_id});
+  if(j){toast('Payout recorded: '+fmt(j.trader_share),true);load();}
+}
+async function markPaid(id){
+  const j=await call({action:'payout_mark_paid',payout_id:id});
+  if(j){toast('Marked paid',true);load();}
+}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+load();
+</script>
+</body>
+</html>
