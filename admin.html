@@ -94,7 +94,7 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
   <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>Trader</th><th>Status</th><th>Balance</th><th>Realized P&amp;L</th>
+        <th>Trader</th><th>Status</th><th>Performance</th><th>Balance</th><th>Realized P&amp;L</th>
         <th>Split</th><th>Owed</th><th>Mirror → Live</th><th></th>
       </tr></thead>
       <tbody id="rows"></tbody>
@@ -108,7 +108,19 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
   <div class="mbox">
     <h3 id="mTitle">Configure live mirror</h3>
     <div class="who" id="mWho"></div>
-    <div class="warn">Live orders use real money. Most prop firms ban copied external signals into funded accounts — check their terms first.</div>
+    <div class="fld">
+      <label>Destination type</label>
+      <select id="mType" onchange="onTypeChange()">
+        <option value="own_broker">Own broker account (recommended — no ToS risk)</option>
+        <option value="prop_firm">Prop-firm account</option>
+      </select>
+    </div>
+    <div class="fld" id="mFirmFld" style="display:none">
+      <label>Prop firm name</label>
+      <input id="mFirm" placeholder="e.g. E8 Markets">
+      <div class="hint">For your records — track which firm this target belongs to.</div>
+    </div>
+    <div class="warn" id="mWarn" style="display:none">⚠ Most prop firms ban copied external signals into funded accounts and will terminate + withhold payout. Only route here if the firm's terms explicitly allow it and you own the account.</div>
     <div class="fld">
       <label>MetaApi account ID (the live MT5 account)</label>
       <input id="mAcct" placeholder="e.g. 0a1b2c3d-…">
@@ -202,11 +214,17 @@ function render(){
     const pnlCls=t.realized_pnl>=0?'pos':'neg';
     const owed=t.trader_share_owed>0?`<span class="pos mono">${fmt(t.trader_share_owed)}</span>`:'<span class="mono" style="color:var(--muted2)">$0.00</span>';
     const mdot=t.mirror_enabled?'<span class="dot on"></span>':'<span class="dot"></span>';
-    const mlabel=t.mirror_enabled?(t.mirror_target?('ON · '+String(t.mirror_target.metaapi_account_id).slice(0,10)+'…'):'ON'):'Off';
+    const tt=t.mirror_target&&t.mirror_target.target_type==='prop_firm'?'PROP':'BROKER';
+    const mlabel=t.mirror_enabled?(t.mirror_target?(tt+' · '+String(t.mirror_target.metaapi_account_id).slice(0,8)+'…'):'ON'):'Off';
     const payBtn=t.trader_share_owed>0?`<button class="btn btn-g" onclick="payout('${t.account_id}')">Pay out</button>`:'';
+    const s=t.stats||{trades:0};
+    const perf=s.trades>0
+      ? `<span class="mono" style="font-size:.76rem">${s.trades} trades</span><br><span style="font-size:.72rem;color:var(--muted2)">${s.win_rate==null?'—':s.win_rate+'% win'} · PF ${s.profit_factor==null?'∞':s.profit_factor}</span>`
+      : '<span style="color:var(--muted2);font-size:.76rem">no trades</span>';
     return `<tr>
       <td><div style="font-weight:600">${esc(t.full_name)}</div><div style="color:var(--muted2);font-size:.72rem">${esc(t.email)}</div></td>
       <td><span class="st ${t.status}">${t.status}</span></td>
+      <td>${perf}</td>
       <td class="mono">${fmt(t.balance)}</td>
       <td class="mono ${pnlCls}">${t.realized_pnl>=0?'+':''}${fmt(t.realized_pnl)}</td>
       <td class="mono">${t.profit_split_pct}%</td>
@@ -217,7 +235,7 @@ function render(){
         ${payBtn}
       </td>
     </tr>`;
-  }).join(''):'<tr><td colspan="8" class="msg">No traders match.</td></tr>';
+  }).join(''):'<tr><td colspan="9" class="msg">No traders match.</td></tr>';
 }
 function renderPayouts(){
   if(!PAYOUTS.length){document.getElementById('payoutsWrap').innerHTML='';return;}
@@ -239,13 +257,21 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 
 // ---- modal ----
 let modalUser=null;
+function onTypeChange(){
+  const prop=document.getElementById('mType').value==='prop_firm';
+  document.getElementById('mFirmFld').style.display=prop?'block':'none';
+  document.getElementById('mWarn').style.display=prop?'block':'none';
+}
 function openModal(user_id,name,target){
   modalUser=user_id;
   document.getElementById('mWho').textContent=name;
+  document.getElementById('mType').value=target&&target.target_type?target.target_type:'own_broker';
+  document.getElementById('mFirm').value=target&&target.firm_name?target.firm_name:'';
   document.getElementById('mAcct').value=target?target.metaapi_account_id:'';
   document.getElementById('mRegion').value=target?target.region:'new-york';
   document.getElementById('mMult').value=target?target.volume_multiplier:'1.0';
   document.getElementById('mDisable').style.display=target&&target.enabled?'inline-block':'none';
+  onTypeChange();
   document.getElementById('modal').classList.add('open');
 }
 function closeModal(){document.getElementById('modal').classList.remove('open');modalUser=null;}
@@ -255,6 +281,8 @@ async function saveMirror(enable){
     payload.metaapi_account_id=document.getElementById('mAcct').value.trim();
     payload.region=document.getElementById('mRegion').value;
     payload.volume_multiplier=parseFloat(document.getElementById('mMult').value)||1;
+    payload.target_type=document.getElementById('mType').value;
+    payload.firm_name=document.getElementById('mFirm').value.trim();
     if(!payload.metaapi_account_id){toast('Enter the MetaApi account ID',false);return;}
   }
   const j=await call(payload);

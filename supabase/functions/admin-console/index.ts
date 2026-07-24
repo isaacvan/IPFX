@@ -55,14 +55,17 @@ Deno.serve(async (req) => {
   const action = body.action;
 
   if (action === "overview") {
-    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }] =
+    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }] =
       await Promise.all([
         db.from("trading_accounts").select("*").order("created_at", { ascending: false }),
         db.from("user_profiles").select("user_id,full_name,referral_code"),
         db.from("mirror_targets").select("*"),
         db.from("trader_payout_summary").select("*"),
         db.from("payouts").select("*").order("created_at", { ascending: false }),
+        db.from("trader_stats").select("*"),
       ]);
+    const statByAcct = new Map<string, Record<string, unknown>>();
+    for (const s of stats ?? []) statByAcct.set(s.account_id, s);
 
     // emails via admin API (one page covers a small firm)
     const emailById = new Map<string, string>();
@@ -81,6 +84,7 @@ Deno.serve(async (req) => {
     const traders = (accounts ?? []).map((a: Record<string, unknown>) => {
       const s = sumByAcct.get(a.id as string);
       const tg = targetByUser.get(a.user_id as string);
+      const st = statByAcct.get(a.id as string);
       const start = Number(a.starting_balance);
       const bal = Number(a.balance);
       return {
@@ -96,7 +100,8 @@ Deno.serve(async (req) => {
         realized_profit_unpaid: s ? Number(s.realized_profit_unpaid) : 0,
         trader_share_owed: s ? Number(s.trader_share_owed) : 0,
         mirror_enabled: !!a.mirror_enabled,
-        mirror_target: tg ? { metaapi_account_id: tg.metaapi_account_id, region: tg.region, enabled: tg.enabled, volume_multiplier: tg.volume_multiplier } : null,
+        mirror_target: tg ? { metaapi_account_id: tg.metaapi_account_id, region: tg.region, enabled: tg.enabled, volume_multiplier: tg.volume_multiplier, target_type: tg.target_type ?? "own_broker", firm_name: tg.firm_name ?? null } : null,
+        stats: st ? { trades: Number(st.trades), win_rate: st.win_rate == null ? null : Number(st.win_rate), profit_factor: st.profit_factor == null ? null : Number(st.profit_factor), avg_trade: Number(st.avg_trade), best_trade: Number(st.best_trade), worst_trade: Number(st.worst_trade) } : { trades: 0, win_rate: null, profit_factor: null, avg_trade: 0, best_trade: 0, worst_trade: 0 },
       };
     });
 
@@ -113,17 +118,19 @@ Deno.serve(async (req) => {
       if (!acctId) return err("metaapi_account_id required to enable");
       const region = body.region ? String(body.region) : "new-york";
       const mult = Number(body.volume_multiplier ?? 1) || 1;
+      const targetType = body.target_type === "prop_firm" ? "prop_firm" : "own_broker";
+      const firmName = body.firm_name ? String(body.firm_name).trim().slice(0, 80) : null;
 
       // one target per user: update if present, else insert
       const { data: existing } = await db.from("mirror_targets").select("id").eq("user_id", target_user).maybeSingle();
+      const fields = {
+        metaapi_account_id: acctId, region, volume_multiplier: mult,
+        target_type: targetType, firm_name: firmName, enabled: true,
+      };
       if (existing) {
-        await db.from("mirror_targets").update({
-          metaapi_account_id: acctId, region, volume_multiplier: mult, enabled: true, updated_at: new Date().toISOString(),
-        }).eq("id", existing.id);
+        await db.from("mirror_targets").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", existing.id);
       } else {
-        await db.from("mirror_targets").insert({
-          user_id: target_user, metaapi_account_id: acctId, region, volume_multiplier: mult, enabled: true,
-        });
+        await db.from("mirror_targets").insert({ user_id: target_user, ...fields });
       }
     } else {
       await db.from("mirror_targets").update({ enabled: false, updated_at: new Date().toISOString() }).eq("user_id", target_user);
