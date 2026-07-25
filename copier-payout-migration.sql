@@ -8,8 +8,12 @@
 
 -- ---- 1. Payout config on the trading account ----
 alter table public.trading_accounts
-  add column if not exists profit_split_pct numeric(5,2) not null default 80,  -- trader's share
+  add column if not exists profit_split_pct numeric(5,2) not null default 85,  -- trader's share
   add column if not exists mirror_enabled   boolean      not null default false; -- copy to live?
+
+-- keep existing accounts in step with the current split
+alter table public.trading_accounts alter column profit_split_pct set default 85;
+update public.trading_accounts set profit_split_pct = 85 where profit_split_pct = 80;
 
 -- ---- 2. Where a trader's fills get mirrored (one live account per trader) ----
 --    metaapi_account_id + region identify the destination MT5 account in MetaApi.
@@ -59,7 +63,7 @@ create table if not exists public.payouts (
   period_start  timestamptz,
   period_end    timestamptz not null default now(),
   gross_profit  numeric(14,2) not null default 0,   -- realized profit in the period
-  split_pct     numeric(5,2)  not null default 80,
+  split_pct     numeric(5,2)  not null default 85,
   trader_share  numeric(14,2) not null default 0,   -- gross_profit * split_pct/100 (if > 0)
   status        text not null default 'pending' check (status in ('pending','approved','paid','void')),
   note          text,

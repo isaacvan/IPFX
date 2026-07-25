@@ -218,8 +218,11 @@ function render(){
     const mlabel=t.mirror_enabled?(t.mirror_target?(tt+' · '+String(t.mirror_target.metaapi_account_id).slice(0,8)+'…'):'ON'):'Off';
     const payBtn=t.trader_share_owed>0?`<button class="btn btn-g" onclick="payout('${t.account_id}')">Pay out</button>`:'';
     const s=t.stats||{trades:0};
+    const dd=s.max_drawdown_pct==null?'—':s.max_drawdown_pct+'% DD';
+    const risky=(s.max_drawdown_pct!=null&&s.max_drawdown_pct>=8)||(s.consistency_pct!=null&&s.consistency_pct>=50);
+    const flag=risky?' <span title="High drawdown or one trade dominates profit" style="color:var(--amber)">⚠</span>':'';
     const perf=s.trades>0
-      ? `<span class="mono" style="font-size:.76rem">${s.trades} trades</span><br><span style="font-size:.72rem;color:var(--muted2)">${s.win_rate==null?'—':s.win_rate+'% win'} · PF ${s.profit_factor==null?'∞':s.profit_factor}</span>`
+      ? `<span class="mono" style="font-size:.76rem">${s.trades} trades${flag}</span><br><span style="font-size:.72rem;color:var(--muted2)">${s.win_rate==null?'—':s.win_rate+'% win'} · PF ${s.profit_factor==null?'∞':s.profit_factor} · ${dd}</span>`
       : '<span style="color:var(--muted2);font-size:.76rem">no trades</span>';
     return `<tr>
       <td><div style="font-weight:600">${esc(t.full_name)}</div><div style="color:var(--muted2);font-size:.72rem">${esc(t.email)}</div></td>

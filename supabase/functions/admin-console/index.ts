@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
   const action = body.action;
 
   if (action === "overview") {
-    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }] =
+    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }] =
       await Promise.all([
         db.from("trading_accounts").select("*").order("created_at", { ascending: false }),
         db.from("user_profiles").select("user_id,full_name,referral_code"),
@@ -63,9 +63,12 @@ Deno.serve(async (req) => {
         db.from("trader_payout_summary").select("*"),
         db.from("payouts").select("*").order("created_at", { ascending: false }),
         db.from("trader_stats").select("*"),
+        db.from("trader_risk").select("*"),
       ]);
     const statByAcct = new Map<string, Record<string, unknown>>();
     for (const s of stats ?? []) statByAcct.set(s.account_id, s);
+    const riskByAcct = new Map<string, Record<string, unknown>>();
+    for (const r of risk ?? []) riskByAcct.set(r.account_id, r);
 
     // emails via admin API (one page covers a small firm)
     const emailById = new Map<string, string>();
@@ -96,12 +99,21 @@ Deno.serve(async (req) => {
         starting_balance: start,
         balance: bal,
         realized_pnl: Math.round((bal - start) * 100) / 100,
-        profit_split_pct: Number(a.profit_split_pct ?? 80),
+        profit_split_pct: Number(a.profit_split_pct ?? 85),
         realized_profit_unpaid: s ? Number(s.realized_profit_unpaid) : 0,
         trader_share_owed: s ? Number(s.trader_share_owed) : 0,
         mirror_enabled: !!a.mirror_enabled,
         mirror_target: tg ? { metaapi_account_id: tg.metaapi_account_id, region: tg.region, enabled: tg.enabled, volume_multiplier: tg.volume_multiplier, target_type: tg.target_type ?? "own_broker", firm_name: tg.firm_name ?? null } : null,
-        stats: st ? { trades: Number(st.trades), win_rate: st.win_rate == null ? null : Number(st.win_rate), profit_factor: st.profit_factor == null ? null : Number(st.profit_factor), avg_trade: Number(st.avg_trade), best_trade: Number(st.best_trade), worst_trade: Number(st.worst_trade) } : { trades: 0, win_rate: null, profit_factor: null, avg_trade: 0, best_trade: 0, worst_trade: 0 },
+        stats: (() => {
+          const rk = riskByAcct.get(a.id as string);
+          const gw = st ? Number(st.gross_win) : 0;
+          const bt = st ? Number(st.best_trade) : 0;
+          // consistency: biggest single win as a share of all wins. Lower = steadier.
+          const consistency = gw > 0 ? Math.round((bt / gw) * 100) : null;
+          return st
+            ? { trades: Number(st.trades), win_rate: st.win_rate == null ? null : Number(st.win_rate), profit_factor: st.profit_factor == null ? null : Number(st.profit_factor), avg_trade: Number(st.avg_trade), best_trade: bt, worst_trade: Number(st.worst_trade), max_drawdown_pct: rk ? Number(rk.max_drawdown_pct) : null, consistency_pct: consistency }
+            : { trades: 0, win_rate: null, profit_factor: null, avg_trade: 0, best_trade: 0, worst_trade: 0, max_drawdown_pct: null, consistency_pct: null };
+        })(),
       };
     });
 
