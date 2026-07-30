@@ -348,7 +348,7 @@
             margin-bottom: 0.5rem;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 12px 16px;
             background: rgba(255, 255, 255, 0.05);
@@ -360,14 +360,20 @@
             transition: all 0.3s ease;
         }
 
-        input:focus {
+        select { appearance: none; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8f98' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px;
+        }
+        select option { background: #131316; color: var(--fg); }
+
+        input:focus, select:focus {
             outline: none;
             border-color: var(--cobalt);
             background: rgba(37, 99, 235, 0.05);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
-        input.error {
+        input.error, select.error {
             border-color: var(--error);
             background: rgba(239, 68, 68, 0.05);
         }
@@ -730,6 +736,15 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="country">Country of Residence</label>
+                    <select id="country" required>
+                        <option value="">Select your country…</option>
+                    </select>
+                    <div class="error-message" id="countryError">Please select your country</div>
+                    <div style="font-size:0.72rem;color:var(--muted,#8a8f98);margin-top:0.4rem;line-height:1.5;">IPFX Capital is not available to residents of certain jurisdictions, including the United States and United Kingdom.</div>
+                </div>
+
+                <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" placeholder="Create a strong password" required>
                     <div class="password-strength">
@@ -805,7 +820,24 @@
         const passwordInput = document.getElementById('password');
         const confirmPasswordInput = document.getElementById('confirmPassword');
         const referralCodeInput = document.getElementById('referralCode');
+        const countryInput = document.getElementById('country');
         const promoCodeInput = document.getElementById('promoCode');
+
+        // ── GEO RESTRICTION ──
+        // Residents of these jurisdictions cannot register. Codes are ISO-3166.
+        const RESTRICTED_COUNTRIES = { US: 'the United States', GB: 'the United Kingdom' };
+        const COUNTRIES = [
+            ['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],['AG','Antigua & Barbuda'],['AR','Argentina'],['AM','Armenia'],['AU','Australia'],['AT','Austria'],['AZ','Azerbaijan'],['BS','Bahamas'],['BH','Bahrain'],['BD','Bangladesh'],['BB','Barbados'],['BE','Belgium'],['BZ','Belize'],['BJ','Benin'],['BT','Bhutan'],['BO','Bolivia'],['BA','Bosnia & Herzegovina'],['BW','Botswana'],['BR','Brazil'],['BN','Brunei'],['BG','Bulgaria'],['BF','Burkina Faso'],['BI','Burundi'],['KH','Cambodia'],['CM','Cameroon'],['CA','Canada'],['CV','Cape Verde'],['CL','Chile'],['CN','China'],['CO','Colombia'],['KM','Comoros'],['CG','Congo'],['CR','Costa Rica'],['HR','Croatia'],['CY','Cyprus'],['CZ','Czechia'],['DK','Denmark'],['DJ','Djibouti'],['DM','Dominica'],['DO','Dominican Republic'],['EC','Ecuador'],['EG','Egypt'],['SV','El Salvador'],['EE','Estonia'],['SZ','Eswatini'],['ET','Ethiopia'],['FJ','Fiji'],['FI','Finland'],['FR','France'],['GA','Gabon'],['GM','Gambia'],['GE','Georgia'],['DE','Germany'],['GH','Ghana'],['GR','Greece'],['GD','Grenada'],['GT','Guatemala'],['GN','Guinea'],['GY','Guyana'],['HT','Haiti'],['HN','Honduras'],['HK','Hong Kong'],['HU','Hungary'],['IS','Iceland'],['IN','India'],['ID','Indonesia'],['IE','Ireland'],['IL','Israel'],['IT','Italy'],['JM','Jamaica'],['JP','Japan'],['JO','Jordan'],['KZ','Kazakhstan'],['KE','Kenya'],['KW','Kuwait'],['KG','Kyrgyzstan'],['LA','Laos'],['LV','Latvia'],['LB','Lebanon'],['LS','Lesotho'],['LR','Liberia'],['LI','Liechtenstein'],['LT','Lithuania'],['LU','Luxembourg'],['MO','Macau'],['MG','Madagascar'],['MW','Malawi'],['MY','Malaysia'],['MV','Maldives'],['ML','Mali'],['MT','Malta'],['MU','Mauritius'],['MX','Mexico'],['MD','Moldova'],['MC','Monaco'],['MN','Mongolia'],['ME','Montenegro'],['MA','Morocco'],['MZ','Mozambique'],['NA','Namibia'],['NP','Nepal'],['NL','Netherlands'],['NZ','New Zealand'],['NI','Nicaragua'],['NE','Niger'],['NG','Nigeria'],['MK','North Macedonia'],['NO','Norway'],['OM','Oman'],['PK','Pakistan'],['PA','Panama'],['PG','Papua New Guinea'],['PY','Paraguay'],['PE','Peru'],['PH','Philippines'],['PL','Poland'],['PT','Portugal'],['QA','Qatar'],['RO','Romania'],['RW','Rwanda'],['KN','Saint Kitts & Nevis'],['LC','Saint Lucia'],['WS','Samoa'],['SM','San Marino'],['SA','Saudi Arabia'],['SN','Senegal'],['RS','Serbia'],['SC','Seychelles'],['SL','Sierra Leone'],['SG','Singapore'],['SK','Slovakia'],['SI','Slovenia'],['ZA','South Africa'],['KR','South Korea'],['ES','Spain'],['LK','Sri Lanka'],['SR','Suriname'],['SE','Sweden'],['CH','Switzerland'],['TW','Taiwan'],['TZ','Tanzania'],['TH','Thailand'],['TG','Togo'],['TO','Tonga'],['TT','Trinidad & Tobago'],['TN','Tunisia'],['TR','Türkiye'],['UG','Uganda'],['UA','Ukraine'],['AE','United Arab Emirates'],['GB','United Kingdom'],['US','United States'],['UY','Uruguay'],['UZ','Uzbekistan'],['VU','Vanuatu'],['VE','Venezuela'],['VN','Vietnam'],['ZM','Zambia'],['ZW','Zimbabwe']
+        ];
+        (function populateCountries(){
+            const frag = document.createDocumentFragment();
+            COUNTRIES.forEach(([code,name]) => {
+                const o = document.createElement('option');
+                o.value = code; o.textContent = name;
+                frag.appendChild(o);
+            });
+            countryInput.appendChild(frag);
+        })();
         const promoStatus = document.getElementById('promoStatus');
         const promoSpinner = document.getElementById('promoSpinner');
         const submitBtn = document.getElementById('submitBtn');
@@ -1013,6 +1045,24 @@
             }
         }
 
+        function validateCountry() {
+            const code = countryInput.value;
+            const errEl = document.getElementById('countryError');
+            if (!code) {
+                errEl.textContent = 'Please select your country';
+                countryInput.classList.add('error'); errEl.classList.add('show');
+                return false;
+            }
+            if (RESTRICTED_COUNTRIES[code]) {
+                errEl.textContent = 'Sorry — IPFX Capital is not available to residents of ' + RESTRICTED_COUNTRIES[code] + '.';
+                countryInput.classList.add('error'); errEl.classList.add('show');
+                return false;
+            }
+            countryInput.classList.remove('error'); errEl.classList.remove('show');
+            return true;
+        }
+        countryInput.addEventListener('change', validateCountry);
+
         async function validateReferralCode() {
             const code = referralCodeInput.value.trim().toUpperCase();
             const errEl = document.getElementById('referralError');
@@ -1080,10 +1130,15 @@
             const isEmailValid = validateEmail();
             const isPasswordValid = validatePassword();
             const isPasswordMatchValid = validatePasswordMatch();
+            const isCountryValid = validateCountry();
             const isReferralCodeValid = await validateReferralCode();
 
-            if (!isNameValid || !isEmailValid || !isPasswordValid || !isPasswordMatchValid || !isReferralCodeValid) {
-                showAlert('Please fix the errors before submitting', 'error');
+            if (!isNameValid || !isEmailValid || !isCountryValid || !isPasswordValid || !isPasswordMatchValid || !isReferralCodeValid) {
+                if (countryInput.value && RESTRICTED_COUNTRIES[countryInput.value]) {
+                    showAlert('IPFX Capital is not available in your country.', 'error');
+                } else {
+                    showAlert('Please fix the errors before submitting', 'error');
+                }
                 return;
             }
 
@@ -1101,6 +1156,7 @@
                     options: {
                         data: {
                             full_name: fullNameInput.value,
+                            country: countryInput.value,
                             referral_code: referralCodeInput.value.trim().toUpperCase() || null,
                             promo_code: validatedPromo ? validatedPromo.code : null
                         }
