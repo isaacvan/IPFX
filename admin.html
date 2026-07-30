@@ -82,6 +82,7 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
 </div>
 
 <div id="main" class="wrap" style="display:none">
+  <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin-bottom:.75rem">Firm back office</h2>
   <div class="stat-row" id="stats"></div>
   <div class="bar" id="filters">
     <span class="chip on" data-f="all" onclick="setFilter('all',this)">All</span>
@@ -178,7 +179,7 @@ async function call(bodyObj){
   return j;
 }
 
-let TRADERS=[],PAYOUTS=[],filter='all';
+let TRADERS=[],PAYOUTS=[],FIRM={},filter='all';
 const fmt=v=>'$'+Number(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 async function load(){
@@ -188,18 +189,30 @@ async function load(){
   if(!j.is_admin){document.getElementById('denied').style.display='block';document.getElementById('main').style.display='none';document.getElementById('subline').textContent='Access denied';return;}
   document.getElementById('denied').style.display='none';
   document.getElementById('main').style.display='block';
-  TRADERS=j.traders||[];PAYOUTS=j.payouts||[];
+  TRADERS=j.traders||[];PAYOUTS=j.payouts||[];FIRM=j.firm||{};
   renderStats();render();renderPayouts();
 }
 
 function renderStats(){
-  const passed=TRADERS.filter(t=>t.status==='passed').length;
-  const mirrored=TRADERS.filter(t=>t.mirror_enabled).length;
-  const owed=TRADERS.reduce((s,t)=>s+(t.trader_share_owed||0),0);
-  document.getElementById('subline').textContent=TRADERS.length+' accounts · '+passed+' passed · '+mirrored+' mirrored';
-  document.getElementById('stats').innerHTML=[
-    ['Accounts',TRADERS.length],['Passed',passed],['Mirrored live',mirrored],['Total owed',fmt(owed)]
-  ].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  const f=FIRM;
+  document.getElementById('subline').textContent=(f.accounts_total||0)+' accounts · '+(f.passed||0)+' passed · '+(f.mirrored||0)+' mirrored live';
+  // Back-office control room: risk/liability first, then throughput.
+  const cards=[
+    {k:'Accounts',v:f.accounts_total||0,s:(f.active||0)+' active · '+(f.passed||0)+' passed · '+(f.breached||0)+' breached'},
+    {k:'Pass rate',v:(f.pass_rate==null?'—':f.pass_rate+'%'),s:'of finished evaluations'},
+    {k:'Payout liability',v:fmt(f.payout_liability||0),s:'owed to traders now',hot:(f.payout_liability||0)>0},
+    {k:'Pending payouts',v:fmt(f.pending_payouts||0),s:'recorded, not yet paid'},
+    {k:'Paid out',v:fmt(f.total_paid||0),s:'to date'},
+    {k:'Net trader P&L',v:fmt(f.net_trader_pnl||0),s:(f.net_trader_pnl||0)<0?'traders ahead (your exposure)':'firm ahead',neg:(f.net_trader_pnl||0)<0},
+    {k:'Mirrored live',v:f.mirrored||0,s:'accounts copying to broker'},
+    {k:'Challenges claimed',v:f.challenge_claims||0,s:'total evaluations started'},
+  ];
+  document.getElementById('stats').innerHTML=cards.map(c=>
+    `<div class="stat"${c.hot?' style="border-color:rgba(245,158,11,.4)"':''}>
+       <div class="k">${c.k}</div>
+       <div class="v"${c.neg?' style="color:var(--red)"':(c.hot?' style="color:var(--amber)"':'')}>${c.v}</div>
+       <div style="font-size:.66rem;color:var(--muted2);margin-top:.15rem">${c.s}</div>
+     </div>`).join('');
 }
 function setFilter(f,el){filter=f;document.querySelectorAll('#filters .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');render();}
 function render(){

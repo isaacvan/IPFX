@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
   const action = body.action;
 
   if (action === "overview") {
-    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }] =
+    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }, { data: claims }] =
       await Promise.all([
         db.from("trading_accounts").select("*").order("created_at", { ascending: false }),
         db.from("user_profiles").select("user_id,full_name,referral_code"),
@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
         db.from("payouts").select("*").order("created_at", { ascending: false }),
         db.from("trader_stats").select("*"),
         db.from("trader_risk").select("*"),
+        db.from("challenge_claims").select("challenge_type,account_type").limit(100000),
       ]);
     const statByAcct = new Map<string, Record<string, unknown>>();
     for (const s of stats ?? []) statByAcct.set(s.account_id, s);
@@ -117,7 +118,31 @@ Deno.serve(async (req) => {
       };
     });
 
-    return json({ ok: true, is_admin: true, traders, payouts: payouts ?? [] });
+    // ---- firm back-office rollup (money in/out, liability, exposure) ----
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const accts = accounts ?? [];
+    const passed = accts.filter((a: Record<string, unknown>) => a.status === "passed").length;
+    const breached = accts.filter((a: Record<string, unknown>) => a.status === "breached").length;
+    const active = accts.filter((a: Record<string, unknown>) => a.status === "active").length;
+    const mirrored = accts.filter((a: Record<string, unknown>) => a.mirror_enabled).length;
+    const payoutLiability = r2((summary ?? []).reduce((s: number, x: Record<string, unknown>) => s + Number(x.trader_share_owed || 0), 0));
+    const paidRows = (payouts ?? []).filter((p: Record<string, unknown>) => p.status === "paid");
+    const pendingRows = (payouts ?? []).filter((p: Record<string, unknown>) => p.status === "pending" || p.status === "approved");
+    const totalPaid = r2(paidRows.reduce((s: number, p: Record<string, unknown>) => s + Number(p.trader_share || 0), 0));
+    const pendingPayouts = r2(pendingRows.reduce((s: number, p: Record<string, unknown>) => s + Number(p.trader_share || 0), 0));
+    const netTraderPnl = r2(accts.reduce((s: number, a: Record<string, unknown>) => s + (Number(a.balance) - Number(a.starting_balance)), 0));
+    const firm = {
+      accounts_total: accts.length,
+      active, passed, breached, mirrored,
+      pass_rate: (passed + breached) > 0 ? Math.round((passed / (passed + breached)) * 1000) / 10 : null,
+      challenge_claims: (claims ?? []).length,
+      payout_liability: payoutLiability,   // owed to traders right now
+      pending_payouts: pendingPayouts,     // recorded but not yet paid
+      total_paid: totalPaid,               // money out to date
+      net_trader_pnl: netTraderPnl,        // firm's net simulated position (neg = traders up)
+    };
+
+    return json({ ok: true, is_admin: true, firm, traders, payouts: payouts ?? [] });
   }
 
   if (action === "set_mirror") {
