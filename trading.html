@@ -35,6 +35,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px rgba(16,185,129,.7);animation:pd 2s ease infinite;}
 @keyframes pd{0%,100%{opacity:1}50%{opacity:.35}}
 .live-lbl{font-size:.72rem;color:var(--green);font-weight:700;}
+.feed-badge{display:flex;align-items:center;gap:.4rem;padding:.28rem .6rem;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);}
+.feed-dot{width:7px;height:7px;border-radius:50%;background:var(--muted2);}
+.feed-lbl{font-size:.7rem;font-weight:700;letter-spacing:.3px;color:var(--muted);white-space:nowrap;}
+.feed-badge.demo .feed-dot{background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,.7);animation:pd 2s ease infinite;}
+.feed-badge.demo .feed-lbl{color:#f59e0b;}
+.feed-badge.stale .feed-dot{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.7);}
+.feed-badge.stale .feed-lbl{color:#ef4444;}
+.feed-badge.closed .feed-dot{background:var(--muted2);}
+.feed-badge.closed .feed-lbl{color:var(--muted);}
 .tv-attr{font-size:.65rem;color:var(--muted2);display:flex;align-items:center;gap:.3rem;}
 .tv-attr a{color:var(--muted2);text-decoration:none;}
 .tv-attr a:hover{color:var(--muted);}
@@ -748,12 +757,15 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
       </button>
     </div>
-    <button id="tvConnectBtn" onclick="openTVModal()" class="tv-connect-btn">
+    <!-- Unlock Indicators CTA hidden until premium indicators are implemented -->
+    <button id="tvConnectBtn" onclick="openTVModal()" class="tv-connect-btn" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12V8a8 8 0 0 1 16 0v4"/><rect x="2" y="12" width="20" height="10" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
       <span id="tvConnectLbl">Unlock Indicators</span>
     </button>
-    <div class="live-dot"></div>
-    <div class="live-lbl">Live</div>
+    <div class="feed-badge" id="feedBadge" title="Market data feed status">
+      <span class="feed-dot" id="feedDot"></span>
+      <span class="feed-lbl" id="feedLbl">Connecting…</span>
+    </div>
   </div>
 </div>
 
@@ -794,8 +806,9 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
       <div id="tv_chart_container"></div>
     </div>
     <div class="chart-footer">
-      Charts powered by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>
-      &nbsp;·&nbsp;Data is indicative and for reference only. Not financial advice.
+      <strong>Indicative chart</strong> powered by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>&nbsp;— shown for reference only.
+      Order fills are priced by IPFX's own market-data source, which may differ from the chart.
+      <br>IPFX Markets is a simulated trading environment. IPFX does not hold client deposits, provide brokerage services, or provide investment advice.
     </div>
   </div>
 
@@ -1066,9 +1079,9 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
       <!-- INDICATORS TAB -->
       <div class="gpanel active" id="tab-ind" style="flex-direction:column;">
         <div class="ind-apply-bar" style="flex-shrink:0;">
-          <span id="selCount">2 selected</span>
-          <button class="reset-btn" onclick="resetIndicators()">Reset</button>
-          <button class="apply-btn" onclick="applyIndicators()">Apply to Chart</button>
+          <span id="selCount">None selected</span>
+          <button class="reset-btn" onclick="resetIndicators()">Reset Chart Layout</button>
+          <button class="apply-btn" id="applyIndBtn" onclick="applyIndicators()">Apply to Chart</button>
         </div>
         <div id="indList" style="flex:1;overflow-y:auto;"></div>
         <div style="flex-shrink:0;padding:.4rem .8rem;border-top:1px solid var(--line2);font-size:.62rem;color:var(--cobalt);text-align:center;">Hover any indicator for a full explanation</div>
@@ -1374,7 +1387,22 @@ const INDS=[
    explain:'Like RSI but factors in volume, making its signals more meaningful. Above 80 = overbought. Below 20 = oversold. If price reaches a new high but MFI does not, it suggests the move is weakening — this divergence is a warning sign before reversals.'},
 ];
 
-let selectedStudies=new Set(['RSI@tv-basicstudies','Volume@tv-basicstudies']);
+// No indicators on load. Layout is restored per-account from localStorage
+// only if the user previously applied some — never auto-applied by default.
+let selectedStudies=new Set();
+(function loadChartLayout(){
+  try{
+    const key='ipfx_chart_layout_'+(P.get('login')||P.get('name')||'guest');
+    const saved=JSON.parse(localStorage.getItem(key)||'[]');
+    if(Array.isArray(saved)&&saved.length)selectedStudies=new Set(saved);
+  }catch(_){}
+})();
+function saveChartLayout(){
+  try{
+    const key='ipfx_chart_layout_'+(P.get('login')||P.get('name')||'guest');
+    localStorage.setItem(key,JSON.stringify([...selectedStudies]));
+  }catch(_){}
+}
 
 function buildIndList(){
   const listEl=document.getElementById('indList');
@@ -1416,12 +1444,15 @@ function updateSelCount(){
 }
 
 function resetIndicators(){
-  selectedStudies=new Set(['RSI@tv-basicstudies','Volume@tv-basicstudies']);
+  // Reset Chart Layout = clear all indicators (no defaults).
+  selectedStudies=new Set();
   buildIndList();
-  applyIndicators();
+  saveChartLayout();
+  rebuildChart();
 }
 
 function applyIndicators(){
+  saveChartLayout();
   rebuildChart();
 }
 
@@ -1708,7 +1739,7 @@ function buildDomLadder(midPrice,digits){
   }
   ladder.innerHTML=html;
   const symEl=document.getElementById('dom-sym-label');
-  if(symEl)symEl.textContent=activeSym||'—';
+  if(symEl)symEl.textContent=(activeSym||'—').replace(/^[A-Z]+:/,'');
 }
 function animateDom(){
   const rows=document.querySelectorAll('#domLadder .dom-row:not(.current)');
@@ -1823,7 +1854,9 @@ function setLots(n,btn){
   updatePnlPreview();
 }
 async function placeOrder(side){
-  if(engineBusy)return;engineBusy=true;
+  if(engineBusy)return;
+  if(typeof feedFresh==='function'&&!feedFresh()){engineMsg('Market data is stale — orders are paused until the feed recovers.');return;}
+  engineBusy=true;
   const payload={action:'open',symbol:activeSym,side,volume:ordLots};
   if(slOn){const v=parseFloat(document.getElementById('slPrice').value);if(v)payload.sl=v;}
   if(tpOn){const v=parseFloat(document.getElementById('tpPrice').value);if(v)payload.tp=v;}
@@ -1932,6 +1965,33 @@ function updateOrdPrices(mid){
 // Between polls we leave the last real price (animateDom keeps the ladder
 // visually alive). Logged-out visitors keep the static seed price.
 let priceFetchBusy=false;
+// ── FEED STATUS + STALE DETECTION (fail-closed execution) ──
+// Current pricing is a DEMO/testing feed (not a launch-grade single-source
+// gateway). Order buttons are disabled whenever the last quote is stale.
+let lastQuoteTs=0, feedState='connecting';
+const STALE_MS=6000; // last tick older than this => stale (poll is 4s)
+function setFeed(state){
+  feedState=state;
+  const badge=document.getElementById('feedBadge');
+  const lbl=document.getElementById('feedLbl');
+  if(!badge||!lbl)return;
+  badge.classList.remove('demo','stale','closed');
+  if(state==='demo'){badge.classList.add('demo');lbl.textContent='DEMO · testing feed';}
+  else if(state==='stale'){badge.classList.add('stale');lbl.textContent='STALE · trading paused';}
+  else if(state==='closed'){badge.classList.add('closed');lbl.textContent='NO FEED';}
+  else{lbl.textContent='Connecting…';}
+  applyFeedGate();
+}
+function feedFresh(){ return lastQuoteTs>0 && (Date.now()-lastQuoteTs)<STALE_MS; }
+function applyFeedGate(){
+  // Disable Buy/Sell when the quote is stale — never fill on stale data.
+  const stale=!feedFresh();
+  document.querySelectorAll('.ord-buy,.ord-sell,.of-buy,.of-sell').forEach(b=>{
+    b.style.opacity=stale?'0.4':'';
+    b.style.pointerEvents=stale?'none':'';
+    b.setAttribute('aria-disabled',stale?'true':'false');
+  });
+}
 async function pollTicketPrice(){
   if(priceFetchBusy||!activeSym||!hasSession())return;
   priceFetchBusy=true;
@@ -1943,12 +2003,18 @@ async function pollTicketPrice(){
       if(j&&j.ok&&isFinite(j.mid)){
         domDigits=j.digits;
         domPrice=j.mid;
+        lastQuoteTs=Date.now();
         updateOrdPrices(j.mid);
+        setFeed('demo');
+      }else{
+        if(!feedFresh())setFeed(lastQuoteTs?'stale':'closed');
       }
-    }catch(_){}
+    }catch(_){ if(!feedFresh())setFeed('stale'); }
   }
   priceFetchBusy=false;
 }
+// continuously re-evaluate staleness even if a poll is in flight
+setInterval(()=>{ if(hasSession()&&!feedFresh()&&feedState!=='closed')setFeed(lastQuoteTs?'stale':'connecting'); },1000);
 pollTicketPrice();
 setInterval(pollTicketPrice,4000);
 
@@ -2235,13 +2301,6 @@ const WL_DATA={
     {sym:'FOREXCOM:FRA40',name:'CAC 40',base:8120,d:1,sp:1.5},
     {sym:'FOREXCOM:JPN225',name:'Nikkei 225',base:39800,d:0,sp:8.0},
     {sym:'FOREXCOM:US2000',name:'Russell 2000',base:2040,d:1,sp:0.8},
-  ],
-  crypto:[
-    {sym:'BITSTAMP:BTCUSD',name:'Bitcoin',base:67000,d:0,sp:50},
-    {sym:'BITSTAMP:ETHUSD',name:'Ethereum',base:3500,d:1,sp:2},
-    {sym:'BITSTAMP:XRPUSD',name:'XRP/USD',base:0.5500,d:4,sp:0.0010},
-    {sym:'COINBASE:SOLUSD',name:'Solana',base:165,d:2,sp:0.25},
-    {sym:'BINANCE:BNBUSDT',name:'BNB',base:580,d:2,sp:0.50},
   ]
 };
 
