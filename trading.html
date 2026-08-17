@@ -742,9 +742,9 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   </div>
   <div class="tb-div"></div>
   <div class="tb-acct" id="tbAcct">Account</div>
-  <div class="tb-pill">Login&nbsp;<strong id="tbLogin">—</strong></div>
-  <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">IPFX Capital Markets</strong></div>
-  <div class="tb-pill">Server&nbsp;<strong id="tbServer">IPFX-Live</strong></div>
+  <div class="tb-pill">Account&nbsp;ID&nbsp;<strong id="tbLogin">—</strong></div>
+  <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">IPFX Markets</strong></div>
+  <!-- No real "Server" field exists — this is a simulated environment, not broker infrastructure. -->
   <div class="tb-right">
     <div class="tb-tool-grp">
       <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode">
@@ -1250,9 +1250,8 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
     <!-- ACCOUNT TAB -->
     <div class="bpanel active" id="bp-account">
       <div class="acell"><div class="albl">Account</div><div class="aval" id="bp-name">—</div></div>
-      <div class="acell"><div class="albl">Login</div><div class="aval" id="bp-login">—</div></div>
-      <div class="acell"><div class="albl">Platform</div><div class="aval" id="bp-platform">—</div></div>
-      <div class="acell"><div class="albl">Server</div><div class="aval" id="bp-server" style="font-size:.75rem">—</div></div>
+      <div class="acell"><div class="albl">Account ID</div><div class="aval" id="bp-login">—</div></div>
+      <div class="acell"><div class="albl">Platform</div><div class="aval" id="bp-platform">IPFX Markets</div></div>
       <div class="acell"><div class="albl">Balance</div><div class="aval pos" id="bp-balance">—</div></div>
       <div class="acell"><div class="albl">Max Daily Loss</div><div class="aval" id="bp-daily">—</div></div>
       <div class="acell"><div class="albl">Account Floor</div><div class="aval" id="bp-floor">—</div></div>
@@ -1315,11 +1314,16 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 // ── URL PARAMS ──
 const P=new URLSearchParams(location.search);
 document.getElementById('tbAcct').textContent=P.get('name')||'My Account';
-document.getElementById('tbLogin').textContent=P.get('login')||'—';
-document.getElementById('tbPlatform').textContent=P.get('platform')||'IPFX Capital Markets';
-document.getElementById('tbServer').textContent=P.get('server')||'IPFX-Live';
+document.getElementById('tbPlatform').textContent='IPFX Markets';
 document.title='IPFX Markets | '+(P.get('name')||'Account');
+// tbLogin (Account ID) is populated from the real engine account once
+// state loads — see renderEngineAccount() — never fabricated.
 
+// NOTE: keeps the EXCHANGE:SYMBOL prefix (e.g. 'OANDA:EURUSD') because the
+// TradingView chart widget needs it to resolve the symbol for its own
+// (indicative) chart feed. Our own execution engine strips this prefix via
+// cleanSymbol() — the chart's provider and the execution quote source are
+// never the same thing, which is why the chart is labelled "Indicative".
 let activeSym='OANDA:EURUSD';
 let isDarkMode=true;
 const GRID_ALPHAS=[0,.04,.09];
@@ -1565,18 +1569,14 @@ function toggleBtm(){
 // ── ACCOUNT TAB POPULATE ──
 (function populateAccount(){
   const name=P.get('name')||'—';
-  const login=P.get('login')||'—';
-  const platform=P.get('platform')||'—';
-  const server=P.get('server')||'—';
   const bal=P.get('bal');   // pence from dashboard
   const daily=P.get('daily');
   const floor=P.get('floor');
   const target=P.get('target');
 
   document.getElementById('bp-name').textContent=name;
-  document.getElementById('bp-login').textContent=login;
-  document.getElementById('bp-platform').textContent=platform;
-  document.getElementById('bp-server').textContent=server;
+  // bp-login (Account ID) is set from the real engine account in
+  // renderEngineAccount() — never fabricated from URL params.
 
   const fmt=v=>v?'$'+(parseInt(v)/100).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
   document.getElementById('bp-balance').textContent=fmt(bal);
@@ -1914,6 +1914,7 @@ function renderEngineAccount(){
   const a=engineState&&engineState.account;if(!a)return;
   const f=v=>'$'+(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  if(a.id){const short=String(a.id).slice(0,8).toUpperCase();set('tbLogin',short);set('bp-login',short);}
   set('bp-balance',f(a.balance));
   set('bp-daily',f(a.limits.daily_floor));
   set('bp-floor',f(a.limits.max_dd_floor));
@@ -1970,16 +1971,16 @@ let priceFetchBusy=false;
 // gateway). Order buttons are disabled whenever the last quote is stale.
 let lastQuoteTs=0, feedState='connecting';
 const STALE_MS=6000; // last tick older than this => stale (poll is 4s)
-function setFeed(state){
+function setFeed(state,label){
   feedState=state;
   const badge=document.getElementById('feedBadge');
   const lbl=document.getElementById('feedLbl');
   if(!badge||!lbl)return;
   badge.classList.remove('demo','stale','closed');
-  if(state==='demo'){badge.classList.add('demo');lbl.textContent='DEMO · testing feed';}
-  else if(state==='stale'){badge.classList.add('stale');lbl.textContent='STALE · trading paused';}
-  else if(state==='closed'){badge.classList.add('closed');lbl.textContent='NO FEED';}
-  else{lbl.textContent='Connecting…';}
+  if(state==='demo'){badge.classList.add('demo');lbl.textContent=label||'DEMO · testing feed';}
+  else if(state==='stale'){badge.classList.add('stale');lbl.textContent=label||'STALE · trading paused';}
+  else if(state==='closed'){badge.classList.add('closed');lbl.textContent=label||'NO FEED';}
+  else{lbl.textContent=label||'Connecting…';}
   applyFeedGate();
 }
 function feedFresh(){ return lastQuoteTs>0 && (Date.now()-lastQuoteTs)<STALE_MS; }
@@ -2000,12 +2001,19 @@ async function pollTicketPrice(){
     try{
       const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym})});
       const j=await r.json().catch(()=>null);
-      if(j&&j.ok&&isFinite(j.mid)){
+      if(j&&j.ok&&j.status==='closed'){
+        domDigits=j.digits;
+        setFeed('closed','MARKET CLOSED');
+      }else if(j&&j.ok&&j.status==='no_feed'){
+        setFeed('closed','NO FEED');
+      }else if(j&&j.ok&&isFinite(j.mid)){
         domDigits=j.digits;
         domPrice=j.mid;
         lastQuoteTs=Date.now();
         updateOrdPrices(j.mid);
-        setFeed('demo');
+        // engine reports its own status ('demo' or 'stale') based on the
+        // provider tick age — trust that over our own poll cadence.
+        setFeed(j.status==='stale'?'stale':'demo');
       }else{
         if(!feedFresh())setFeed(lastQuoteTs?'stale':'closed');
       }

@@ -25,7 +25,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Map our internal symbols to typical MT5 broker symbols. Brokers differ
 // (suffixes like .r, .m, m), so this is the adjustable seam.
 function brokerSymbol(sym: string): string {
-  // default: pass through (EURUSD, XAUUSD, BTCUSD, US500, ...). Override per broker here.
+  // default: pass through (EURUSD, XAUUSD, US500, ...). Override per broker here.
   const OVERRIDES: Record<string, string> = {
     // SPXUSD: "US500", NSXUSD: "USTEC", DJI: "US30",  // e.g. if broker uses these
   };

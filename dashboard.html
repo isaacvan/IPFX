@@ -770,7 +770,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How is the Application Challenge different from Infinity?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>Infinity is an evaluation programme — you pass phases to get funded. The Application Challenge has no evaluation: you disclose your strategy, our analysts backtest it, agree custom parameters with you, and you are funded from day one. It is designed for traders with a proven, systematic edge.</p></div></div>
         <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I use an Expert Advisor (EA) or automated strategy?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>Yes — EAs and algorithmic strategies are fully permitted and encouraged on all IPFX accounts. For the Application Challenge, your algorithm logic must be disclosed during the application so our analysts can backtest and set appropriate parameters.</p></div></div>
         <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I scale my capital beyond my current account?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>For Infinity accounts, consistent performance over 3+ months qualifies you to apply for a larger account up to $200K. For Application Challenge traders, after an agreed review period demonstrating consistent edge, you can apply for capital scaling up to $500K at no additional fee.</p></div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What trading platforms does IPFX support?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>IPFX Capital supports MetaTrader 4 (MT4), MetaTrader 5 (MT5) and cTrader. Choose your platform when setting up your account. Application Challenge traders agree their platform during the parameter negotiation phase.</p></div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What trading platform does IPFX use?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="faq-a"><p>IPFX Capital trades on our own in-house platform, IPFX Markets — a simulated trading environment built and operated by IPFX. We do not currently offer MetaTrader or cTrader.</p></div></div>
       </div>
     </div>
 
@@ -909,10 +909,11 @@ function renderAccounts(list){
     const badge=badges[e.status]||badges.pending;
     const acName=(type==='application'?'Application':type==='traditional'?'Traditional':'Infinity')+' $'+(size/100/1000).toFixed(0)+'K';
     const acId=e.trading_account_id||'—';
-    const platform=e.trading_platform||'MT5';
+    // IPFX Markets is our own in-house simulated venue — never claim
+    // MT4/MT5/cTrader integration that doesn't exist.
+    const platform='IPFX Markets';
     const loginCode=e.trading_account_id||('IPFX-'+(e.id||'').replace(/-/g,'').substring(0,8).toUpperCase());
     const tradePw=e.trading_password||'';
-    const tvServer=platform==='MT4'?'IPFX-MT4-Live':platform==='cTrader'?'IPFX-cTrader-Live':'IPFX-MT5-Live';
     const pwElId='pwel'+idx;
     const drawdownLabel=drawdownBreached?'<span class="sv neg">Breached</span>':'<span class="sv">'+fmt(drawdownFloor)+'</span>';
     const drawdownSub=drawdownBreached?'Limit hit':'Floor · '+(((e.total_loss_limit||0)/size)*100).toFixed(0)+'%';
@@ -933,7 +934,7 @@ function renderAccounts(list){
         <div class="ac-acts">${actions}</div>
       </div>
       <div class="ac-creds">
-        <a href="trading.html?login=${encodeURIComponent(loginCode)}&name=${encodeURIComponent(acName)}&platform=${encodeURIComponent(platform)}&server=${encodeURIComponent(tvServer)}&bal=${bal}&daily=${e.total_loss_limit||0}&floor=${drawdownFloor}&target=${pTarget}" class="trade-btn" target="_blank">
+        <a href="trading.html?login=${encodeURIComponent(loginCode)}&name=${encodeURIComponent(acName)}&platform=${encodeURIComponent(platform)}&bal=${bal}&daily=${e.total_loss_limit||0}&floor=${drawdownFloor}&target=${pTarget}" class="trade-btn" target="_blank">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Go to Markets
         </a>
@@ -1195,7 +1196,7 @@ const ANS={
   drawdown:'Your drawdown limit is the floor your balance cannot breach. If hit, trading is suspended. Infinity accounts can reset; PAC accounts: a breach ends the agreement as it falls outside your agreed parameters — you can reapply.',
   scaling:'After proving a consistent edge, apply for more capital — up to **$200K on Infinity** and up to **$500K on PAC accounts at no fee**. Go to Accounts after 3+ months of consistent returns.',
   ea:'Yes — EAs and algos are fully permitted. For the PAC, your algorithm logic must be disclosed so our analysts can backtest and agree appropriate parameters before you go live.',
-  platform:'IPFX supports **MT4, MT5 and cTrader**. Choose when setting up. PAC traders agree platform during parameter negotiation.',
+  platform:'IPFX trades on our own in-house platform, **IPFX Markets** — a simulated trading environment. We do not currently offer MetaTrader or cTrader.',
   hello:'Hey! Good to hear from you. I can help with payouts, drawdown, the Application Challenge, scaling capital, EAs, platforms and more. What do you need?',
   default:'Great question — for detailed help reach us on Discord (usually under 10 mins) or email enquiries@ipfxcapital.com. Anything else I can help clarify?'
 };
