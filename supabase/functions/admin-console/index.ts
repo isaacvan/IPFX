@@ -29,6 +29,164 @@ const err = (m: string, s = 400) => json({ ok: false, error: m }, s);
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
+// deno-lint-ignore no-explicit-any
+type Trade = any;
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+const mean = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+const median = (xs: number[]) => {
+  if (!xs.length) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+};
+const stddev = (xs: number[]) => {
+  if (xs.length < 2) return 0;
+  const m = mean(xs);
+  return Math.sqrt(mean(xs.map((x) => (x - m) ** 2)));
+};
+
+// Bucket a UTC hour (0-23) into the FX session it falls in.
+function sessionOf(hourUtc: number): "Asia" | "London" | "Overlap" | "New York" | "Off-hours" {
+  if (hourUtc >= 0 && hourUtc < 8) return "Asia";
+  if (hourUtc >= 8 && hourUtc < 13) return "London";
+  if (hourUtc >= 13 && hourUtc < 17) return "Overlap";
+  if (hourUtc >= 17 && hourUtc < 22) return "New York";
+  return "Off-hours";
+}
+
+// ============================================================
+// buildStrategyProfile — reconstructs a trader's playbook purely from
+// their own trade records: which instruments, which side, how they use
+// SL/TP, how long they hold, when they trade, how they size positions,
+// and whether their behaviour shows martingale sizing or revenge
+// trading after a loss. Everything here is derived, not self-reported.
+// ============================================================
+function buildStrategyProfile(allTrades: Trade[]) {
+  const trades = [...allTrades].sort((a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime());
+  const closed = trades.filter((t) => t.status === "closed" && t.closed_at && t.pnl !== null);
+  const n = closed.length;
+
+  if (n === 0) {
+    return {
+      trades_total: trades.length, trades_closed: 0,
+      summary_text: trades.length
+        ? "No closed trades yet — not enough history to infer a strategy."
+        : "This account has not placed any trades.",
+    };
+  }
+
+  // --- symbol breakdown ---
+  const bySymbol = new Map<string, Trade[]>();
+  for (const t of closed) { const k = t.symbol; if (!bySymbol.has(k)) bySymbol.set(k, []); bySymbol.get(k)!.push(t); }
+  const symbolBreakdown = [...bySymbol.entries()].map(([symbol, ts]) => {
+    const wins = ts.filter((t) => Number(t.pnl) > 0).length;
+    const pnl = ts.reduce((s, t) => s + Number(t.pnl), 0);
+    return { symbol, trades: ts.length, pct: r2((ts.length / n) * 100), win_rate: r2((wins / ts.length) * 100), total_pnl: r2(pnl) };
+  }).sort((a, b) => b.trades - a.trades);
+  const topSymbolPct = symbolBreakdown[0]?.pct ?? 0;
+
+  // --- side bias ---
+  const buys = closed.filter((t) => t.side === "buy").length;
+  const sideBias = { buy_pct: r2((buys / n) * 100), sell_pct: r2(((n - buys) / n) * 100) };
+
+  // --- SL/TP usage & planned R:R (distance as % of entry price, scale-free across instruments) ---
+  const withSl = trades.filter((t) => t.sl !== null);
+  const withTp = trades.filter((t) => t.tp !== null);
+  const slDist: number[] = [], tpDist: number[] = [], rr: number[] = [];
+  for (const t of trades) {
+    const entry = Number(t.open_price);
+    if (!entry) continue;
+    const sD = t.sl !== null ? Math.abs(entry - Number(t.sl)) / entry * 100 : null;
+    const tD = t.tp !== null ? Math.abs(Number(t.tp) - entry) / entry * 100 : null;
+    if (sD !== null) slDist.push(sD);
+    if (tD !== null) tpDist.push(tD);
+    if (sD !== null && tD !== null && sD > 0) rr.push(tD / sD);
+  }
+
+  // --- hold time ---
+  const holdMins = closed.map((t) => (new Date(t.closed_at).getTime() - new Date(t.opened_at).getTime()) / 60000);
+  const avgHold = mean(holdMins), medHold = median(holdMins);
+  const style = avgHold < 15 ? "scalper" : avgHold < 240 ? "intraday trader" : avgHold < 2880 ? "swing trader" : "position trader";
+
+  // --- session activity ---
+  const sessionCounts: Record<string, number> = { Asia: 0, London: 0, Overlap: 0, "New York": 0, "Off-hours": 0 };
+  for (const t of closed) sessionCounts[sessionOf(new Date(t.opened_at).getUTCHours())]++;
+  const sessionPct = Object.fromEntries(Object.entries(sessionCounts).map(([k, v]) => [k, r2((v / n) * 100)]));
+  const dominantSession = Object.entries(sessionCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+  // --- position sizing & martingale detection ---
+  const vols = closed.map((t) => Number(t.volume));
+  const avgVol = mean(vols), volStd = stddev(vols);
+  let martingaleOpportunities = 0, martingaleHits = 0;
+  for (let i = 0; i < closed.length - 1; i++) {
+    const cur = closed[i], next = closed[i + 1];
+    if (Number(cur.pnl) < 0) {
+      martingaleOpportunities++;
+      if (Number(next.volume) > Number(cur.volume) * 1.3) martingaleHits++;
+    }
+  }
+  const martingaleScore = martingaleOpportunities ? r2((martingaleHits / martingaleOpportunities) * 100) : 0;
+
+  // --- cadence & revenge-trading detection ---
+  let revengeCount = 0, gapOpportunities = 0;
+  const gapMins: number[] = [];
+  for (let i = 0; i < closed.length - 1; i++) {
+    const cur = closed[i], next = closed[i + 1];
+    const gap = (new Date(next.opened_at).getTime() - new Date(cur.closed_at).getTime()) / 60000;
+    if (gap >= 0) { gapMins.push(gap); gapOpportunities++; }
+    if (Number(cur.pnl) < 0 && gap >= 0 && gap < 5 && Number(next.volume) >= Number(cur.volume)) revengeCount++;
+  }
+  const revengePct = gapOpportunities ? r2((revengeCount / gapOpportunities) * 100) : 0;
+  const avgGapMins = mean(gapMins);
+
+  // --- discipline: how trades actually closed ---
+  const reasonCounts: Record<string, number> = { sl: 0, tp: 0, manual: 0, breach: 0 };
+  for (const t of closed) { const r = t.close_reason || "manual"; reasonCounts[r] = (reasonCounts[r] ?? 0) + 1; }
+  const ruleBasedPct = r2(((reasonCounts.sl + reasonCounts.tp) / n) * 100);
+
+  // --- overall performance ---
+  const wins = closed.filter((t) => Number(t.pnl) > 0);
+  const losses = closed.filter((t) => Number(t.pnl) < 0);
+  const grossWin = wins.reduce((s, t) => s + Number(t.pnl), 0);
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + Number(t.pnl), 0));
+  const winRate = r2((wins.length / n) * 100);
+  const profitFactor = grossLoss > 0 ? r2(grossWin / grossLoss) : null;
+  const bestWin = wins.length ? Math.max(...wins.map((t) => Number(t.pnl))) : 0;
+  const consistencyPct = grossWin > 0 ? r2((bestWin / grossWin) * 100) : 0; // % of all profit from one trade
+
+  // --- plain-English summary ---
+  const parts: string[] = [];
+  parts.push(`Primarily a ${style} (avg hold ${avgHold < 60 ? Math.round(avgHold) + "m" : (avgHold / 60).toFixed(1) + "h"})`);
+  if (symbolBreakdown.length) parts.push(`trading mostly ${symbolBreakdown[0].symbol} (${symbolBreakdown[0].pct}% of trades)`);
+  parts.push(`most active in the ${dominantSession} session (${sessionPct[dominantSession]}%)`);
+  parts.push(`${sideBias.buy_pct > 60 ? "long-biased" : sideBias.sell_pct > 60 ? "short-biased" : "balanced long/short"}`);
+  if (withSl.length / trades.length > 0.8) parts.push(`consistently uses stop-losses (${r2((withSl.length / trades.length) * 100)}% of orders)`);
+  else if (withSl.length / trades.length < 0.3) parts.push(`rarely sets a stop-loss (only ${r2((withSl.length / trades.length) * 100)}% of orders) — a real risk flag`);
+  if (rr.length) parts.push(`planned R:R averages 1:${mean(rr).toFixed(2)}`);
+  if (martingaleScore > 40) parts.push(`⚠ shows martingale-like sizing — volume increases after a loss ${martingaleScore}% of the time`);
+  if (revengePct > 20) parts.push(`⚠ shows revenge-trading signs — re-entered within 5 minutes of a loss, at equal/larger size, ${revengePct}% of the time`);
+  if (consistencyPct > 50) parts.push(`⚠ ${consistencyPct}% of total profit came from a single trade — win rate may not be repeatable`);
+
+  return {
+    trades_total: trades.length, trades_closed: n,
+    win_rate: winRate, profit_factor: profitFactor,
+    symbol_breakdown: symbolBreakdown, top_symbol_concentration_pct: topSymbolPct,
+    side_bias: sideBias,
+    sl_usage_pct: r2((withSl.length / trades.length) * 100),
+    tp_usage_pct: r2((withTp.length / trades.length) * 100),
+    avg_sl_distance_pct: slDist.length ? r2(mean(slDist)) : null,
+    avg_tp_distance_pct: tpDist.length ? r2(mean(tpDist)) : null,
+    avg_planned_rr: rr.length ? r2(mean(rr)) : null,
+    hold_time: { avg_minutes: r2(avgHold), median_minutes: r2(medHold), style },
+    session_activity: sessionPct, dominant_session: dominantSession,
+    sizing: { avg_volume: r2(avgVol), volume_stddev: r2(volStd), martingale_score_pct: martingaleScore, martingale_flag: martingaleScore > 40 },
+    cadence: { avg_gap_minutes: r2(avgGapMins), revenge_trade_pct: revengePct, revenge_flag: revengePct > 20 },
+    discipline: { close_reasons: reasonCounts, rule_based_close_pct: ruleBasedPct },
+    consistency_pct: consistencyPct,
+    summary_text: parts.join("; ") + ".",
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -207,6 +365,64 @@ Deno.serve(async (req) => {
     if (!payout_id) return err("payout_id required");
     await db.from("payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", payout_id);
     return json({ ok: true });
+  }
+
+  // ---- private trader intelligence: every trade a trader has taken,
+  // full execution audit, and an auto-inferred strategy profile.
+  // Admin-only (gated above); nothing here is visible to the trader.
+  if (action === "trader_detail") {
+    const target_user = String(body.user_id ?? "");
+    if (!target_user) return err("user_id required");
+
+    const [{ data: accountsFor }, { data: profile }] = await Promise.all([
+      db.from("trading_accounts").select("*").eq("user_id", target_user).order("created_at", { ascending: false }),
+      db.from("user_profiles").select("full_name,referral_code").eq("user_id", target_user).maybeSingle(),
+    ]);
+    if (!accountsFor || !accountsFor.length) return err("No accounts for this trader", 404);
+
+    let email = "";
+    try {
+      const { data: u } = await db.auth.admin.getUserById(target_user);
+      email = u?.user?.email ?? "";
+    } catch (_) { /* optional */ }
+
+    const accountIds = accountsFor.map((a: Record<string, unknown>) => a.id);
+    const [{ data: allTrades }, { data: auditEvents }] = await Promise.all([
+      db.from("trades").select("*").in("account_id", accountIds).order("opened_at", { ascending: false }).limit(2000),
+      db.from("order_audit_events").select("*").eq("user_id", target_user).order("server_ts", { ascending: false }).limit(2000),
+    ]);
+
+    const auditByTrade = new Map<string, Record<string, unknown>[]>();
+    for (const ev of auditEvents ?? []) {
+      const tid = ev.trade_id as string | null;
+      if (!tid) continue;
+      if (!auditByTrade.has(tid)) auditByTrade.set(tid, []);
+      auditByTrade.get(tid)!.push(ev);
+    }
+    const tradesWithAudit = (allTrades ?? []).map((t: Record<string, unknown>) => ({
+      ...t, audit: auditByTrade.get(t.id as string) ?? [],
+    }));
+
+    // one profile per account (a trader may have multiple challenge accounts
+    // over time) plus a combined profile across everything.
+    const perAccount = accountsFor.map((a: Record<string, unknown>) => {
+      const ts = (allTrades ?? []).filter((t: Record<string, unknown>) => t.account_id === a.id);
+      return { account_id: a.id, label: a.label, status: a.status, created_at: a.created_at, profile: buildStrategyProfile(ts) };
+    });
+    const combinedProfile = buildStrategyProfile(allTrades ?? []);
+    const rejects = (auditEvents ?? []).filter((e: Record<string, unknown>) => e.event === "reject");
+
+    return json({
+      ok: true,
+      user_id: target_user,
+      full_name: profile?.full_name || "—",
+      email,
+      accounts: accountsFor,
+      trades: tradesWithAudit,
+      reject_events: rejects,
+      per_account_profile: perAccount,
+      combined_profile: combinedProfile,
+    });
   }
 
   return err("unknown action");

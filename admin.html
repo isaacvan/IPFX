@@ -148,6 +148,20 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
   </div>
 </div>
 
+<!-- trader intelligence: every trade + inferred strategy (admin-only) -->
+<div class="modal" id="tdModal">
+  <div class="mbox" style="max-width:1100px;max-height:88vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+      <div>
+        <h3 id="tdName" style="font-size:1.1rem">—</h3>
+        <div class="who" id="tdEmail"></div>
+      </div>
+      <button class="btn btn-o" onclick="closeTraderDetail()">Close ✕</button>
+    </div>
+    <div id="tdBody"><div class="msg">Loading…</div></div>
+  </div>
+</div>
+
 <script>
 const SB_URL='https://agulweemteoeagscmppy.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
@@ -247,6 +261,7 @@ function render(){
       <td>${owed}</td>
       <td><span class="mtog">${mdot}<span style="font-size:.76rem;color:${t.mirror_enabled?'var(--green)':'var(--muted2)'}">${esc(mlabel)}</span></span></td>
       <td style="white-space:nowrap;text-align:right">
+        <button class="btn btn-o" onclick='openTraderDetail(${JSON.stringify(t.user_id)})'>View Trades</button>
         <button class="btn btn-o" onclick='openModal(${JSON.stringify(t.user_id)},${JSON.stringify(t.full_name)},${JSON.stringify(t.mirror_target)})'>${t.mirror_enabled?'Edit':'Approve'}</button>
         ${payBtn}
       </td>
@@ -314,6 +329,108 @@ async function markPaid(id){
   if(j){toast('Marked paid',true);load();}
 }
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+// ---- trader intelligence: every trade + inferred strategy ----
+function closeTraderDetail(){document.getElementById('tdModal').classList.remove('open');}
+document.getElementById('tdModal').addEventListener('click',e=>{if(e.target.id==='tdModal')closeTraderDetail();});
+
+async function openTraderDetail(user_id){
+  document.getElementById('tdModal').classList.add('open');
+  document.getElementById('tdName').textContent='Loading…';
+  document.getElementById('tdEmail').textContent='';
+  document.getElementById('tdBody').innerHTML='<div class="msg">Loading trade history…</div>';
+  const j=await call({action:'trader_detail',user_id});
+  if(!j)return;
+  document.getElementById('tdName').textContent=j.full_name;
+  document.getElementById('tdEmail').textContent=j.email;
+  document.getElementById('tdBody').innerHTML=renderTraderDetail(j);
+}
+
+function profileCard(p){
+  if(!p||p.trades_closed===0){
+    return `<div class="warn" style="margin-bottom:1.25rem">${esc(p&&p.summary_text||'No trade history yet.')}</div>`;
+  }
+  const flags=[];
+  if(p.sizing&&p.sizing.martingale_flag)flags.push('<span style="color:var(--red);font-weight:700">⚠ Martingale sizing</span>');
+  if(p.cadence&&p.cadence.revenge_flag)flags.push('<span style="color:var(--red);font-weight:700">⚠ Revenge trading</span>');
+  if(p.consistency_pct>50)flags.push('<span style="color:var(--amber);font-weight:700">⚠ Win concentrated in 1 trade</span>');
+  const metrics=[
+    ['Trades (closed)',p.trades_closed],
+    ['Win rate',p.win_rate+'%'],
+    ['Profit factor',p.profit_factor==null?'∞':p.profit_factor],
+    ['Avg hold',p.hold_time.avg_minutes<60?Math.round(p.hold_time.avg_minutes)+'m':(p.hold_time.avg_minutes/60).toFixed(1)+'h'],
+    ['Style',p.hold_time.style],
+    ['Dominant session',p.dominant_session],
+    ['SL usage',p.sl_usage_pct+'%'],
+    ['TP usage',p.tp_usage_pct+'%'],
+    ['Planned R:R',p.avg_planned_rr==null?'—':'1:'+p.avg_planned_rr],
+    ['Side bias',p.side_bias.buy_pct+'% buy / '+p.side_bias.sell_pct+'% sell'],
+    ['Rule-based closes',p.discipline.rule_based_close_pct+'%'],
+    ['Avg lot size',p.sizing.avg_volume],
+  ];
+  return `
+    <div style="background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1rem;font-size:.85rem;line-height:1.6">
+      ${esc(p.summary_text)}
+      ${flags.length?'<div style="margin-top:.5rem">'+flags.join(' &nbsp; ')+'</div>':''}
+    </div>
+    <div class="stat-row" style="margin-bottom:1.25rem">
+      ${metrics.map(([k,v])=>`<div class="stat" style="min-width:120px;flex:0 0 auto"><div class="k">${k}</div><div class="v" style="font-size:1rem">${v}</div></div>`).join('')}
+    </div>
+    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin-bottom:.5rem">Instruments traded</div>
+    <div class="tbl-wrap" style="margin-bottom:1.5rem"><table>
+      <thead><tr><th>Symbol</th><th>Trades</th><th>% of activity</th><th>Win rate</th><th>Total P&amp;L</th></tr></thead>
+      <tbody>${p.symbol_breakdown.map(s=>`<tr>
+        <td>${esc(s.symbol)}</td><td class="mono">${s.trades}</td><td class="mono">${s.pct}%</td>
+        <td class="mono">${s.win_rate}%</td><td class="mono ${s.total_pnl>=0?'pos':'neg'}">${s.total_pnl>=0?'+':''}${s.total_pnl}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+function renderTraderDetail(j){
+  const p=j.combined_profile;
+  const accHtml=(j.per_account_profile||[]).length>1
+    ? `<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin:1.5rem 0 .5rem">Per-account breakdown</div>`
+      +j.per_account_profile.map(a=>`<div style="margin-bottom:1rem"><div style="font-size:.82rem;font-weight:600;margin-bottom:.4rem">${esc(a.label)} <span class="st ${a.status}">${a.status}</span></div>${profileCard(a.profile)}</div>`).join('')
+    : '';
+  const trades=(j.trades||[]).slice(0,200);
+  const rejects=(j.reject_events||[]).slice(0,50);
+  const tradeRows=trades.map(t=>{
+    const aud=(t.audit||[])[0];
+    const quoteInfo=aud?`<div style="font-size:.68rem;color:var(--muted2)">bid ${aud.bid??'—'} / ask ${aud.ask??'—'} · spread ${aud.spread??'—'} · lat ${aud.latency_ms??'—'}ms</div>`:'';
+    return `<tr>
+      <td class="mono" style="font-size:.72rem">${new Date(t.opened_at).toLocaleString()}</td>
+      <td>${esc(t.symbol)}</td>
+      <td><span class="ord-pos-dir ${t.side}" style="font-size:.68rem">${t.side.toUpperCase()}</span></td>
+      <td class="mono">${(+t.volume).toFixed(2)}</td>
+      <td class="mono">${t.open_price}${quoteInfo}</td>
+      <td class="mono">${t.sl??'—'}</td>
+      <td class="mono">${t.tp??'—'}</td>
+      <td class="mono">${t.close_price??'—'}</td>
+      <td><span class="st ${t.status==='closed'?'passed':'active'}">${t.close_reason||t.status}</span></td>
+      <td class="mono ${t.pnl>=0?'pos':t.pnl<0?'neg':''}">${t.pnl==null?'—':(t.pnl>=0?'+':'')+t.pnl}</td>
+    </tr>`;
+  }).join('');
+  const rejectRows=rejects.map(r=>`<tr>
+    <td class="mono" style="font-size:.72rem">${new Date(r.server_ts).toLocaleString()}</td>
+    <td>${esc(r.symbol)}</td><td>${esc(r.side||'—')}</td><td class="mono">${r.requested_volume??'—'}</td>
+    <td style="color:var(--red)">${esc(r.reject_reason||'—')}</td>
+  </tr>`).join('');
+  return `
+    ${profileCard(p)}
+    ${accHtml}
+    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin:1.5rem 0 .5rem">Trade history (${trades.length}${(j.trades||[]).length>200?' of '+j.trades.length:''})</div>
+    <div class="tbl-wrap" style="margin-bottom:1.5rem;max-height:420px;overflow-y:auto"><table>
+      <thead><tr><th>Opened</th><th>Symbol</th><th>Side</th><th>Vol</th><th>Entry (audit)</th><th>SL</th><th>TP</th><th>Exit</th><th>Closed by</th><th>P&amp;L</th></tr></thead>
+      <tbody>${tradeRows||'<tr><td colspan="10" class="msg">No trades.</td></tr>'}</tbody>
+    </table></div>
+    ${rejects.length?`
+    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin-bottom:.5rem">Rejected orders (${rejects.length})</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Vol</th><th>Reason</th></tr></thead>
+      <tbody>${rejectRows}</tbody>
+    </table></div>`:''}
+  `;
+}
 
 load();
 </script>
