@@ -333,12 +333,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .ord-sim-note{font-size:.6rem;color:var(--muted2);text-align:center;padding:.3rem 0;font-style:italic;}
 
 /* ── BOTTOM PANEL ── */
-.btm-outer{flex-shrink:0;height:178px;background:var(--bg2);border-top:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;transition:height .22s cubic-bezier(.4,0,.2,1);}
+.btm-outer{flex-shrink:0;height:260px;background:var(--bg2);border-top:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;transition:height .22s cubic-bezier(.4,0,.2,1);}
 .btm-outer.collapsed{height:30px;}
 .btm-header{height:30px;flex-shrink:0;display:flex;align-items:stretch;border-bottom:1px solid var(--line2);}
-.btab{padding:0 1rem;font-size:.7rem;font-weight:700;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;}
+.btab{padding:0 1rem;font-size:.7rem;font-weight:700;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:.4rem;}
 .btab:hover{color:var(--muted);}
 .btab.active{color:var(--fg);border-bottom-color:var(--cobalt);}
+.btab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;padding:0 4px;border-radius:4px;background:rgba(255,255,255,.08);color:var(--muted);font-size:.6rem;font-weight:700;}
+.btab.active .btab-badge{background:rgba(37,99,235,.18);color:var(--fg);}
 .btm-gap{flex:1;}
 .btm-tog{padding:0 .8rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;color:var(--muted2);border-left:1px solid var(--line2);font-size:.65rem;font-weight:600;transition:color .15s;white-space:nowrap;}
 .btm-tog:hover{color:var(--fg);}
@@ -347,6 +349,40 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .btm-body{flex:1;display:flex;overflow:hidden;}
 .bpanel{display:none;flex:1;overflow-x:auto;overflow-y:hidden;align-items:center;padding:.55rem 1.1rem;gap:.9rem;}
 .bpanel.active{display:flex;}
+
+/* Positions / Closed Positions tabs */
+.bpanel.postbl-panel{display:none;flex-direction:column;align-items:stretch;padding:0;gap:0;overflow:hidden;}
+.bpanel.postbl-panel.active{display:flex;}
+.postbl-stats{flex-shrink:0;display:flex;align-items:center;padding:.5rem 1.1rem;gap:0;border-bottom:1px solid var(--line2);overflow-x:auto;}
+.postbl-toolbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:.4rem 1.1rem;border-bottom:1px solid var(--line2);gap:.6rem;}
+.postbl-period{position:relative;flex-shrink:0;}
+.postbl-period-btn{display:flex;align-items:center;gap:.4rem;padding:.28rem .6rem;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--fg);font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+.postbl-period-btn svg{width:8px;height:8px;flex-shrink:0;}
+.postbl-period-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:.3rem;min-width:130px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.postbl-period-menu.open{display:block;}
+.postbl-period-opt{padding:.4rem .6rem;border-radius:5px;font-size:.74rem;color:var(--muted);cursor:pointer;white-space:nowrap;}
+.postbl-period-opt:hover{background:rgba(255,255,255,.06);color:var(--fg);}
+.postbl-period-opt.active{color:var(--fg);font-weight:700;}
+.postbl-summary{font-size:.7rem;color:var(--muted);display:flex;gap:1rem;flex-wrap:wrap;}
+.postbl-summary b{color:var(--fg);}
+.postbl-wrap{flex:1;overflow:auto;}
+.postbl{width:100%;border-collapse:collapse;font-size:.72rem;white-space:nowrap;}
+.postbl thead th{position:sticky;top:0;background:var(--bg2);text-align:left;font-size:.58rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;font-weight:700;padding:.5rem .8rem;border-bottom:1px solid var(--line2);z-index:1;}
+.postbl tbody td{padding:.5rem .8rem;border-bottom:1px solid var(--line2);color:var(--fg);font-family:'Space Grotesk',sans-serif;}
+.postbl tbody tr:hover{background:rgba(255,255,255,.02);}
+.postbl-side{font-weight:700;font-size:.68rem;}
+.postbl-side.buy{color:var(--green);}
+.postbl-side.sell{color:var(--red);}
+.postbl-pnl.pos{color:var(--green);font-weight:700;}
+.postbl-pnl.neg{color:var(--red);font-weight:700;}
+.postbl-id{color:var(--muted2);font-family:monospace;font-size:.68rem;}
+.postbl-act{display:flex;gap:.4rem;}
+.postbl-act-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .12s;}
+.postbl-act-btn:hover{color:var(--red);border-color:var(--red);}
+.postbl-act-btn svg{width:10px;height:10px;}
+.postbl-empty{padding:2.5rem 1rem;text-align:center;color:var(--muted2);font-size:.78rem;}
+body.light .postbl thead th{background:#fff;}
+body.light .postbl tbody td{color:#0c0c16;}
 
 /* Account tab */
 .acell{display:flex;flex-direction:column;justify-content:center;padding:0 1.1rem;border-right:1px solid var(--line2);flex-shrink:0;white-space:nowrap;}
@@ -1236,7 +1272,9 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 <!-- BOTTOM PANEL -->
 <div class="btm-outer" id="btmOuter">
   <div class="btm-header">
-    <div class="btab active" onclick="switchBtab('account',this)">Account</div>
+    <div class="btab active" onclick="switchBtab('positions',this)">Positions <span class="btab-badge" id="posBadge">0</span></div>
+    <div class="btab" onclick="switchBtab('closed',this)">Closed Positions</div>
+    <div class="btab" onclick="switchBtab('account',this)">Account</div>
     <div class="btab" onclick="switchBtab('risk',this)">Risk Calculator</div>
     <div class="btab" onclick="switchBtab('journal',this)">Journal</div>
     <div class="btm-gap"></div>
@@ -1247,8 +1285,60 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   </div>
   <div class="btm-body">
 
+    <!-- POSITIONS TAB -->
+    <div class="bpanel postbl-panel active" id="bp-positions">
+      <div class="postbl-stats">
+        <div class="acell"><div class="albl">Balance</div><div class="aval" id="ps-balance">—</div></div>
+        <div class="acell"><div class="albl">Profit &amp; Loss</div><div class="aval" id="ps-pnl">—</div></div>
+        <div class="acell"><div class="albl">Equity</div><div class="aval" id="ps-equity">—</div></div>
+        <div class="acell"><div class="albl">Initial Margin</div><div class="aval" id="ps-margin">—</div></div>
+        <div class="acell"><div class="albl">Available Funds</div><div class="aval" id="ps-free">—</div></div>
+        <div class="acell"><div class="albl">Margin Level</div><div class="aval" id="ps-level">—</div></div>
+      </div>
+      <div class="postbl-wrap">
+        <table class="postbl">
+          <thead><tr>
+            <th>Instrument</th><th>Side</th><th>Amount</th><th>Entry / Market price</th>
+            <th>Stop Loss</th><th>Take Profit</th><th>Margin</th><th>Exposure</th>
+            <th>Created at (UTC)</th><th>Fee</th><th>Swaps</th><th>P&amp;L</th><th>Position ID</th><th></th>
+          </tr></thead>
+          <tbody id="posTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLOSED POSITIONS TAB -->
+    <div class="bpanel postbl-panel" id="bp-closed">
+      <div class="postbl-toolbar">
+        <div class="postbl-period">
+          <div class="postbl-period-btn" onclick="togglePeriodMenu()">
+            <span id="periodLbl">Today</span>
+            <svg viewBox="0 0 7 5" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,1 3.5,4 6,1"/></svg>
+          </div>
+          <div class="postbl-period-menu" id="periodMenu">
+            <div class="postbl-period-opt active" onclick="setPeriod('today','Today')">Today</div>
+            <div class="postbl-period-opt" onclick="setPeriod('week','This Week')">This Week</div>
+            <div class="postbl-period-opt" onclick="setPeriod('month','This Month')">This Month</div>
+            <div class="postbl-period-opt" onclick="setPeriod('year','This Year')">This Year</div>
+            <div class="postbl-period-opt" onclick="setPeriod('all','All Time')">All Time</div>
+          </div>
+        </div>
+        <div class="postbl-summary" id="closedSummary">Total P&amp;L $0.00 &nbsp; Amount 0.0</div>
+      </div>
+      <div class="postbl-wrap">
+        <table class="postbl">
+          <thead><tr>
+            <th>Instrument</th><th>Entry Time (UTC)</th><th>Type</th><th>Side</th><th>Amount</th>
+            <th>Entry Price</th><th>Stop Loss</th><th>Take Profit</th><th>Exit Time (UTC)</th>
+            <th>Exit Price</th><th>Fee</th><th>Swaps</th><th>P&amp;L</th><th>Net P&amp;L</th><th>Position ID</th>
+          </tr></thead>
+          <tbody id="closedTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ACCOUNT TAB -->
-    <div class="bpanel active" id="bp-account">
+    <div class="bpanel" id="bp-account">
       <div class="acell"><div class="albl">Account</div><div class="aval" id="bp-name">—</div></div>
       <div class="acell"><div class="albl">Account ID</div><div class="aval" id="bp-login">—</div></div>
       <div class="acell"><div class="albl">Platform</div><div class="aval" id="bp-platform">IPFX Markets</div></div>
@@ -1895,20 +1985,145 @@ async function flattenAll(){
 }
 function fmtPx(v){const n=+v;return n>=1000?n.toFixed(1):n>=10?n.toFixed(2):n.toFixed(5).replace(/0{1,3}$/,'');}
 function renderPositions(){
-  const list=document.getElementById('ord-pos-list');
-  if(!list)return;
   const o=(engineState&&engineState.open_trades)||[];
-  if(!o.length){list.innerHTML='<div class="of-pos-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div>';return;}
-  list.innerHTML=o.map(p=>{
+  const list=document.getElementById('ord-pos-list');
+  if(list){
+    if(!o.length){list.innerHTML='<div class="of-pos-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div>';}
+    else{
+      list.innerHTML=o.map(p=>{
+        const pnl=(p.live_pnl==null)?null:+p.live_pnl;
+        const isPos=pnl!=null&&pnl>=0;
+        return `<div class="ord-pos">
+          <span class="ord-pos-dir ${p.side}">${p.side.toUpperCase()}</span>
+          <span class="ord-pos-info">${(+p.volume).toFixed(2)}L ${p.symbol} @ ${fmtPx(p.open_price)}</span>
+          <span class="ord-pos-pnl ${isPos?'pos':'neg'}">${pnl==null?'—':(isPos?'+$':'-$')+Math.abs(pnl).toFixed(2)}</span>
+          <span class="ord-pos-close" onclick="closeTradeById('${p.id}')">✕</span>
+        </div>`;
+      }).join('');
+    }
+  }
+  renderPosTable(o);
+  renderClosedTable();
+}
+// Client-side estimate only (the engine does not track per-trade margin).
+// contract sizes: forex 100,000 units; metals 100 oz/units; indices 1 per point.
+function symMeta(symbol){
+  const inst=Object.values(WL_DATA).flat().find(i=>i.sym.replace(/^[^:]+:/,'')===symbol);
+  const cat=Object.keys(WL_DATA).find(k=>WL_DATA[k].some(i=>i.sym.replace(/^[^:]+:/,'')===symbol));
+  const contractSize=cat==='forex'?100000:cat==='metals'?100:1;
+  const marginRate=cat==='forex'?0.01:cat==='metals'?0.02:0.02;
+  return{name:inst?inst.name:symbol,contractSize,marginRate};
+}
+function estMarginExposure(symbol,volume,price){
+  const m=symMeta(symbol);
+  const exposure=volume*m.contractSize*price;
+  const margin=exposure*m.marginRate;
+  return{margin,exposure};
+}
+const money=v=>'$'+(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+const signedMoney=v=>(v>=0?'+':'-')+money(Math.abs(v));
+function utcStamp(iso){
+  if(!iso)return'—';
+  const d=new Date(iso);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'})+', '+
+    d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true,timeZone:'UTC'});
+}
+function renderPosTable(o){
+  const badge=document.getElementById('posBadge');if(badge)badge.textContent=o.length;
+  const body=document.getElementById('posTableBody');
+  const a=engineState&&engineState.account;
+  let totalMargin=0;
+  const rows=o.map(p=>{
+    const{margin,exposure}=estMarginExposure(p.symbol,+p.volume,+(p.mark||p.open_price));
+    totalMargin+=margin;
     const pnl=(p.live_pnl==null)?null:+p.live_pnl;
     const isPos=pnl!=null&&pnl>=0;
-    return `<div class="ord-pos">
-      <span class="ord-pos-dir ${p.side}">${p.side.toUpperCase()}</span>
-      <span class="ord-pos-info">${(+p.volume).toFixed(2)}L ${p.symbol} @ ${fmtPx(p.open_price)}</span>
-      <span class="ord-pos-pnl ${isPos?'pos':'neg'}">${pnl==null?'—':(isPos?'+$':'-$')+Math.abs(pnl).toFixed(2)}</span>
-      <span class="ord-pos-close" onclick="closeTradeById('${p.id}')">✕</span>
-    </div>`;
+    return `<tr>
+      <td>${p.symbol}</td>
+      <td><span class="postbl-side ${p.side}">${p.side.toUpperCase()}</span></td>
+      <td>${(+p.volume).toFixed(2)}</td>
+      <td>${fmtPx(p.open_price)} → ${fmtPx(p.mark!=null?p.mark:p.open_price)}</td>
+      <td>${p.sl!=null?fmtPx(p.sl):'—'}</td>
+      <td>${p.tp!=null?fmtPx(p.tp):'—'}</td>
+      <td>${money(margin)}</td>
+      <td>${money(exposure)}</td>
+      <td>${utcStamp(p.opened_at)}</td>
+      <td>—</td><td>—</td>
+      <td class="postbl-pnl ${isPos?'pos':'neg'}">${pnl==null?'—':signedMoney(pnl)}</td>
+      <td class="postbl-id">${String(p.id).slice(0,8).toUpperCase()}</td>
+      <td><div class="postbl-act"><div class="postbl-act-btn" title="Close" onclick="closeTradeById('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div></div></td>
+    </tr>`;
   }).join('');
+  if(body)body.innerHTML=rows||'<tr><td colspan="14"><div class="postbl-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div></td></tr>';
+  // stats row
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  if(a){
+    const equity=+a.equity;
+    const free=equity-totalMargin;
+    const level=totalMargin>0?(equity/totalMargin*100).toFixed(2)+'%':'—';
+    set('ps-balance',money(a.balance));
+    const floating=+a.floating||0;
+    const pnlEl=document.getElementById('ps-pnl');
+    if(pnlEl){pnlEl.textContent=signedMoney(floating);pnlEl.className='aval '+(floating>=0?'pos':'neg');}
+    set('ps-equity',money(equity));
+    set('ps-margin',money(totalMargin));
+    set('ps-free',money(free));
+    set('ps-level',level);
+  }
+}
+let closedPeriod='today';
+function togglePeriodMenu(){document.getElementById('periodMenu').classList.toggle('open');}
+function setPeriod(key,label){
+  closedPeriod=key;
+  document.getElementById('periodLbl').textContent=label;
+  document.querySelectorAll('.postbl-period-opt').forEach(o=>o.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('periodMenu').classList.remove('open');
+  renderClosedTable();
+}
+document.addEventListener('click',e=>{
+  const wrap=document.querySelector('.postbl-period');
+  if(wrap&&!wrap.contains(e.target))document.getElementById('periodMenu')?.classList.remove('open');
+});
+function periodStart(key){
+  const now=new Date();
+  if(key==='today')return new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
+  if(key==='week'){const d=new Date(now);const day=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-day);return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));}
+  if(key==='month')return new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1));
+  if(key==='year')return new Date(Date.UTC(now.getUTCFullYear(),0,1));
+  return null;
+}
+function renderClosedTable(){
+  const body=document.getElementById('closedTableBody');
+  if(!body)return;
+  const all=(engineState&&engineState.closed_trades)||[];
+  const start=periodStart(closedPeriod);
+  const rows=all.filter(t=>!start||new Date(t.closed_at)>=start);
+  let totalPnl=0,totalAmt=0;
+  const html=rows.map(t=>{
+    const pnl=+t.pnl;
+    totalPnl+=pnl;totalAmt+=+t.volume;
+    const isPos=pnl>=0;
+    return `<tr>
+      <td>${t.symbol}</td>
+      <td>${utcStamp(t.opened_at)}</td>
+      <td>Market</td>
+      <td><span class="postbl-side ${t.side}">${t.side.toUpperCase()}</span></td>
+      <td>${(+t.volume).toFixed(2)}</td>
+      <td>${fmtPx(t.open_price)}</td>
+      <td>${t.sl!=null?fmtPx(t.sl):'—'}</td>
+      <td>${t.tp!=null?fmtPx(t.tp):'—'}</td>
+      <td>${utcStamp(t.closed_at)}</td>
+      <td>${fmtPx(t.close_price)}</td>
+      <td>—</td><td>—</td>
+      <td class="postbl-pnl ${isPos?'pos':'neg'}">${signedMoney(pnl)}</td>
+      <td class="postbl-pnl ${isPos?'pos':'neg'}">${signedMoney(pnl)}</td>
+      <td class="postbl-id">${String(t.id).slice(0,8).toUpperCase()}</td>
+    </tr>`;
+  }).join('');
+  body.innerHTML=html||'<tr><td colspan="15"><div class="postbl-empty">No closed positions in this period</div></td></tr>';
+  const sumEl=document.getElementById('closedSummary');
+  if(sumEl)sumEl.innerHTML=`Total P&amp;L <b style="color:${totalPnl>=0?'var(--green)':'var(--red)'}">${signedMoney(totalPnl)}</b> &nbsp; Amount <b>${totalAmt.toFixed(2)}</b>`;
 }
 function renderEngineAccount(){
   const a=engineState&&engineState.account;if(!a)return;
