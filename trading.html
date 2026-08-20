@@ -53,7 +53,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 
 
 /* ── CHART CENTER ── */
-.chart-wrap{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+.chart-wrap{flex:1;min-width:0;position:relative;overflow:hidden;display:flex;flex-direction:column;}
 .chart-toolbar{display:flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-bottom:1px solid var(--line);background:var(--bg2);flex-shrink:0;flex-wrap:wrap;}
 .ct-label{font-size:.68rem;color:var(--muted2);font-weight:600;margin-right:.2rem;white-space:nowrap;}
 .tf-btn{padding:.22rem .5rem;border-radius:4px;border:1px solid var(--line);background:none;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Inter',sans-serif;white-space:nowrap;}
@@ -67,8 +67,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 #tv_chart_container{width:100%;height:100%;}
 
 /* ── RIGHT GUIDE PANEL ── */
-.guide{width:220px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+.guide{width:220px;flex-shrink:0;flex-basis:auto;min-width:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;position:relative;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
 .guide.hidden{width:0;border-left:none;}
+.guide.resizing{transition:none;}
+.guide-resize-handle{position:absolute;top:0;bottom:0;left:-4px;width:8px;cursor:ew-resize;z-index:5;display:flex;align-items:center;justify-content:center;}
+.guide-resize-handle:hover .guide-resize-grip,.guide.resizing .guide-resize-grip{background:var(--cobalt);}
+.guide-resize-grip{width:3px;height:36px;border-radius:2px;background:var(--line);transition:background .15s;}
+.guide.hidden .guide-resize-handle{pointer-events:none;}
 .guide-tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;}
 .guide-tabs::-webkit-scrollbar{height:0;}
 .gtab{flex-shrink:0;padding:.55rem .65rem;font-size:.66rem;font-weight:700;text-align:center;cursor:pointer;color:var(--muted2);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
@@ -860,6 +865,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide" id="guidePanel">
+    <div class="guide-resize-handle" id="guideResizeHandle"><div class="guide-resize-grip"></div></div>
     <div class="guide-tabs">
       <div class="gtab" onclick="switchTab('order',this)">Order</div>
       <div class="gtab active" onclick="switchTab('ind',this)">Indicators</div>
@@ -1429,10 +1435,10 @@ let gridMode=0;
 // ── INDICATORS DATA ──
 const INDS=[
   // TREND
-  {cat:'trend',id:'SMA@tv-basicstudies',name:'SMA',full:'Simple Moving Average',color:'#f59e0b',
+  {cat:'trend',id:'MASimple@tv-basicstudies',name:'SMA',full:'Simple Moving Average',color:'#f59e0b',
    brief:'Average price over time',
    explain:'The average closing price over a set number of candles. When price is above the SMA, the trend is generally up. When below, it\'s down. The most widely-used tool in all of trading. Use the 20, 50, and 200 period SMAs together.'},
-  {cat:'trend',id:'EMA@tv-basicstudies',name:'EMA',full:'Exponential Moving Average',color:'#3b82f6',
+  {cat:'trend',id:'MAExp@tv-basicstudies',name:'EMA',full:'Exponential Moving Average',color:'#3b82f6',
    brief:'Faster-reacting average',
    explain:'Like the SMA but gives more weight to recent prices, so it reacts faster to new price moves. When a faster EMA crosses above a slower one (e.g. 9 EMA crossing 21 EMA), it\'s often a buy signal. When it crosses below, a sell signal.'},
   {cat:'trend',id:'BB@tv-basicstudies',name:'Bollinger Bands',full:'Bollinger Bands',color:'#8b5cf6',
@@ -1444,13 +1450,13 @@ const INDS=[
   {cat:'trend',id:'VWAP@tv-basicstudies',name:'VWAP',full:'Volume Weighted Average Price',color:'#ec4899',
    brief:'Institutional fair value line',
    explain:'The average price weighted by volume — meaning it considers how much was traded at each price level. Institutions use VWAP as a target for entries. Price above VWAP = bullish bias for the day. Most useful on intraday charts.'},
-  {cat:'trend',id:'ParabolicSAR@tv-basicstudies',name:'Parabolic SAR',full:'Parabolic SAR',color:'#f97316',
+  {cat:'trend',id:'PSAR@tv-basicstudies',name:'Parabolic SAR',full:'Parabolic SAR',color:'#f97316',
    brief:'Dots that flip on trend change',
    explain:'Dots appear above or below price. Dots below price = uptrend is in place. Dots above = downtrend. When the dots flip to the other side, the trend has potentially reversed. Excellent for trailing stop losses and exit timing.'},
-  {cat:'trend',id:'HullMA@tv-basicstudies',name:'Hull MA',full:'Hull Moving Average',color:'#84cc16',
+  {cat:'trend',id:'hullMA@tv-basicstudies',name:'Hull MA',full:'Hull Moving Average',color:'#84cc16',
    brief:'Smooth, reduced-lag average',
    explain:'A smarter moving average that significantly reduces the lag found in standard averages while keeping the line smooth. It responds faster to price changes without as many false signals. Popular among professional algorithmic traders.'},
-  {cat:'trend',id:'DEMA@tv-basicstudies',name:'DEMA',full:'Double Exponential MA',color:'#14b8a6',
+  {cat:'trend',id:'DoubleEMA@tv-basicstudies',name:'DEMA',full:'Double Exponential MA',color:'#14b8a6',
    brief:'Double-smoothed, faster EMA',
    explain:'Uses two EMAs together to create an average that is both faster and smoother than a single EMA. Less lag means you get earlier signals on trend changes. Useful for medium-term trend following strategies.'},
   // MOMENTUM
@@ -1466,13 +1472,13 @@ const INDS=[
   {cat:'momentum',id:'CCI@tv-basicstudies',name:'CCI',full:'Commodity Channel Index',color:'#10b981',
    brief:'Deviation from average price',
    explain:'Measures how far price has moved from its statistical average. Above +100 = strong uptrend or overbought. Below -100 = strong downtrend or oversold. Originated in commodities trading but now used across all markets. Good for spotting when a trend is exhausting.'},
-  {cat:'momentum',id:'WilliamsR@tv-basicstudies',name:'Williams %R',full:'Williams Percent Range',color:'#ef4444',
+  {cat:'momentum',id:'WilliamR@tv-basicstudies',name:'Williams %R',full:'Williams Percent Range',color:'#ef4444',
    brief:'Reversal signal at highs/lows',
    explain:'Measures where price is relative to its recent high. Ranges from 0 to -100. Near 0 = price is at its recent high (potentially overbought). Near -100 = price is at its recent low (potentially oversold). Similar to Stochastic but inverted. Good for spotting short-term reversals.'},
   {cat:'momentum',id:'ATR@tv-basicstudies',name:'ATR',full:'Average True Range',color:'#8b5cf6',
    brief:'How volatile the market is right now',
    explain:'Measures the average size of price moves. A high ATR = volatile market with big candles. Low ATR = quiet, tight trading. Essential for stop loss sizing: many professionals place stops at 1.5x or 2x ATR from entry. Does not show direction — only volatility.'},
-  {cat:'momentum',id:'ADX@tv-basicstudies',name:'ADX',full:'Average Directional Index',color:'#06b6d4',
+  {cat:'momentum',id:'DM@tv-basicstudies',name:'ADX',full:'Average Directional Index',color:'#06b6d4',
    brief:'How strong is the current trend?',
    explain:'Measures trend strength from 0 to 100, regardless of direction. Below 20 = weak trend or ranging market. Above 25 = developing trend. Above 50 = very strong trend. Does not tell you direction — pair it with a directional indicator like EMA or MACD.'},
   // VOLUME
@@ -1482,7 +1488,7 @@ const INDS=[
   {cat:'volume',id:'OBV@tv-basicstudies',name:'OBV',full:'On Balance Volume',color:'#10b981',
    brief:'Cumulative buying vs selling',
    explain:'Adds volume on up days and subtracts it on down days to create a running total. If OBV is rising while price is flat, it means buyers are quietly accumulating — often before a breakout. OBV diverging from price is a powerful early warning signal.'},
-  {cat:'volume',id:'MFI@tv-basicstudies',name:'MFI',full:'Money Flow Index',color:'#3b82f6',
+  {cat:'volume',id:'MF@tv-basicstudies',name:'MFI',full:'Money Flow Index',color:'#3b82f6',
    brief:'RSI that includes volume',
    explain:'Like RSI but factors in volume, making its signals more meaningful. Above 80 = overbought. Below 20 = oversold. If price reaches a new high but MFI does not, it suggests the move is weakening — this divergence is a warning sign before reversals.'},
 ];
@@ -1625,10 +1631,46 @@ function setStyle(style,btn){
 }
 
 // ── PANEL TOGGLES ──
+let guideExpandedWidth=220;
 function toggleGuide(){
   const g=document.getElementById('guidePanel');
   g.classList.toggle('hidden');
+  const hidden=g.classList.contains('hidden');
+  g.style.width=hidden?'':guideExpandedWidth+'px';
 }
+// ── DRAG-TO-RESIZE GUIDE PANEL ──
+(function(){
+  const panel=document.getElementById('guidePanel');
+  const handle=document.getElementById('guideResizeHandle');
+  if(!panel||!handle)return;
+  const MIN_W=180,MAX_W=()=>Math.round(window.innerWidth*0.5);
+  let dragging=false,startX=0,startW=0;
+  const start=(x)=>{
+    if(panel.classList.contains('hidden'))return;
+    dragging=true;startX=x;startW=panel.getBoundingClientRect().width;
+    panel.classList.add('resizing');
+    document.body.style.userSelect='none';
+  };
+  const move=(x)=>{
+    if(!dragging)return;
+    const dx=x-startX; // dragging left (negative dx) widens the right-side panel
+    const w=Math.min(MAX_W(),Math.max(MIN_W,startW-dx));
+    panel.style.width=w+'px';
+    guideExpandedWidth=w;
+  };
+  const end=()=>{
+    if(!dragging)return;
+    dragging=false;
+    panel.classList.remove('resizing');
+    document.body.style.userSelect='';
+  };
+  handle.addEventListener('mousedown',e=>{start(e.clientX);e.preventDefault();});
+  window.addEventListener('mousemove',e=>move(e.clientX));
+  window.addEventListener('mouseup',end);
+  handle.addEventListener('touchstart',e=>start(e.touches[0].clientX),{passive:true});
+  window.addEventListener('touchmove',e=>move(e.touches[0].clientX),{passive:true});
+  window.addEventListener('touchend',end);
+})();
 
 // ── GUIDE TABS ──
 function switchTab(id,el){
@@ -2366,10 +2408,10 @@ const KB=[
    reply:`<b>Bollinger Bands</b> = 20-period SMA + 2 standard deviation bands.\n\n• Price touching upper band → potentially overbought\n• Price touching lower band → potentially oversold\n• <b>Squeeze</b> (bands tightening) → big breakout often incoming`,ind:'BB@tv-basicstudies'},
   {keys:['ema','exponential moving average'],
    title:'EMA',
-   reply:`<b>EMA</b> reacts faster to price than SMA by weighting recent candles more.\n\nCommon setups:\n• 9 EMA crossing above 21 EMA → buy signal\n• Crossing below → sell signal\n• Price above 200 EMA → long-term uptrend`,ind:'EMA@tv-basicstudies'},
+   reply:`<b>EMA</b> reacts faster to price than SMA by weighting recent candles more.\n\nCommon setups:\n• 9 EMA crossing above 21 EMA → buy signal\n• Crossing below → sell signal\n• Price above 200 EMA → long-term uptrend`,ind:'MAExp@tv-basicstudies'},
   {keys:['sma','simple moving average','moving average','200 ma','50 ma'],
    title:'SMA',
-   reply:`<b>SMA</b> = average closing price over N candles. The most widely used tool in trading.\n\n• Price above SMA → trend is up\n• Price below SMA → trend is down\n• Use 20, 50, and 200-period SMAs together for a full picture`,ind:'SMA@tv-basicstudies'},
+   reply:`<b>SMA</b> = average closing price over N candles. The most widely used tool in trading.\n\n• Price above SMA → trend is up\n• Price below SMA → trend is down\n• Use 20, 50, and 200-period SMAs together for a full picture`,ind:'MASimple@tv-basicstudies'},
   {keys:['volume','volumes'],
    title:'Volume',
    reply:`<b>Volume</b> shows how many units were traded per candle.\n\n• High volume confirms a move — real conviction\n• Low volume on a big move = suspicious, often reverses\n• Volume spike on a breakout = strong confirmation`,ind:'Volume@tv-basicstudies'},
@@ -2387,10 +2429,10 @@ const KB=[
    reply:`<b>Stochastic</b> shows where price sits within its recent range (0–100).\n\n• Above 80 → overbought\n• Below 20 → oversold\n• K line crossing D line in oversold zone → classic buy signal`,ind:'Stochastic@tv-basicstudies'},
   {keys:['adx','directional index','trend strength'],
    title:'ADX',
-   reply:`<b>ADX</b> measures trend strength (0–100) regardless of direction.\n\n• Below 20 → ranging, no clear trend\n• Above 25 → trend developing\n• Above 50 → very strong trend\n\nPair with EMA or MACD for direction.`,ind:'ADX@tv-basicstudies'},
+   reply:`<b>ADX</b> measures trend strength (0–100) regardless of direction.\n\n• Below 20 → ranging, no clear trend\n• Above 25 → trend developing\n• Above 50 → very strong trend\n\nPair with EMA or MACD for direction.`,ind:'DM@tv-basicstudies'},
   {keys:['parabolic','sar','trailing stop'],
    title:'Parabolic SAR',
-   reply:`<b>Parabolic SAR</b> plots dots above or below price.\n\n• Dots below → uptrend active\n• Dots above → downtrend active\n• When dots flip side → potential trend reversal\n\nExcellent for trailing stop loss placement.`,ind:'ParabolicSAR@tv-basicstudies'},
+   reply:`<b>Parabolic SAR</b> plots dots above or below price.\n\n• Dots below → uptrend active\n• Dots above → downtrend active\n• When dots flip side → potential trend reversal\n\nExcellent for trailing stop loss placement.`,ind:'PSAR@tv-basicstudies'},
   {keys:['obv','on balance','balance volume'],
    title:'OBV',
    reply:`<b>OBV</b> adds volume on up days and subtracts on down days — cumulative buying vs selling pressure.\n\nIf OBV rises while price is flat → smart money accumulating → breakout likely.`,ind:'OBV@tv-basicstudies'},
@@ -2688,8 +2730,8 @@ function cycleGrid(){
 
 // ── SETUP MODAL ──
 const SETUP_IND_MAP={
-  'sma':['SMA@tv-basicstudies'],'simple moving average':['SMA@tv-basicstudies'],
-  'ema':['EMA@tv-basicstudies'],'exponential':['EMA@tv-basicstudies'],
+  'sma':['MASimple@tv-basicstudies'],'simple moving average':['MASimple@tv-basicstudies'],
+  'ema':['MAExp@tv-basicstudies'],'exponential':['MAExp@tv-basicstudies'],
   'bollinger':['BB@tv-basicstudies'],'bb':['BB@tv-basicstudies'],'bands':['BB@tv-basicstudies'],
   'macd':['MACD@tv-basicstudies'],
   'rsi':['RSI@tv-basicstudies'],
@@ -2699,14 +2741,13 @@ const SETUP_IND_MAP={
   'atr':['ATR@tv-basicstudies'],'average true range':['ATR@tv-basicstudies'],
   'ichimoku':['IchimokuCloud@tv-basicstudies'],'cloud':['IchimokuCloud@tv-basicstudies'],
   'cci':['CCI@tv-basicstudies'],'commodity channel':['CCI@tv-basicstudies'],
-  'adx':['ADX@tv-basicstudies'],
+  'adx':['DM@tv-basicstudies'],
   'psar':['PSAR@tv-basicstudies'],'parabolic':['PSAR@tv-basicstudies'],
-  'supertrend':['Supertrend@tv-basicstudies'],
   'pivot':['PivotPointsStandard@tv-basicstudies'],'pivots':['PivotPointsStandard@tv-basicstudies'],
   'divergence':['MACD@tv-basicstudies','RSI@tv-basicstudies'],
-  'scalp':['EMA@tv-basicstudies','RSI@tv-basicstudies','VWAP@tv-basicstudies'],
-  'swing':['EMA@tv-basicstudies','MACD@tv-basicstudies','BB@tv-basicstudies'],
-  'trend following':['EMA@tv-basicstudies','ADX@tv-basicstudies','PSAR@tv-basicstudies'],
+  'scalp':['MAExp@tv-basicstudies','RSI@tv-basicstudies','VWAP@tv-basicstudies'],
+  'swing':['MAExp@tv-basicstudies','MACD@tv-basicstudies','BB@tv-basicstudies'],
+  'trend following':['MAExp@tv-basicstudies','DM@tv-basicstudies','PSAR@tv-basicstudies'],
 };
 const SETUP_TF_MAP={
   '1m':'1','1 min':'1','1min':'1','one minute':'1',
@@ -2760,11 +2801,11 @@ function renderSetupChips(){
   const {inds,tf,style}=setupDetected;
   if(!inds.length&&!tf&&!style){wrap.innerHTML='<span class="sc-empty">Start typing to detect…</span>';return;}
   const IND_NAMES={
-    'SMA@tv-basicstudies':'SMA','EMA@tv-basicstudies':'EMA','BB@tv-basicstudies':'Bollinger Bands',
+    'MASimple@tv-basicstudies':'SMA','MAExp@tv-basicstudies':'EMA','BB@tv-basicstudies':'Bollinger Bands',
     'MACD@tv-basicstudies':'MACD','RSI@tv-basicstudies':'RSI','Stochastic@tv-basicstudies':'Stochastic',
     'VWAP@tv-basicstudies':'VWAP','Volume@tv-basicstudies':'Volume','ATR@tv-basicstudies':'ATR',
-    'IchimokuCloud@tv-basicstudies':'Ichimoku','CCI@tv-basicstudies':'CCI','ADX@tv-basicstudies':'ADX',
-    'PSAR@tv-basicstudies':'Parabolic SAR','Supertrend@tv-basicstudies':'Supertrend',
+    'IchimokuCloud@tv-basicstudies':'Ichimoku','CCI@tv-basicstudies':'CCI','DM@tv-basicstudies':'ADX',
+    'PSAR@tv-basicstudies':'Parabolic SAR',
     'PivotPointsStandard@tv-basicstudies':'Pivots',
   };
   const TF_DISPLAY={'1':'1M','3':'3M','5':'5M','15':'15M','30':'30M','60':'1H','120':'2H','240':'4H','D':'1D','W':'1W'};
@@ -2850,7 +2891,7 @@ function analyzeChartImage(img){
     const data=ctx.getImageData(0,y,W,1).data;
     for(let x=0;x<W;x++){
       const r=data[x*4],g=data[x*4+1],b=data[x*4+2];
-      if(r>200&&g>160&&b<60) detected.add('EMA@tv-basicstudies'); // yellow/amber = EMA
+      if(r>200&&g>160&&b<60) detected.add('MAExp@tv-basicstudies'); // yellow/amber = EMA
       if(b>180&&r<80&&g<140) detected.add('BB@tv-basicstudies'); // blue bands
     }
   });
