@@ -26,10 +26,11 @@ const err = (m: string, s = 400) => json({ ok: false, error: m }, s);
 // Server-side price list — the source of truth. Never trust a client-supplied
 // amount; only the tier is trusted, and the price is looked up here.
 const TIER_PRICES_USD: Record<string, number> = {
-  "10k": 99,
-  "25k": 249,
-  "50k": 399,
-  "100k": 599,
+  "10k": 79,
+  "25k": 149,
+  "50k": 249,
+  "100k": 399,
+  "200k": 699,
 };
 
 Deno.serve(async (req) => {
