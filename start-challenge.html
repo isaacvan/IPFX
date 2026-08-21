@@ -640,6 +640,56 @@
             color: var(--fg);
         }
 
+        /* Stripe Payment Element checkout */
+        .pay-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+        }
+        .pay-summary-label { color: var(--muted); font-size: 0.9rem; }
+        .pay-summary-value { font-family: 'Space Grotesk', 'Inter', system-ui; font-size: 1.6rem; font-weight: 700; color: var(--fg); }
+        #payment-element { margin-bottom: 12px; min-height: 44px; }
+        .pay-loading {
+            display: flex; align-items: center; gap: 10px;
+            color: var(--muted); font-size: 0.9rem; padding: 16px 0;
+        }
+        .pay-spinner {
+            width: 16px; height: 16px; border-radius: 50%;
+            border: 2px solid var(--line); border-top-color: var(--cobalt);
+            animation: pay-spin 0.7s linear infinite;
+        }
+        @keyframes pay-spin { to { transform: rotate(360deg); } }
+        .pay-error {
+            display: none;
+            color: var(--error);
+            font-size: 0.88rem;
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 6px;
+        }
+        .pay-secure-row {
+            display: flex; align-items: center; gap: 8px;
+            color: var(--muted); font-size: 0.82rem; margin-top: 16px;
+        }
+        .pay-secure-row svg { flex-shrink: 0; opacity: 0.7; }
+        .pay-demo-notice {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 16px 18px;
+            color: #f59e0b;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+        .pay-demo-notice strong { display: block; margin-bottom: 4px; color: #fbbf24; }
+
         /* Review Section */
         .review-item {
             display: flex;
@@ -1053,50 +1103,30 @@
         <!-- Step 3: Payment -->
         <div class="step-content" id="step3">
             <div class="form-section">
-                <h2>Select Payment Method</h2>
-                <div class="payment-methods">
-                    <div class="payment-method" data-method="card">
-                        <div class="payment-icon"></div>
-                        <span>Credit/Debit Card</span>
-                    </div>
-                    <div class="payment-method" data-method="paypal">
-                        <div class="payment-icon">🅿️</div>
-                        <span>PayPal</span>
-                    </div>
-                    <div class="payment-method" data-method="crypto">
-                        <div class="payment-icon">₿</div>
-                        <span>Cryptocurrency</span>
-                    </div>
+                <h2>Payment</h2>
+
+                <div class="pay-summary">
+                    <span class="pay-summary-label">Challenge fee</span>
+                    <span class="pay-summary-value" id="paySummaryTotal">-</span>
                 </div>
 
-                <div id="cardDetails" style="display: none;">
-                    <div class="form-group">
-                        <label>Card Number <span class="required">*</span></label>
-                        <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Expiry Date <span class="required">*</span></label>
-                            <input type="text" id="expiry" placeholder="MM/YY" maxlength="5">
-                        </div>
-                        <div class="form-group">
-                            <label>CVV <span class="required">*</span></label>
-                            <input type="text" id="cvv" placeholder="123" maxlength="3">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Cardholder Name <span class="required">*</span></label>
-                        <input type="text" id="cardName" placeholder="John Doe">
-                    </div>
+                <div id="payDemoNotice" class="pay-demo-notice" style="display:none;">
+                    <strong>Payments aren't connected yet</strong>
+                    This is a preview build — Stripe test keys haven't been added, so no payment form can load and nothing can be charged. Add <code>STRIPE_PUBLISHABLE_KEY</code> and deploy the <code>create-payment-intent</code> function to enable checkout.
                 </div>
 
-                <div class="info-box">
-                    <h3>Secure Payment</h3>
-                    <ul>
-                        <li>All payments are encrypted and secure</li>
-                        <li>Your challenge fee is fully refundable upon passing</li>
-                        <li>Instant account activation after payment</li>
-                    </ul>
+                <div id="payLoading" class="pay-loading" style="display:none;">
+                    <span class="pay-spinner"></span> Loading secure payment form…
+                </div>
+
+                <form id="payForm" style="display:none;">
+                    <div id="payment-element"></div>
+                    <div id="payError" class="pay-error"></div>
+                </form>
+
+                <div class="pay-secure-row">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Payments are processed by Stripe. IPFX never sees or stores your card number.
                 </div>
             </div>
             <div class="button-group">
@@ -1127,7 +1157,7 @@
                 </div>
                 <div class="review-item">
                     <span class="review-label">Payment Method</span>
-                    <span class="review-value" id="reviewPayment">-</span>
+                    <span class="review-value" id="reviewPayment">Card</span>
                 </div>
                 <div class="review-item">
                     <span class="review-label">Total Amount</span>
@@ -1136,7 +1166,7 @@
             </div>
             <div class="button-group">
                 <button class="btn-secondary" id="step4Back">Back</button>
-                <button class="btn-primary" id="step4Submit">Complete Registration</button>
+                <button class="btn-primary" id="step4Submit">Complete Purchase</button>
             </div>
         </div>
 
@@ -1171,6 +1201,8 @@
 
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
 
     <script>
         // ============================================
@@ -1181,11 +1213,25 @@
         const { createClient } = window.supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // ============================================
+        // STRIPE CONFIGURATION
+        // Replace with a real publishable key (pk_test_... while testing,
+        // pk_live_... once you're actually ready to take real payments).
+        // The matching secret key goes into the create-payment-intent
+        // Supabase Edge Function's STRIPE_SECRET_KEY env var — never here.
+        // ============================================
+        const STRIPE_PUBLISHABLE_KEY = 'pk_test_YOUR_KEY_HERE';
+        const CREATE_PAYMENT_INTENT_URL = SUPABASE_URL + '/functions/v1/create-payment-intent';
+        const PAYMENTS_CONFIGURED = !STRIPE_PUBLISHABLE_KEY.includes('YOUR_KEY_HERE');
+
+        let stripe = null;
+        let elements = null;
+        let clientSecret = null;
+
         // State management
         let currentStep = 1;
         let selectedTier = null;
         let selectedPrice = 0;
-        let selectedPayment = null;
 
         // Tier selection
         document.querySelectorAll('.tier-card').forEach(card => {
@@ -1195,25 +1241,75 @@
                 selectedTier = this.dataset.tier;
                 selectedPrice = this.dataset.price;
                 document.getElementById('step1Next').disabled = false;
+                document.getElementById('paySummaryTotal').textContent = '$' + selectedPrice;
             });
         });
 
-        // Payment method selection
-        document.querySelectorAll('.payment-method').forEach(method => {
-            method.addEventListener('click', function() {
-                document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedPayment = this.dataset.method;
+        // ============================================
+        // STRIPE PAYMENT ELEMENT
+        // One mount handles card, Apple Pay, Google Pay, and Link —
+        // Stripe shows whichever the browser/device actually supports.
+        // ============================================
+        let paymentElementReady = false;
 
-                // Show/hide card details
-                const cardDetails = document.getElementById('cardDetails');
-                if (selectedPayment === 'card') {
-                    cardDetails.style.display = 'block';
-                } else {
-                    cardDetails.style.display = 'none';
-                }
-            });
-        });
+        async function initPaymentElement() {
+            if (paymentElementReady) return;
+
+            if (!PAYMENTS_CONFIGURED) {
+                document.getElementById('payDemoNotice').style.display = 'block';
+                document.getElementById('step3Next').disabled = true;
+                return;
+            }
+
+            document.getElementById('payLoading').style.display = 'flex';
+            try {
+                stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+
+                const resp = await fetch(CREATE_PAYMENT_INTENT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                        'apikey': SUPABASE_ANON_KEY,
+                    },
+                    body: JSON.stringify({ tier: selectedTier, amount_usd: Number(selectedPrice) }),
+                });
+                if (!resp.ok) throw new Error('Could not start checkout (' + resp.status + ')');
+                const data = await resp.json();
+                clientSecret = data.client_secret;
+
+                elements = stripe.elements({
+                    clientSecret,
+                    appearance: {
+                        theme: 'night',
+                        variables: {
+                            colorPrimary: '#2563eb',
+                            colorBackground: '#0a0a0c',
+                            colorText: '#ffffff',
+                            colorDanger: '#ef4444',
+                            fontFamily: 'Inter, sans-serif',
+                            borderRadius: '8px',
+                        },
+                        rules: {
+                            '.Input': { border: '2px solid #2a2a2c', padding: '12px' },
+                            '.Input:focus': { border: '2px solid #2563eb', boxShadow: 'none' },
+                            '.Label': { color: '#a0a0a0', fontSize: '0.9rem' },
+                        },
+                    },
+                });
+                const paymentElement = elements.create('payment');
+                paymentElement.mount('#payment-element');
+
+                document.getElementById('payLoading').style.display = 'none';
+                document.getElementById('payForm').style.display = 'block';
+                paymentElementReady = true;
+            } catch (e) {
+                document.getElementById('payLoading').style.display = 'none';
+                const err = document.getElementById('payError');
+                err.textContent = e.message || 'Could not load the payment form. Please try again.';
+                err.style.display = 'block';
+            }
+        }
 
         // Navigation functions
         function goToStep(stepNum) {
@@ -1239,6 +1335,8 @@
 
             currentStep = stepNum;
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (stepNum === 3) initPaymentElement();
         }
 
         function updateReview() {
@@ -1249,13 +1347,6 @@
             document.getElementById('reviewEmail').textContent = document.getElementById('email').value;
             document.getElementById('reviewCountry').textContent =
                 document.getElementById('country').options[document.getElementById('country').selectedIndex].text;
-
-            const paymentText = {
-                'card': 'Credit/Debit Card',
-                'paypal': 'PayPal',
-                'crypto': 'Cryptocurrency'
-            };
-            document.getElementById('reviewPayment').textContent = paymentText[selectedPayment] || '-';
             document.getElementById('reviewTotal').textContent = '$' + selectedPrice;
         }
 
@@ -1287,10 +1378,11 @@
 
         document.getElementById('step3Back').addEventListener('click', () => goToStep(2));
         document.getElementById('step3Next').addEventListener('click', () => {
-            if (!selectedPayment) {
-                alert('Please select a payment method');
+            if (!PAYMENTS_CONFIGURED || !paymentElementReady) {
+                alert('Payments are not connected yet in this preview build.');
                 return;
             }
+            document.getElementById('payError').style.display = 'none';
             updateReview();
             goToStep(4);
         });
@@ -1299,19 +1391,33 @@
         document.getElementById('step4Submit').addEventListener('click', async () => {
             const submitBtn = document.getElementById('step4Submit');
             const originalText = submitBtn.textContent;
-
-            // Disable button and show loading state
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Creating Account...';
+            submitBtn.textContent = 'Processing payment…';
 
             try {
-                const email = document.getElementById('email').value;
-                const name = document.getElementById('fullName').value;
+                // 1. Confirm payment with Stripe first — no account is created
+                //    unless the charge actually succeeds.
+                const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+                    elements,
+                    redirect: 'if_required',
+                    confirmParams: {
+                        receipt_email: document.getElementById('email').value,
+                    },
+                });
 
-                // Generate a random password
+                if (stripeError) {
+                    throw new Error(stripeError.message || 'Payment failed. Please check your details and try again.');
+                }
+                if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+                    throw new Error('Payment was not completed (status: ' + (paymentIntent?.status || 'unknown') + ').');
+                }
+
+                submitBtn.textContent = 'Creating Account...';
+
+                const email = document.getElementById('email').value;
+                const name = document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value;
                 const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '!1';
 
-                // Create account with Supabase
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: tempPassword,
@@ -1319,7 +1425,8 @@
                         data: {
                             name: name,
                             challenge_tier: selectedTier,
-                            challenge_price: selectedPrice
+                            challenge_price: selectedPrice,
+                            stripe_payment_intent_id: paymentIntent.id,
                         },
                         emailRedirectTo: window.location.origin + '/email-confirmed.html'
                     }
@@ -1329,47 +1436,24 @@
                     throw error;
                 }
 
-                // Show success message
                 document.getElementById('confirmEmail').textContent = email;
                 goToStep(5);
 
-                // Update progress to 100%
                 document.getElementById('progressFill').style.width = '100%';
                 document.querySelectorAll('.step').forEach(step => step.classList.add('completed'));
 
-                // Re-enable button
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
 
             } catch (error) {
-                console.error('Signup error:', error);
-                console.error('Full error details:', JSON.stringify(error, null, 2));
+                console.error('Checkout error:', error);
+                const err = document.getElementById('payError');
+                err.textContent = error.message || 'Something went wrong completing your order.';
+                err.style.display = 'block';
 
-                // Show detailed error message
-                let errorMsg = 'Error creating account: ' + error.message;
-                if (error.status) errorMsg += ' (Status: ' + error.status + ')';
-                if (error.code) errorMsg += ' (Code: ' + error.code + ')';
-
-                alert(errorMsg + '\n\nCheck browser console for details (F12)');
-
-                // Re-enable button
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
-            }
-        });
-
-        // Auto-format card number
-        document.getElementById('cardNumber')?.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\s/g, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            e.target.value = formattedValue;
-        });
-
-        // Auto-format expiry
-        document.getElementById('expiry')?.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\//g, '');
-            if (value.length >= 2) {
-                e.target.value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                goToStep(3);
             }
         });
 
