@@ -31,6 +31,7 @@ thead th{text-align:left;font-size:.66rem;text-transform:uppercase;letter-spacin
 tbody td{padding:.7rem .9rem;border-bottom:1px solid var(--line);vertical-align:middle;}
 tbody tr:last-child td{border-bottom:none;}
 tbody tr:hover{background:rgba(255,255,255,.02);}
+tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(--muted2);}
 .mono{font-family:'JetBrains Mono',monospace;}
 .pos{color:var(--green);} .neg{color:var(--red);}
 .st{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:.18rem .5rem;border-radius:6px;}
@@ -252,7 +253,10 @@ function render(){
       ? `<span class="mono" style="font-size:.76rem">${s.trades} trades${flag}</span><br><span style="font-size:.72rem;color:var(--muted2)">${s.win_rate==null?'—':s.win_rate+'% win'} · PF ${s.profit_factor==null?'∞':s.profit_factor} · ${dd}</span>`
       : '<span style="color:var(--muted2);font-size:.76rem">no trades</span>';
     return `<tr>
-      <td><div style="font-weight:600">${esc(t.full_name)}</div><div style="color:var(--muted2);font-size:.72rem">${esc(t.email)}</div></td>
+      <td style="cursor:pointer" onclick='openTraderDetail(${JSON.stringify(t.user_id)})'>
+        <div style="font-weight:600;color:var(--fg)">${esc(t.full_name)}</div>
+        <div style="color:var(--muted2);font-size:.72rem">${esc(t.email)}</div>
+      </td>
       <td><span class="st ${t.status}">${t.status}</span></td>
       <td>${perf}</td>
       <td class="mono">${fmt(t.balance)}</td>
@@ -386,12 +390,61 @@ function profileCard(p){
     </table></div>`;
 }
 
+// ---- equity curve + drawdown chart (inline SVG, no chart library) ----
+function equityCurveSvg(trades){
+  const closed=(trades||[]).filter(t=>t.status==='closed'&&t.pnl!=null&&t.closed_at)
+    .slice().sort((a,b)=>new Date(a.closed_at)-new Date(b.closed_at));
+  if(closed.length<2) return '<div class="msg" style="padding:1.5rem 0">Not enough closed trades yet for an equity curve.</div>';
+
+  let cum=0,peak=0;
+  const eq=[0],dd=[0];
+  for(const t of closed){
+    cum+=Number(t.pnl);
+    peak=Math.max(peak,cum);
+    eq.push(cum);
+    dd.push(cum-peak); // <=0
+  }
+  const n=eq.length;
+  const W=1000,H=220,padL=54,padR=12,padT=14,padB=14;
+  const innerW=W-padL-padR, innerH=(H-padT-padB)*0.68, ddH=(H-padT-padB)*0.32-8;
+  const eqMin=Math.min(0,...eq), eqMax=Math.max(0,...eq);
+  const eqRange=(eqMax-eqMin)||1;
+  const ddMin=Math.min(...dd)||-1;
+  const x=i=>padL+(innerW*i/(n-1));
+  const yEq=v=>padT+innerH-((v-eqMin)/eqRange)*innerH;
+  const yDd=v=>padT+innerH+8+((v/ddMin)*ddH); // v<=0, ddMin<0 -> ratio in [0,1]
+
+  const eqPts=eq.map((v,i)=>`${x(i).toFixed(1)},${yEq(v).toFixed(1)}`).join(' ');
+  const eqArea=`M${x(0).toFixed(1)},${yEq(0).toFixed(1)} L`+eqPts+` L${x(n-1).toFixed(1)},${yEq(0).toFixed(1)} Z`;
+  const ddPts=dd.map((v,i)=>`${x(i).toFixed(1)},${yDd(v).toFixed(1)}`).join(' ');
+  const ddArea=`M${x(0).toFixed(1)},${yDd(0).toFixed(1)} L`+ddPts+` L${x(n-1).toFixed(1)},${yDd(0).toFixed(1)} Z`;
+  const zeroY=yEq(0).toFixed(1);
+  const finalPos=cum>=0;
+  const maxDdVal=ddMin;
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.4rem">
+      <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2)">Cumulative P&amp;L (${n-1} closed trades)</div>
+      <div style="font-size:.76rem;color:var(--muted2)">Peak-to-trough max: <span class="mono neg">${maxDdVal.toFixed(2)}</span></div>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;background:var(--bg3);border:1px solid var(--line);border-radius:10px">
+      <line x1="${padL}" y1="${zeroY}" x2="${W-padR}" y2="${zeroY}" stroke="var(--line)" stroke-width="1"/>
+      <path d="${eqArea}" fill="${finalPos?'rgba(16,185,129,.14)':'rgba(239,68,68,.14)'}"/>
+      <polyline points="${eqPts}" fill="none" stroke="${finalPos?'var(--green)':'var(--red)'}" stroke-width="2"/>
+      <path d="${ddArea}" fill="rgba(239,68,68,.22)"/>
+      <polyline points="${ddPts}" fill="none" stroke="var(--red)" stroke-width="1.3" opacity=".85"/>
+      <text x="${padL}" y="${(padT+10)}" font-size="9" fill="var(--muted2)" font-family="monospace">equity</text>
+      <text x="${padL}" y="${padT+innerH+20}" font-size="9" fill="var(--muted2)" font-family="monospace">drawdown</text>
+    </svg>`;
+}
+
 function renderTraderDetail(j){
   const p=j.combined_profile;
   const accHtml=(j.per_account_profile||[]).length>1
     ? `<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin:1.5rem 0 .5rem">Per-account breakdown</div>`
       +j.per_account_profile.map(a=>`<div style="margin-bottom:1rem"><div style="font-size:.82rem;font-weight:600;margin-bottom:.4rem">${esc(a.label)} <span class="st ${a.status}">${a.status}</span></div>${profileCard(a.profile)}</div>`).join('')
     : '';
+  const chartHtml=`<div style="margin-bottom:1.5rem">${equityCurveSvg(j.trades)}</div>`;
   const trades=(j.trades||[]).slice(0,200);
   const rejects=(j.reject_events||[]).slice(0,50);
   const tradeRows=trades.map(t=>{
@@ -417,6 +470,7 @@ function renderTraderDetail(j){
   </tr>`).join('');
   return `
     ${profileCard(p)}
+    ${chartHtml}
     ${accHtml}
     <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin:1.5rem 0 .5rem">Trade history (${trades.length}${(j.trades||[]).length>200?' of '+j.trades.length:''})</div>
     <div class="tbl-wrap" style="margin-bottom:1.5rem;max-height:420px;overflow-y:auto"><table>

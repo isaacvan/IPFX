@@ -225,6 +225,7 @@ type Acct = {
   profit_target_pct: number; max_drawdown_pct: number; daily_loss_pct: number;
   day_start_equity: number; day_start_date: string;
   status: string; breach_reason: string | null;
+  total_paid_out?: number;
 };
 type Tr = {
   id: string; account_id: string; user_id: string; symbol: string;
@@ -313,7 +314,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       });
     }
 
-    const ddFloor = round2(start * (1 - Number(acct.max_drawdown_pct) / 100));
+    // total_paid_out shifts the max-drawdown floor down by whatever has
+    // already been withdrawn via payout, so a payout is never itself
+    // read as a loss (see add-payout-buffer.sql / admin-console payout_create).
+    const ddFloor = round2(start * (1 - Number(acct.max_drawdown_pct) / 100) - Number(acct.total_paid_out ?? 0));
     const dailyFloor = round2(Number(acct.day_start_equity) - start * Number(acct.daily_loss_pct) / 100);
 
     let breach: string | null = null;
@@ -425,6 +429,40 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return err("Invalid JSON"); }
+
+  // ---- scheduled sweep: server-side breach enforcement independent of
+  // whether any trader has a browser tab open. Without this, a position
+  // could blow through its drawdown floor while the trader is offline and
+  // sit unenforced until they next poll state() — by then price may have
+  // moved back, silently erasing a breach that should have happened.
+  // Called by pg_cron (see setup-drawdown-sweep-cron.sql), not by users:
+  // authenticated by a shared secret header, never a user JWT.
+  if (body.action === "sweep") {
+    const secret = req.headers.get("x-cron-secret");
+    const expected = Deno.env.get("CRON_SECRET");
+    if (!expected || secret !== expected) return err("Not authorized", 401);
+
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: candidates } = await db.from("trading_accounts")
+      .select("id")
+      .eq("status", "active")
+      .in("id", (await db.from("trades").select("account_id").eq("status", "open")).data?.map((r: { account_id: string }) => r.account_id) ?? []);
+
+    const seen = new Set((candidates ?? []).map((c: { id: string }) => c.id));
+    let breached = 0;
+    for (const id of seen) {
+      const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id).maybeSingle();
+      if (!acct) continue;
+      const before = acct.status;
+      await enforce(db, acct as Acct);
+      if (before === "active") {
+        const { data: after } = await db.from("trading_accounts").select("status").eq("id", id).maybeSingle();
+        if (after?.status === "breached") breached++;
+      }
+    }
+    return new Response(JSON.stringify({ ok: true, swept: seen.size, breached }),
+      { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
 
   // authenticate the caller
   const authClient = createClient(

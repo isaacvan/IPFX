@@ -352,11 +352,32 @@ Deno.serve(async (req) => {
     const gross = Number(s.realized_profit_unpaid);
     const split = Number(s.profit_split_pct);
     const share = Math.round(Math.max(gross, 0) * split / 100 * 100) / 100;
+    if (share <= 0) return err("nothing to pay out", 404);
+
+    const { data: acct } = await db.from("trading_accounts").select("*").eq("id", account_id).maybeSingle();
+    if (!acct) return err("account not found", 404);
+
     const { error } = await db.from("payouts").insert({
       user_id: s.user_id, account_id, period_end: new Date().toISOString(),
       gross_profit: Math.round(gross * 100) / 100, split_pct: split, trader_share: share, status: "pending",
     });
     if (error) return err("could not create payout", 500);
+
+    // A payout is a real withdrawal: it reduces the simulated balance by
+    // the amount paid out. total_paid_out is a running buffer that the
+    // engine's max-drawdown floor subtracts, so the withdrawal itself is
+    // never counted as a loss. day_start_equity is lowered by the same
+    // amount — equivalent to saying "today started with this much less
+    // equity" — so the later equity drop from the withdrawal doesn't
+    // read as today's trading loss; only real intraday P&L should move
+    // the daily-loss floor.
+    await db.from("trading_accounts").update({
+      balance: Math.round((Number(acct.balance) - share) * 100) / 100,
+      total_paid_out: Math.round((Number(acct.total_paid_out ?? 0) + share) * 100) / 100,
+      day_start_equity: Math.round((Number(acct.day_start_equity) - share) * 100) / 100,
+      updated_at: new Date().toISOString(),
+    }).eq("id", account_id);
+
     return json({ ok: true, trader_share: share });
   }
 
