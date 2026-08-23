@@ -249,8 +249,9 @@ function render(){
     const dd=s.max_drawdown_pct==null?'—':s.max_drawdown_pct+'% DD';
     const risky=(s.max_drawdown_pct!=null&&s.max_drawdown_pct>=8)||(s.consistency_pct!=null&&s.consistency_pct>=50);
     const flag=risky?' <span title="High drawdown or one trade dominates profit" style="color:var(--amber)">⚠</span>':'';
+    const readyBadge=s.mirror_ready_hint?' <span title="Meets the basic trade-count and consistency bar — open the trader page for the real, out-of-sample-checked probability before enabling mirroring" style="color:var(--green);font-weight:700">● ready to review</span>':'';
     const perf=s.trades>0
-      ? `<span class="mono" style="font-size:.76rem">${s.trades} trades${flag}</span><br><span style="font-size:.72rem;color:var(--muted2)">${s.win_rate==null?'—':s.win_rate+'% win'} · PF ${s.profit_factor==null?'∞':s.profit_factor} · ${dd}</span>`
+      ? `<span class="mono" style="font-size:.76rem">${s.trades} trades${flag}</span><br><span style="font-size:.72rem;color:var(--muted2)">${s.win_rate==null?'—':s.win_rate+'% win'} · PF ${s.profit_factor==null?'∞':s.profit_factor} · ${dd}</span>${readyBadge}`
       : '<span style="color:var(--muted2);font-size:.76rem">no trades</span>';
     return `<tr>
       <td style="cursor:pointer" onclick='openTraderDetail(${JSON.stringify(t.user_id)})'>
@@ -438,11 +439,47 @@ function equityCurveSvg(trades){
     </svg>`;
 }
 
+// ---- mirror readiness: probabilities + the checklist that produced them ----
+function pct(x){return x==null?'—':Math.round(x*1000)/10+'%';}
+function readinessCard(r,label){
+  if(!r) return '';
+  const badge=r.mirror_ready
+    ?'<span style="background:rgba(16,185,129,.15);color:#4ade9f;padding:.2rem .6rem;border-radius:6px;font-size:.72rem;font-weight:700">MIRROR-READY</span>'
+    :'<span style="background:rgba(245,158,11,.15);color:#f5c473;padding:.2rem .6rem;border-radius:6px;font-size:.72rem;font-weight:700">NOT YET</span>';
+  const stats=[
+    ['Closed trades',r.trades_closed],
+    ['History span',r.days_span+' days'],
+    ['Confidence edge is real',pct(r.p_edge_real)],
+    ['P(passes evaluation)',pct(r.prob_pass_evaluation)],
+    ['P(reaches first payout)',pct(r.prob_first_payout)],
+  ];
+  const checklist=(r.checklist||[]).map(c=>`
+    <div style="display:flex;gap:.5rem;align-items:flex-start;padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.78rem">
+      <span style="color:${c.pass?'var(--green)':'var(--muted2)'};flex-shrink:0">${c.pass?'✓':'○'}</span>
+      <div><div style="color:var(--fg)">${esc(c.label)}</div><div style="color:var(--muted2);font-size:.72rem">${esc(c.detail)}</div></div>
+    </div>`).join('');
+  return `
+    <div style="background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem;margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <div style="font-size:.85rem;font-weight:700">Mirror readiness${label?' — '+esc(label):''}</div>
+        ${badge}
+      </div>
+      <div class="stat-row" style="margin-bottom:.75rem">
+        ${stats.map(([k,v])=>`<div class="stat" style="min-width:110px;flex:0 0 auto"><div class="k">${k}</div><div class="v" style="font-size:.95rem">${v}</div></div>`).join('')}
+      </div>
+      ${checklist}
+      ${(r.reasons&&r.reasons.length)?`<div class="warn" style="margin-top:.75rem;margin-bottom:0">${r.reasons.map(esc).join('<br>')}</div>`:''}
+    </div>`;
+}
+
 function renderTraderDetail(j){
   const p=j.combined_profile;
-  const accHtml=(j.per_account_profile||[]).length>1
+  const perAcc=j.per_account_profile||[];
+  const primary=perAcc.find(a=>a.status==='active')||perAcc[0]||null;
+  const readinessHtml=primary?readinessCard(primary.readiness,perAcc.length>1?primary.label:null):'';
+  const accHtml=perAcc.length>1
     ? `<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin:1.5rem 0 .5rem">Per-account breakdown</div>`
-      +j.per_account_profile.map(a=>`<div style="margin-bottom:1rem"><div style="font-size:.82rem;font-weight:600;margin-bottom:.4rem">${esc(a.label)} <span class="st ${a.status}">${a.status}</span></div>${profileCard(a.profile)}</div>`).join('')
+      +perAcc.map(a=>`<div style="margin-bottom:1rem"><div style="font-size:.82rem;font-weight:600;margin-bottom:.4rem">${esc(a.label)} <span class="st ${a.status}">${a.status}</span></div>${a===primary?'':readinessCard(a.readiness)}${profileCard(a.profile)}</div>`).join('')
     : '';
   const chartHtml=`<div style="margin-bottom:1.5rem">${equityCurveSvg(j.trades)}</div>`;
   const trades=(j.trades||[]).slice(0,200);
@@ -469,6 +506,7 @@ function renderTraderDetail(j){
     <td style="color:var(--red)">${esc(r.reject_reason||'—')}</td>
   </tr>`).join('');
   return `
+    ${readinessHtml}
     ${profileCard(p)}
     ${chartHtml}
     ${accHtml}

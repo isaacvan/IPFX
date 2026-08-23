@@ -188,6 +188,162 @@ function buildStrategyProfile(allTrades: Trade[]) {
   };
 }
 
+// ============================================================
+// computeReadiness — deterministic, fail-closed scoring of whether a
+// trader's history is statistically solid enough to trust with mirrored
+// signals. Every number here is a named, standard statistical/quant
+// formula (a t-test on out-of-sample trade P&L; the classic
+// first-passage probability of a random walk with drift hitting one
+// barrier before another) — not a trained model, not a black box, so
+// it can be checked by hand. All probabilities are ESTIMATES from a
+// normal/Brownian approximation of trade P&L; real return
+// distributions have fatter tails than this assumes, so read outputs
+// as directional confidence, not exact odds. Fails closed: any
+// missing or insufficient data returns mirror_ready:false with a
+// stated reason, never a fabricated number.
+// ============================================================
+
+const MIN_TRADES = 30;          // floor to compute anything at all
+const READY_TRADES = 150;       // recommended minimum before "ready"
+const READY_DAYS = 60;          // recommended minimum calendar span
+const READY_T_STAT = 2.33;      // ~99% one-sided confidence bar, checked out-of-sample
+const MAX_CONSISTENCY_PCT = 25; // no single trade may be > 25% of gross profit
+const PAYOUT_TARGET_FRACTION = 0.01; // "first payout" defined as 1% of starting balance realized
+
+// Standard normal CDF (Abramowitz-Stegun erf approximation).
+function normalCdf(z: number): number {
+  const sign = z < 0 ? -1 : 1;
+  const x = Math.abs(z) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return 0.5 * (1 + sign * y);
+}
+
+// P(a Brownian-motion-with-drift walk hits +targetUp before -targetDown),
+// given per-trade mean mu and stdev sigma. Classic first-passage formula
+// used for risk-of-ruin calculations; degrades to the fair-walk ratio
+// targetDown/(targetUp+targetDown) as mu -> 0.
+function passageProbability(mu: number, sigma: number, targetUp: number, targetDown: number): number | null {
+  if (!(sigma > 0) || !(targetUp > 0) || !(targetDown > 0)) return null;
+  const clampExp = (x: number) => Math.exp(Math.max(-700, Math.min(700, x)));
+  if (Math.abs(mu) < 1e-9) return targetDown / (targetUp + targetDown);
+  const k = 2 * mu / (sigma * sigma);
+  const num = 1 - clampExp(-k * targetDown);
+  const den = 1 - clampExp(-k * (targetUp + targetDown));
+  if (Math.abs(den) < 1e-12) return mu > 0 ? 1 : 0;
+  return Math.max(0, Math.min(1, num / den));
+}
+
+function computeReadiness(allTrades: Trade[], acct: Record<string, unknown>) {
+  const closed = [...allTrades]
+    .filter((t) => t.status === "closed" && t.closed_at && t.pnl !== null)
+    .sort((a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime());
+  const n = closed.length;
+  const reasons: string[] = [];
+  const checklist: { key: string; label: string; pass: boolean; detail: string }[] = [];
+
+  const daysSpan = n >= 2
+    ? (new Date(closed[n - 1].closed_at).getTime() - new Date(closed[0].opened_at).getTime()) / 86400000
+    : 0;
+
+  checklist.push({ key: "min_trades", label: `${READY_TRADES}+ closed trades`, pass: n >= READY_TRADES, detail: `${n} closed trades` });
+  checklist.push({ key: "min_days", label: `${READY_DAYS}+ day history`, pass: daysSpan >= READY_DAYS, detail: `${r2(daysSpan)} days of history` });
+
+  if (n < MIN_TRADES) {
+    reasons.push(`Only ${n} closed trades — need at least ${MIN_TRADES} before anything here is statistically meaningful.`);
+    return {
+      trades_closed: n, days_span: r2(daysSpan),
+      mean_pnl: null, stdev_pnl: null, t_stat: null, p_edge_real: null,
+      prob_pass_evaluation: null, prob_first_payout: null,
+      mirror_ready: false, checklist, reasons,
+    };
+  }
+
+  const pnls = closed.map((t) => Number(t.pnl));
+  const meanPnl = mean(pnls);
+  const stdevPnl = stddev(pnls);
+
+  // Out-of-sample check: the edge is graded on the SECOND half only.
+  // Grading yourself on the same data you estimated the edge from is
+  // exactly the overfitting trap this system exists to catch.
+  const mid = Math.floor(n / 2);
+  const secondHalf = pnls.slice(mid);
+  const oosMean = mean(secondHalf);
+  const oosStdev = stddev(secondHalf);
+  const oosN = secondHalf.length;
+  const tStat = oosStdev > 0 && oosN > 1 ? (oosMean * Math.sqrt(oosN)) / oosStdev : null;
+  const pEdgeReal = tStat !== null ? Math.round(normalCdf(tStat) * 10000) / 10000 : null;
+
+  checklist.push({
+    key: "oos_edge",
+    label: `out-of-sample confidence >= ${Math.round(normalCdf(READY_T_STAT) * 1000) / 10}%`,
+    pass: tStat !== null && tStat >= READY_T_STAT,
+    detail: pEdgeReal !== null
+      ? `${r2(pEdgeReal * 100)}% confidence the edge is real (2nd-half t=${r2(tStat!)}, n=${oosN})`
+      : "not enough closed trades in the 2nd half yet",
+  });
+
+  const wins = pnls.filter((p) => p > 0);
+  const grossWin = wins.reduce((a, b) => a + b, 0);
+  const bestWin = wins.length ? Math.max(...wins) : 0;
+  const consistencyPct = grossWin > 0 ? r2((bestWin / grossWin) * 100) : 0;
+  checklist.push({
+    key: "consistency", label: `no single trade > ${MAX_CONSISTENCY_PCT}% of gross profit`,
+    pass: consistencyPct <= MAX_CONSISTENCY_PCT, detail: `${consistencyPct}% of profit from the single best trade`,
+  });
+
+  // Martingale / revenge-trading flags — same detection buildStrategyProfile uses.
+  let martingaleOpportunities = 0, martingaleHits = 0, revengeCount = 0, gapOpportunities = 0;
+  for (let i = 0; i < n - 1; i++) {
+    const cur = closed[i], next = closed[i + 1];
+    if (Number(cur.pnl) < 0) {
+      martingaleOpportunities++;
+      if (Number(next.volume) > Number(cur.volume) * 1.3) martingaleHits++;
+    }
+    const gap = (new Date(next.opened_at).getTime() - new Date(cur.closed_at).getTime()) / 60000;
+    if (gap >= 0) gapOpportunities++;
+    if (Number(cur.pnl) < 0 && gap >= 0 && gap < 5 && Number(next.volume) >= Number(cur.volume)) revengeCount++;
+  }
+  const martingaleFlag = martingaleOpportunities > 0 && martingaleHits / martingaleOpportunities > 0.4;
+  const revengeFlag = gapOpportunities > 0 && revengeCount / gapOpportunities > 0.2;
+  checklist.push({ key: "no_martingale", label: "no martingale sizing pattern", pass: !martingaleFlag, detail: martingaleFlag ? "volume increases after losses > 40% of the time" : "clean" });
+  checklist.push({ key: "no_revenge", label: "no revenge-trading pattern", pass: !revengeFlag, detail: revengeFlag ? "re-enters within 5min of a loss at equal/larger size > 20% of the time" : "clean" });
+
+  const start = Number(acct.starting_balance);
+  const balance = Number(acct.balance);
+  const ddFloor = r2(start * (1 - Number(acct.max_drawdown_pct) / 100) - Number(acct.total_paid_out ?? 0));
+  const targetAmt = r2(start * (1 + Number(acct.profit_target_pct) / 100));
+  const distDown = r2(balance - ddFloor);
+  const distUp = r2(targetAmt - balance);
+
+  const probPass = acct.status === "passed" ? 1
+    : acct.status === "breached" ? 0
+    : (distUp > 0 && distDown > 0 ? passageProbability(meanPnl, stdevPnl, distUp, distDown) : null);
+
+  // A breached account can never trade again, so neither probability can
+  // be anything but 0 going forward regardless of what the math says.
+  const payoutTarget = r2(start * PAYOUT_TARGET_FRACTION);
+  const probFirstPayout = acct.status === "breached" ? 0
+    : (distDown > 0 ? passageProbability(meanPnl, stdevPnl, payoutTarget, distDown) : null);
+
+  // A breached account is dead — never "ready" regardless of what its
+  // historical stats say, since there is nothing left here to mirror.
+  const statsPass = checklist.every((c) => c.pass);
+  const allPass = statsPass && acct.status !== "breached";
+  if (!statsPass) reasons.push(...checklist.filter((c) => !c.pass).map((c) => `Fails "${c.label}" — ${c.detail}`));
+  if (acct.status === "breached") reasons.push("This account is breached — nothing to mirror here even if its historical stats look good.");
+
+  return {
+    trades_closed: n, days_span: r2(daysSpan),
+    mean_pnl: r2(meanPnl), stdev_pnl: r2(stdevPnl),
+    t_stat: tStat !== null ? r2(tStat) : null, p_edge_real: pEdgeReal,
+    prob_pass_evaluation: probPass !== null ? Math.round(probPass * 10000) / 10000 : null,
+    prob_first_payout: probFirstPayout !== null ? Math.round(probFirstPayout * 10000) / 10000 : null,
+    mirror_ready: allPass,
+    checklist, reasons,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return err("POST only", 405);
@@ -269,9 +425,14 @@ Deno.serve(async (req) => {
           const bt = st ? Number(st.best_trade) : 0;
           // consistency: biggest single win as a share of all wins. Lower = steadier.
           const consistency = gw > 0 ? Math.round((bt / gw) * 100) : null;
+          // Cheap heads-up only (uses aggregates already fetched here, not
+          // a full recompute) — the real, out-of-sample-checked probability
+          // lives in trader_detail's readiness block. This just flags who's
+          // worth opening; it is never itself grounds to enable mirroring.
+          const readyHint = Number(st?.trades ?? 0) >= READY_TRADES && (consistency == null || consistency <= MAX_CONSISTENCY_PCT);
           return st
-            ? { trades: Number(st.trades), win_rate: st.win_rate == null ? null : Number(st.win_rate), profit_factor: st.profit_factor == null ? null : Number(st.profit_factor), avg_trade: Number(st.avg_trade), best_trade: bt, worst_trade: Number(st.worst_trade), max_drawdown_pct: rk ? Number(rk.max_drawdown_pct) : null, consistency_pct: consistency }
-            : { trades: 0, win_rate: null, profit_factor: null, avg_trade: 0, best_trade: 0, worst_trade: 0, max_drawdown_pct: null, consistency_pct: null };
+            ? { trades: Number(st.trades), win_rate: st.win_rate == null ? null : Number(st.win_rate), profit_factor: st.profit_factor == null ? null : Number(st.profit_factor), avg_trade: Number(st.avg_trade), best_trade: bt, worst_trade: Number(st.worst_trade), max_drawdown_pct: rk ? Number(rk.max_drawdown_pct) : null, consistency_pct: consistency, mirror_ready_hint: readyHint }
+            : { trades: 0, win_rate: null, profit_factor: null, avg_trade: 0, best_trade: 0, worst_trade: 0, max_drawdown_pct: null, consistency_pct: null, mirror_ready_hint: false };
         })(),
       };
     });
@@ -428,7 +589,10 @@ Deno.serve(async (req) => {
     // over time) plus a combined profile across everything.
     const perAccount = accountsFor.map((a: Record<string, unknown>) => {
       const ts = (allTrades ?? []).filter((t: Record<string, unknown>) => t.account_id === a.id);
-      return { account_id: a.id, label: a.label, status: a.status, created_at: a.created_at, profile: buildStrategyProfile(ts) };
+      return {
+        account_id: a.id, label: a.label, status: a.status, created_at: a.created_at,
+        profile: buildStrategyProfile(ts), readiness: computeReadiness(ts, a),
+      };
     });
     const combinedProfile = buildStrategyProfile(allTrades ?? []);
     const rejects = (auditEvents ?? []).filter((e: Record<string, unknown>) => e.event === "reject");
