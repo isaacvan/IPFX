@@ -368,18 +368,38 @@ Deno.serve(async (req) => {
 
   const action = body.action;
 
+  // Every state-changing action below logs here: who, what, on whom,
+  // when, plus arbitrary detail. Never surfaced to traders — only
+  // through this same admin-gated function (the "audit_log" action).
+  async function logAdmin(actionName: string, opts: { targetUser?: string; targetAccount?: string; detail?: Record<string, unknown> } = {}) {
+    try {
+      await db.from("admin_audit_log").insert({
+        actor_id: user.id, action: actionName,
+        target_user_id: opts.targetUser ?? null, target_account_id: opts.targetAccount ?? null,
+        detail: opts.detail ?? null,
+      });
+    } catch (_) { /* audit logging must never block the underlying action */ }
+  }
+
   if (action === "overview") {
-    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }, { data: claims }] =
+    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }, { data: claims }, { data: kycRows }, { data: platCfg }, { data: sharedIps }] =
       await Promise.all([
         db.from("trading_accounts").select("*").order("created_at", { ascending: false }),
-        db.from("user_profiles").select("user_id,full_name,referral_code"),
+        db.from("user_profiles").select("user_id,full_name,referral_code,restricted_jurisdiction"),
         db.from("mirror_targets").select("*"),
         db.from("trader_payout_summary").select("*"),
         db.from("payouts").select("*").order("created_at", { ascending: false }),
         db.from("trader_stats").select("*"),
         db.from("trader_risk").select("*"),
         db.from("challenge_claims").select("challenge_type,account_type").limit(100000),
+        db.from("trader_kyc").select("user_id,status"),
+        db.from("platform_config").select("*").eq("id", true).maybeSingle(),
+        db.from("shared_ip_accounts").select("*").limit(50),
       ]);
+    const kycByUser = new Map<string, string>();
+    for (const k of kycRows ?? []) kycByUser.set(k.user_id, k.status);
+    const restrictedByUser = new Set<string>();
+    for (const p of profiles ?? []) if (p.restricted_jurisdiction) restrictedByUser.add(p.user_id);
     const statByAcct = new Map<string, Record<string, unknown>>();
     for (const s of stats ?? []) statByAcct.set(s.account_id, s);
     const riskByAcct = new Map<string, Record<string, unknown>>();
@@ -411,6 +431,10 @@ Deno.serve(async (req) => {
         full_name: nameById.get(a.user_id as string) || "—",
         email: emailById.get(a.user_id as string) || "",
         status: a.status,
+        phase: a.phase ?? "evaluation",
+        investigation_hold: !!a.investigation_hold,
+        kyc_status: kycByUser.get(a.user_id as string) ?? "unverified",
+        restricted_jurisdiction: restrictedByUser.has(a.user_id as string),
         starting_balance: start,
         balance: bal,
         realized_pnl: Math.round((bal - start) * 100) / 100,
@@ -446,7 +470,7 @@ Deno.serve(async (req) => {
     const mirrored = accts.filter((a: Record<string, unknown>) => a.mirror_enabled).length;
     const payoutLiability = r2((summary ?? []).reduce((s: number, x: Record<string, unknown>) => s + Number(x.trader_share_owed || 0), 0));
     const paidRows = (payouts ?? []).filter((p: Record<string, unknown>) => p.status === "paid");
-    const pendingRows = (payouts ?? []).filter((p: Record<string, unknown>) => p.status === "pending" || p.status === "approved");
+    const pendingRows = (payouts ?? []).filter((p: Record<string, unknown>) => p.status === "requested" || p.status === "approved");
     const totalPaid = r2(paidRows.reduce((s: number, p: Record<string, unknown>) => s + Number(p.trader_share || 0), 0));
     const pendingPayouts = r2(pendingRows.reduce((s: number, p: Record<string, unknown>) => s + Number(p.trader_share || 0), 0));
     const netTraderPnl = r2(accts.reduce((s: number, a: Record<string, unknown>) => s + (Number(a.balance) - Number(a.starting_balance)), 0));
@@ -461,7 +485,11 @@ Deno.serve(async (req) => {
       net_trader_pnl: netTraderPnl,        // firm's net simulated position (neg = traders up)
     };
 
-    return json({ ok: true, is_admin: true, firm, traders, payouts: payouts ?? [] });
+    return json({
+      ok: true, is_admin: true, firm, traders, payouts: payouts ?? [],
+      platform: { trading_halted: !!platCfg?.trading_halted, halted_reason: platCfg?.halted_reason ?? null, halted_at: platCfg?.halted_at ?? null },
+      shared_ip_accounts: sharedIps ?? [],
+    });
   }
 
   if (action === "set_mirror") {
@@ -494,59 +522,154 @@ Deno.serve(async (req) => {
 
     // the engine reads trading_accounts.mirror_enabled on the active account
     await db.from("trading_accounts").update({ mirror_enabled: enabled }).eq("user_id", target_user).eq("status", "active");
+    await logAdmin("set_mirror", { targetUser: target_user, detail: { enabled, target_type: body.target_type ?? null } });
     return json({ ok: true });
   }
+
+  // Same friendly-error mapping used by trading-engine — kept in sync by
+  // hand since these are two separate Deno deployments.
+  const RPC_ERROR_MESSAGES: Record<string, string> = {
+    account_not_found: "Account not found.",
+    not_funded: "This account isn't funded yet.",
+    account_not_in_good_standing: "Account isn't in good standing.",
+    investigation_hold: "Account is under investigation hold.",
+    kyc_not_verified: "Trader's KYC isn't verified yet.",
+    nothing_owed: "No payable profit for this period.",
+    consistency_check_failed: "A single trade is more than 25% of this period's profit — needs manual review.",
+    payout_not_found: "Payout not found.",
+    not_requested: "This payout isn't in the requested state.",
+    not_approved: "This payout isn't approved yet.",
+    insufficient_balance: "Account balance is too low to cover this payout.",
+    cannot_void_paid: "A paid payout can't be voided.",
+    already_void: "This payout is already void.",
+  };
+  const cleanRpc = (raw: string) => {
+    const code = raw.split(":")[0].trim();
+    if (code === "too_soon" || code === "below_minimum") return raw.split(":")[1]?.trim() ?? raw;
+    return RPC_ERROR_MESSAGES[code] ?? raw;
+  };
 
   if (action === "set_split") {
     const target_user = String(body.user_id ?? "");
     const pct = Number(body.profit_split_pct);
     if (!target_user || !isFinite(pct) || pct < 0 || pct > 100) return err("bad split");
+    // Guard against retroactively changing what's owed on profit already
+    // earned under the old rate: block the change while any funded
+    // account for this trader has outstanding unpaid profit. Pay out
+    // first, then change the split.
+    const { data: fundedAccts } = await db.from("trading_accounts").select("id").eq("user_id", target_user).eq("phase", "funded");
+    for (const a of fundedAccts ?? []) {
+      const { data: s } = await db.from("trader_payout_summary").select("realized_profit_unpaid").eq("account_id", a.id).maybeSingle();
+      if (s && Number(s.realized_profit_unpaid) > 0) {
+        return err("This trader has unpaid profit outstanding — pay it out before changing the split, or the change would retroactively affect profit already earned.", 409);
+      }
+    }
     await db.from("trading_accounts").update({ profit_split_pct: pct }).eq("user_id", target_user).eq("status", "active");
+    await logAdmin("set_split", { targetUser: target_user, detail: { profit_split_pct: pct } });
     return json({ ok: true });
   }
 
+  // Admin-initiated payout: same gated, transactional path a trader's own
+  // request goes through (fn_request_payout), just with p_is_admin=true so
+  // small amounts can auto-approve. Every compliance gate (funded, good
+  // standing, KYC, min days, consistency) is re-checked inside the
+  // function itself — nothing here can bypass them.
   if (action === "payout_create") {
     const account_id = String(body.account_id ?? "");
     if (!account_id) return err("account_id required");
-    const { data: s } = await db.from("trader_payout_summary").select("*").eq("account_id", account_id).maybeSingle();
-    if (!s) return err("nothing to pay out", 404);
-    const gross = Number(s.realized_profit_unpaid);
-    const split = Number(s.profit_split_pct);
-    const share = Math.round(Math.max(gross, 0) * split / 100 * 100) / 100;
-    if (share <= 0) return err("nothing to pay out", 404);
-
-    const { data: acct } = await db.from("trading_accounts").select("*").eq("id", account_id).maybeSingle();
-    if (!acct) return err("account not found", 404);
-
-    const { error } = await db.from("payouts").insert({
-      user_id: s.user_id, account_id, period_end: new Date().toISOString(),
-      gross_profit: Math.round(gross * 100) / 100, split_pct: split, trader_share: share, status: "pending",
+    const idem = `admin_${user.id}_${account_id}_${Date.now()}`;
+    const { data, error } = await db.rpc("fn_request_payout", {
+      p_account_id: account_id, p_requested_by: user.id, p_is_admin: true,
+      p_idempotency_key: idem, p_payout_method_id: null,
     });
-    if (error) return err("could not create payout", 500);
+    if (error) return err(cleanRpc(error.message), 409);
+    await logAdmin("payout_create", { targetAccount: account_id, detail: { payout_id: data?.id, status: data?.status, trader_share: data?.trader_share } });
+    return json({ ok: true, payout: data, trader_share: Number(data?.trader_share ?? 0) });
+  }
 
-    // A payout is a real withdrawal: it reduces the simulated balance by
-    // the amount paid out. total_paid_out is a running buffer that the
-    // engine's max-drawdown floor subtracts, so the withdrawal itself is
-    // never counted as a loss. day_start_equity is lowered by the same
-    // amount — equivalent to saying "today started with this much less
-    // equity" — so the later equity drop from the withdrawal doesn't
-    // read as today's trading loss; only real intraday P&L should move
-    // the daily-loss floor.
-    await db.from("trading_accounts").update({
-      balance: Math.round((Number(acct.balance) - share) * 100) / 100,
-      total_paid_out: Math.round((Number(acct.total_paid_out ?? 0) + share) * 100) / 100,
-      day_start_equity: Math.round((Number(acct.day_start_equity) - share) * 100) / 100,
-      updated_at: new Date().toISOString(),
-    }).eq("id", account_id);
-
-    return json({ ok: true, trader_share: share });
+  if (action === "payout_approve") {
+    const payout_id = String(body.payout_id ?? "");
+    if (!payout_id) return err("payout_id required");
+    const { data, error } = await db.rpc("fn_approve_payout", { p_payout_id: payout_id, p_admin_id: user.id });
+    if (error) return err(cleanRpc(error.message), 409);
+    await logAdmin("payout_approve", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share } });
+    return json({ ok: true, payout: data });
   }
 
   if (action === "payout_mark_paid") {
     const payout_id = String(body.payout_id ?? "");
     if (!payout_id) return err("payout_id required");
-    await db.from("payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", payout_id);
+    const { data, error } = await db.rpc("fn_mark_paid", { p_payout_id: payout_id, p_admin_id: user.id });
+    if (error) return err(cleanRpc(error.message), 409);
+    await logAdmin("payout_mark_paid", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share } });
+    // Referral commission (if any) fires only once a payout is actually
+    // paid, per "10% ... within 30 days of their first payout" — never
+    // on merely requested/approved.
+    try { await db.rpc("fn_maybe_award_referral", { p_payout_id: payout_id }); } catch (_) { /* non-fatal */ }
+    return json({ ok: true, payout: data });
+  }
+
+  if (action === "payout_void") {
+    const payout_id = String(body.payout_id ?? "");
+    const reason = String(body.reason ?? "").trim().slice(0, 300);
+    if (!payout_id) return err("payout_id required");
+    if (!reason) return err("A reason is required to void a payout");
+    const { data, error } = await db.rpc("fn_void_payout", { p_payout_id: payout_id, p_admin_id: user.id, p_reason: reason });
+    if (error) return err(cleanRpc(error.message), 409);
+    await logAdmin("payout_void", { targetAccount: data?.account_id, detail: { payout_id, reason } });
+    return json({ ok: true, payout: data });
+  }
+
+  if (action === "set_kyc_status") {
+    const target_user = String(body.user_id ?? "");
+    const status = String(body.status ?? "");
+    if (!target_user || !["unverified", "pending", "verified", "rejected"].includes(status)) return err("bad kyc status");
+    const note = body.note ? String(body.note).slice(0, 300) : null;
+    await logAdmin("set_kyc_status", { targetUser: target_user, detail: { status, note } });
+    const { error } = await db.from("trader_kyc").upsert({
+      user_id: target_user, status, note,
+      verified_by: status === "verified" ? user.id : null,
+      verified_at: status === "verified" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) return err("could not update KYC status", 500);
     return json({ ok: true });
+  }
+
+  if (action === "set_investigation_hold") {
+    const account_id = String(body.account_id ?? "");
+    const hold = body.hold === true;
+    const note = body.note ? String(body.note).slice(0, 300) : null;
+    if (!account_id) return err("account_id required");
+    await db.from("trading_accounts").update({
+      investigation_hold: hold, investigation_note: hold ? note : null, updated_at: new Date().toISOString(),
+    }).eq("id", account_id);
+    await logAdmin("set_investigation_hold", { targetAccount: account_id, detail: { hold, note } });
+    return json({ ok: true });
+  }
+
+  // ---- platform kill switch ----
+  if (action === "set_platform_halt") {
+    const halted = body.halted === true;
+    const reason = body.reason ? String(body.reason).slice(0, 300) : null;
+    if (halted && !reason) return err("A reason is required to halt trading");
+    await db.from("platform_config").update({
+      trading_halted: halted, halted_reason: halted ? reason : null,
+      halted_by: halted ? user.id : null, halted_at: halted ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", true);
+    await logAdmin("set_platform_halt", { detail: { halted, reason } });
+    return json({ ok: true });
+  }
+
+  // ---- admin audit log (read-only, admin-gated by definition since
+  // this whole function already is) ----
+  if (action === "audit_log") {
+    const target_user = body.user_id ? String(body.user_id) : null;
+    let q = db.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(200);
+    if (target_user) q = q.eq("target_user_id", target_user);
+    const { data } = await q;
+    return json({ ok: true, entries: data ?? [] });
   }
 
   // ---- private trader intelligence: every trade a trader has taken,

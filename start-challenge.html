@@ -1064,7 +1064,7 @@
                     <select id="country" required>
                         <option value="">Select your country</option>
                         <option value="UK">United Kingdom</option>
-                        <option value="US">United States</option>
+                        <option value="US" disabled>United States (not currently available)</option>
                         <option value="CA">Canada</option>
                         <option value="AU">Australia</option>
                         <option value="DE">Germany</option>
@@ -1095,6 +1095,10 @@
                         <option value="friend">Friend/Referral</option>
                         <option value="other">Other</option>
                     </select>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="ageConfirm" required>
+                    <label for="ageConfirm">I confirm I am 18 years of age or older <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" required>
@@ -1364,6 +1368,12 @@
         // Step navigation
         document.getElementById('step1Next').addEventListener('click', () => goToStep(2));
         document.getElementById('step2Back').addEventListener('click', () => goToStep(1));
+        // Client-side convenience check only — the server (trading-engine,
+        // reading user_profiles.restricted_jurisdiction) is the real gate
+        // and re-checks this independently at account-provisioning time.
+        // Keep in sync with restricted_countries in prop-firm-hardening.sql.
+        const RESTRICTED_COUNTRY_CODES = ['US', 'CU', 'IR', 'KP', 'SY'];
+
         document.getElementById('step2Next').addEventListener('click', () => {
             // Basic validation
             const required = ['firstName', 'lastName', 'email', 'country', 'experience'];
@@ -1376,6 +1386,16 @@
                     document.getElementById(id).style.borderColor = 'var(--line)';
                 }
             });
+
+            if (RESTRICTED_COUNTRY_CODES.includes(document.getElementById('country').value)) {
+                valid = false;
+                alert('Sorry — we can\'t currently offer challenges to residents of the selected country.');
+            }
+
+            if (!document.getElementById('ageConfirm').checked) {
+                valid = false;
+                alert('Please confirm you are 18 years of age or older');
+            }
 
             if (!document.getElementById('terms').checked) {
                 valid = false;
@@ -1438,6 +1458,10 @@
                             challenge_tier: selectedTier,
                             challenge_price: selectedPrice,
                             stripe_payment_intent_id: paymentIntent.id,
+                            country_code: document.getElementById('country').value,
+                            age_confirmed: document.getElementById('ageConfirm').checked,
+                            terms_version: '1.0',
+                            privacy_version: '1.0',
                         },
                         emailRedirectTo: window.location.origin + '/email-confirmed.html'
                     }

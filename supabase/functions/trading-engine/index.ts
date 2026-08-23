@@ -226,7 +226,39 @@ type Acct = {
   day_start_equity: number; day_start_date: string;
   status: string; breach_reason: string | null;
   total_paid_out?: number;
+  phase?: string; funded_from_account_id?: string | null; funded_at?: string | null;
+  investigation_hold?: boolean; profit_split_pct?: number; challenge_fee_usd?: number | null;
 };
+
+// Challenge tier -> starting balance / fee, matching start-challenge.html.
+// user_metadata.challenge_tier is set at signup; provisioning must honor
+// whatever tier the trader actually paid for instead of the schema
+// defaults (which are a flat $100K regardless of tier).
+const TIER_BALANCE: Record<string, number> = { "10k": 10000, "25k": 25000, "50k": 50000, "100k": 100000, "200k": 200000 };
+const TIER_FEE: Record<string, number> = { "10k": 79, "25k": 149, "50k": 249, "100k": 399, "200k": 699 };
+
+// Called the moment an evaluation account passes. Idempotent: if a
+// funded account already descends from this one, returns it instead of
+// creating a second (protects against enforce() running twice in a race).
+async function provisionFundedAccount(db: Db, evalAcct: Acct): Promise<void> {
+  const { data: existing } = await db.from("trading_accounts")
+    .select("id").eq("funded_from_account_id", evalAcct.id).maybeSingle();
+  if (existing) return;
+
+  const startBal = Number(evalAcct.starting_balance);
+  await db.from("trading_accounts").insert({
+    user_id: evalAcct.user_id,
+    label: evalAcct.label?.replace(/challenge/i, "Funded") || "Funded Account",
+    phase: "funded", status: "active",
+    starting_balance: startBal, balance: startBal, day_start_equity: startBal,
+    day_start_date: new Date().toISOString().slice(0, 10),
+    profit_target_pct: 0, // funded accounts don't "pass" again — see enforce()
+    max_drawdown_pct: evalAcct.max_drawdown_pct, daily_loss_pct: evalAcct.daily_loss_pct,
+    profit_split_pct: evalAcct.profit_split_pct ?? 85,
+    funded_from_account_id: evalAcct.id, funded_at: new Date().toISOString(),
+    total_paid_out: 0,
+  });
+}
 type Tr = {
   id: string; account_id: string; user_id: string; symbol: string;
   side: string; volume: number; open_price: number; close_price: number | null;
@@ -237,7 +269,7 @@ type Tr = {
 type Db = any;
 
 // ---------- engine ----------
-async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null): Promise<boolean> {
+async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null, clientIp?: string | null): Promise<boolean> {
   const pnl = await tradePnl(t, exit);
   if (pnl === null) return false;
   const { error: e1 } = await db.from("trades").update({
@@ -250,6 +282,7 @@ async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: strin
     trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "close",
     symbol: t.symbol, side: t.side, requested_volume: Number(t.volume),
     requested_price: exit, fill_price: exit, quote: q ?? null,
+    client_ip: reason === "manual" ? (clientIp ?? null) : null, // system-initiated closes (sl/tp/breach) have no human to attribute an IP to
   });
   fireMirror(acct, t, "close"); // mirror the close to the live account (if enabled)
   return true;
@@ -339,8 +372,15 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       equity = round2(Number(acct.balance));
       acct.status = "breached";
       acct.breach_reason = breach;
-    } else if (Number(acct.balance) >= round2(start * (1 + Number(acct.profit_target_pct) / 100)) && open.length === 0) {
+    } else if (
+      acct.phase !== "funded" &&
+      Number(acct.balance) >= round2(start * (1 + Number(acct.profit_target_pct) / 100)) &&
+      open.length === 0
+    ) {
+      // A funded account never "passes" again — it just keeps running
+      // (and accruing payout-eligible profit) until it's breached.
       acct.status = "passed";
+      await provisionFundedAccount(db, acct);
     }
   }
 
@@ -392,6 +432,31 @@ const err = (msg: string, code = 400) =>
     status: code, headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// Turns a raw plpgsql RAISE EXCEPTION message (e.g. "too_soon:2.3 days
+// since last payout, minimum 7 days") into a client-facing sentence.
+// Postgres wraps our message as-is, so this just maps the leading code.
+const RPC_ERROR_MESSAGES: Record<string, string> = {
+  account_not_found: "Account not found.",
+  not_funded: "You don't have a funded account yet.",
+  account_not_in_good_standing: "Your account isn't in good standing.",
+  investigation_hold: "Your account is under review — payouts are paused until this clears. Contact support.",
+  kyc_not_verified: "Identity verification (KYC) must be completed before you can request a payout.",
+  nothing_owed: "There's no payable profit yet on this account.",
+  consistency_check_failed: "One trade accounts for too much of this period's profit — this needs manual review before payout.",
+  payout_not_found: "Payout not found.",
+  not_requested: "This payout has already moved past the requested stage.",
+  not_approved: "This payout hasn't been approved yet.",
+  insufficient_balance: "Account balance is too low to cover this payout.",
+  cannot_void_paid: "A paid payout can't be voided.",
+  already_void: "This payout is already void.",
+};
+function cleanRpcError(raw: string): string {
+  const code = raw.split(":")[0].trim();
+  if (code === "too_soon") return "Too soon since your last payout — " + raw.split(":")[1]?.trim();
+  if (code === "below_minimum") return raw.split(":")[1]?.trim() ?? "Amount is below the minimum withdrawal.";
+  return RPC_ERROR_MESSAGES[code] ?? raw;
+}
+
 // ---------- symbol tradeability (symbol_specs: enabled + max spread) ----------
 async function symbolCheck(db: Db, symKey: string): Promise<{ ok: boolean; reason?: string; maxSpread?: number }> {
   const { data: spec } = await db.from("symbol_specs").select("enabled,disabled_reason,max_spread").eq("symbol", symKey).maybeSingle();
@@ -403,7 +468,7 @@ async function symbolCheck(db: Db, symKey: string): Promise<{ ok: boolean; reaso
 async function logAudit(db: Db, row: {
   trade_id?: string | null; user_id: string; account_id: string; event: "open" | "close" | "reject";
   reject_reason?: string; symbol: string; side?: string | null; requested_volume?: number | null;
-  requested_price?: number | null; fill_price?: number | null; quote?: Quote | null;
+  requested_price?: number | null; fill_price?: number | null; quote?: Quote | null; client_ip?: string | null;
 }) {
   try {
     await db.from("order_audit_events").insert({
@@ -415,9 +480,19 @@ async function logAudit(db: Db, row: {
       quote_ts: row.quote?.providerTs ? new Date(row.quote.providerTs).toISOString() : null,
       server_ts: new Date().toISOString(),
       latency_ms: row.quote?.providerTs ? Date.now() - row.quote.providerTs : null,
-      source_id: SOURCE_ID,
+      source_id: SOURCE_ID, client_ip: row.client_ip ?? null,
     });
   } catch (_) { /* audit logging must never block trading */ }
+}
+// Best-effort client IP for multi-accounting detection (see
+// shared_ip_accounts in prop-firm-hardening.sql). Deno Deploy/Supabase
+// edge functions receive this from the platform, not the client
+// directly — still spoofable in theory, so this is a lead to
+// investigate, never sole grounds to act on.
+function clientIpFrom(req: Request): string | null {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return req.headers.get("cf-connecting-ip") ?? req.headers.get("x-real-ip") ?? null;
 }
 async function logFeedEvent(db: Db, event: "stale" | "outage" | "reconnect" | "spike" | "bad_quote", symbol: string | null, detail: string) {
   try { await db.from("feed_health_events").insert({ source_id: SOURCE_ID, event, symbol, detail }); } catch (_) { /* best effort */ }
@@ -429,6 +504,7 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return err("Invalid JSON"); }
+  const clientIp = clientIpFrom(req);
 
   // ---- scheduled sweep: server-side breach enforcement independent of
   // whether any trader has a browser tab open. Without this, a position
@@ -509,10 +585,37 @@ Deno.serve(async (req) => {
     // no active account: return most recent finished one for display, or provision
     const { data: last } = await db.from("trading_accounts")
       .select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (last && body.action === "state") acct = last;
-    else if (!last) {
+
+    if (last && last.status === "passed" && last.phase !== "funded") {
+      // Defensive fallback: the funded account should already have been
+      // provisioned by enforce() at the moment this row passed. If it
+      // somehow wasn't (a row from before this existed, or a missed
+      // race), provision it now rather than leaving the trader stuck.
+      await provisionFundedAccount(db, last as Acct);
+      const { data: nowActive } = await db.from("trading_accounts")
+        .select("*").eq("user_id", user.id).eq("status", "active").maybeSingle();
+      acct = nowActive ?? last;
+    } else if (last && body.action === "state") {
+      acct = last;
+    } else if (!last) {
+      // Jurisdiction gate — Terms §5 excludes several jurisdictions.
+      // Enforced here (not by aborting the signup trigger) so a failure
+      // mode is a clean, expected rejection rather than a broken auth
+      // flow. See prop-firm-hardening.sql.
+      const { data: profile } = await db.from("user_profiles").select("restricted_jurisdiction").eq("user_id", user.id).maybeSingle();
+      if (profile?.restricted_jurisdiction) {
+        return err("Sorry — we can't offer challenges in your jurisdiction. Contact support@ipfxcapital.com if you believe this is incorrect.", 403);
+      }
+
+      const tier = String((user.user_metadata as Record<string, unknown> | undefined)?.challenge_tier ?? "100k").toLowerCase();
+      const startBal = TIER_BALANCE[tier] ?? 100000;
+      const fee = TIER_FEE[tier] ?? null;
       const { data: fresh, error } = await db.from("trading_accounts")
-        .insert({ user_id: user.id }).select("*").single();
+        .insert({
+          user_id: user.id, label: tier.toUpperCase() + " Challenge",
+          starting_balance: startBal, balance: startBal, day_start_equity: startBal,
+          challenge_fee_usd: fee,
+        }).select("*").single();
       if (error) return err("Could not provision account", 500);
       acct = fresh;
     } else {
@@ -528,9 +631,104 @@ Deno.serve(async (req) => {
       { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
+  // ---- payouts: KYC status, payout methods, requesting a payout, history ----
+  // These don't require the account to be "active" (a trader should be
+  // able to check KYC status or manage payout methods between challenges),
+  // so they're handled before the status gate below. The actual money
+  // gates (funded, good standing, KYC verified, min days, consistency)
+  // are enforced transactionally inside fn_request_payout — never trust
+  // client-visible state for that, only the DB function's own re-check.
+  const jsonOk = (b: Record<string, unknown>) => new Response(JSON.stringify({ ok: true, ...b }), { headers: { ...CORS, "Content-Type": "application/json" } });
+
+  // App-level abuse guard for financially-sensitive actions — separate
+  // from the business-rule gates inside fn_request_payout (7-day payout
+  // cadence etc.), this is about spam (hammering an endpoint), not
+  // eligibility. Always logs the attempt, then reports whether the
+  // caller is currently over the limit.
+  async function rateLimited(eventType: string, maxPerWindow: number, windowMinutes: number): Promise<boolean> {
+    const since = new Date(Date.now() - windowMinutes * 60000).toISOString();
+    const { count } = await db.from("security_events")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).eq("event_type", eventType).gte("created_at", since);
+    await db.from("security_events").insert({ user_id: user.id, event_type: eventType, ip_address: clientIp });
+    return (count ?? 0) >= maxPerWindow;
+  }
+
+  if (action === "kyc_status") {
+    const { data: kyc } = await db.from("trader_kyc").select("status,note,verified_at").eq("user_id", user.id).maybeSingle();
+    return jsonOk({ status: kyc?.status ?? "unverified", note: kyc?.note ?? null, verified_at: kyc?.verified_at ?? null });
+  }
+
+  if (action === "list_payout_methods") {
+    const { data } = await db.from("payout_methods").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    return jsonOk({ methods: data ?? [] });
+  }
+
+  if (action === "add_payout_method") {
+    if (await rateLimited("add_payout_method", 10, 60)) return err("Too many payout-method changes — try again later.", 429);
+    const method_type = String(body.method_type ?? "");
+    const label = String(body.label ?? "").trim().slice(0, 80);
+    const reference = String(body.reference ?? "").trim().slice(0, 120);
+    if (!["bank_transfer", "paypal", "wire"].includes(method_type)) return err("Invalid method type");
+    if (!label || !reference) return err("Label and reference are required");
+    await db.from("payout_methods").update({ is_default: false }).eq("user_id", user.id);
+    const { data, error } = await db.from("payout_methods").insert({
+      user_id: user.id, method_type, label, reference, is_default: true,
+    }).select("*").single();
+    if (error) return err("Could not save payout method", 500);
+    return jsonOk({ method: data });
+  }
+
+  if (action === "delete_payout_method") {
+    const id = String(body.method_id ?? "");
+    if (!id) return err("method_id required");
+    await db.from("payout_methods").delete().eq("id", id).eq("user_id", user.id);
+    return jsonOk({});
+  }
+
+  if (action === "list_payouts") {
+    const { data } = await db.from("payouts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100);
+    return jsonOk({ payouts: data ?? [] });
+  }
+
+  if (action === "payout_summary") {
+    const { data: funded } = await db.from("trading_accounts")
+      .select("*").eq("user_id", user.id).eq("phase", "funded").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!funded) return jsonOk({ has_funded_account: false });
+    const { data: summary } = await db.from("trader_payout_summary").select("*").eq("account_id", funded.id).maybeSingle();
+    const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle();
+    return jsonOk({
+      has_funded_account: true, account_status: funded.status, total_paid_out: Number(funded.total_paid_out ?? 0),
+      available_now: summary ? Number(summary.trader_share_owed) : 0,
+      kyc_status: kyc?.status ?? "unverified", investigation_hold: !!funded.investigation_hold,
+    });
+  }
+
+  if (action === "request_payout") {
+    if (await rateLimited("request_payout", 5, 60)) return err("Too many payout requests — try again later.", 429);
+    const { data: funded } = await db.from("trading_accounts")
+      .select("*").eq("user_id", user.id).eq("phase", "funded").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!funded) return err("No funded account yet", 404);
+    const payout_method_id = body.payout_method_id ? String(body.payout_method_id) : null;
+    if (!payout_method_id) return err("Select a payout method first");
+    const idem = typeof body.idempotency_key === "string" && body.idempotency_key ? body.idempotency_key : `req_${user.id}_${funded.id}_${Date.now()}`;
+
+    const { data: result, error } = await db.rpc("fn_request_payout", {
+      p_account_id: funded.id, p_requested_by: user.id, p_is_admin: false,
+      p_idempotency_key: idem, p_payout_method_id: payout_method_id,
+    });
+    if (error) return err(cleanRpcError(error.message), 409);
+    return jsonOk({ payout: result });
+  }
+
   if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
 
   if (action === "open") {
+    // Platform kill switch: new orders only. Closing/flattening stays
+    // allowed during a halt so traders can protect existing positions.
+    const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();
+    if (platCfg?.trading_halted) return err("Trading is temporarily paused: " + (platCfg.halted_reason || "platform maintenance"), 503);
+
     const symbol = cleanSymbol(body.symbol);
     if (!symbol) return err("Unknown instrument");
     const side = body.side === "buy" || body.side === "sell" ? body.side : null;
@@ -542,7 +740,7 @@ Deno.serve(async (req) => {
     const reject = async (reason: string, q?: Quote | null) => {
       await logAudit(db, {
         user_id: user.id, account_id: (acct as Acct).id, event: "reject", reject_reason: reason,
-        symbol, side, requested_volume: volume, quote: q ?? null,
+        symbol, side, requested_volume: volume, quote: q ?? null, client_ip: clientIp,
       });
       return err(reason, 409);
     };
@@ -584,7 +782,7 @@ Deno.serve(async (req) => {
 
     await logAudit(db, {
       trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
-      symbol, side, requested_volume: volume, requested_price: fill, fill_price: fill, quote: q,
+      symbol, side, requested_volume: volume, requested_price: fill, fill_price: fill, quote: q, client_ip: clientIp,
     });
 
     // mirror the open to the live account (fire-and-forget, if enabled)
@@ -603,14 +801,14 @@ Deno.serve(async (req) => {
     if (q === null) return err("No live price — try again", 503);
     if (quoteStale(q)) { await logFeedEvent(db, "stale", target.symbol, "close rejected: stale quote"); return err("Price feed is stale — try again", 503); }
     const exit = target.side === "buy" ? q.bid : q.ask;
-    const done = await closeTrade(db, acct as Acct, target, exit, "manual", q);
+    const done = await closeTrade(db, acct as Acct, target, exit, "manual", q, clientIp);
     if (!done) return err("Close failed", 500);
   } else if (action === "close_all") {
     for (const t of state.open) {
       const q = await fetchQuote(t.symbol);
       if (q !== null && !quoteStale(q)) {
         const exit = t.side === "buy" ? q.bid : q.ask;
-        await closeTrade(db, acct as Acct, t, exit, "manual", q);
+        await closeTrade(db, acct as Acct, t, exit, "manual", q, clientIp);
       }
     }
   } else {
