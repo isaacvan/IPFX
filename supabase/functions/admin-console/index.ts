@@ -828,6 +828,99 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   }
 
+  // ---- firm concentration risk ----
+  // A prop firm's real financial exposure is not one trader doing well, it
+  // is MANY traders crowded into the same position. If 40 accounts are all
+  // long EURUSD and it gaps up, every one of them profits simultaneously
+  // and the firm owes payouts on all of it at once. This quantifies that.
+  //
+  // Framing note: the firm LOSES when traders WIN, so "adverse" here means
+  // the market moving in the traders' favour.
+  if (action === "firm_risk") {
+    const CONTRACT: Record<string, number> = {
+      XAUUSD: 100, XPTUSD: 100, XPDUSD: 100, XAGUSD: 5000,
+      SPXUSD: 10, NSXUSD: 10, DJI: 10, UK100: 10, GER40: 10, FRA40: 10, JPN225: 10, US2000: 10,
+    };
+    const contractFor = (s: string) => CONTRACT[s] ?? 100000; // forex default
+
+    const { data: openTrades } = await db.from("trades")
+      .select("account_id,user_id,symbol,side,volume,open_price").eq("status", "open").limit(20000);
+    const { data: acctRows } = await db.from("trading_accounts")
+      .select("id,user_id,phase,status,profit_split_pct").eq("status", "active");
+
+    const acctById = new Map<string, Record<string, unknown>>();
+    for (const a of acctRows ?? []) acctById.set(a.id as string, a);
+
+    const bySym = new Map<string, {
+      symbol: string; long_lots: number; short_lots: number; accounts: Set<string>;
+      long_accounts: Set<string>; short_accounts: Set<string>; notional: number;
+    }>();
+
+    for (const t of openTrades ?? []) {
+      const acct = acctById.get(t.account_id as string);
+      if (!acct) continue; // ignore positions on non-active accounts
+      const sym = String(t.symbol);
+      if (!bySym.has(sym)) bySym.set(sym, {
+        symbol: sym, long_lots: 0, short_lots: 0, accounts: new Set(),
+        long_accounts: new Set(), short_accounts: new Set(), notional: 0,
+      });
+      const g = bySym.get(sym)!;
+      const lots = Number(t.volume);
+      const notional = lots * contractFor(sym) * Number(t.open_price);
+      g.notional += notional;
+      g.accounts.add(t.account_id as string);
+      if (t.side === "buy") { g.long_lots += lots; g.long_accounts.add(t.account_id as string); }
+      else { g.short_lots += lots; g.short_accounts.add(t.account_id as string); }
+    }
+
+    // Per-symbol exposure, plus what a 1% favourable-to-traders move costs.
+    const MOVE = 0.01;
+    const rows = [...bySym.values()].map((g) => {
+      const netLots = r2(g.long_lots - g.short_lots);
+      const grossLots = r2(g.long_lots + g.short_lots);
+      // Crowding: how one-sided the book is on this symbol. 100% = everyone
+      // on the same side, which is the dangerous case.
+      const crowding = grossLots > 0 ? r2((Math.abs(netLots) / grossLots) * 100) : 0;
+      // Net notional moves with the crowd; a 1% move on the NET position is
+      // what the firm actually pays out (offsetting sides cancel).
+      const netNotional = r2(Math.abs(netLots) / (grossLots || 1) * g.notional);
+      const traderPnlOn1pct = r2(netNotional * MOVE);
+      return {
+        symbol: g.symbol,
+        accounts: g.accounts.size,
+        long_accounts: g.long_accounts.size,
+        short_accounts: g.short_accounts.size,
+        long_lots: r2(g.long_lots), short_lots: r2(g.short_lots),
+        net_lots: netLots, gross_lots: grossLots,
+        crowding_pct: crowding,
+        direction: netLots > 0 ? "long" : netLots < 0 ? "short" : "flat",
+        gross_notional: r2(g.notional),
+        net_notional: netNotional,
+        firm_cost_1pct_move: traderPnlOn1pct,
+      };
+    }).sort((a, b) => b.firm_cost_1pct_move - a.firm_cost_1pct_move);
+
+    const totalCost = r2(rows.reduce((s, r) => s + r.firm_cost_1pct_move, 0));
+    const totalGross = r2(rows.reduce((s, r) => s + r.gross_notional, 0));
+    // Payout share is what the firm actually hands over on funded accounts.
+    const fundedIds = new Set((acctRows ?? []).filter((a: Record<string, unknown>) => a.phase === "funded").map((a: Record<string, unknown>) => a.id));
+    const fundedOpen = (openTrades ?? []).filter((t: Record<string, unknown>) => fundedIds.has(t.account_id));
+
+    return json({
+      ok: true,
+      symbols: rows,
+      totals: {
+        symbols_held: rows.length,
+        open_positions: (openTrades ?? []).length,
+        accounts_with_positions: new Set((openTrades ?? []).map((t: Record<string, unknown>) => t.account_id)).size,
+        gross_notional: totalGross,
+        firm_cost_1pct_move: totalCost,
+        funded_open_positions: fundedOpen.length,
+      },
+      note: "firm_cost_1pct_move = what traders would collectively gain (and the firm owe) if each symbol moved 1% in the crowd's favour. Offsetting long/short interest is netted out first.",
+    });
+  }
+
   // ---- mid-challenge watchlist ----
   // Every live evaluation account, scored while the challenge is still
   // running. Ranked by signal_score, which is driven by the SHRUNK

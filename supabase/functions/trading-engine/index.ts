@@ -257,9 +257,67 @@ type Progress = { trading_days: number; trades_closed: number; profitable_days: 
 const TIER_BALANCE: Record<string, number> = { "10k": 10000, "25k": 25000, "50k": 50000, "100k": 100000, "200k": 200000 };
 const TIER_FEE: Record<string, number> = { "10k": 79, "25k": 149, "50k": 249, "100k": 399, "200k": 699 };
 
-// Called the moment an evaluation account passes. Idempotent: if a
-// funded account already descends from this one, returns it instead of
-// creating a second (protects against enforce() running twice in a race).
+// Called the moment an evaluation account passes. Follows the preset
+// chain: a Traditional Phase 1 pass provisions Phase 2, an Infinity
+// Stage 1 pass provisions Stage 2, and only the LAST link in the chain
+// (next_preset_id null) provisions a funded account. Without this a
+// Phase 1 pass jumped straight to funded, skipping Phase 2 entirely.
+// Idempotent: if a descendant already exists this is a no-op, which
+// protects against enforce() running twice in a race.
+async function provisionNextStage(db: Db, evalAcct: Acct): Promise<void> {
+  const { data: existing } = await db.from("trading_accounts")
+    .select("id").eq("funded_from_account_id", evalAcct.id).maybeSingle();
+  if (existing) return;
+
+  let next: Record<string, unknown> | null = null;
+  if (evalAcct.preset_id) {
+    const { data: cur } = await db.from("challenge_presets")
+      .select("next_preset_id").eq("id", evalAcct.preset_id).maybeSingle();
+    if (cur?.next_preset_id) {
+      const { data: np } = await db.from("challenge_presets")
+        .select("*").eq("id", cur.next_preset_id).maybeSingle();
+      next = np ?? null;
+    }
+  }
+
+  // End of the chain -> real funded account.
+  if (!next) { await provisionFundedAccount(db, evalAcct); return; }
+
+  // Next evaluation stage/phase, carrying that preset's own rule set.
+  // Phase 2 of a Traditional challenge restarts at the ORIGINAL starting
+  // balance (profit from Phase 1 does not carry) — that is how two-phase
+  // evaluations work everywhere.
+  const startBal = Number(next.starting_balance);
+  await db.from("trading_accounts").insert({
+    user_id: evalAcct.user_id,
+    label: String(next.label),
+    preset_id: next.id,
+    challenge_type: next.challenge_type,
+    stage: Number(next.stage ?? 1),
+    phase: "evaluation",
+    status: "active",
+    starting_balance: startBal, balance: startBal, day_start_equity: startBal,
+    day_start_date: new Date().toISOString().slice(0, 10),
+    profit_target_pct: Number(next.profit_target_pct),
+    max_drawdown_pct: Number(next.max_drawdown_pct),
+    daily_loss_pct: Number(next.daily_loss_pct),
+    drawdown_mode: next.drawdown_mode,
+    trailing_peak: startBal,
+    min_trading_days: Number(next.min_trading_days ?? 0),
+    min_trades: Number(next.min_trades ?? 0),
+    max_risk_per_trade_pct: next.max_risk_per_trade_pct ?? null,
+    daily_profit_cap_pct: next.daily_profit_cap_pct ?? null,
+    min_profitable_days_pct: next.min_profitable_days_pct ?? null,
+    require_stop_loss: !!next.require_stop_loss,
+    profit_split_pct: Number(next.profit_split_pct ?? 85),
+    challenge_fee_usd: evalAcct.challenge_fee_usd ?? null,
+    funded_from_account_id: evalAcct.id,
+    total_paid_out: 0,
+  });
+}
+
+// Terminal step of the chain: a real funded account. Idempotent for the
+// same reason as above.
 async function provisionFundedAccount(db: Db, evalAcct: Acct): Promise<void> {
   const { data: existing } = await db.from("trading_accounts")
     .select("id").eq("funded_from_account_id", evalAcct.id).maybeSingle();
@@ -470,7 +528,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const gate = await passGate(db, acct);
       if (gate.ok) {
         acct.status = "passed";
-        await provisionFundedAccount(db, acct);
+        await provisionNextStage(db, acct);
       }
       // Not passing yet is not a breach — the trader simply keeps trading
       // until the remaining requirements are met.
@@ -722,7 +780,7 @@ Deno.serve(async (req) => {
       // provisioned by enforce() at the moment this row passed. If it
       // somehow wasn't (a row from before this existed, or a missed
       // race), provision it now rather than leaving the trader stuck.
-      await provisionFundedAccount(db, last as Acct);
+      await provisionNextStage(db, last as Acct);
       const { data: nowActive } = await db.from("trading_accounts")
         .select("*").eq("user_id", user.id).eq("status", "active").maybeSingle();
       acct = nowActive ?? last;

@@ -102,6 +102,15 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
   </div>
   <div id="watchlistWrap"><div class="msg" style="padding:1.25rem">Not scored yet — click <b>Score live accounts</b>.</div></div>
 
+  <!-- concentration risk: the firm loses when many traders win the same trade -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">
+      Concentration risk
+    </h2>
+    <button class="chip" onclick="loadFirmRisk()">Calculate exposure</button>
+  </div>
+  <div id="firmRiskWrap"><div class="msg" style="padding:1.25rem">Not calculated — click <b>Calculate exposure</b>.</div></div>
+
   <div class="bar" id="filters" style="margin-top:1.75rem">
     <span class="chip on" data-f="all" onclick="setFilter('all',this)">All</span>
     <span class="chip" data-f="passed" onclick="setFilter('passed',this)">Passed</span>
@@ -334,6 +343,49 @@ function render(){
     </tr>`;
   }).join(''):'<tr><td colspan="10" class="msg">No traders match.</td></tr>';
 }
+// ---- concentration risk ----
+async function loadFirmRisk(){
+  const wrap=document.getElementById('firmRiskWrap');
+  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Calculating…</div>';
+  const j=await call({action:'firm_risk'});
+  if(!j)return;
+  const rows=j.symbols||[], T=j.totals||{};
+  if(!rows.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No open positions across the firm right now.</div>';return;}
+
+  const crowdColor=c=>c>=80?'var(--red)':c>=50?'var(--amber)':'var(--muted2)';
+  wrap.innerHTML=`
+    <div class="stat-row" style="margin-bottom:.9rem">
+      <div class="stat"><div class="k">Cost of a 1% move</div>
+        <div class="v" style="color:var(--amber)">${fmt(T.firm_cost_1pct_move||0)}</div>
+        <div style="font-size:.66rem;color:var(--muted2);margin-top:.15rem">owed if the crowd is right</div></div>
+      <div class="stat"><div class="k">Gross notional</div><div class="v">${fmt(T.gross_notional||0)}</div>
+        <div style="font-size:.66rem;color:var(--muted2);margin-top:.15rem">across ${T.open_positions||0} positions</div></div>
+      <div class="stat"><div class="k">Symbols held</div><div class="v">${T.symbols_held||0}</div>
+        <div style="font-size:.66rem;color:var(--muted2);margin-top:.15rem">${T.accounts_with_positions||0} accounts trading</div></div>
+      <div class="stat"><div class="k">Funded positions</div><div class="v">${T.funded_open_positions||0}</div>
+        <div style="font-size:.66rem;color:var(--muted2);margin-top:.15rem">real payout exposure</div></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Symbol</th><th>Crowding</th><th>Net</th><th>Long / Short</th>
+        <th>Accounts</th><th>Gross notional</th><th>Cost of 1% move</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td style="font-weight:600">${esc(r.symbol)}</td>
+        <td><span class="mono" style="color:${crowdColor(r.crowding_pct)};font-weight:700">${r.crowding_pct}%</span>
+            <span style="color:var(--muted2);font-size:.72rem"> ${esc(r.direction)}</span></td>
+        <td class="mono ${r.net_lots>=0?'pos':'neg'}">${r.net_lots>=0?'+':''}${r.net_lots}</td>
+        <td class="mono" style="font-size:.76rem">${r.long_lots} / ${r.short_lots}</td>
+        <td class="mono" style="font-size:.76rem">${r.accounts}<span style="color:var(--muted2)"> (${r.long_accounts}L/${r.short_accounts}S)</span></td>
+        <td class="mono">${fmt(r.gross_notional)}</td>
+        <td class="mono" style="color:var(--amber);font-weight:700">${fmt(r.firm_cost_1pct_move)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <div style="font-size:.76rem;color:var(--muted2);margin-top:.6rem;line-height:1.5">
+      <b>Crowding</b> is how one-sided the book is on that symbol — 100% means every open lot is on the same side,
+      which is when a single move hits every trader at once. Offsetting long/short interest is netted before costing,
+      so a balanced book shows near-zero exposure even at high volume.
+    </div>`;
+}
+
 // ---- mid-challenge watchlist ----
 // Ranked by signal_score, which comes from the SHRUNK posterior edge, not
 // running P&L. A hot streak on 12 trades will not outrank a steady edge on 60.
