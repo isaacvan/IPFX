@@ -313,6 +313,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .ord-presets{display:flex;gap:.3rem;}
 .ord-preset{flex:1;padding:.25rem 0;border-radius:5px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-size:.72rem;font-weight:700;cursor:pointer;text-align:center;transition:all .12s;font-family:'Space Grotesk',sans-serif;}
 .ord-preset:hover,.ord-preset.active{background:var(--cobalt-d);border-color:rgba(37,99,235,.4);color:#60a5fa;}
+/* order-ticket risk readout */
+.op-risk{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:7px;padding:.5rem .6rem;margin:.5rem 0;}
+.op-risk.over{border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.08);}
+.op-risk-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.5px;color:#606060;font-weight:700;display:block;}
+.op-risk-val{font-size:.95rem;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;}
+.op-risk.over .op-risk-val{color:#f98a8a;}
+.op-risk-note{font-size:.66rem;color:#606060;margin-top:.2rem;line-height:1.4;}
+.op-risk.over .op-risk-note{color:#f98a8a;}
 .ord-buy-sell{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
 .ord-buy{padding:.55rem;border-radius:7px;border:none;background:#10b981;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s;}
 .ord-buy:hover{background:#059669;}
@@ -389,6 +397,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .postbl-act{display:flex;gap:.4rem;}
 .postbl-act-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .12s;}
 .postbl-act-btn:hover{color:var(--red);border-color:var(--red);}
+/* breach warning rail — sits above the chart, only when it matters */
+.brw{display:none;align-items:center;gap:.7rem;padding:.5rem .9rem;font-size:.8rem;font-weight:600;border-bottom:1px solid transparent;}
+.brw.show{display:flex;}
+.brw.warn{background:rgba(245,158,11,.12);border-bottom-color:rgba(245,158,11,.35);color:#f5c473;}
+.brw.crit{background:rgba(239,68,68,.14);border-bottom-color:rgba(239,68,68,.4);color:#f98a8a;}
+.brw-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.brw.crit .brw-dot{animation:brwpulse 1.1s ease-in-out infinite;}
+@keyframes brwpulse{0%,100%{opacity:1}50%{opacity:.25}}
+.brw-txt{flex:1;}
+.brw-act{background:rgba(255,255,255,.1);border:1px solid currentColor;color:inherit;border-radius:5px;padding:.2rem .55rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.brw-act:hover{background:rgba(255,255,255,.18);}
+@media (prefers-reduced-motion:reduce){.brw.crit .brw-dot{animation:none}}
+
 /* challenge panel */
 .ch-wrap{padding:.9rem 1.1rem;overflow-y:auto;height:100%;}
 .ch-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:.9rem;}
@@ -863,6 +884,12 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 
   <!-- CENTER: CHART -->
   <div class="chart-wrap">
+    <!-- breach warning rail: hidden unless the account is genuinely close to a floor -->
+    <div class="brw" id="brw" role="status" aria-live="polite">
+      <span class="brw-dot"></span>
+      <span class="brw-txt" id="brwTxt"></span>
+      <button class="brw-act" onclick="flattenAll()">Close all</button>
+    </div>
     <div class="chart-toolbar" id="chartToolbar">
       <span class="ct-label">Timeframe</span>
       <button class="tf-btn" onclick="setTf('1',this)" title="1 Minute — each candle = 1 min. Scalping only.">1m</button>
@@ -963,9 +990,16 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
         <!-- SL / TP inputs -->
         <div class="op-sltp-inputs" id="sltpFields">
           <div class="op-sltp-row">
-            <input type="number" class="op-sltp-inp" id="slPrice" placeholder="SL Price" step="0.0001" oninput="updatePnlPreview()">
-            <input type="number" class="op-sltp-inp" id="tpPrice" placeholder="TP Price" step="0.0001" oninput="updatePnlPreview()">
+            <input type="number" class="op-sltp-inp" id="slPrice" placeholder="SL Price" step="0.0001" oninput="updatePnlPreview();updateRiskPreview()">
+            <input type="number" class="op-sltp-inp" id="tpPrice" placeholder="TP Price" step="0.0001" oninput="updatePnlPreview();updateRiskPreview()">
           </div>
+        </div>
+
+        <!-- live risk readout: what this order actually risks vs the rule cap -->
+        <div class="op-risk" id="opRisk" style="display:none">
+          <span class="op-risk-lbl">Risk on this order</span>
+          <span class="op-risk-val" id="opRiskVal">—</span>
+          <div class="op-risk-note" id="opRiskNote"></div>
         </div>
 
         <!-- Price grid -->
@@ -1642,6 +1676,92 @@ function applyIndicators(){
   rebuildChart();
 }
 
+// ── ORDER-TICKET RISK PREVIEW ──
+// Mirrors the engine's own check (risk = |entry - stop| * contract * lots)
+// so the trader sees the number BEFORE the engine rejects the order.
+// Contract sizes match INSTRUMENTS in trading-engine/index.ts.
+function contractSizeFor(sym){
+  const s=String(sym||'').replace(/^[^:]+:/,'').toUpperCase();
+  if(/^(XAU|XAG|XPT|XPD)/.test(s)) return s.startsWith('XAG')?5000:100;
+  if(/^(SPX|NSX|DJI|UK100|GER40|FRA40|JPN225|US2000|US500|NAS100|US30)/.test(s)) return 10;
+  return 100000; // forex
+}
+function updateRiskPreview(){
+  const box=document.getElementById('opRisk');
+  if(!box)return;
+  const a=engineState&&engineState.account;
+  const L=(a&&a.limits)||{};
+  const slVal=parseFloat((document.getElementById('slPrice')||{}).value);
+  const entry=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
+
+  if(!a||!slOn||!isFinite(slVal)||slVal<=0||!entry){
+    // With no stop we cannot state a risk. Say so when one is required.
+    if(a&&L.require_stop_loss){
+      box.style.display='';box.className='op-risk over';
+      document.getElementById('opRiskVal').textContent='No stop set';
+      document.getElementById('opRiskNote').textContent='This challenge requires a stop-loss on every order — the engine will reject this.';
+    } else { box.style.display='none'; }
+    return;
+  }
+
+  const risk=Math.abs(entry-slVal)*contractSizeFor(activeSym)*ordLots;
+  const cap=L.max_risk_per_trade_usd;
+  const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  box.style.display='';
+  document.getElementById('opRiskVal').textContent=money(risk);
+
+  if(cap!=null&&risk>cap+0.01){
+    box.className='op-risk over';
+    document.getElementById('opRiskNote').textContent=
+      `Over the ${L.max_risk_per_trade_pct}% cap of ${money(cap)} — reduce size or tighten the stop, or the engine will reject it.`;
+  } else {
+    box.className='op-risk';
+    const pctEq=a.equity?((risk/(+a.equity))*100).toFixed(2):null;
+    document.getElementById('opRiskNote').textContent=
+      (cap!=null?`Within your ${money(cap)} cap. `:'')+(pctEq?`${pctEq}% of equity.`:'');
+  }
+}
+
+// ── BREACH WARNING ──
+// Most firms let an account die silently. This warns while there is still
+// time to act, and names the exact number that ends the challenge.
+// Thresholds are on room REMAINING, not on P&L, because that is what the
+// engine actually breaches on.
+function renderBreachWarning(a,L,eq,start){
+  const rail=document.getElementById('brw'), txt=document.getElementById('brwTxt');
+  if(!rail||!txt)return;
+  const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  if(a.status!=='active'){
+    if(a.status==='breached'){
+      rail.className='brw show crit';
+      txt.textContent=`Account breached (${String(a.breach_reason||'').replace(/_/g,' ')}). Trading is locked.`;
+      rail.querySelector('.brw-act').style.display='none';
+    } else { rail.className='brw'; }
+    return;
+  }
+  rail.querySelector('.brw-act').style.display='';
+
+  const ddRoom=eq-(+L.max_dd_floor), ddTotal=Math.max(start-(+L.max_dd_floor),1);
+  const dayRoom=eq-(+L.daily_floor), dayTotal=Math.max((+a.day_start_equity)-(+L.daily_floor),1);
+  const ddFrac=ddRoom/ddTotal, dayFrac=dayRoom/dayTotal;
+
+  // Whichever floor is nearer decides the message.
+  const nearer = dayFrac<=ddFrac
+    ? {frac:dayFrac,room:dayRoom,what:'daily loss limit',floor:L.daily_floor,extra:'resets 00:00 UTC'}
+    : {frac:ddFrac,room:ddRoom,what:'account drawdown floor',floor:L.max_dd_floor,extra:'this ends the challenge'};
+
+  if(nearer.frac<=0.10){
+    rail.className='brw show crit';
+    txt.textContent=`${money(nearer.room)} from your ${nearer.what} (${money(nearer.floor)}) — ${nearer.extra}.`;
+  } else if(nearer.frac<=0.30){
+    rail.className='brw show warn';
+    txt.textContent=`${money(nearer.room)} of room left before your ${nearer.what} at ${money(nearer.floor)}.`;
+  } else {
+    rail.className='brw';
+  }
+}
+
 // ── CHALLENGE PANEL ──
 // Everything here comes from the engine's own state payload, so what the
 // trader sees is exactly what enforce() will act on — including which
@@ -1737,6 +1857,9 @@ function renderChallenge(){
     badge.textContent=left===0?'✓':left;
     badge.style.background=left===0?'rgba(16,185,129,.2)':'';
   }
+
+  renderBreachWarning(a,L,eq,start);
+  try{updateRiskPreview();}catch(_){}
 
   const notes=[];
   if(L.max_risk_per_trade_usd!=null) notes.push(`Max risk per trade: ${money(L.max_risk_per_trade_usd)} (${L.max_risk_per_trade_pct}% of starting balance), measured from your stop.`);
