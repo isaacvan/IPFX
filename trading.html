@@ -633,6 +633,19 @@ body.light .postbl tbody td{color:#0c0c16;}
 .op-chk.on::after{content:'';width:5px;height:3px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block;}
 .op-chk-lbl{font-size:.62rem;color:rgba(255,255,255,.4);font-weight:600;user-select:none;}
 .op-chk-sep{flex:1;}
+/* order type selector */
+.op-otype{display:grid;grid-template-columns:repeat(3,1fr);gap:.25rem;margin-bottom:.42rem;}
+.op-ot{background:rgba(255,255,255,.04);border:1px solid var(--line);color:#a0a0a0;border-radius:6px;padding:.32rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s;}
+.op-ot:hover{color:#fff;}
+.op-ot.on{background:rgba(37,99,235,.16);border-color:#2563eb;color:#8ab0ff;}
+.op-trigger{margin-bottom:.42rem;}
+.op-trigger-hint{font-size:.64rem;color:#606060;margin-top:.22rem;line-height:1.35;}
+.op-trigger-hint.bad{color:#f98a8a;}
+/* resting orders */
+.pend-row{display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.03);margin-bottom:.3rem;font-size:.75rem;}
+.pend-type{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:.12rem .35rem;border-radius:4px;background:rgba(37,99,235,.16);color:#8ab0ff;}
+.pend-x{margin-left:auto;cursor:pointer;color:#606060;font-weight:700;padding:0 .25rem;}
+.pend-x:hover{color:#ef4444;}
 .op-sltp-inputs{display:none;flex-direction:column;gap:.28rem;margin-bottom:.42rem;}
 .op-sltp-inputs.show{display:flex;}
 .op-sltp-row{display:grid;grid-template-columns:1fr 1fr;gap:.28rem;}
@@ -988,6 +1001,18 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
         </div>
 
         <!-- SL / TP inputs -->
+        <!-- order type: market / limit / stop -->
+        <div class="op-otype" id="opOtype">
+          <button class="op-ot on" data-t="market" onclick="setOrderType('market',this)">Market</button>
+          <button class="op-ot" data-t="limit" onclick="setOrderType('limit',this)" title="Rests below market for a buy, above for a sell">Limit</button>
+          <button class="op-ot" data-t="stop" onclick="setOrderType('stop',this)" title="Rests above market for a buy, below for a sell — breakout entry">Stop</button>
+        </div>
+        <div class="op-trigger" id="opTriggerWrap" style="display:none">
+          <input type="number" class="op-sltp-inp" id="triggerPrice" placeholder="Trigger price" step="0.0001"
+                 oninput="updateTriggerHint()">
+          <div class="op-trigger-hint" id="opTriggerHint"></div>
+        </div>
+
         <div class="op-sltp-inputs" id="sltpFields">
           <div class="op-sltp-row">
             <input type="number" class="op-sltp-inp" id="slPrice" placeholder="SL Price" step="0.0001" oninput="updatePnlPreview();updateRiskPreview()">
@@ -1860,6 +1885,7 @@ function renderChallenge(){
 
   renderBreachWarning(a,L,eq,start);
   try{updateRiskPreview();}catch(_){}
+  try{updateTriggerHint();}catch(_){}
 
   const notes=[];
   if(L.max_risk_per_trade_usd!=null) notes.push(`Max risk per trade: ${money(L.max_risk_per_trade_usd)} (${L.max_risk_per_trade_pct}% of starting balance), measured from your stop.`);
@@ -2346,13 +2372,60 @@ function setLots(n,btn){
   if(btn)btn.classList.add('active');
   updatePnlPreview();
 }
+// ---- order type (market / limit / stop) ----
+let orderType='market';
+function setOrderType(t,btn){
+  orderType=t;
+  document.querySelectorAll('.op-ot').forEach(b=>b.classList.toggle('on',b===btn));
+  document.getElementById('opTriggerWrap').style.display=(t==='market')?'none':'';
+  updateTriggerHint();
+}
+// Tells the trader which side of the market this order type must rest on,
+// and flags a trigger that would fire instantly (the engine rejects those).
+function updateTriggerHint(){
+  const el=document.getElementById('opTriggerHint');
+  if(!el||orderType==='market')return;
+  const trig=parseFloat((document.getElementById('triggerPrice')||{}).value);
+  const mid=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
+  const where=orderType==='limit'
+    ? 'A buy limit rests BELOW the market; a sell limit rests ABOVE it.'
+    : 'A buy stop rests ABOVE the market; a sell stop rests BELOW it.';
+  if(!isFinite(trig)||trig<=0||!mid){el.className='op-trigger-hint';el.textContent=where;return;}
+  const dist=Math.abs(trig-mid), pct=mid?((dist/mid)*100).toFixed(2):'0';
+  el.className='op-trigger-hint';
+  el.textContent=`${where} ${dist.toFixed(5).replace(/0+$/,'')} away (${pct}% from ${fmtPx(mid)}).`;
+}
+
 async function placeOrder(side){
   if(engineBusy)return;
   if(typeof feedFresh==='function'&&!feedFresh()){engineMsg('Market data is stale — orders are paused until the feed recovers.');return;}
+
+  const sl=slOn?parseFloat(document.getElementById('slPrice').value):NaN;
+  const tp=tpOn?parseFloat(document.getElementById('tpPrice').value):NaN;
+
+  // Limit/stop go on the book instead of filling now.
+  if(orderType!=='market'){
+    const trig=parseFloat(document.getElementById('triggerPrice').value);
+    if(!isFinite(trig)||trig<=0){engineMsg('Enter a trigger price for a '+orderType+' order.');return;}
+    engineBusy=true;
+    const p={action:'place_pending',symbol:activeSym,side,order_type:orderType,
+             volume:ordLots,trigger_price:trig};
+    if(isFinite(sl))p.sl=sl;
+    if(isFinite(tp))p.tp=tp;
+    const r=await engineCall(p);
+    engineBusy=false;
+    if(r){
+      engineMsg(`${side.toUpperCase()} ${orderType} ${ordLots.toFixed(2)} lots resting at ${fmtPx(trig)}`,true);
+      document.getElementById('triggerPrice').value='';
+      engineCall({action:'state'});
+    }
+    return;
+  }
+
   engineBusy=true;
   const payload={action:'open',symbol:activeSym,side,volume:ordLots};
-  if(slOn){const v=parseFloat(document.getElementById('slPrice').value);if(v)payload.sl=v;}
-  if(tpOn){const v=parseFloat(document.getElementById('tpPrice').value);if(v)payload.tp=v;}
+  if(isFinite(sl))payload.sl=sl;
+  if(isFinite(tp))payload.tp=tp;
   const res=await engineCall(payload);
   engineBusy=false;
   if(res){
@@ -2361,6 +2434,34 @@ async function placeOrder(side){
     if(flash){flash.style.transform='scale(0.95)';setTimeout(()=>{flash.style.transform='';},120);}
   }
 }
+
+async function cancelPending(id){
+  if(engineBusy)return;engineBusy=true;
+  const r=await engineCall({action:'cancel_pending',order_id:id});
+  engineBusy=false;
+  if(r){engineMsg('Order cancelled',true);engineCall({action:'state'});}
+}
+
+// Resting orders live above the open-positions list in the order panel.
+function renderPending(){
+  const host=document.getElementById('ord-pos-list');
+  if(!host)return;
+  const p=(engineState&&engineState.pending_orders)||[];
+  const old=document.getElementById('pendWrap');
+  if(old)old.remove();
+  if(!p.length)return;
+  const box=document.createElement('div');
+  box.id='pendWrap';
+  box.innerHTML=p.map(o=>`
+    <div class="pend-row">
+      <span class="pend-type">${esc(String(o.side).toUpperCase())} ${esc(o.order_type)}</span>
+      <span>${esc(o.symbol)} ${(+o.volume).toFixed(2)}</span>
+      <span style="color:#606060">@ ${fmtPx(o.trigger_price)}</span>
+      <span class="pend-x" title="Cancel" onclick="cancelPending('${o.id}')">✕</span>
+    </div>`).join('');
+  host.parentNode.insertBefore(box,host);
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function joinSide(side){placeOrder(side==='bid'?'sell':'buy');}
 async function closeTradeById(id){
   if(engineBusy)return;engineBusy=true;
@@ -2464,6 +2565,7 @@ async function flattenAll(){
 function fmtPx(v){const n=+v;return n>=1000?n.toFixed(1):n>=10?n.toFixed(2):n.toFixed(5).replace(/0{1,3}$/,'');}
 function renderPositions(){
   try{renderChallenge();}catch(_){/* challenge panel must never block positions */}
+  try{renderPending();}catch(_){}
   const o=(engineState&&engineState.open_trades)||[];
   const list=document.getElementById('ord-pos-list');
   if(list){

@@ -11,6 +11,9 @@
 //   { action: "close_all" }                               -> flatten
 //   { action: "modify", trade_id, sl?, tp? }              -> move SL/TP on a live position
 //   { action: "partial_close", trade_id, volume }         -> bank part of a position
+//   { action: "place_pending", symbol, side, order_type,  -> resting limit/stop order
+//              volume, trigger_price, sl?, tp?, expires_at? }
+//   { action: "cancel_pending", order_id }                -> cancel a resting order
 //   { action: "price", symbol }                           -> quote for the order ticket
 //
 // PRICING — SINGLE PROVIDER, TESTING TIER ONLY
@@ -338,6 +341,131 @@ async function provisionFundedAccount(db: Db, evalAcct: Acct): Promise<void> {
   });
 }
 
+// ---------- pending orders (limit / stop) ----------
+// Trigger test against the live quote. Uses the price the order would
+// actually FILL at (ask for a buy, bid for a sell), never the mid.
+function pendingTriggered(o: Record<string, unknown>, q: Quote): boolean {
+  const trig = Number(o.trigger_price);
+  const isBuy = o.side === "buy";
+  const px = isBuy ? q.ask : q.bid;
+  if (o.order_type === "limit") return isBuy ? px <= trig : px >= trig;
+  return isBuy ? px >= trig : px <= trig; // stop
+}
+
+// Shared rule gate applied to BOTH market orders and pending fills, so a
+// resting order cannot be used to sneak past the per-trade risk cap.
+// Returns null when the order may proceed, or a rejection reason.
+function ruleGate(
+  acct: Acct, inst: Inst, volume: number, fill: number, sl: number | null,
+  conv: number, equityNow: number, usedMargin: number,
+): string | null {
+  const startBal = Number(acct.starting_balance);
+
+  if (acct.daily_profit_cap_pct != null) {
+    const gain = round2(equityNow - Number(acct.day_start_equity));
+    const cap = round2(startBal * Number(acct.daily_profit_cap_pct) / 100);
+    if (gain >= cap) return `Daily profit cap reached ($${cap.toFixed(2)})`;
+  }
+  if (acct.require_stop_loss && sl === null) {
+    return "This challenge requires a stop-loss on every order";
+  }
+  if (acct.max_risk_per_trade_pct != null && sl !== null) {
+    const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
+    const maxRisk = round2(startBal * Number(acct.max_risk_per_trade_pct) / 100);
+    if (riskUsd > maxRisk + 0.01) {
+      return `Risk $${riskUsd.toFixed(2)} exceeds the ${acct.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)})`;
+    }
+  }
+  const needed = (inst.contract * volume * fill * conv) / LEVERAGE;
+  if (usedMargin + needed > equityNow) {
+    return `Insufficient margin ($${Math.round(needed)} needed)`;
+  }
+  return null;
+}
+
+// Called from enforce() on every pass. Fills or rejects any resting order
+// whose trigger has been crossed.
+async function processPendingOrders(
+  db: Db, acct: Acct, open: Tr[], equityNow: number,
+): Promise<Tr[]> {
+  if (acct.status !== "active") return open;
+  const { data: pendings } = await db.from("pending_orders")
+    .select("*").eq("account_id", acct.id).eq("status", "pending").order("created_at");
+  if (!pendings || !pendings.length) return open;
+
+  let working = [...open];
+  for (const o of pendings) {
+    // Expiry first — an expired order never fills.
+    if (o.expires_at && new Date(o.expires_at).getTime() < Date.now()) {
+      await db.from("pending_orders").update({
+        status: "expired", resolved_at: new Date().toISOString(),
+      }).eq("id", o.id).eq("status", "pending");
+      continue;
+    }
+
+    const symbol = String(o.symbol);
+    const inst = INSTRUMENTS[symbol];
+    if (!inst) continue;
+    const q = await fetchQuote(symbol);
+    if (q === null || quoteStale(q)) continue;      // never fill on a bad quote
+    if (!marketOpen()) continue;
+    if (!pendingTriggered(o, q)) continue;
+
+    const reject = async (reason: string) => {
+      await db.from("pending_orders").update({
+        status: "rejected", reject_reason: reason, resolved_at: new Date().toISOString(),
+      }).eq("id", o.id).eq("status", "pending");
+      await logAudit(db, {
+        user_id: acct.user_id, account_id: acct.id, event: "reject",
+        reject_reason: "pending: " + reason, symbol, side: String(o.side),
+        requested_volume: Number(o.volume), requested_price: Number(o.trigger_price), quote: q,
+      });
+    };
+
+    if (working.length >= MAX_OPEN_POSITIONS) { await reject(`Max ${MAX_OPEN_POSITIONS} open positions`); continue; }
+    const spec = await symbolCheck(db, symbol);
+    if (!spec.ok) { await reject(spec.reason || "Symbol disabled"); continue; }
+    if (q.spread > (spec.maxSpread ?? inst.maxSpread)) { await reject("Spread too wide at trigger"); continue; }
+
+    const fill = o.side === "buy" ? q.ask : q.bid;
+    const sl = o.sl === null || o.sl === undefined ? null : Number(o.sl);
+    const tp = o.tp === null || o.tp === undefined ? null : Number(o.tp);
+    // Levels must still make sense against the actual fill, not the trigger.
+    if (sl !== null && ((o.side === "buy" && sl >= fill) || (o.side === "sell" && sl <= fill))) {
+      await reject("Stop-loss is on the wrong side of the fill price"); continue;
+    }
+    if (tp !== null && ((o.side === "buy" && tp <= fill) || (o.side === "sell" && tp >= fill))) {
+      await reject("Take-profit is on the wrong side of the fill price"); continue;
+    }
+
+    const conv = await usdPerQuote(inst.quote);
+    if (conv === null) { await reject("No conversion rate at trigger"); continue; }
+    const usedMargin = await usedMarginUsd(working);
+    const gate = ruleGate(acct, inst, Number(o.volume), fill, sl, conv, equityNow, usedMargin);
+    if (gate) { await reject(gate); continue; }
+
+    const { data: inserted, error } = await db.from("trades").insert({
+      account_id: acct.id, user_id: acct.user_id, symbol, side: o.side,
+      volume: Number(o.volume), open_price: fill, sl, tp,
+    }).select("*").single();
+    if (error || !inserted) { await reject("Order failed at fill"); continue; }
+
+    await db.from("pending_orders").update({
+      status: "filled", filled_trade_id: inserted.id, fill_price: fill,
+      resolved_at: new Date().toISOString(),
+    }).eq("id", o.id).eq("status", "pending");
+
+    await logAudit(db, {
+      trade_id: inserted.id, user_id: acct.user_id, account_id: acct.id, event: "open",
+      symbol, side: String(o.side), requested_volume: Number(o.volume),
+      requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
+    });
+    fireMirror(acct, inserted as Tr, "open");
+    working.push(inserted as Tr);
+  }
+  return working;
+}
+
 // Derived counters straight from the trade log — see account_progress
 // in challenge-rules-engine.sql. Never stored, so they cannot drift.
 async function fetchProgress(db: Db, accountId: string): Promise<Progress> {
@@ -431,6 +559,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     }
     open = still;
   }
+
+  // Resting limit/stop orders are checked before marking to market, so a
+  // fill this tick is included in the equity the rules are judged on.
+  open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)));
 
   // mark to market
   let floating = 0;
@@ -560,9 +692,12 @@ async function usedMarginUsd(open: Tr[]): Promise<number> {
 }
 
 async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floating: number) {
-  const { data: closed } = await db.from("trades")
-    .select("*").eq("account_id", acct.id).eq("status", "closed")
-    .order("closed_at", { ascending: false }).limit(30);
+  const [{ data: closed }, { data: pending }] = await Promise.all([
+    db.from("trades").select("*").eq("account_id", acct.id).eq("status", "closed")
+      .order("closed_at", { ascending: false }).limit(30),
+    db.from("pending_orders").select("*").eq("account_id", acct.id).eq("status", "pending")
+      .order("created_at", { ascending: false }),
+  ]);
   const start = Number(acct.starting_balance);
   const gate = await passGate(db, acct);
 
@@ -613,6 +748,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     },
     open_trades: open,
     closed_trades: closed ?? [],
+    pending_orders: pending ?? [],
   };
 }
 
@@ -908,6 +1044,72 @@ Deno.serve(async (req) => {
     });
     if (error) return err(cleanRpcError(error.message), 409);
     return jsonOk({ payout: result });
+  }
+
+  // ---- pending orders (limit / stop) ----
+  if (action === "place_pending") {
+    if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
+    const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();
+    if (platCfg?.trading_halted) return err("Trading is temporarily paused: " + (platCfg.halted_reason || "platform maintenance"), 503);
+
+    const symbol = cleanSymbol(body.symbol);
+    if (!symbol) return err("Unknown instrument");
+    const side = body.side === "buy" || body.side === "sell" ? body.side : null;
+    if (!side) return err("Side must be buy or sell");
+    const orderType = body.order_type === "limit" || body.order_type === "stop" ? body.order_type : null;
+    if (!orderType) return err("Order type must be limit or stop");
+    const volume = Math.round(Number(body.volume) * 100) / 100;
+    if (!isFinite(volume) || volume < 0.01 || volume > 100) return err("Volume must be 0.01–100 lots");
+    const trigger = Number(body.trigger_price);
+    if (!isFinite(trigger) || trigger <= 0) return err("Enter a valid trigger price");
+
+    const { count: openPend } = await db.from("pending_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", (acct as Acct).id).eq("status", "pending");
+    if ((openPend ?? 0) >= MAX_OPEN_POSITIONS) return err(`Max ${MAX_OPEN_POSITIONS} resting orders`);
+
+    // Reject a trigger that is already through the market — that is a
+    // market order wearing a costume, and filling it at a stale trigger
+    // would hand the trader a price that never existed.
+    const q = await fetchQuote(symbol);
+    if (q === null) return err("No live price for " + symbol, 503);
+    if (!quoteStale(q)) {
+      const px = side === "buy" ? q.ask : q.bid;
+      const already = orderType === "limit"
+        ? (side === "buy" ? px <= trigger : px >= trigger)
+        : (side === "buy" ? px >= trigger : px <= trigger);
+      if (already) return err(`That ${orderType} would trigger immediately at the current price (${px}). Use a market order, or move the trigger.`);
+    }
+
+    const lvl = (v: unknown) => (v === undefined || v === null || v === "" ? null : Number(v));
+    const sl = lvl(body.sl), tp = lvl(body.tp);
+    if (sl !== null && (!isFinite(sl) || sl <= 0)) return err("Invalid stop loss");
+    if (tp !== null && (!isFinite(tp) || tp <= 0)) return err("Invalid take profit");
+    // Validate the levels against the TRIGGER, since that is the intended entry.
+    if (sl !== null && ((side === "buy" && sl >= trigger) || (side === "sell" && sl <= trigger)))
+      return err("Stop loss must be on the loss side of the trigger price");
+    if (tp !== null && ((side === "buy" && tp <= trigger) || (side === "sell" && tp >= trigger)))
+      return err("Take profit must be on the profit side of the trigger price");
+    if ((acct as Acct).require_stop_loss && sl === null)
+      return err("This challenge requires a stop-loss on every order.");
+
+    const { data: created, error: pErr } = await db.from("pending_orders").insert({
+      account_id: (acct as Acct).id, user_id: user.id, symbol, side,
+      order_type: orderType, volume, trigger_price: trigger, sl, tp,
+      expires_at: body.expires_at ? String(body.expires_at) : null,
+    }).select("*").single();
+    if (pErr) return err("Could not place the order", 500);
+    return jsonOk({ pending: created });
+  }
+
+  if (action === "cancel_pending") {
+    const id = String(body.order_id ?? "");
+    if (!id) return err("order_id required");
+    const { data: upd } = await db.from("pending_orders")
+      .update({ status: "cancelled", resolved_at: new Date().toISOString() })
+      .eq("id", id).eq("user_id", user.id).eq("status", "pending").select("id");
+    if (!upd || !upd.length) return err("That order is no longer pending", 409);
+    return jsonOk({});
   }
 
   if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
