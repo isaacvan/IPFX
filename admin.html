@@ -92,7 +92,17 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
     <button class="chip" id="haltToggleBtn" onclick="promptPlatformHalt()" style="text-transform:none;font-weight:600">⏸ Halt trading</button>
   </h2>
   <div class="stat-row" id="stats"></div>
-  <div class="bar" id="filters">
+
+  <!-- mid-challenge watchlist: who is worth watching while the challenge runs -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0 .75rem">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">
+      Mid-challenge watchlist
+    </h2>
+    <button class="chip" onclick="loadWatchlist()">Score live accounts</button>
+  </div>
+  <div id="watchlistWrap"><div class="msg" style="padding:1.25rem">Not scored yet — click <b>Score live accounts</b>.</div></div>
+
+  <div class="bar" id="filters" style="margin-top:1.75rem">
     <span class="chip on" data-f="all" onclick="setFilter('all',this)">All</span>
     <span class="chip" data-f="passed" onclick="setFilter('passed',this)">Passed</span>
     <span class="chip" data-f="active" onclick="setFilter('active',this)">Active</span>
@@ -324,6 +334,58 @@ function render(){
     </tr>`;
   }).join(''):'<tr><td colspan="10" class="msg">No traders match.</td></tr>';
 }
+// ---- mid-challenge watchlist ----
+// Ranked by signal_score, which comes from the SHRUNK posterior edge, not
+// running P&L. A hot streak on 12 trades will not outrank a steady edge on 60.
+async function loadWatchlist(){
+  const wrap=document.getElementById('watchlistWrap');
+  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Scoring…</div>';
+  const j=await call({action:'watchlist'});
+  if(!j)return;
+  const rows=j.watchlist||[];
+  if(!rows.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No live evaluation accounts.</div>';return;}
+
+  const band=s=>s==null?'var(--muted2)':s>=70?'var(--green)':s>=40?'var(--amber)':'var(--muted2)';
+  wrap.innerHTML=`
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Trader</th><th>Challenge</th><th>Signal</th><th>Trades</th>
+        <th>Edge conf.</th><th>P(pass)</th><th>To target</th><th>Flags</th>
+      </tr></thead>
+      <tbody>${rows.map(r=>{
+        const s=r.signal||{};
+        if(s.status!=='scored'){
+          return `<tr>
+            <td><div style="font-weight:600">${esc(r.full_name)}</div>
+                <div style="color:var(--muted2);font-size:.72rem">${esc(r.challenge_type)} · stage ${r.stage}</div></td>
+            <td class="mono" style="font-size:.76rem">${fmt(r.starting_balance)}</td>
+            <td colspan="6" style="color:var(--muted2);font-size:.8rem">${esc(s.note||'Not enough data yet')}</td>
+          </tr>`;
+        }
+        const flags=[];
+        if(s.risk_blind)flags.push('<span class="st breached">risk-blind</span>');
+        (s.vetoes||[]).forEach(v=>flags.push(`<span class="st breached" title="${esc(v)}">${esc(v.split(' ')[0])}</span>`));
+        return `<tr style="cursor:pointer" onclick='openTraderDetail(${JSON.stringify(r.user_id)})'>
+          <td><div style="font-weight:600">${esc(r.full_name)}</div>
+              <div style="color:var(--muted2);font-size:.72rem">${esc(r.challenge_type)} · stage ${r.stage}</div></td>
+          <td class="mono" style="font-size:.76rem">${fmt(r.starting_balance)}</td>
+          <td><span class="mono" style="font-size:1.05rem;font-weight:700;color:${band(s.signal_score)}">${s.signal_score}</span></td>
+          <td class="mono">${s.trades_closed}<span style="color:var(--muted2)"> / ${s.losing_trades}L</span></td>
+          <td class="mono">${s.p_edge_positive==null?'—':(s.p_edge_positive*100).toFixed(1)+'%'}</td>
+          <td class="mono">${s.prob_pass==null?'—':(s.prob_pass*100).toFixed(0)+'%'}</td>
+          <td class="mono">${s.pct_of_target_reached==null?'—':s.pct_of_target_reached+'%'}</td>
+          <td>${flags.join(' ')||'<span style="color:var(--muted2);font-size:.75rem">clean</span>'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    <div style="font-size:.76rem;color:var(--muted2);margin-top:.6rem;line-height:1.5">
+      Score uses a sceptical Bayesian posterior: the raw mean is discounted by
+      <span class="mono">16/(n+16)</span> so early streaks are heavily shrunk. Measured false-positive
+      rate is ~4% at score ≥70 — this is a <b>screen, not a decision</b>. Open a trader for the
+      out-of-sample readiness check before acting.
+    </div>`;
+}
+
 async function cycleKyc(user_id,current){
   const order=['unverified','pending','verified','rejected'];
   const next=order[(order.indexOf(current)+1)%order.length];

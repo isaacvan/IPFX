@@ -9,6 +9,8 @@
 //   { action: "open", symbol, side, volume, sl?, tp? }    -> market order
 //   { action: "close", trade_id }                         -> close one position
 //   { action: "close_all" }                               -> flatten
+//   { action: "modify", trade_id, sl?, tp? }              -> move SL/TP on a live position
+//   { action: "partial_close", trade_id, volume }         -> bank part of a position
 //   { action: "price", symbol }                           -> quote for the order ticket
 //
 // PRICING — SINGLE PROVIDER, TESTING TIER ONLY
@@ -27,10 +29,16 @@
 // prices.
 //
 // Rules enforced on every call:
-//   - profit target  (realized balance >= start * (1 + target%))
-//   - max drawdown   (equity <= start * (1 - maxDD%))  -> breach
+//   - profit target  (realized balance >= start * (1 + target%)) AND
+//                     the pass gate below -- target alone is not enough
+//   - pass gate      min trading days, min trades, min profitable-day %
+//   - max drawdown   static | trailing_intraday | trailing_eod -> breach
 //   - daily loss     (equity <= dayStart - start*daily%) -> breach
+//   - risk per trade max % of starting balance, measured off the stop
+//   - daily profit cap  blocks NEW orders once hit (not a breach)
 //   - SL/TP          (auto-close when crossed)
+// The rule set per account comes from challenge_presets -- see
+// challenge-rules-engine.sql.
 // On breach all open positions are closed and the account locks.
 //
 // Every open/close/reject writes a row to order_audit_events with
@@ -228,7 +236,19 @@ type Acct = {
   total_paid_out?: number;
   phase?: string; funded_from_account_id?: string | null; funded_at?: string | null;
   investigation_hold?: boolean; profit_split_pct?: number; challenge_fee_usd?: number | null;
+  // ---- challenge rule set (see challenge-rules-engine.sql) ----
+  challenge_type?: string; stage?: number; preset_id?: string | null;
+  min_trading_days?: number; min_trades?: number;
+  max_risk_per_trade_pct?: number | null;
+  daily_profit_cap_pct?: number | null;
+  min_profitable_days_pct?: number | null;
+  drawdown_mode?: string;
+  trailing_peak?: number | null; trailing_peak_date?: string | null;
+  require_stop_loss?: boolean;
 };
+
+// Derived progress counters from public.account_progress.
+type Progress = { trading_days: number; trades_closed: number; profitable_days: number; profitable_days_pct: number | null };
 
 // Challenge tier -> starting balance / fee, matching start-challenge.html.
 // user_metadata.challenge_tier is set at signup; provisioning must honor
@@ -258,6 +278,43 @@ async function provisionFundedAccount(db: Db, evalAcct: Acct): Promise<void> {
     funded_from_account_id: evalAcct.id, funded_at: new Date().toISOString(),
     total_paid_out: 0,
   });
+}
+
+// Derived counters straight from the trade log — see account_progress
+// in challenge-rules-engine.sql. Never stored, so they cannot drift.
+async function fetchProgress(db: Db, accountId: string): Promise<Progress> {
+  const { data } = await db.from("account_progress").select("*").eq("account_id", accountId).maybeSingle();
+  return {
+    trading_days: Number(data?.trading_days ?? 0),
+    trades_closed: Number(data?.trades_closed ?? 0),
+    profitable_days: Number(data?.profitable_days ?? 0),
+    profitable_days_pct: data?.profitable_days_pct == null ? null : Number(data.profitable_days_pct),
+  };
+}
+
+// The requirements that must ALL hold, alongside the profit target,
+// before an evaluation account is allowed to pass. Returns the unmet
+// items so the trader can be shown exactly what is left.
+async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress }> {
+  const p = await fetchProgress(db, acct.id);
+  const unmet: string[] = [];
+  const needDays = Number(acct.min_trading_days ?? 0);
+  const needTrades = Number(acct.min_trades ?? 0);
+  const needProfPct = acct.min_profitable_days_pct == null ? null : Number(acct.min_profitable_days_pct);
+
+  if (p.trading_days < needDays) unmet.push(`${p.trading_days}/${needDays} trading days`);
+  if (p.trades_closed < needTrades) unmet.push(`${p.trades_closed}/${needTrades} trades`);
+  if (needProfPct !== null && (p.profitable_days_pct ?? 0) < needProfPct) {
+    unmet.push(`${p.profitable_days_pct ?? 0}%/${needProfPct}% profitable days`);
+  }
+  return { ok: unmet.length === 0, unmet, progress: p };
+}
+
+// Realized + floating P&L for the current UTC day. Used by the daily
+// profit cap (Infinity: 3%), which blocks NEW orders once hit rather
+// than breaching the account — hitting a profit cap is not a failure.
+async function todayGain(db: Db, acct: Acct, equity: number): Promise<number> {
+  return round2(equity - Number(acct.day_start_equity));
 }
 type Tr = {
   id: string; account_id: string; user_id: string; symbol: string;
@@ -338,8 +395,16 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   const todayUtc = new Date().toISOString().slice(0, 10);
 
   if (acct.status === "active") {
-    // daily rollover (UTC)
+    // daily rollover (UTC). For trailing_eod accounts this is also the
+    // ONLY moment the drawdown high-water mark is allowed to move —
+    // that is exactly what "your drawdown locks in at end-of-day highs,
+    // not intraday peaks" means on the Futures page.
     if (acct.day_start_date !== todayUtc) {
+      if ((acct.drawdown_mode ?? "static") === "trailing_eod") {
+        const prevPeak = Number(acct.trailing_peak ?? start);
+        if (equity > prevPeak) acct.trailing_peak = round2(equity);
+        acct.trailing_peak_date = todayUtc;
+      }
       acct.day_start_date = todayUtc;
       acct.day_start_equity = equity;
       await db.from("equity_snapshots").insert({
@@ -347,10 +412,29 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       });
     }
 
-    // total_paid_out shifts the max-drawdown floor down by whatever has
-    // already been withdrawn via payout, so a payout is never itself
-    // read as a loss (see add-payout-buffer.sql / admin-console payout_create).
-    const ddFloor = round2(start * (1 - Number(acct.max_drawdown_pct) / 100) - Number(acct.total_paid_out ?? 0));
+    // ---- drawdown floor, by mode ----
+    // total_paid_out shifts every floor down by whatever has already been
+    // withdrawn via payout, so a payout is never itself read as a loss
+    // (see add-payout-buffer.sql / admin-console payout_create).
+    const mode = acct.drawdown_mode ?? "static";
+    const ddAmount = start * Number(acct.max_drawdown_pct) / 100;
+    const paidOut = Number(acct.total_paid_out ?? 0);
+    let ddFloor: number;
+
+    if (mode === "trailing_intraday") {
+      // Peak follows live equity the moment a new high prints.
+      const peak = Math.max(Number(acct.trailing_peak ?? start), equity);
+      if (peak > Number(acct.trailing_peak ?? start)) acct.trailing_peak = round2(peak);
+      ddFloor = round2(peak - ddAmount - paidOut);
+    } else if (mode === "trailing_eod") {
+      // Peak is frozen until the next daily rollover above, so an
+      // intraday spike that gives the profit back never tightens the floor.
+      const peak = Number(acct.trailing_peak ?? start);
+      ddFloor = round2(peak - ddAmount - paidOut);
+    } else {
+      ddFloor = round2(start * (1 - Number(acct.max_drawdown_pct) / 100) - paidOut);
+    }
+
     const dailyFloor = round2(Number(acct.day_start_equity) - start * Number(acct.daily_loss_pct) / 100);
 
     let breach: string | null = null;
@@ -374,20 +458,32 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       acct.breach_reason = breach;
     } else if (
       acct.phase !== "funded" &&
+      Number(acct.profit_target_pct) > 0 &&
       Number(acct.balance) >= round2(start * (1 + Number(acct.profit_target_pct) / 100)) &&
       open.length === 0
     ) {
-      // A funded account never "passes" again — it just keeps running
-      // (and accruing payout-eligible profit) until it's breached.
-      acct.status = "passed";
-      await provisionFundedAccount(db, acct);
+      // Hitting the profit target is necessary but NOT sufficient. Before
+      // this check existed a trader could clear a $25K Traditional in a
+      // single trade on day one while the site advertised a 5-day minimum.
+      // A funded account never "passes" again — it keeps running (and
+      // accruing payout-eligible profit) until it is breached.
+      const gate = await passGate(db, acct);
+      if (gate.ok) {
+        acct.status = "passed";
+        await provisionFundedAccount(db, acct);
+      }
+      // Not passing yet is not a breach — the trader simply keeps trading
+      // until the remaining requirements are met.
     }
   }
 
   await db.from("trading_accounts").update({
     balance: acct.balance, day_start_equity: acct.day_start_equity,
     day_start_date: acct.day_start_date, status: acct.status,
-    breach_reason: acct.breach_reason, updated_at: new Date().toISOString(),
+    breach_reason: acct.breach_reason,
+    trailing_peak: acct.trailing_peak ?? null,
+    trailing_peak_date: acct.trailing_peak_date ?? null,
+    updated_at: new Date().toISOString(),
   }).eq("id", acct.id);
 
   return { open, equity, floating: round2(floating) };
@@ -410,16 +506,51 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     .select("*").eq("account_id", acct.id).eq("status", "closed")
     .order("closed_at", { ascending: false }).limit(30);
   const start = Number(acct.starting_balance);
+  const gate = await passGate(db, acct);
+
+  // The drawdown floor shown must match the mode actually enforced, or
+  // the trader is watching the wrong number.
+  const mode = acct.drawdown_mode ?? "static";
+  const ddAmount = start * Number(acct.max_drawdown_pct) / 100;
+  const paidOut = Number(acct.total_paid_out ?? 0);
+  const peak = Number(acct.trailing_peak ?? start);
+  const ddFloor = mode === "static"
+    ? round2(start * (1 - Number(acct.max_drawdown_pct) / 100) - paidOut)
+    : round2(Math.max(peak, mode === "trailing_intraday" ? equity : peak) - ddAmount - paidOut);
+
   return {
     ok: true,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       starting_balance: start, balance: Number(acct.balance), equity, floating,
       day_start_equity: Number(acct.day_start_equity),
+      challenge_type: acct.challenge_type ?? "traditional",
+      stage: Number(acct.stage ?? 1),
+      phase: acct.phase ?? "evaluation",
       limits: {
-        target_balance: round2(start * (1 + Number(acct.profit_target_pct) / 100)),
-        max_dd_floor: round2(start * (1 - Number(acct.max_drawdown_pct) / 100)),
+        target_balance: Number(acct.profit_target_pct) > 0
+          ? round2(start * (1 + Number(acct.profit_target_pct) / 100)) : null,
+        max_dd_floor: ddFloor,
+        drawdown_mode: mode,
+        trailing_peak: mode === "static" ? null : round2(peak),
         daily_floor: round2(Number(acct.day_start_equity) - start * Number(acct.daily_loss_pct) / 100),
+        max_risk_per_trade_pct: acct.max_risk_per_trade_pct ?? null,
+        max_risk_per_trade_usd: acct.max_risk_per_trade_pct == null ? null
+          : round2(start * Number(acct.max_risk_per_trade_pct) / 100),
+        daily_profit_cap_usd: acct.daily_profit_cap_pct == null ? null
+          : round2(start * Number(acct.daily_profit_cap_pct) / 100),
+        require_stop_loss: !!acct.require_stop_loss,
+      },
+      // Everything still standing between this account and a pass.
+      progress: {
+        trading_days: gate.progress.trading_days,
+        min_trading_days: Number(acct.min_trading_days ?? 0),
+        trades_closed: gate.progress.trades_closed,
+        min_trades: Number(acct.min_trades ?? 0),
+        profitable_days_pct: gate.progress.profitable_days_pct,
+        min_profitable_days_pct: acct.min_profitable_days_pct ?? null,
+        requirements_met: gate.ok,
+        unmet: gate.unmet,
       },
     },
     open_trades: open,
@@ -466,7 +597,7 @@ async function symbolCheck(db: Db, symKey: string): Promise<{ ok: boolean; reaso
 
 // ---------- audit trail: every open/close/reject ----------
 async function logAudit(db: Db, row: {
-  trade_id?: string | null; user_id: string; account_id: string; event: "open" | "close" | "reject";
+  trade_id?: string | null; user_id: string; account_id: string; event: "open" | "close" | "reject" | "modify";
   reject_reason?: string; symbol: string; side?: string | null; requested_volume?: number | null;
   requested_price?: number | null; fill_price?: number | null; quote?: Quote | null; client_ip?: string | null;
 }) {
@@ -770,6 +901,36 @@ Deno.serve(async (req) => {
     // margin check
     const conv = await usdPerQuote(inst.quote);
     if (conv === null) return reject("No conversion rate — order rejected", q);
+
+    // ---- challenge rule gates (see challenge-rules-engine.sql) ----
+    const A = acct as Acct;
+    const startBal = Number(A.starting_balance);
+
+    // Daily profit cap (Infinity: 3%). Hitting it blocks new orders for
+    // the rest of the UTC day — it is not a breach. Existing positions
+    // can still be managed and closed.
+    if (A.daily_profit_cap_pct != null) {
+      const gain = await todayGain(db, A, state.equity);
+      const cap = round2(startBal * Number(A.daily_profit_cap_pct) / 100);
+      if (gain >= cap) {
+        return reject(`Daily profit cap reached ($${cap.toFixed(2)}). New orders reopen at 00:00 UTC — you can still manage open positions.`, q);
+      }
+    }
+
+    // A risk cap is unverifiable without a stop, so the two travel together.
+    if (A.require_stop_loss && sl === null) {
+      return reject("This challenge requires a stop-loss on every order.", q);
+    }
+
+    // Max risk per trade (Infinity: 1% of starting balance).
+    if (A.max_risk_per_trade_pct != null && sl !== null) {
+      const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
+      const maxRisk = round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
+      if (riskUsd > maxRisk + 0.01) {
+        return reject(
+          `Risk on this order is $${riskUsd.toFixed(2)}, above the ${A.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)}). Reduce size or tighten the stop.`, q);
+      }
+    }
     const needed = (inst.contract * volume * q.mid * conv) / LEVERAGE;
     const used = await usedMarginUsd(state.open);
     if (used + needed > state.equity) return reject("Insufficient margin ($" + Math.round(needed) + " needed)", q);
@@ -811,6 +972,96 @@ Deno.serve(async (req) => {
         await closeTrade(db, acct as Acct, t, exit, "manual", q, clientIp);
       }
     }
+
+  // ---- modify: move the stop-loss / take-profit on a live position ----
+  // Every real platform has this; IPFX Markets did not, so a trader who
+  // wanted to move a stop had to close and re-enter at a worse price.
+  } else if (action === "modify") {
+    const id = typeof body.trade_id === "string" ? body.trade_id : null;
+    const target = state.open.find((t) => t.id === id);
+    if (!target) return err("Position not found or already closed", 404);
+    const q = await fetchQuote(target.symbol);
+    if (q === null) return err("No live price — try again", 503);
+    if (quoteStale(q)) return err("Price feed is stale — try again", 503);
+
+    const mark = target.side === "buy" ? q.bid : q.ask;
+    const lvl = (v: unknown) => (v === undefined || v === null || v === "" ? null : Number(v));
+    const nsl = lvl(body.sl), ntp = lvl(body.tp);
+    if (nsl !== null && (!isFinite(nsl) || nsl <= 0)) return err("Invalid stop loss");
+    if (ntp !== null && (!isFinite(ntp) || ntp <= 0)) return err("Invalid take profit");
+    if (nsl !== null && ((target.side === "buy" && nsl >= mark) || (target.side === "sell" && nsl <= mark)))
+      return err("Stop loss must be on the loss side of the current price");
+    if (ntp !== null && ((target.side === "buy" && ntp <= mark) || (target.side === "sell" && ntp >= mark)))
+      return err("Take profit must be on the profit side of the current price");
+
+    const A2 = acct as Acct;
+    if (A2.require_stop_loss && nsl === null) return err("This challenge requires a stop-loss on every position.");
+    // A widened stop must still respect the per-trade risk cap, measured
+    // from the original entry — otherwise the cap is trivially bypassed
+    // by opening tight and moving the stop out afterwards.
+    if (A2.max_risk_per_trade_pct != null && nsl !== null) {
+      const inst2 = INSTRUMENTS[target.symbol];
+      const conv2 = await usdPerQuote(inst2.quote);
+      if (conv2 !== null) {
+        const riskUsd = Math.abs(Number(target.open_price) - nsl) * inst2.contract * Number(target.volume) * conv2;
+        const maxRisk = round2(Number(A2.starting_balance) * Number(A2.max_risk_per_trade_pct) / 100);
+        if (riskUsd > maxRisk + 0.01) {
+          return err(`That stop implies $${riskUsd.toFixed(2)} of risk, above the ${A2.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)}).`);
+        }
+      }
+    }
+
+    const { error: mErr } = await db.from("trades").update({ sl: nsl, tp: ntp })
+      .eq("id", target.id).eq("status", "open");
+    if (mErr) return err("Could not modify position", 500);
+    await logAudit(db, {
+      trade_id: target.id, user_id: user.id, account_id: (acct as Acct).id, event: "modify",
+      symbol: target.symbol, side: target.side, requested_volume: Number(target.volume),
+      requested_price: mark, quote: q, client_ip: clientIp,
+    });
+
+  // ---- partial close: bank part of a winner, keep the rest running ----
+  } else if (action === "partial_close") {
+    const id = typeof body.trade_id === "string" ? body.trade_id : null;
+    const target = state.open.find((t) => t.id === id);
+    if (!target) return err("Position not found or already closed", 404);
+    const vol = Math.round(Number(body.volume) * 100) / 100;
+    const full = Number(target.volume);
+    if (!isFinite(vol) || vol < 0.01) return err("Volume must be at least 0.01 lots");
+    if (vol >= full) return err("To close the whole position use Close, not partial close");
+    if (round2(full - vol) < 0.01) return err("Remaining position would be below the 0.01 lot minimum");
+
+    const q = await fetchQuote(target.symbol);
+    if (q === null) return err("No live price — try again", 503);
+    if (quoteStale(q)) return err("Price feed is stale — try again", 503);
+    const exit = target.side === "buy" ? q.bid : q.ask;
+
+    // Realize P&L on the closed slice only, then shrink the live position.
+    const slice = { ...target, volume: vol } as Tr;
+    const pnl = await tradePnl(slice, exit);
+    if (pnl === null) return err("Could not price the close", 503);
+
+    const { error: insErr } = await db.from("trades").insert({
+      account_id: (acct as Acct).id, user_id: user.id, symbol: target.symbol,
+      side: target.side, volume: vol, open_price: target.open_price,
+      sl: target.sl, tp: target.tp, status: "closed", close_price: exit,
+      pnl: round2(pnl), close_reason: "partial", opened_at: target.opened_at,
+      closed_at: new Date().toISOString(),
+    });
+    if (insErr) return err("Could not record the partial close", 500);
+
+    const { error: updErr } = await db.from("trades")
+      .update({ volume: round2(full - vol) }).eq("id", target.id).eq("status", "open");
+    if (updErr) return err("Partial close recorded but position not resized — contact support", 500);
+
+    (acct as Acct).balance = round2(Number((acct as Acct).balance) + pnl);
+    await db.from("trading_accounts").update({ balance: (acct as Acct).balance }).eq("id", (acct as Acct).id);
+    await logAudit(db, {
+      trade_id: target.id, user_id: user.id, account_id: (acct as Acct).id, event: "close",
+      symbol: target.symbol, side: target.side, requested_volume: vol,
+      requested_price: exit, fill_price: exit, quote: q, client_ip: clientIp,
+    });
+
   } else {
     return err("Unknown action");
   }

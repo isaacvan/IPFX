@@ -389,6 +389,49 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .postbl-act{display:flex;gap:.4rem;}
 .postbl-act-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .12s;}
 .postbl-act-btn:hover{color:var(--red);border-color:var(--red);}
+/* challenge panel */
+.ch-wrap{padding:.9rem 1.1rem;overflow-y:auto;height:100%;}
+.ch-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:.9rem;}
+.ch-title{font-size:.95rem;font-weight:700;color:#fff;}
+.ch-sub{font-size:.75rem;color:#606060;margin-top:.15rem;}
+.ch-verdict{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:.25rem .6rem;border-radius:5px;white-space:nowrap;}
+.ch-verdict.ok{background:rgba(16,185,129,.15);color:#4ade9f;}
+.ch-verdict.wait{background:rgba(245,158,11,.15);color:#f5c473;}
+.ch-verdict.danger{background:rgba(239,68,68,.15);color:#f98a8a;}
+.ch-bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.7rem;margin-bottom:1rem;}
+.ch-bar{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:.6rem .75rem;}
+.ch-bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.4rem;}
+.ch-bar-lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:#606060;font-weight:700;}
+.ch-bar-val{font-size:.82rem;font-weight:700;font-variant-numeric:tabular-nums;}
+.ch-track{height:5px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;}
+.ch-fill{height:100%;border-radius:3px;transition:width .3s ease;}
+.ch-bar-sub{font-size:.68rem;color:#606060;margin-top:.35rem;}
+.ch-reqs-hd{font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:#606060;font-weight:700;margin-bottom:.5rem;}
+.ch-reqs{display:flex;flex-direction:column;gap:.35rem;}
+.ch-req{display:flex;align-items:center;gap:.55rem;font-size:.8rem;}
+.ch-req-ic{width:15px;height:15px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;}
+.ch-req-ic.done{background:rgba(16,185,129,.18);color:#4ade9f;}
+.ch-req-ic.todo{background:rgba(255,255,255,.06);color:#606060;}
+.ch-req-txt{color:#c8c8c8;}
+.ch-req-txt b{color:#fff;}
+.ch-note{margin-top:.9rem;font-size:.72rem;color:#606060;line-height:1.5;border-top:1px solid var(--line);padding-top:.7rem;}
+.postbl-act-btn.act-edit:hover{color:var(--blue,#2563eb);border-color:var(--blue,#2563eb);}
+.postbl-act-btn.act-partial:hover{color:var(--gold,#f59e0b);border-color:var(--gold,#f59e0b);}
+/* order-management dialog */
+.omdlg{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:400;padding:1rem;}
+.omdlg.open{display:flex;}
+.ombox{background:#111114;border:1px solid var(--line);border-radius:12px;padding:1.25rem;width:100%;max-width:340px;}
+.ombox h4{margin:0 0 .2rem;font-size:.95rem;color:#fff;}
+.omsub{color:var(--muted2,#606060);font-size:.75rem;margin-bottom:1rem;}
+.omfld{margin-bottom:.8rem;}
+.omfld label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2,#606060);font-weight:700;margin-bottom:.3rem;}
+.omfld input{width:100%;background:#0a0a0c;border:1px solid var(--line);border-radius:7px;color:#fff;padding:.5rem .6rem;font-size:.9rem;font-family:inherit;}
+.omhint{font-size:.7rem;color:var(--muted2,#606060);margin-top:.25rem;}
+.omerr{display:none;font-size:.78rem;color:#ef4444;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:.5rem .6rem;margin-bottom:.7rem;}
+.omrow{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;}
+.ombtn{border:none;border-radius:7px;padding:.5rem .85rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.ombtn-p{background:#2563eb;color:#fff;} .ombtn-p:hover{background:#1d4ed8;}
+.ombtn-o{background:transparent;border:1px solid var(--line);color:var(--muted,#a0a0a0);}
 .postbl-act-btn svg{width:10px;height:10px;}
 .postbl-empty{padding:2.5rem 1rem;text-align:center;color:var(--muted2);font-size:.78rem;}
 body.light .postbl thead th{background:#fff;}
@@ -1286,6 +1329,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   <div class="btm-header">
     <div class="btab active" onclick="switchBtab('positions',this)">Positions <span class="btab-badge" id="posBadge">0</span></div>
     <div class="btab" onclick="switchBtab('closed',this)">Closed Positions</div>
+    <div class="btab" onclick="switchBtab('challenge',this)">Challenge <span class="btab-badge" id="chBadge">—</span></div>
     <div class="btab" onclick="switchBtab('account',this)">Account</div>
     <div class="btab" onclick="switchBtab('risk',this)">Risk Calculator</div>
     <div class="btab" onclick="switchBtab('journal',this)">Journal</div>
@@ -1350,6 +1394,24 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
     </div>
 
     <!-- ACCOUNT TAB -->
+    <!-- Challenge: the rules the engine actually enforces, live -->
+    <div class="bpanel" id="bp-challenge">
+      <div class="ch-wrap">
+        <div class="ch-head">
+          <div>
+            <div class="ch-title" id="ch-title">Challenge</div>
+            <div class="ch-sub" id="ch-sub">Loading…</div>
+          </div>
+          <div class="ch-verdict" id="ch-verdict">—</div>
+        </div>
+
+        <div class="ch-bars" id="ch-bars"></div>
+        <div class="ch-reqs-hd">Requirements</div>
+        <div class="ch-reqs" id="ch-reqs"></div>
+        <div class="ch-note" id="ch-note"></div>
+      </div>
+    </div>
+
     <div class="bpanel" id="bp-account">
       <div class="acell"><div class="albl">Account</div><div class="aval" id="bp-name">—</div></div>
       <div class="acell"><div class="albl">Account ID</div><div class="aval" id="bp-login">—</div></div>
@@ -1536,10 +1598,28 @@ function buildIndList(){
   updateSelCount();
 }
 
+let indApplyTimer=null;
 function toggleInd(id,el){
   if(selectedStudies.has(id)){selectedStudies.delete(id);el.classList.remove('on');}
   else{selectedStudies.add(id);el.classList.add('on');}
   updateSelCount();
+  // Apply immediately. Previously a toggle only updated the "N selected"
+  // counter and the trader had to separately find "Apply to Chart" — which
+  // is why indicators read as selected but never appeared on the chart.
+  scheduleIndApply();
+}
+
+// Rebuilding the TradingView widget is heavy, so a burst of toggles
+// coalesces into one rebuild.
+function scheduleIndApply(){
+  const btn=document.getElementById('applyIndBtn');
+  if(btn){btn.dataset.label=btn.dataset.label||btn.textContent;btn.textContent='Applying…';btn.disabled=true;}
+  clearTimeout(indApplyTimer);
+  indApplyTimer=setTimeout(()=>{
+    saveChartLayout();
+    rebuildChart();
+    if(btn){btn.textContent=btn.dataset.label||'Apply to Chart';btn.disabled=false;}
+  },450);
 }
 
 function updateSelCount(){
@@ -1560,6 +1640,109 @@ function resetIndicators(){
 function applyIndicators(){
   saveChartLayout();
   rebuildChart();
+}
+
+// ── CHALLENGE PANEL ──
+// Everything here comes from the engine's own state payload, so what the
+// trader sees is exactly what enforce() will act on — including which
+// drawdown mode is live, which most platforms never show.
+function renderChallenge(){
+  const a=engineState&&engineState.account;
+  const wrapT=document.getElementById('ch-title');
+  if(!wrapT)return;
+  if(!a){
+    wrapT.textContent='Challenge';
+    document.getElementById('ch-sub').textContent=hasSession()?'Loading…':'Log in to see your challenge rules';
+    document.getElementById('ch-bars').innerHTML='';
+    document.getElementById('ch-reqs').innerHTML='';
+    document.getElementById('ch-note').textContent='';
+    return;
+  }
+  const L=a.limits||{}, P=a.progress||{};
+  const eq=+a.equity, start=+a.starting_balance;
+  const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const typeLbl={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application',funded:'Funded'};
+
+  wrapT.textContent=(typeLbl[a.challenge_type]||a.challenge_type||'Challenge')+
+    (a.phase==='funded'?' — Funded':(a.stage?' — Stage '+a.stage:''));
+  const ddModeLbl={static:'Static drawdown',trailing_intraday:'Trailing drawdown (intraday)',trailing_eod:'Trailing drawdown (end-of-day)'};
+  document.getElementById('ch-sub').textContent=
+    (ddModeLbl[L.drawdown_mode]||'Static drawdown')+
+    (L.require_stop_loss?' · stop-loss required on every order':'');
+
+  // verdict chip
+  const v=document.getElementById('ch-verdict');
+  if(a.status==='breached'){v.className='ch-verdict danger';v.textContent='Breached — '+(a.breach_reason||'').replace(/_/g,' ');}
+  else if(a.status==='passed'){v.className='ch-verdict ok';v.textContent='Passed';}
+  else if(P.requirements_met&&L.target_balance&&+a.balance>=L.target_balance){v.className='ch-verdict ok';v.textContent='Target met';}
+  else {v.className='ch-verdict wait';v.textContent='In progress';}
+
+  // ---- bars ----
+  const bars=[];
+  if(L.target_balance){
+    const gained=eq-start, need=L.target_balance-start;
+    const pct=Math.max(0,Math.min(100,(gained/need)*100));
+    bars.push({lbl:'Profit target',val:money(Math.max(0,L.target_balance-eq))+' to go',
+      pct,color:'#10b981',sub:money(eq-start)+' of '+money(need)});
+  }
+  const ddRoom=eq-(+L.max_dd_floor);
+  const ddTotal=start-(+L.max_dd_floor)||1;
+  bars.push({lbl:'Drawdown room',val:money(ddRoom)+' left',
+    pct:Math.max(0,Math.min(100,(ddRoom/Math.max(ddTotal,1))*100)),
+    color:ddRoom<=ddTotal*0.25?'#ef4444':ddRoom<=ddTotal*0.5?'#f59e0b':'#2563eb',
+    sub:'Floor at '+money(L.max_dd_floor)+(L.trailing_peak?' · peak '+money(L.trailing_peak):'')});
+
+  const dayRoom=eq-(+L.daily_floor);
+  const dayTotal=(+a.day_start_equity)-(+L.daily_floor)||1;
+  bars.push({lbl:'Daily loss room',val:money(dayRoom)+' left',
+    pct:Math.max(0,Math.min(100,(dayRoom/Math.max(dayTotal,1))*100)),
+    color:dayRoom<=dayTotal*0.25?'#ef4444':dayRoom<=dayTotal*0.5?'#f59e0b':'#2563eb',
+    sub:'Resets 00:00 UTC · floor '+money(L.daily_floor)});
+
+  if(L.daily_profit_cap_usd!=null){
+    const gain=eq-(+a.day_start_equity);
+    const pct=Math.max(0,Math.min(100,(gain/L.daily_profit_cap_usd)*100));
+    bars.push({lbl:'Daily profit cap',val:money(Math.max(0,L.daily_profit_cap_usd-gain))+' of headroom',
+      pct,color:pct>=100?'#f59e0b':'#8b5cf6',
+      sub:pct>=100?'Cap hit — new orders reopen 00:00 UTC':'Cap '+money(L.daily_profit_cap_usd)+' per day'});
+  }
+  document.getElementById('ch-bars').innerHTML=bars.map(b=>`
+    <div class="ch-bar">
+      <div class="ch-bar-top"><span class="ch-bar-lbl">${b.lbl}</span><span class="ch-bar-val" style="color:${b.color}">${b.val}</span></div>
+      <div class="ch-track"><div class="ch-fill" style="width:${b.pct.toFixed(1)}%;background:${b.color}"></div></div>
+      <div class="ch-bar-sub">${b.sub}</div>
+    </div>`).join('');
+
+  // ---- requirements ----
+  const reqs=[];
+  if(L.target_balance) reqs.push({done:+a.balance>=L.target_balance,
+    txt:`Reach <b>${money(L.target_balance)}</b> balance (currently ${money(a.balance)})`});
+  if(P.min_trading_days>0) reqs.push({done:P.trading_days>=P.min_trading_days,
+    txt:`<b>${P.trading_days}/${P.min_trading_days}</b> trading days`});
+  if(P.min_trades>0) reqs.push({done:P.trades_closed>=P.min_trades,
+    txt:`<b>${P.trades_closed}/${P.min_trades}</b> closed trades`});
+  if(P.min_profitable_days_pct!=null) reqs.push({done:(P.profitable_days_pct||0)>=P.min_profitable_days_pct,
+    txt:`<b>${P.profitable_days_pct==null?0:P.profitable_days_pct}%</b> profitable days (need ${P.min_profitable_days_pct}%)`});
+  if(!reqs.length) reqs.push({done:true,txt:'No progression requirements on this account'});
+
+  document.getElementById('ch-reqs').innerHTML=reqs.map(r=>`
+    <div class="ch-req">
+      <div class="ch-req-ic ${r.done?'done':'todo'}">${r.done?'✓':''}</div>
+      <div class="ch-req-txt">${r.txt}</div>
+    </div>`).join('');
+
+  const badge=document.getElementById('chBadge');
+  if(badge){
+    const left=reqs.filter(r=>!r.done).length;
+    badge.textContent=left===0?'✓':left;
+    badge.style.background=left===0?'rgba(16,185,129,.2)':'';
+  }
+
+  const notes=[];
+  if(L.max_risk_per_trade_usd!=null) notes.push(`Max risk per trade: ${money(L.max_risk_per_trade_usd)} (${L.max_risk_per_trade_pct}% of starting balance), measured from your stop.`);
+  if(L.drawdown_mode==='trailing_eod') notes.push('Your drawdown floor only moves up at the end of a trading day — an intraday spike you give back does not tighten it.');
+  if(L.drawdown_mode==='trailing_intraday') notes.push('Your drawdown floor follows your highest equity as it happens.');
+  document.getElementById('ch-note').innerHTML=notes.join('<br>');
 }
 
 // ── TV WIDGET ──
@@ -2066,6 +2249,81 @@ function closePosition(){
   const o=engineState&&engineState.open_trades;
   if(o&&o.length)closeTradeById(o[o.length-1].id);
 }
+
+// ---- order management: modify SL/TP, partial close ----
+// Both go through the engine; the browser never decides a fill price.
+let omTradeId=null, omMode=null;
+function omFindTrade(id){
+  return ((engineState&&engineState.open_trades)||[]).find(t=>t.id===id)||null;
+}
+function omClose(){document.getElementById('omDlg').classList.remove('open');omTradeId=null;omMode=null;}
+function omError(msg){
+  const e=document.getElementById('omErr');
+  if(!msg){e.style.display='none';e.textContent='';return;}
+  e.textContent=msg;e.style.display='block';
+}
+function openModifyDialog(id){
+  const t=omFindTrade(id); if(!t)return;
+  omTradeId=id; omMode='modify';
+  document.getElementById('omTitle').textContent='Modify position';
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price)}`;
+  document.getElementById('omF1Label').textContent='Stop loss';
+  document.getElementById('omF2Label').textContent='Take profit';
+  document.getElementById('omF1').value=t.sl==null?'':t.sl;
+  document.getElementById('omF2').value=t.tp==null?'':t.tp;
+  document.getElementById('omF2Wrap').style.display='';
+  document.getElementById('omHint').textContent='Leave a field blank to remove that level. Stop must sit on the loss side of the current price.';
+  document.getElementById('omGo').textContent='Save';
+  omError(null);
+  document.getElementById('omDlg').classList.add('open');
+  document.getElementById('omF1').focus();
+}
+function openPartialDialog(id){
+  const t=omFindTrade(id); if(!t)return;
+  omTradeId=id; omMode='partial';
+  const vol=+t.volume;
+  document.getElementById('omTitle').textContent='Partial close';
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${vol.toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price)}`;
+  document.getElementById('omF1Label').textContent='Lots to close';
+  document.getElementById('omF1').value=(Math.max(0.01,Math.floor(vol/2*100)/100)).toFixed(2);
+  document.getElementById('omF2Wrap').style.display='none';
+  document.getElementById('omHint').textContent=`Position is ${vol.toFixed(2)} lots. Both the closed slice and the remainder must be at least 0.01.`;
+  document.getElementById('omGo').textContent='Close part';
+  omError(null);
+  document.getElementById('omDlg').classList.add('open');
+  document.getElementById('omF1').select();
+}
+async function omSubmit(){
+  if(!omTradeId||engineBusy)return;
+  const t=omFindTrade(omTradeId);
+  if(!t){omError('That position is no longer open.');return;}
+  const v1=document.getElementById('omF1').value.trim();
+  const v2=document.getElementById('omF2').value.trim();
+  let payload;
+
+  if(omMode==='partial'){
+    const vol=parseFloat(v1);
+    if(!isFinite(vol)||vol<0.01){omError('Enter at least 0.01 lots.');return;}
+    if(vol>=+t.volume){omError('That is the whole position — use Close instead.');return;}
+    if(+(+t.volume-vol).toFixed(2)<0.01){omError('The remainder would be under 0.01 lots.');return;}
+    payload={action:'partial_close',trade_id:omTradeId,volume:vol};
+  }else{
+    if(v1===''&&v2===''){omError('Set a stop loss or a take profit.');return;}
+    payload={action:'modify',trade_id:omTradeId,sl:v1===''?null:parseFloat(v1),tp:v2===''?null:parseFloat(v2)};
+  }
+
+  const go=document.getElementById('omGo');
+  const label=go.textContent; go.disabled=true; go.textContent='Working…';
+  engineBusy=true;
+  const r=await engineCall(payload);
+  engineBusy=false;
+  go.disabled=false; go.textContent=label;
+
+  // engineCall surfaces engine errors itself; a null result means it failed.
+  if(!r){omError('The engine rejected that — see the message above the chart.');return;}
+  engineMsg(omMode==='partial'?'Partial close filled':'Position updated',true);
+  omClose();
+}
 async function reversePosition(){
   const o=engineState&&engineState.open_trades;
   if(!o||!o.length){placeOrder('buy');return;}
@@ -2082,6 +2340,7 @@ async function flattenAll(){
 }
 function fmtPx(v){const n=+v;return n>=1000?n.toFixed(1):n>=10?n.toFixed(2):n.toFixed(5).replace(/0{1,3}$/,'');}
 function renderPositions(){
+  try{renderChallenge();}catch(_){/* challenge panel must never block positions */}
   const o=(engineState&&engineState.open_trades)||[];
   const list=document.getElementById('ord-pos-list');
   if(list){
@@ -2148,7 +2407,11 @@ function renderPosTable(o){
       <td>—</td><td>—</td>
       <td class="postbl-pnl ${isPos?'pos':'neg'}">${pnl==null?'—':signedMoney(pnl)}</td>
       <td class="postbl-id">${String(p.id).slice(0,8).toUpperCase()}</td>
-      <td><div class="postbl-act"><div class="postbl-act-btn" title="Close" onclick="closeTradeById('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div></div></td>
+      <td><div class="postbl-act">
+        <div class="postbl-act-btn act-edit" title="Modify stop loss / take profit" onclick="openModifyDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+        <div class="postbl-act-btn act-partial" title="Close part of this position" onclick="openPartialDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12h18"/><path d="M12 3v6"/></svg></div>
+        <div class="postbl-act-btn" title="Close" onclick="closeTradeById('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div></td>
     </tr>`;
   }).join('');
   if(body)body.innerHTML=rows||'<tr><td colspan="14"><div class="postbl-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div></td></tr>';
@@ -3101,6 +3364,30 @@ if(typeof TradingView!=='undefined'){
       <button class="algo-submit-btn" id="algoSubmitBtn" onclick="submitStrategy()">Submit Strategy</button>
       <div class="algo-subs-hd" id="algoSubsHd" style="display:none">Your Submissions</div>
       <div id="algoSubList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- order management: modify SL/TP + partial close -->
+<div class="omdlg" id="omDlg" onclick="if(event.target===this)omClose()">
+  <div class="ombox">
+    <h4 id="omTitle">Modify position</h4>
+    <div class="omsub" id="omSub"></div>
+    <div class="omerr" id="omErr"></div>
+    <div class="omfld">
+      <label id="omF1Label">Stop loss</label>
+      <input id="omF1" type="number" step="any" inputmode="decimal" placeholder="—"
+             onkeydown="if(event.key==='Enter')omSubmit();if(event.key==='Escape')omClose()">
+    </div>
+    <div class="omfld" id="omF2Wrap">
+      <label id="omF2Label">Take profit</label>
+      <input id="omF2" type="number" step="any" inputmode="decimal" placeholder="—"
+             onkeydown="if(event.key==='Enter')omSubmit();if(event.key==='Escape')omClose()">
+    </div>
+    <div class="omhint" id="omHint"></div>
+    <div class="omrow">
+      <button class="ombtn ombtn-o" onclick="omClose()">Cancel</button>
+      <button class="ombtn ombtn-p" id="omGo" onclick="omSubmit()">Save</button>
     </div>
   </div>
 </div>
