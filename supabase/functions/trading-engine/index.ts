@@ -156,11 +156,48 @@ async function fetchYahooRaw(code: string): Promise<{ price: number; ts: number 
   } catch (_) { return null; }
 }
 
+// Own lazily-created client rather than threading `db` through every one
+// of fetchQuote's ~15 call sites. Cheap: created once per warm isolate,
+// same credentials the request-scoped client uses.
+let cacheClient: Db | null = null;
+function getCacheClient(): Db {
+  if (!cacheClient) {
+    cacheClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  }
+  return cacheClient;
+}
+
 async function fetchQuote(symKey: string): Promise<Quote | null> {
+  // Level 1: in-process Map. Free, but only shared with other requests
+  // that happen to land on this exact warm isolate.
   const hit = quoteCache.get(symKey);
   if (hit && Date.now() - hit.receivedTs < CACHE_TTL_MS) return hit;
   const inst = INSTRUMENTS[symKey];
   if (!inst) return null;
+
+  // Level 2: shared Postgres cache. Under load, hundreds of concurrent
+  // isolates each missing their own local Map would otherwise all hit
+  // the upstream feed independently for the same symbol at the same
+  // moment — exactly the pattern that gets an unofficial, rate-limited
+  // feed blocked. This makes the cache actually shared across them.
+  try {
+    const db2 = getCacheClient();
+    const { data: cached } = await db2.from("live_quotes").select("*").eq("symbol", symKey).maybeSingle();
+    if (cached) {
+      const ageMs = Date.now() - new Date(cached.received_at).getTime();
+      if (ageMs < CACHE_TTL_MS) {
+        const q: Quote = {
+          symbol: symKey, mid: Number(cached.mid), bid: Number(cached.bid), ask: Number(cached.ask),
+          spread: Number(cached.spread),
+          providerTs: cached.provider_ts ? new Date(cached.provider_ts).getTime() : null,
+          receivedTs: new Date(cached.received_at).getTime(),
+        };
+        quoteCache.set(symKey, q);
+        return q;
+      }
+    }
+  } catch (_) { /* shared cache is an optimisation, never a hard dependency */ }
+
   let raw = await fetchYahooRaw(inst.code);
   if (raw === null && inst.alt) raw = await fetchYahooRaw(inst.alt);
   if (raw === null) return null;
@@ -170,6 +207,14 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
     spread: inst.spread, providerTs: raw.ts, receivedTs: Date.now(),
   };
   quoteCache.set(symKey, q);
+  try {
+    const db2 = getCacheClient();
+    await db2.from("live_quotes").upsert({
+      symbol: symKey, mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
+      provider_ts: q.providerTs ? new Date(q.providerTs).toISOString() : null,
+      received_at: new Date(q.receivedTs).toISOString(),
+    });
+  } catch (_) { /* best-effort write-through — a failed cache write must never block the quote itself */ }
   return q;
 }
 function round6(n: number) { return Math.round(n * 1e6) / 1e6; }
@@ -444,16 +489,33 @@ async function processPendingOrders(
     const gate = ruleGate(acct, inst, Number(o.volume), fill, sl, conv, equityNow, usedMargin);
     if (gate) { await reject(gate); continue; }
 
+    // Claim the order BEFORE inserting the trade, and check that this
+    // call actually won the claim. Two concurrent enforce() passes for
+    // the same account (a manual action racing the 8s state poll, or the
+    // cron sweep racing either) can both reach this point having seen the
+    // same status='pending' row — without claiming first, both would
+    // insert a trade and double-fill the same order. The conditional
+    // .eq("status","pending") makes the UPDATE itself atomic; .select()
+    // is what makes "did I actually win it" visible to check, exactly
+    // the same pattern as the closeTrade fix above.
+    const { data: claimed } = await db.from("pending_orders").update({
+      status: "filled", fill_price: fill, resolved_at: new Date().toISOString(),
+    }).eq("id", o.id).eq("status", "pending").select("id");
+    if (!claimed || claimed.length === 0) continue; // lost the race — the other caller fills it
+
     const { data: inserted, error } = await db.from("trades").insert({
       account_id: acct.id, user_id: acct.user_id, symbol, side: o.side,
       volume: Number(o.volume), open_price: fill, sl, tp,
     }).select("*").single();
-    if (error || !inserted) { await reject("Order failed at fill"); continue; }
-
-    await db.from("pending_orders").update({
-      status: "filled", filled_trade_id: inserted.id, fill_price: fill,
-      resolved_at: new Date().toISOString(),
-    }).eq("id", o.id).eq("status", "pending");
+    if (error || !inserted) {
+      // We claimed the order but the fill itself failed — put it back
+      // rather than leaving it stuck "filled" with no trade behind it.
+      await db.from("pending_orders").update({
+        status: "rejected", reject_reason: "Order failed at fill", resolved_at: new Date().toISOString(),
+      }).eq("id", o.id);
+      continue;
+    }
+    await db.from("pending_orders").update({ filled_trade_id: inserted.id }).eq("id", o.id);
 
     await logAudit(db, {
       trade_id: inserted.id, user_id: acct.user_id, account_id: acct.id, event: "open",
@@ -515,11 +577,18 @@ type Db = any;
 async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null, clientIp?: string | null): Promise<boolean> {
   const pnl = await tradePnl(t, exit);
   if (pnl === null) return false;
-  const { error: e1 } = await db.from("trades").update({
+  // .eq("status","open") makes this UPDATE atomic and conditional at the
+  // database level, but a filtered update that matches zero rows is NOT
+  // an error in supabase-js — it silently succeeds with no data. Without
+  // checking rows-affected, a trade already closed by a concurrent
+  // request (two tabs, a double-click, the state poll racing a manual
+  // close) would credit pnl to acct.balance a SECOND time here. .select()
+  // is what makes the affected rows visible to check.
+  const { data: closedRow, error: e1 } = await db.from("trades").update({
     status: "closed", close_price: exit, pnl: round2(pnl),
     close_reason: reason, closed_at: new Date().toISOString(),
-  }).eq("id", t.id).eq("status", "open");
-  if (e1) return false;
+  }).eq("id", t.id).eq("status", "open").select("id");
+  if (e1 || !closedRow || closedRow.length === 0) return false; // already closed elsewhere — no-op, not an error
   acct.balance = round2(Number(acct.balance) + pnl);
   await logAudit(db, {
     trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "close",
@@ -1296,10 +1365,31 @@ Deno.serve(async (req) => {
     if (quoteStale(q)) return err("Price feed is stale — try again", 503);
     const exit = target.side === "buy" ? q.bid : q.ask;
 
-    // Realize P&L on the closed slice only, then shrink the live position.
+    // Claim the volume FIRST, conditioned on the position still being open
+    // AND still at the volume we read it at (optimistic check — nothing
+    // else, e.g. a concurrent full close, resized or closed it since).
+    // Only once that atomic claim succeeds do we realize P&L and insert
+    // the closed-slice trade. Doing this in the other order (as originally
+    // written) let a concurrent full close land in the gap between the
+    // insert and the shrink-update: the shrink would then silently match
+    // zero rows while the phantom partial-close trade had already been
+    // inserted and credited, double-counting that volume's P&L.
+    const { data: claimed } = await db.from("trades")
+      .update({ volume: round2(full - vol) })
+      .eq("id", target.id).eq("status", "open").eq("volume", full)
+      .select("id");
+    if (!claimed || claimed.length === 0) {
+      return err("This position changed (closed, modified, or partially closed elsewhere) — try again", 409);
+    }
+
     const slice = { ...target, volume: vol } as Tr;
     const pnl = await tradePnl(slice, exit);
-    if (pnl === null) return err("Could not price the close", 503);
+    if (pnl === null) {
+      // Roll back the claim — we cannot price the close, so give the
+      // volume back rather than leaving the position stuck short.
+      await db.from("trades").update({ volume: full }).eq("id", target.id);
+      return err("Could not price the close", 503);
+    }
 
     const { error: insErr } = await db.from("trades").insert({
       account_id: (acct as Acct).id, user_id: user.id, symbol: target.symbol,
@@ -1308,14 +1398,22 @@ Deno.serve(async (req) => {
       pnl: round2(pnl), close_reason: "partial", opened_at: target.opened_at,
       closed_at: new Date().toISOString(),
     });
-    if (insErr) return err("Could not record the partial close", 500);
+    if (insErr) {
+      await db.from("trades").update({ volume: full }).eq("id", target.id);
+      return err("Could not record the partial close", 500);
+    }
 
-    const { error: updErr } = await db.from("trades")
-      .update({ volume: round2(full - vol) }).eq("id", target.id).eq("status", "open");
-    if (updErr) return err("Partial close recorded but position not resized — contact support", 500);
-
-    (acct as Acct).balance = round2(Number((acct as Acct).balance) + pnl);
-    await db.from("trading_accounts").update({ balance: (acct as Acct).balance }).eq("id", (acct as Acct).id);
+    // Atomic increment (balance = balance + pnl in one SQL statement, via
+    // fn_adjust_balance) rather than read-then-write here: this call site
+    // sits entirely outside enforce()'s own read-at-request-start/
+    // write-at-request-end cycle, so a plain overwrite of acct.balance
+    // would silently discard any concurrent balance change (a payout, a
+    // different position closing) that happened in the gap.
+    const { data: newBal, error: balErr } = await db.rpc("fn_adjust_balance", {
+      p_account_id: (acct as Acct).id, p_delta: round2(pnl),
+    });
+    if (balErr) return err("Partial close filled but balance update failed — contact support", 500);
+    (acct as Acct).balance = Number(newBal);
     await logAudit(db, {
       trade_id: target.id, user_id: user.id, account_id: (acct as Acct).id, event: "close",
       symbol: target.symbol, side: target.side, requested_volume: vol,

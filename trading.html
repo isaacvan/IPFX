@@ -2351,13 +2351,24 @@ function hasSession(){return !!engineToken();}
 async function engineCall(body){
   const tok=await freshToken();
   if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
+  // A stalled connection (not an error — just hanging) previously left
+  // engineBusy stuck true with zero feedback until the OS-level TCP
+  // timeout, which can be minutes: every button dead until then. This
+  // fails fast with a clear message instead.
+  const ctrl=new AbortController();
+  const killer=setTimeout(()=>ctrl.abort(),15000);
   try{
-    const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body)});
+    const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body),signal:ctrl.signal});
     const j=await r.json().catch(()=>null);
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
     if(!r.ok||!j||j.ok===false){engineMsg((j&&j.error)||'Order rejected');return null;}
     engineState=j;renderPositions();renderEngineAccount();return j;
-  }catch(_){engineMsg('Network error — order not placed');return null;}
+  }catch(e){
+    engineMsg(e&&e.name==='AbortError'?'No response after 15s — check your connection and try again':'Network error — order not placed');
+    return null;
+  }finally{
+    clearTimeout(killer);
+  }
 }
 function adjLots(d){
   const step=ordLots<0.1?0.01:ordLots<1?0.1:1;
