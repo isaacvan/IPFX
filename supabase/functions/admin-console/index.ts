@@ -14,6 +14,11 @@
 //       -> snapshot current owed into a pending payout
 //   { action:"payout_mark_paid", payout_id }
 //   { action:"set_split", user_id, profit_split_pct }
+//   { action:"trader_flags" }
+//       -> { flags:[...] } one severity-sorted triage row per trader who
+//          needs attention today, merging breach proximity, behavioural
+//          vetoes, KYC/jurisdiction/investigation state, shared-IP leads
+//          and crowded-book exposure into a single view
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -971,6 +976,189 @@ Deno.serve(async (req) => {
     });
 
     return json({ ok: true, watchlist: rows, scored_at: new Date().toISOString() });
+  }
+
+  // ============================================================
+  // trader_flags — single triage view: every signal this file already
+  // computes elsewhere (breach proximity, behavioural vetoes, KYC state,
+  // investigation holds, restricted jurisdiction, shared-IP multi-
+  // accounting leads, crowded-book contribution), synthesised into one
+  // severity-sorted "who needs a look today, and why" list. Nothing here
+  // is a new detector — it is a merge of the readiness/mid-challenge/
+  // firm_risk/compliance signals that otherwise live in separate panels.
+  // Fail-closed: a trader with no data anywhere just doesn't appear.
+  // ============================================================
+  if (action === "trader_flags") {
+    const SEV_RANK: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 };
+
+    const [{ data: accounts }, { data: profiles }, { data: kycRows }, { data: sharedIps }, { data: openTrades }] =
+      await Promise.all([
+        db.from("trading_accounts").select("*").neq("status", "void"),
+        db.from("user_profiles").select("user_id,full_name,restricted_jurisdiction"),
+        db.from("trader_kyc").select("user_id,status,note,updated_at"),
+        db.from("shared_ip_accounts").select("*"),
+        db.from("trades").select("account_id,user_id,symbol,side,volume,open_price").eq("status", "open").limit(20000),
+      ]);
+    if (!accounts || !accounts.length) return json({ ok: true, flags: [], scored_at: new Date().toISOString() });
+
+    const nameBy = new Map<string, string>();
+    const restrictedBy = new Set<string>();
+    for (const p of profiles ?? []) {
+      nameBy.set(p.user_id, p.full_name ?? "");
+      if (p.restricted_jurisdiction) restrictedBy.add(p.user_id);
+    }
+    const kycBy = new Map<string, Record<string, unknown>>();
+    for (const k of kycRows ?? []) kycBy.set(k.user_id, k);
+    const sharedByUser = new Map<string, { client_ip: string; distinct_users: number }[]>();
+    for (const row of sharedIps ?? []) {
+      for (const uid of (row.user_ids as string[]) ?? []) {
+        if (!sharedByUser.has(uid)) sharedByUser.set(uid, []);
+        sharedByUser.get(uid)!.push({ client_ip: row.client_ip, distinct_users: Number(row.distinct_users) });
+      }
+    }
+
+    // closed-trade history per account, only for the accounts we're scoring
+    const activeAccts = accounts.filter((a: Record<string, unknown>) => a.status !== "breached" || a.investigation_hold);
+    const ids = accounts.map((a: Record<string, unknown>) => a.id);
+    const { data: allTrades } = await db.from("trades").select("*").in("account_id", ids).limit(40000);
+    const tradesBy = new Map<string, Trade[]>();
+    for (const t of allTrades ?? []) {
+      const k = t.account_id as string;
+      if (!tradesBy.has(k)) tradesBy.set(k, []);
+      tradesBy.get(k)!.push(t);
+    }
+
+    // crowded-book contribution: same netting logic as firm_risk, but we
+    // only need each account's share of its symbol's dominant side.
+    const CONTRACT: Record<string, number> = {
+      XAUUSD: 100, XPTUSD: 100, XPDUSD: 100, XAGUSD: 5000,
+      SPXUSD: 10, NSXUSD: 10, DJI: 10, UK100: 10, GER40: 10, FRA40: 10, JPN225: 10, US2000: 10,
+    };
+    const contractFor = (s: string) => CONTRACT[s] ?? 100000;
+    const symAgg = new Map<string, { longLots: number; shortLots: number }>();
+    const acctLots = new Map<string, { symbol: string; side: string; lots: number }[]>();
+    for (const t of openTrades ?? []) {
+      const sym = String(t.symbol);
+      const lots = Number(t.volume);
+      if (!symAgg.has(sym)) symAgg.set(sym, { longLots: 0, shortLots: 0 });
+      const g = symAgg.get(sym)!;
+      if (t.side === "buy") g.longLots += lots; else g.shortLots += lots;
+      const aid = t.account_id as string;
+      if (!acctLots.has(aid)) acctLots.set(aid, []);
+      acctLots.get(aid)!.push({ symbol: sym, side: t.side as string, lots });
+    }
+
+    const results: Record<string, unknown>[] = [];
+
+    for (const a of activeAccts) {
+      const aid = a.id as string;
+      const trades = tradesBy.get(aid) ?? [];
+      const sig = midChallengeSignal(trades, a, null);
+      const flags: { severity: string; category: string; label: string; detail?: string }[] = [];
+
+      // -- breach proximity (evaluation and funded accounts alike) --
+      if (a.status === "active" && sig.distance_to_floor !== null) {
+        const start = Number(a.starting_balance);
+        const ddPct = Number(a.max_drawdown_pct ?? 10);
+        const budget = r2(start * ddPct / 100);
+        const pctLeft = budget > 0 ? r2((sig.distance_to_floor / budget) * 100) : null;
+        if (pctLeft !== null && pctLeft <= 30) {
+          flags.push({
+            severity: pctLeft <= 15 ? "critical" : "high",
+            category: "near_breach",
+            label: `${pctLeft}% of drawdown budget left`,
+            detail: `Balance sits $${sig.distance_to_floor} above the breach floor, out of a $${budget} total budget.`,
+          });
+        }
+      }
+
+      // -- investigation hold --
+      if (a.investigation_hold) {
+        flags.push({ severity: "critical", category: "investigation", label: "Under investigation hold", detail: (a.investigation_note as string) || "No note recorded." });
+      }
+
+      // -- KYC --
+      const kyc = kycBy.get(a.user_id as string);
+      if (kyc?.status === "rejected") {
+        flags.push({ severity: "high", category: "kyc", label: "KYC rejected", detail: (kyc.note as string) || "" });
+      } else if (kyc?.status === "pending") {
+        const ageDays = Math.round((Date.now() - new Date(kyc.updated_at as string).getTime()) / 86400000);
+        if (ageDays >= 3) flags.push({ severity: ageDays >= 7 ? "high" : "medium", category: "kyc", label: `KYC pending review for ${ageDays} day(s)` });
+      }
+
+      // -- restricted jurisdiction --
+      if (restrictedBy.has(a.user_id as string)) {
+        const acute = a.phase === "funded" || !!a.mirror_enabled;
+        flags.push({
+          severity: acute ? "critical" : "medium",
+          category: "jurisdiction",
+          label: acute ? "Restricted jurisdiction on a funded/mirrored account" : "Flagged as a restricted jurisdiction",
+        });
+      }
+
+      // -- behavioural vetoes (martingale, revenge trading, concentration, no stop-loss) --
+      if (sig.status === "scored" && sig.vetoes.length) {
+        flags.push({
+          severity: sig.vetoes.length >= 2 ? "high" : "medium",
+          category: "behavior",
+          label: sig.vetoes.join("; "),
+          detail: sig.note,
+        });
+      }
+
+      // -- shared IP / possible multi-accounting --
+      const shared = sharedByUser.get(a.user_id as string);
+      if (shared?.length) {
+        const others = Math.max(...shared.map((s) => s.distinct_users)) - 1;
+        flags.push({
+          severity: "medium",
+          category: "shared_ip",
+          label: `Shares an IP with ${others} other account(s)`,
+          detail: "Innocent causes (household, office, VPN) are common — this is a lead, not proof.",
+        });
+      }
+
+      // -- crowded-book contribution --
+      for (const pos of acctLots.get(aid) ?? []) {
+        const g = symAgg.get(pos.symbol);
+        if (!g) continue;
+        const dominant = g.longLots >= g.shortLots ? "buy" : "sell";
+        const dominantLots = Math.max(g.longLots, g.shortLots);
+        const grossLots = g.longLots + g.shortLots;
+        const crowding = grossLots > 0 ? (Math.abs(g.longLots - g.shortLots) / grossLots) * 100 : 0;
+        if (pos.side === dominant && crowding >= 70 && dominantLots > 0 && pos.lots / dominantLots >= 0.2) {
+          flags.push({
+            severity: "low",
+            category: "concentration",
+            label: `Holds ${r2((pos.lots / dominantLots) * 100)}% of the crowded ${pos.symbol} ${dominant === "buy" ? "long" : "short"} book`,
+            detail: "A large single contributor to a one-sided book — worth knowing about before that symbol moves.",
+          });
+        }
+      }
+
+      // -- surfaced opportunity: a genuinely strong mid-challenge signal, not just a problem --
+      if (sig.status === "scored" && !sig.vetoes.length && sig.risk_blind === false && (sig.signal_score ?? 0) >= 70 && a.phase !== "funded") {
+        flags.push({ severity: "low", category: "opportunity", label: `High-quality signal (score ${sig.signal_score}) — worth a closer look`, detail: sig.note });
+      }
+
+      if (!flags.length) continue;
+      flags.sort((x, y) => SEV_RANK[y.severity] - SEV_RANK[x.severity]);
+      results.push({
+        user_id: a.user_id, account_id: aid,
+        full_name: nameBy.get(a.user_id as string) || "—",
+        status: a.status, phase: a.phase ?? "evaluation",
+        balance: Number(a.balance), starting_balance: Number(a.starting_balance),
+        max_severity: flags[0].severity, flag_count: flags.length,
+        flags,
+      });
+    }
+
+    results.sort((x, y) => {
+      const s = SEV_RANK[y.max_severity as string] - SEV_RANK[x.max_severity as string];
+      return s !== 0 ? s : (y.flag_count as number) - (x.flag_count as number);
+    });
+
+    return json({ ok: true, flags: results, scored_at: new Date().toISOString() });
   }
 
   // ---- admin audit log (read-only, admin-gated by definition since

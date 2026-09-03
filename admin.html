@@ -87,7 +87,17 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
     <div style="font-size:.85rem;color:#f98a8a"><strong>Trading halted:</strong> <span id="haltReasonTxt"></span></div>
     <button class="btn btn-o" onclick="setPlatformHalt(false)">Resume trading</button>
   </div>
-  <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center">
+  <!-- trader flags: single triage view merging every signal this console
+       computes elsewhere into "who needs a look today, and why" -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">
+      Trader flags <span id="flagCountBadge" style="color:var(--muted2);font-weight:400;text-transform:none;letter-spacing:0"></span>
+    </h2>
+    <button class="chip" onclick="loadTraderFlags()">Refresh flags</button>
+  </div>
+  <div id="traderFlagsWrap"><div class="msg" style="padding:1.25rem">Loading…</div></div>
+
+  <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:1.75rem 0 .75rem;display:flex;justify-content:space-between;align-items:center">
     <span>Firm back office</span>
     <button class="chip" id="haltToggleBtn" onclick="promptPlatformHalt()" style="text-transform:none;font-weight:600">⏸ Halt trading</button>
   </h2>
@@ -221,6 +231,7 @@ async function call(bodyObj){
 }
 
 let TRADERS=[],PAYOUTS=[],FIRM={},PLATFORM={},SHARED_IPS=[],filter='all';
+let TRADER_FLAGS=[];
 const fmt=v=>'$'+Number(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 async function load(){
@@ -232,6 +243,47 @@ async function load(){
   document.getElementById('main').style.display='block';
   TRADERS=j.traders||[];PAYOUTS=j.payouts||[];FIRM=j.firm||{};PLATFORM=j.platform||{};SHARED_IPS=j.shared_ip_accounts||[];
   renderStats();render();renderPayouts();renderHaltBanner();renderSharedIps();
+  loadTraderFlags();
+}
+
+// ---- trader flags: triage view ----
+// Pulls together breach proximity, behavioural vetoes, KYC/investigation/
+// jurisdiction state, shared-IP leads and crowded-book exposure — every
+// signal this console computes elsewhere — into one severity-sorted list.
+async function loadTraderFlags(){
+  const wrap=document.getElementById('traderFlagsWrap');
+  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Scoring…</div>';
+  const j=await call({action:'trader_flags'});
+  if(!j)return;
+  TRADER_FLAGS=j.flags||[];
+  const badge=document.getElementById('flagCountBadge');
+  const nCrit=TRADER_FLAGS.filter(f=>f.max_severity==='critical').length;
+  const nHigh=TRADER_FLAGS.filter(f=>f.max_severity==='high').length;
+  badge.textContent=TRADER_FLAGS.length?`— ${TRADER_FLAGS.length} trader(s) flagged${nCrit?`, ${nCrit} critical`:''}${nHigh?`, ${nHigh} high`:''}`:'';
+  if(!TRADER_FLAGS.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Nothing needs attention right now.</div>';return;}
+
+  const sevColor={critical:'var(--red)',high:'var(--amber)',medium:'var(--fg)',low:'var(--muted2)'};
+  const sevLabel={critical:'CRITICAL',high:'HIGH',medium:'MEDIUM',low:'LOW'};
+  wrap.innerHTML=`
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Trader</th><th>Status</th><th>Balance</th><th>Flags</th><th></th></tr></thead>
+      <tbody>${TRADER_FLAGS.map(t=>`<tr>
+        <td style="cursor:pointer" onclick='openTraderDetail(${JSON.stringify(t.user_id)})'>
+          <div style="font-weight:600;color:var(--fg)">${esc(t.full_name)}</div>
+          <div style="color:var(--muted2);font-size:.72rem">${t.phase==='funded'?'Funded':'Evaluation'}</div>
+        </td>
+        <td><span class="st ${t.status}">${t.status}</span></td>
+        <td class="mono">${fmt(t.balance)}</td>
+        <td>${t.flags.map(f=>`<div style="margin-bottom:.3rem">
+              <span class="mono" style="color:${sevColor[f.severity]};font-weight:700;font-size:.68rem">${sevLabel[f.severity]}</span>
+              <span style="font-size:.78rem"> ${esc(f.label)}</span>
+              ${f.detail?`<div style="font-size:.7rem;color:var(--muted2);margin-left:1px">${esc(f.detail)}</div>`:''}
+            </div>`).join('')}</td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn btn-o" onclick='openTraderDetail(${JSON.stringify(t.user_id)})'>View</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
 }
 
 function renderHaltBanner(){
