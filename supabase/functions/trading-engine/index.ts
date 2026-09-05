@@ -767,6 +767,23 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     db.from("pending_orders").select("*").eq("account_id", acct.id).eq("status", "pending")
       .order("created_at", { ascending: false }),
   ]);
+  // Order ID per position: order_audit_events.id is this platform's Order
+  // ID (see order-position-id-integrity.sql), trades.id is the Position
+  // ID. A position can have several order events against it (open, an
+  // SL/TP modify, a close) — the most recent one is what a trader means
+  // by "the order" for that row, so later events win in this map.
+  const allTradeIds = [...open.map((t) => t.id), ...(closed ?? []).map((t: Tr) => t.id)];
+  const orderIdByTrade: Record<string, string> = {};
+  if (allTradeIds.length) {
+    const { data: events } = await db.from("order_audit_events")
+      .select("id,trade_id,server_ts").in("trade_id", allTradeIds)
+      .order("server_ts", { ascending: true });
+    for (const e of events ?? []) {
+      if (e.trade_id) orderIdByTrade[e.trade_id] = String(e.id);
+    }
+  }
+  const withOrderId = (t: Tr) => ({ ...t, order_id: orderIdByTrade[t.id] ?? null });
+
   const start = Number(acct.starting_balance);
   const gate = await passGate(db, acct);
 
@@ -815,8 +832,8 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         unmet: gate.unmet,
       },
     },
-    open_trades: open,
-    closed_trades: closed ?? [],
+    open_trades: open.map(withOrderId),
+    closed_trades: (closed ?? []).map(withOrderId),
     pending_orders: pending ?? [],
   };
 }
@@ -858,15 +875,23 @@ async function symbolCheck(db: Db, symKey: string): Promise<{ ok: boolean; reaso
   return { ok: true, maxSpread: spec ? Number(spec.max_spread) : undefined };
 }
 
-// ---------- audit trail: every open/close/reject ----------
+// ---------- audit trail: every order-type action ----------
+// order_audit_events.id (returned here) is this platform's Order ID —
+// one row per action (open/modify/partial_close/close/reject/
+// place_pending/cancel_pending) — distinct from trade_id, the Position
+// ID. Returns the new row's id (the Order ID) on success, null on
+// failure — logging must never block trading, so callers that don't
+// need the id can and do ignore the return value.
 async function logAudit(db: Db, row: {
-  trade_id?: string | null; user_id: string; account_id: string; event: "open" | "close" | "reject" | "modify";
+  trade_id?: string | null; pending_order_id?: string | null; user_id: string; account_id: string;
+  event: "open" | "close" | "reject" | "modify" | "partial_close" | "place_pending" | "cancel_pending";
   reject_reason?: string; symbol: string; side?: string | null; requested_volume?: number | null;
   requested_price?: number | null; fill_price?: number | null; quote?: Quote | null; client_ip?: string | null;
-}) {
+}): Promise<string | null> {
   try {
-    await db.from("order_audit_events").insert({
-      trade_id: row.trade_id ?? null, user_id: row.user_id, account_id: row.account_id,
+    const { data } = await db.from("order_audit_events").insert({
+      trade_id: row.trade_id ?? null, pending_order_id: row.pending_order_id ?? null,
+      user_id: row.user_id, account_id: row.account_id,
       event: row.event, reject_reason: row.reject_reason ?? null, symbol: row.symbol,
       side: row.side ?? null, requested_volume: row.requested_volume ?? null,
       requested_price: row.requested_price ?? null, fill_price: row.fill_price ?? null,
@@ -875,8 +900,9 @@ async function logAudit(db: Db, row: {
       server_ts: new Date().toISOString(),
       latency_ms: row.quote?.providerTs ? Date.now() - row.quote.providerTs : null,
       source_id: SOURCE_ID, client_ip: row.client_ip ?? null,
-    });
-  } catch (_) { /* audit logging must never block trading */ }
+    }).select("id").single();
+    return data ? String(data.id) : null;
+  } catch (_) { return null; /* audit logging must never block trading */ }
 }
 // Best-effort client IP for multi-accounting detection (see
 // shared_ip_accounts in prop-firm-hardening.sql). Deno Deploy/Supabase
@@ -1168,7 +1194,11 @@ Deno.serve(async (req) => {
       expires_at: body.expires_at ? String(body.expires_at) : null,
     }).select("*").single();
     if (pErr) return err("Could not place the order", 500);
-    return jsonOk({ pending: created });
+    const orderId = await logAudit(db, {
+      pending_order_id: created.id, user_id: user.id, account_id: (acct as Acct).id, event: "place_pending",
+      symbol, side, requested_volume: volume, requested_price: trigger, quote: q, client_ip: clientIp,
+    });
+    return jsonOk({ pending: created, order_id: orderId });
   }
 
   if (action === "cancel_pending") {
@@ -1176,8 +1206,13 @@ Deno.serve(async (req) => {
     if (!id) return err("order_id required");
     const { data: upd } = await db.from("pending_orders")
       .update({ status: "cancelled", resolved_at: new Date().toISOString() })
-      .eq("id", id).eq("user_id", user.id).eq("status", "pending").select("id");
+      .eq("id", id).eq("user_id", user.id).eq("status", "pending").select("*");
     if (!upd || !upd.length) return err("That order is no longer pending", 409);
+    await logAudit(db, {
+      pending_order_id: id, user_id: user.id, account_id: (acct as Acct).id, event: "cancel_pending",
+      symbol: upd[0].symbol, side: upd[0].side, requested_volume: Number(upd[0].volume),
+      requested_price: Number(upd[0].trigger_price), client_ip: clientIp,
+    });
     return jsonOk({});
   }
 
@@ -1391,14 +1426,14 @@ Deno.serve(async (req) => {
       return err("Could not price the close", 503);
     }
 
-    const { error: insErr } = await db.from("trades").insert({
+    const { data: closedSlice, error: insErr } = await db.from("trades").insert({
       account_id: (acct as Acct).id, user_id: user.id, symbol: target.symbol,
       side: target.side, volume: vol, open_price: target.open_price,
       sl: target.sl, tp: target.tp, status: "closed", close_price: exit,
       pnl: round2(pnl), close_reason: "partial", opened_at: target.opened_at,
       closed_at: new Date().toISOString(),
-    });
-    if (insErr) {
+    }).select("id").single();
+    if (insErr || !closedSlice) {
       await db.from("trades").update({ volume: full }).eq("id", target.id);
       return err("Could not record the partial close", 500);
     }
@@ -1414,8 +1449,12 @@ Deno.serve(async (req) => {
     });
     if (balErr) return err("Partial close filled but balance update failed — contact support", 500);
     (acct as Acct).balance = Number(newBal);
+    // trade_id here is the CLOSED SLICE's own id (a distinct Position),
+    // not target.id (the original position, which is still open at its
+    // reduced volume) — a partial close creates a new closed position,
+    // it doesn't mutate the existing open one into a closed one.
     await logAudit(db, {
-      trade_id: target.id, user_id: user.id, account_id: (acct as Acct).id, event: "close",
+      trade_id: closedSlice.id, user_id: user.id, account_id: (acct as Acct).id, event: "partial_close",
       symbol: target.symbol, side: target.side, requested_volume: vol,
       requested_price: exit, fill_price: exit, quote: q, client_ip: clientIp,
     });

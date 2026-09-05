@@ -5,7 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IPFX Markets</title>
 <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://s3.tradingview.com">
+<script>
+// Kick off the TradingView widget script download as early as physically
+// possible — in parallel with the rest of this (large) page's HTML
+// parsing — instead of a blocking <script src> tag placed after ~1500
+// lines of markup, which used to serialize [parse everything above it]
+// then [download+exec tv.js] then [parse everything below it] before the
+// chart could even start its own ~10s+ iframe bootstrap. window.__tvReady
+// resolves once TradingView is available, from whichever point calls it.
+window.__tvReady=new Promise(res=>{
+  const s=document.createElement('script');
+  s.src='https://s3.tradingview.com/tv.js';
+  s.onload=res;
+  document.head.appendChild(s);
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -65,14 +81,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .style-btn.active{background:var(--cobalt-d);border-color:rgba(37,99,235,.4);color:#60a5fa;}
 .chart-area{flex:1;position:relative;}
 #tv_chart_container{width:100%;height:100%;}
+.chart-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;background:var(--bg);z-index:50;transition:opacity .2s;pointer-events:none;}
+.chart-loading[hidden]{display:none;}
+.chart-loading-spin{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(37,99,235,.2);border-top-color:var(--cobalt);animation:chartspin .7s linear infinite;}
+.chart-loading-txt{font-size:.76rem;color:var(--muted2);font-weight:600;}
+@keyframes chartspin{to{transform:rotate(360deg);}}
 
 /* ── RIGHT GUIDE PANEL ── */
 .guide{width:220px;flex-shrink:0;flex-basis:auto;min-width:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;position:relative;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
 .guide.hidden{width:0;border-left:none;}
 .guide.resizing{transition:none;}
-.guide-resize-handle{position:absolute;top:0;bottom:0;left:-4px;width:8px;cursor:ew-resize;z-index:5;display:flex;align-items:center;justify-content:center;}
-.guide-resize-handle:hover .guide-resize-grip,.guide.resizing .guide-resize-grip{background:var(--cobalt);}
-.guide-resize-grip{width:3px;height:36px;border-radius:2px;background:var(--line);transition:background .15s;}
+.guide-resize-handle{position:absolute;top:0;bottom:0;left:-6px;width:12px;cursor:ew-resize;z-index:5;display:flex;align-items:center;justify-content:center;touch-action:none;}
+.guide-resize-handle:hover .guide-resize-grip,.guide.resizing .guide-resize-grip{background:var(--cobalt);width:4px;box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.guide-resize-grip{width:3px;height:52px;border-radius:2px;background:rgba(37,99,235,.35);transition:background .15s,width .15s,box-shadow .15s;}
+body.light .guide-resize-grip{background:rgba(37,99,235,.28);}
 .guide.hidden .guide-resize-handle{pointer-events:none;}
 .guide-tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;}
 .guide-tabs::-webkit-scrollbar{height:0;}
@@ -86,6 +108,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .gpanel.active{display:flex;}
 
 /* INDICATORS TAB */
+.ind-search-row{position:relative;display:flex;align-items:center;padding:.6rem .8rem .3rem;flex-shrink:0;}
+.ind-search-ic{position:absolute;left:1.2rem;width:13px;height:13px;color:var(--muted2);pointer-events:none;}
+.ind-search-inp{width:100%;padding:.45rem .7rem .45rem 2rem;border-radius:7px;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-size:.75rem;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;}
+.ind-search-inp:focus{border-color:var(--cobalt);}
+.ind-search-clear{position:absolute;right:1.2rem;background:none;border:none;color:var(--muted2);cursor:pointer;font-size:.7rem;padding:.2rem;line-height:1;}
+.ind-search-clear:hover{color:var(--fg);}
+.ind-no-results{padding:1.5rem .8rem;text-align:center;font-size:.75rem;color:var(--muted2);}
+.ind-item.kbd-hover{background:rgba(37,99,235,.1);outline:1px solid rgba(37,99,235,.3);outline-offset:-1px;}
 .ind-apply-bar{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-bottom:1px solid var(--line2);flex-shrink:0;}
 .ind-apply-bar span{font-size:.7rem;color:var(--muted);flex:1;}
 .apply-btn{padding:.3rem .7rem;border-radius:5px;background:var(--cobalt);color:#fff;border:none;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;white-space:nowrap;transition:background .15s;}
@@ -138,11 +168,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .tf-who{font-size:.63rem;padding:.1rem .35rem;border-radius:3px;font-weight:700;background:rgba(255,255,255,.06);color:var(--muted2);}
 
 /* RIGHT TOGGLE */
-.guide-tog{position:absolute;top:50%;right:220px;transform:translateY(-50%);z-index:100;width:14px;height:36px;background:var(--bg2);border:1px solid var(--line);border-right:none;border-radius:5px 0 0 5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:right .22s cubic-bezier(.4,0,.2,1),color .15s;}
+.guide-tog{position:absolute;top:50%;left:-14px;transform:translateY(-50%);z-index:100;width:14px;height:36px;background:var(--bg2);border:1px solid var(--line);border-right:none;border-radius:5px 0 0 5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);transition:color .15s;}
 .guide-tog:hover{color:var(--fg);}
 .guide-tog svg{width:8px;height:8px;transition:transform .22s;}
-.guide.hidden~.guide-tog{right:0;}
-.guide.hidden~.guide-tog svg{transform:rotate(180deg);}
+.guide.hidden .guide-tog svg{transform:rotate(180deg);}
 
 /* SCROLLBAR GLOBAL */
 ::-webkit-scrollbar{width:4px;}
@@ -349,9 +378,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);display
 .btm-outer{flex-shrink:0;flex-basis:auto;min-height:0;height:260px;background:var(--bg2);border-top:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;transition:height .22s cubic-bezier(.4,0,.2,1);position:relative;}
 .btm-outer.collapsed{height:30px;}
 .btm-outer.resizing{transition:none;}
-.btm-resize-handle{position:absolute;top:-4px;left:0;right:0;height:8px;cursor:ns-resize;z-index:5;display:flex;align-items:center;justify-content:center;}
-.btm-resize-handle:hover .btm-resize-grip,.btm-outer.resizing .btm-resize-grip{background:var(--cobalt);}
-.btm-resize-grip{width:36px;height:3px;border-radius:2px;background:var(--line);transition:background .15s;}
+.btm-resize-handle{position:absolute;top:-6px;left:0;right:0;height:12px;cursor:ns-resize;z-index:5;display:flex;align-items:center;justify-content:center;touch-action:none;}
+.btm-resize-handle:hover .btm-resize-grip,.btm-outer.resizing .btm-resize-grip{background:var(--cobalt);height:4px;box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.btm-resize-grip{width:52px;height:3px;border-radius:2px;background:rgba(37,99,235,.35);transition:background .15s,height .15s,box-shadow .15s;}
+body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .btm-outer.collapsed .btm-resize-handle{cursor:default;pointer-events:none;}
 .btm-header{height:30px;flex-shrink:0;display:flex;align-items:stretch;border-bottom:1px solid var(--line2);}
 .btab{padding:0 1rem;font-size:.7rem;font-weight:700;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:.4rem;}
@@ -759,6 +789,13 @@ body.light .of-note{color:rgba(12,12,22,.13);}
 body.light .tb-tool-btn{background:rgba(0,0,0,.03);border-color:var(--line);}
 body.light .tb-tool-btn:hover{background:rgba(0,0,0,.07);border-color:#aab;color:var(--fg);}
 .tb-tool-btn svg{width:14px;height:14px;}
+#fullscreenBtn.active{color:var(--cobalt);border-color:rgba(37,99,235,.4);background:var(--cobalt-d);}
+/* Graceful fallback for browsers/contexts where the real Fullscreen API
+   is unavailable or denied (e.g. an embedding iframe without the
+   `allow="fullscreen"` permission) — maximise the trading view within
+   the page itself instead of doing nothing. */
+body.focus-mode .guide,body.focus-mode .btm-outer{display:none;}
+body.focus-mode .chart-wrap{flex:1;}
 .tb-tool-grp{display:flex;align-items:center;gap:.3rem;flex-shrink:0;}
 
 /* ── GRID BTN LABEL ── */
@@ -854,7 +891,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <a href="dashboard.html" class="back-btn">
+  <a href="dashboard.html" class="back-btn" id="dashboardBackBtn" onclick="return leaveFullscreenThen(this.href);">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
     Dashboard
   </a>
@@ -878,6 +915,10 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
       </button>
       <button id="algoBtn" class="tb-tool-btn" onclick="openAlgoModal()" title="Algo Trading Bot">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+      <button id="fullscreenBtn" class="tb-tool-btn" onclick="toggleFullscreen()" title="Enter full-screen trading mode" aria-label="Enter full-screen trading mode">
+        <svg id="fullscreenIconEnter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        <svg id="fullscreenIconExit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" hidden><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
       </button>
     </div>
     <!-- Unlock Indicators CTA hidden until premium indicators are implemented -->
@@ -933,21 +974,27 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
     </div>
     <div class="chart-area">
       <div id="tv_chart_container"></div>
+      <div class="chart-loading" id="chartLoading">
+        <div class="chart-loading-spin"></div>
+        <div class="chart-loading-txt">Loading chart…</div>
+      </div>
     </div>
     <div class="chart-footer">
-      <strong>Indicative chart</strong> powered by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>&nbsp;— shown for reference only.
-      Order fills are priced by IPFX's own market-data source, which may differ from the chart.
+      Chart data powered by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>. Order fills are priced by IPFX's own market-data source, which may differ from the chart.
       <br>IPFX Markets is a simulated trading environment. IPFX does not hold client deposits, provide brokerage services, or provide investment advice.
     </div>
   </div>
 
-  <!-- RIGHT GUIDE TOGGLE -->
-  <div class="guide-tog" id="guideTog" onclick="toggleGuide()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-  </div>
-
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide" id="guidePanel">
+    <!-- Lives INSIDE the panel and is positioned relative to its own box
+         (left:-14px, see CSS) so it always sits on the panel's actual
+         current edge — at any drag-resized width, and at the collapsed
+         edge when hidden — instead of a hardcoded offset that only
+         matched the panel's default width. -->
+    <div class="guide-tog" id="guideTog" onclick="toggleGuide()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
     <div class="guide-resize-handle" id="guideResizeHandle"><div class="guide-resize-grip"></div></div>
     <div class="guide-tabs">
       <div class="gtab" onclick="switchTab('order',this)">Order</div>
@@ -1227,12 +1274,19 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
 
       <!-- INDICATORS TAB -->
       <div class="gpanel active" id="tab-ind" style="flex-direction:column;">
+        <div class="ind-search-row" style="flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ind-search-ic"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="indSearch" class="ind-search-inp" placeholder="Search indicators (name, abbreviation, keyword)…"
+            oninput="filterInds(this.value)" onkeydown="indSearchKeydown(event)" aria-label="Search indicators">
+          <button class="ind-search-clear" id="indSearchClear" onclick="clearIndSearch()" title="Clear search" aria-label="Clear search" hidden>✕</button>
+        </div>
         <div class="ind-apply-bar" style="flex-shrink:0;">
           <span id="selCount">None selected</span>
           <button class="reset-btn" onclick="resetIndicators()">Reset Chart Layout</button>
           <button class="apply-btn" id="applyIndBtn" onclick="applyIndicators()">Apply to Chart</button>
         </div>
-        <div id="indList" style="flex:1;overflow-y:auto;"></div>
+        <div id="indList" style="flex:1;overflow-y:auto;" role="listbox" aria-label="Indicator results"></div>
+        <div id="indNoResults" class="ind-no-results" hidden>No indicators match "<span id="indNoResultsQuery"></span>".</div>
         <div style="flex-shrink:0;padding:.4rem .8rem;border-top:1px solid var(--line2);font-size:.62rem;color:var(--cobalt);text-align:center;">Hover any indicator for a full explanation</div>
       </div>
 
@@ -1387,6 +1441,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   <div class="btm-resize-handle" id="btmResizeHandle"><div class="btm-resize-grip"></div></div>
   <div class="btm-header">
     <div class="btab active" onclick="switchBtab('positions',this)">Positions <span class="btab-badge" id="posBadge">0</span></div>
+    <div class="btab" onclick="switchBtab('pending',this)">Pending Orders <span class="btab-badge" id="pendBadge">0</span></div>
     <div class="btab" onclick="switchBtab('closed',this)">Closed Positions</div>
     <div class="btab" onclick="switchBtab('challenge',this)">Challenge <span class="btab-badge" id="chBadge">—</span></div>
     <div class="btab" onclick="switchBtab('account',this)">Account</div>
@@ -1415,9 +1470,23 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
           <thead><tr>
             <th>Instrument</th><th>Side</th><th>Amount</th><th>Entry / Market price</th>
             <th>Stop Loss</th><th>Take Profit</th><th>Margin</th><th>Exposure</th>
-            <th>Created at (UTC)</th><th>Fee</th><th>Swaps</th><th>P&amp;L</th><th>Position ID</th><th></th>
+            <th>Created at (UTC)</th><th>Fee</th><th>Swaps</th><th>P&amp;L</th><th>Order ID</th><th>Position ID</th><th></th>
           </tr></thead>
           <tbody id="posTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PENDING ORDERS TAB -->
+    <div class="bpanel postbl-panel" id="bp-pending">
+      <div class="postbl-wrap">
+        <table class="postbl">
+          <thead><tr>
+            <th>Instrument</th><th>Order Type</th><th>Side</th><th>Requested Qty</th>
+            <th>Requested Price</th><th>Stop Loss</th><th>Take Profit</th>
+            <th>Created At (UTC)</th><th>Expiry</th><th>Status</th><th>Order ID</th><th></th>
+          </tr></thead>
+          <tbody id="pendTableBody"></tbody>
         </table>
       </div>
     </div>
@@ -1445,7 +1514,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
           <thead><tr>
             <th>Instrument</th><th>Entry Time (UTC)</th><th>Type</th><th>Side</th><th>Amount</th>
             <th>Entry Price</th><th>Stop Loss</th><th>Take Profit</th><th>Exit Time (UTC)</th>
-            <th>Exit Price</th><th>Fee</th><th>Swaps</th><th>P&amp;L</th><th>Net P&amp;L</th><th>Position ID</th>
+            <th>Exit Price</th><th>Fee</th><th>Swaps</th><th>P&amp;L</th><th>Net P&amp;L</th><th>Order ID</th><th>Position ID</th>
           </tr></thead>
           <tbody id="closedTableBody"></tbody>
         </table>
@@ -1532,8 +1601,9 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   </div>
 </div>
 
-<script src="https://s3.tradingview.com/tv.js"></script>
 <script>
+// TradingView itself is already loading in parallel from window.__tvReady,
+// kicked off at the very top of <head> — see the comment there.
 // ── URL PARAMS ──
 const P=new URLSearchParams(location.search);
 document.getElementById('tbAcct').textContent=P.get('name')||'My Account';
@@ -1580,6 +1650,9 @@ const INDS=[
   {cat:'trend',id:'DoubleEMA@tv-basicstudies',name:'DEMA',full:'Double Exponential MA',color:'#14b8a6',
    brief:'Double-smoothed, faster EMA',
    explain:'Uses two EMAs together to create an average that is both faster and smoother than a single EMA. Less lag means you get earlier signals on trend changes. Useful for medium-term trend following strategies.'},
+  {cat:'trend',id:'PivotPointsStandard@tv-basicstudies',name:'Pivots',full:'Pivot Points Standard',color:'#eab308',
+   brief:'Classic support/resistance levels for the session',
+   explain:'Plots the standard pivot point plus support (S1-S3) and resistance (R1-R3) levels calculated from the prior period\'s high, low and close. Widely used by day traders as pre-defined levels to watch for reversals or breakouts.'},
   // MOMENTUM
   {cat:'momentum',id:'RSI@tv-basicstudies',name:'RSI',full:'Relative Strength Index',color:'#a855f7',
    brief:'Overbought / oversold meter (0–100)',
@@ -1599,9 +1672,12 @@ const INDS=[
   {cat:'momentum',id:'ATR@tv-basicstudies',name:'ATR',full:'Average True Range',color:'#8b5cf6',
    brief:'How volatile the market is right now',
    explain:'Measures the average size of price moves. A high ATR = volatile market with big candles. Low ATR = quiet, tight trading. Essential for stop loss sizing: many professionals place stops at 1.5x or 2x ATR from entry. Does not show direction — only volatility.'},
-  {cat:'momentum',id:'DM@tv-basicstudies',name:'ADX',full:'Average Directional Index',color:'#06b6d4',
+  {cat:'momentum',id:'ADX@tv-basicstudies',name:'ADX',full:'Average Directional Index',color:'#06b6d4',
    brief:'How strong is the current trend?',
-   explain:'Measures trend strength from 0 to 100, regardless of direction. Below 20 = weak trend or ranging market. Above 25 = developing trend. Above 50 = very strong trend. Does not tell you direction — pair it with a directional indicator like EMA or MACD.'},
+   explain:'Measures trend strength from 0 to 100, regardless of direction. Below 20 = weak trend or ranging market. Above 25 = developing trend. Above 50 = very strong trend. Does not tell you direction — pair it with a directional indicator like EMA or MACD. This is the single ADX line only; for the +DI/-DI directional lines alongside it, add Directional Movement Index (DMI) separately.'},
+  {cat:'momentum',id:'DM@tv-basicstudies',name:'DMI',full:'Directional Movement Index',color:'#f97316',
+   brief:'Trend direction (+DI/-DI) plus ADX strength together',
+   explain:'Plots +DI (buying pressure), -DI (selling pressure) and ADX (trend strength) as three lines. +DI crossing above -DI while ADX is above 25 is a common bullish trend-strength signal; the reverse cross is bearish. Distinct from the standalone ADX indicator above, which shows trend strength alone with no direction.'},
   // VOLUME
   {cat:'volume',id:'Volume@tv-basicstudies',name:'Volume',full:'Volume Bars',color:'#6b7280',
    brief:'Number of trades each candle',
@@ -1631,18 +1707,52 @@ function saveChartLayout(){
   }catch(_){}
 }
 
+let indFilterQuery='';
+let indKbdIndex=-1;
+function matchesIndQuery(ind,q){
+  if(!q)return true;
+  const hay=(ind.name+' '+ind.full+' '+ind.brief+' '+ind.explain).toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every(term=>hay.includes(term));
+}
+function filterInds(q){
+  indFilterQuery=q||'';
+  indKbdIndex=-1;
+  document.getElementById('indSearchClear').hidden=!indFilterQuery;
+  buildIndList();
+}
+function clearIndSearch(){
+  const inp=document.getElementById('indSearch');
+  if(inp)inp.value='';
+  filterInds('');
+  if(inp)inp.focus();
+}
+function indSearchKeydown(e){
+  const visible=[...document.querySelectorAll('#indList .ind-item')];
+  if(!visible.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();indKbdIndex=Math.min(visible.length-1,indKbdIndex+1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();indKbdIndex=Math.max(0,indKbdIndex-1);}
+  else if(e.key==='Enter'){e.preventDefault();const t=visible[indKbdIndex>=0?indKbdIndex:0];if(t)t.click();return;}
+  else return;
+  visible.forEach(el=>el.classList.remove('kbd-hover'));
+  const cur=visible[indKbdIndex];
+  if(cur){cur.classList.add('kbd-hover');cur.scrollIntoView({block:'nearest'});}
+}
 function buildIndList(){
   const listEl=document.getElementById('indList');
   if(!listEl)return;
   const cats=['trend','momentum','volume'];
   const labels={trend:'Trend',momentum:'Momentum & Oscillators',volume:'Volume'};
+  const q=indFilterQuery;
   let html='';
+  let totalShown=0;
   cats.forEach(cat=>{
-    const items=INDS.filter(i=>i.cat===cat);
+    const items=INDS.filter(i=>i.cat===cat&&matchesIndQuery(i,q));
+    if(!items.length)return;
+    totalShown+=items.length;
     html+=`<div class="ind-cat-hd">${labels[cat]}</div>`;
     items.forEach(ind=>{
       const on=selectedStudies.has(ind.id);
-      html+=`<div class="ind-item${on?' on':''}" onclick="toggleInd('${ind.id}',this)">
+      html+=`<div class="ind-item${on?' on':''}" onclick="toggleInd('${ind.id}',this)" role="option" aria-selected="${on}" tabindex="-1">
         <div class="ind-check"></div>
         <div class="ind-dot" style="background:${ind.color}"></div>
         <div class="ind-info">
@@ -1654,6 +1764,11 @@ function buildIndList(){
     });
   });
   listEl.innerHTML=html;
+  const noRes=document.getElementById('indNoResults');
+  if(noRes){
+    noRes.hidden=totalShown>0;
+    if(!totalShown)document.getElementById('indNoResultsQuery').textContent=q;
+  }
   updateSelCount();
 }
 
@@ -1902,6 +2017,14 @@ let currentStyle=1;
 function buildChart(){
   const container=document.getElementById('tv_chart_container');
   container.innerHTML='';
+  const loading=document.getElementById('chartLoading');
+  if(loading){
+    loading.hidden=false;
+    clearTimeout(loading._safety);
+    // Safety net: never leave the overlay stuck up if the iframe's load
+    // event is somehow missed (e.g. blocked by an ad/script blocker).
+    loading._safety=setTimeout(()=>{loading.hidden=true;},20000);
+  }
   const dark=isDarkMode;
   const ga=GRID_ALPHAS[gridMode];
   const gridC=dark?`rgba(255,255,255,${ga})`:`rgba(0,0,0,${ga})`;
@@ -1941,6 +2064,16 @@ function buildChart(){
       'mainSeriesProperties.areaStyle.linecolor':'#2563eb',
     },
   });
+  // The widget inserts its iframe synchronously but the iframe's own
+  // content (TradingView's app bundle + historical data) takes several
+  // seconds to become visible — hide our overlay once that iframe
+  // actually finishes loading rather than on a guessed delay.
+  requestAnimationFrame(()=>{
+    const frame=container.querySelector('iframe');
+    if(frame&&loading){
+      frame.addEventListener('load',()=>{loading.hidden=true;clearTimeout(loading._safety);},{once:true});
+    }
+  });
 }
 
 function rebuildChart(){
@@ -1948,18 +2081,104 @@ function rebuildChart(){
 }
 
 // ── TIMEFRAME CONTROLS ──
+// Rebuilding the chart costs several real seconds (the widget's iframe has
+// to reload TradingView's own app + history), so re-clicking the already
+// active timeframe/style must not pay that cost for a no-op change.
 function setTf(tf,btn){
-  currentTf=tf;
   document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  if(tf===currentTf)return;
+  currentTf=tf;
   rebuildChart();
 }
 
 function setStyle(style,btn){
-  currentStyle=style;
   document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  if(style===currentStyle)return;
+  currentStyle=style;
   rebuildChart();
+}
+
+// ── FULL-SCREEN TRADING MODE ──
+let isFullscreenMode=false;
+function updateFullscreenBtn(){
+  const btn=document.getElementById('fullscreenBtn');
+  const enterIc=document.getElementById('fullscreenIconEnter');
+  const exitIc=document.getElementById('fullscreenIconExit');
+  if(!btn)return;
+  btn.classList.toggle('active',isFullscreenMode);
+  btn.title=isFullscreenMode?'Exit full-screen trading mode':'Enter full-screen trading mode';
+  btn.setAttribute('aria-label',btn.title);
+  if(enterIc)enterIc.hidden=isFullscreenMode;
+  if(exitIc)exitIc.hidden=!isFullscreenMode;
+}
+function nudgeChartResize(){
+  // The TradingView widget's autosize watches window resize to fill its
+  // container. Entering/exiting fullscreen changes that container's size
+  // without a guaranteed native resize event in time, so nudge it once
+  // the transition has actually settled.
+  setTimeout(()=>window.dispatchEvent(new Event('resize')),50);
+  setTimeout(()=>window.dispatchEvent(new Event('resize')),350);
+}
+function enterFocusModeFallback(){
+  document.body.classList.add('focus-mode');
+  isFullscreenMode=true;
+  updateFullscreenBtn();
+  nudgeChartResize();
+}
+function exitFocusModeFallback(){
+  document.body.classList.remove('focus-mode');
+  isFullscreenMode=false;
+  updateFullscreenBtn();
+  nudgeChartResize();
+}
+function isNativeFullscreen(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
+function toggleFullscreen(){
+  if(document.body.classList.contains('focus-mode')&&!isNativeFullscreen()){
+    exitFocusModeFallback();
+    return;
+  }
+  if(isNativeFullscreen()){
+    const exit=document.exitFullscreen||document.webkitExitFullscreen;
+    if(exit)exit.call(document);
+    return;
+  }
+  const el=document.documentElement;
+  const request=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(request){
+    Promise.resolve(request.call(el)).catch(()=>{enterFocusModeFallback();});
+  } else {
+    // Fullscreen API unavailable (denied by an embedding iframe, or an
+    // older browser) — fall back to an in-page focus mode rather than
+    // doing nothing.
+    enterFocusModeFallback();
+  }
+}
+function onFullscreenChange(){
+  isFullscreenMode=isNativeFullscreen()||document.body.classList.contains('focus-mode');
+  updateFullscreenBtn();
+  nudgeChartResize();
+}
+document.addEventListener('fullscreenchange',onFullscreenChange);
+document.addEventListener('webkitfullscreenchange',onFullscreenChange);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&document.body.classList.contains('focus-mode')&&!isNativeFullscreen())exitFocusModeFallback();
+});
+// Exiting to the dashboard from full-screen mode must not leave the
+// browser stuck in full screen (or the page stuck in focus-mode) behind
+// a navigation the user can no longer see the chrome to recover from.
+function leaveFullscreenThen(href){
+  const nativeFs=isNativeFullscreen();
+  const focusFs=document.body.classList.contains('focus-mode');
+  if(!nativeFs&&!focusFs)return true; // nothing to clean up — let the link navigate normally
+  if(focusFs)exitFocusModeFallback();
+  if(nativeFs){
+    const exit=document.exitFullscreen||document.webkitExitFullscreen;
+    if(exit){Promise.resolve(exit.call(document)).finally(()=>{location.href=href;});return false;}
+  }
+  location.href=href;
+  return false;
 }
 
 // ── PANEL TOGGLES ──
@@ -1970,38 +2189,63 @@ function toggleGuide(){
   const hidden=g.classList.contains('hidden');
   g.style.width=hidden?'':guideExpandedWidth+'px';
 }
+// ── SHARED DRAG-TO-RESIZE (pointer events + capture) ──
+// Pointer capture ties every subsequent move/up/cancel event to the handle
+// itself, regardless of what's under the cursor — including the TradingView
+// iframe, which otherwise swallows mousemove/mouseup and leaves a plain
+// mousedown/mousemove/mouseup drag stuck "attached" to the pointer forever.
+// Also cancels on right-click, Escape, and window blur so there is no path
+// that leaves dragging=true with no way to release it.
+function makeDragResizer({handle,container,axis,min,max,resize,getStart}){
+  let dragging=false,startPos=0,startSize=0,pointerId=null;
+  const axisPos=e=>axis==='x'?e.clientX:e.clientY;
+  const begin=e=>{
+    if(getStart&&getStart()===false)return;
+    dragging=true;startPos=axisPos(e);
+    startSize=container.getBoundingClientRect()[axis==='x'?'width':'height'];
+    pointerId=e.pointerId;
+    try{handle.setPointerCapture(pointerId);}catch(_){}
+    container.classList.add('resizing');
+    document.body.style.userSelect='none';
+    e.preventDefault();
+  };
+  const move=e=>{
+    if(!dragging)return;
+    const delta=axisPos(e)-startPos;
+    const size=Math.min(max(),Math.max(min,resize(startSize,delta)));
+    container.style[axis==='x'?'width':'height']=size+'px';
+    return size;
+  };
+  const end=()=>{
+    if(!dragging)return;
+    dragging=false;
+    container.classList.remove('resizing');
+    document.body.style.userSelect='';
+    if(pointerId!=null){try{handle.releasePointerCapture(pointerId);}catch(_){}}
+    pointerId=null;
+  };
+  handle.addEventListener('pointerdown',e=>{if(e.button===0||e.pointerType!=='mouse')begin(e);});
+  handle.addEventListener('pointermove',move);
+  handle.addEventListener('pointerup',end);
+  handle.addEventListener('pointercancel',end);
+  handle.addEventListener('lostpointercapture',end);
+  handle.addEventListener('contextmenu',e=>{e.preventDefault();end();});
+  window.addEventListener('blur',end);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')end();});
+  return {isDragging:()=>dragging,cancel:end};
+}
+
 // ── DRAG-TO-RESIZE GUIDE PANEL ──
 (function(){
   const panel=document.getElementById('guidePanel');
   const handle=document.getElementById('guideResizeHandle');
   if(!panel||!handle)return;
-  const MIN_W=180,MAX_W=()=>Math.round(window.innerWidth*0.5);
-  let dragging=false,startX=0,startW=0;
-  const start=(x)=>{
-    if(panel.classList.contains('hidden'))return;
-    dragging=true;startX=x;startW=panel.getBoundingClientRect().width;
-    panel.classList.add('resizing');
-    document.body.style.userSelect='none';
-  };
-  const move=(x)=>{
-    if(!dragging)return;
-    const dx=x-startX; // dragging left (negative dx) widens the right-side panel
-    const w=Math.min(MAX_W(),Math.max(MIN_W,startW-dx));
-    panel.style.width=w+'px';
-    guideExpandedWidth=w;
-  };
-  const end=()=>{
-    if(!dragging)return;
-    dragging=false;
-    panel.classList.remove('resizing');
-    document.body.style.userSelect='';
-  };
-  handle.addEventListener('mousedown',e=>{start(e.clientX);e.preventDefault();});
-  window.addEventListener('mousemove',e=>move(e.clientX));
-  window.addEventListener('mouseup',end);
-  handle.addEventListener('touchstart',e=>start(e.touches[0].clientX),{passive:true});
-  window.addEventListener('touchmove',e=>move(e.touches[0].clientX),{passive:true});
-  window.addEventListener('touchend',end);
+  makeDragResizer({
+    handle,container:panel,axis:'x',min:180,max:()=>Math.round(window.innerWidth*0.5),
+    getStart:()=>!panel.classList.contains('hidden'),
+    // dragging left (negative delta) widens the right-side panel
+    resize:(startW,dx)=>{const w=startW-dx;guideExpandedWidth=Math.min(Math.round(window.innerWidth*0.5),Math.max(180,w));return w;},
+  });
 })();
 
 // ── GUIDE TABS ──
@@ -2043,45 +2287,11 @@ function toggleBtm(){
   const outer=document.getElementById('btmOuter');
   const handle=document.getElementById('btmResizeHandle');
   if(!outer||!handle)return;
-  const MIN_H=120,MAX_H=()=>Math.round(window.innerHeight*0.75);
-  let dragging=false,startY=0,startH=0;
-  handle.addEventListener('mousedown',e=>{
-    if(outer.classList.contains('collapsed'))return;
-    dragging=true;startY=e.clientY;startH=outer.getBoundingClientRect().height;
-    outer.classList.add('resizing');
-    document.body.style.userSelect='none';
-    e.preventDefault();
-  });
-  window.addEventListener('mousemove',e=>{
-    if(!dragging)return;
-    const dy=e.clientY-startY;
-    const h=Math.min(MAX_H(),Math.max(MIN_H,startH-dy));
-    outer.style.height=h+'px';
-    btmExpandedHeight=h;
-  });
-  window.addEventListener('mouseup',()=>{
-    if(!dragging)return;
-    dragging=false;
-    outer.classList.remove('resizing');
-    document.body.style.userSelect='';
-  });
-  // touch support
-  handle.addEventListener('touchstart',e=>{
-    if(outer.classList.contains('collapsed'))return;
-    dragging=true;startY=e.touches[0].clientY;startH=outer.getBoundingClientRect().height;
-    outer.classList.add('resizing');
-  },{passive:true});
-  window.addEventListener('touchmove',e=>{
-    if(!dragging)return;
-    const dy=e.touches[0].clientY-startY;
-    const h=Math.min(MAX_H(),Math.max(MIN_H,startH-dy));
-    outer.style.height=h+'px';
-    btmExpandedHeight=h;
-  },{passive:true});
-  window.addEventListener('touchend',()=>{
-    if(!dragging)return;
-    dragging=false;
-    outer.classList.remove('resizing');
+  makeDragResizer({
+    handle,container:outer,axis:'y',min:120,max:()=>Math.round(window.innerHeight*0.75),
+    getStart:()=>!outer.classList.contains('collapsed'),
+    // dragging up (negative delta) grows the bottom panel
+    resize:(startH,dy)=>{const h=startH-dy;btmExpandedHeight=Math.min(Math.round(window.innerHeight*0.75),Math.max(120,h));return h;},
   });
 })();
 
@@ -2473,6 +2683,35 @@ function renderPending(){
   host.parentNode.insertBefore(box,host);
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// Full Pending Orders tab in the bottom account panel — the compact
+// list above (renderPending) stays for an at-a-glance view next to the
+// order ticket; this is the detailed table with every field, matching
+// the Positions / Closed Positions tabs next to it.
+function renderPendingTable(){
+  const body=document.getElementById('pendTableBody');
+  const badge=document.getElementById('pendBadge');
+  const p=(engineState&&engineState.pending_orders)||[];
+  if(badge)badge.textContent=p.length;
+  if(!body)return;
+  const rows=p.map(o=>`<tr>
+      <td>${esc(o.symbol)}</td>
+      <td>${esc((o.order_type||'').toUpperCase())}</td>
+      <td><span class="postbl-side ${o.side}">${esc((o.side||'').toUpperCase())}</span></td>
+      <td>${(+o.volume).toFixed(2)}</td>
+      <td>${fmtPx(o.trigger_price)}</td>
+      <td>${o.sl!=null?fmtPx(o.sl):'—'}</td>
+      <td>${o.tp!=null?fmtPx(o.tp):'—'}</td>
+      <td>${utcStamp(o.created_at)}</td>
+      <td>${o.expires_at?utcStamp(o.expires_at):'—'}</td>
+      <td><span class="postbl-side">${esc((o.status||'pending').toUpperCase())}</span></td>
+      <td class="postbl-id">${String(o.id).slice(0,8).toUpperCase()}</td>
+      <td><div class="postbl-act">
+        <div class="postbl-act-btn" title="Cancel" onclick="cancelPending('${o.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div></td>
+    </tr>`).join('');
+  body.innerHTML=rows||'<tr><td colspan="12"><div class="postbl-empty">'+(hasSession()?'No pending orders':'Log in to trade')+'</div></td></tr>';
+}
 function joinSide(side){placeOrder(side==='bid'?'sell':'buy');}
 async function closeTradeById(id){
   if(engineBusy)return;engineBusy=true;
@@ -2603,6 +2842,7 @@ function animatePnl(key,el,target,signClass){
 function renderPositions(){
   try{renderChallenge();}catch(_){/* challenge panel must never block positions */}
   try{renderPending();}catch(_){}
+  try{renderPendingTable();}catch(_){}
   const o=(engineState&&engineState.open_trades)||[];
   const list=document.getElementById('ord-pos-list');
   if(list){
@@ -2668,6 +2908,7 @@ function renderPosTable(o){
       <td>${utcStamp(p.opened_at)}</td>
       <td>—</td><td>—</td>
       <td class="postbl-pnl" id="tblpnl-${p.id}">—</td>
+      <td class="postbl-id">${p.order_id!=null?'#'+p.order_id:'—'}</td>
       <td class="postbl-id">${String(p.id).slice(0,8).toUpperCase()}</td>
       <td><div class="postbl-act">
         <div class="postbl-act-btn act-edit" title="Modify stop loss / take profit" onclick="openModifyDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
@@ -2676,7 +2917,7 @@ function renderPosTable(o){
       </div></td>
     </tr>`;
   }).join('');
-  if(body)body.innerHTML=rows||'<tr><td colspan="14"><div class="postbl-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div></td></tr>';
+  if(body)body.innerHTML=rows||'<tr><td colspan="15"><div class="postbl-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div></td></tr>';
   o.forEach(p=>{
     const pnl=(p.live_pnl==null)?null:+p.live_pnl;
     animatePnl('tbl-'+p.id,document.getElementById('tblpnl-'+p.id),pnl,pos=>'postbl-pnl '+(pos?'pos':'neg'));
@@ -2743,10 +2984,11 @@ function renderClosedTable(){
       <td>—</td><td>—</td>
       <td class="postbl-pnl ${isPos?'pos':'neg'}">${signedMoney(pnl)}</td>
       <td class="postbl-pnl ${isPos?'pos':'neg'}">${signedMoney(pnl)}</td>
+      <td class="postbl-id">${t.order_id!=null?'#'+t.order_id:'—'}</td>
       <td class="postbl-id">${String(t.id).slice(0,8).toUpperCase()}</td>
     </tr>`;
   }).join('');
-  body.innerHTML=html||'<tr><td colspan="15"><div class="postbl-empty">No closed positions in this period</div></td></tr>';
+  body.innerHTML=html||'<tr><td colspan="16"><div class="postbl-empty">No closed positions in this period</div></td></tr>';
   const sumEl=document.getElementById('closedSummary');
   if(sumEl)sumEl.innerHTML=`Total P&amp;L <b style="color:${totalPnl>=0?'var(--green)':'var(--red)'}">${signedMoney(totalPnl)}</b> &nbsp; Amount <b>${totalAmt.toFixed(2)}</b>`;
 }
@@ -2957,7 +3199,7 @@ const KB=[
    reply:`<b>Stochastic</b> shows where price sits within its recent range (0–100).\n\n• Above 80 → overbought\n• Below 20 → oversold\n• K line crossing D line in oversold zone → classic buy signal`,ind:'Stochastic@tv-basicstudies'},
   {keys:['adx','directional index','trend strength'],
    title:'ADX',
-   reply:`<b>ADX</b> measures trend strength (0–100) regardless of direction.\n\n• Below 20 → ranging, no clear trend\n• Above 25 → trend developing\n• Above 50 → very strong trend\n\nPair with EMA or MACD for direction.`,ind:'DM@tv-basicstudies'},
+   reply:`<b>ADX</b> measures trend strength (0–100) regardless of direction.\n\n• Below 20 → ranging, no clear trend\n• Above 25 → trend developing\n• Above 50 → very strong trend\n\nPair with EMA or MACD for direction.`,ind:'ADX@tv-basicstudies'},
   {keys:['parabolic','sar','trailing stop'],
    title:'Parabolic SAR',
    reply:`<b>Parabolic SAR</b> plots dots above or below price.\n\n• Dots below → uptrend active\n• Dots above → downtrend active\n• When dots flip side → potential trend reversal\n\nExcellent for trailing stop loss placement.`,ind:'PSAR@tv-basicstudies'},
@@ -3269,13 +3511,13 @@ const SETUP_IND_MAP={
   'atr':['ATR@tv-basicstudies'],'average true range':['ATR@tv-basicstudies'],
   'ichimoku':['IchimokuCloud@tv-basicstudies'],'cloud':['IchimokuCloud@tv-basicstudies'],
   'cci':['CCI@tv-basicstudies'],'commodity channel':['CCI@tv-basicstudies'],
-  'adx':['DM@tv-basicstudies'],
+  'adx':['ADX@tv-basicstudies'],'dmi':['DM@tv-basicstudies'],'directional movement':['DM@tv-basicstudies'],
   'psar':['PSAR@tv-basicstudies'],'parabolic':['PSAR@tv-basicstudies'],
   'pivot':['PivotPointsStandard@tv-basicstudies'],'pivots':['PivotPointsStandard@tv-basicstudies'],
   'divergence':['MACD@tv-basicstudies','RSI@tv-basicstudies'],
   'scalp':['MAExp@tv-basicstudies','RSI@tv-basicstudies','VWAP@tv-basicstudies'],
   'swing':['MAExp@tv-basicstudies','MACD@tv-basicstudies','BB@tv-basicstudies'],
-  'trend following':['MAExp@tv-basicstudies','DM@tv-basicstudies','PSAR@tv-basicstudies'],
+  'trend following':['MAExp@tv-basicstudies','ADX@tv-basicstudies','PSAR@tv-basicstudies'],
 };
 const SETUP_TF_MAP={
   '1m':'1','1 min':'1','1min':'1','one minute':'1',
@@ -3328,14 +3570,11 @@ function renderSetupChips(){
   const wrap2=document.getElementById('setupChips2');
   const {inds,tf,style}=setupDetected;
   if(!inds.length&&!tf&&!style){wrap.innerHTML='<span class="sc-empty">Start typing to detect…</span>';return;}
-  const IND_NAMES={
-    'MASimple@tv-basicstudies':'SMA','MAExp@tv-basicstudies':'EMA','BB@tv-basicstudies':'Bollinger Bands',
-    'MACD@tv-basicstudies':'MACD','RSI@tv-basicstudies':'RSI','Stochastic@tv-basicstudies':'Stochastic',
-    'VWAP@tv-basicstudies':'VWAP','Volume@tv-basicstudies':'Volume','ATR@tv-basicstudies':'ATR',
-    'IchimokuCloud@tv-basicstudies':'Ichimoku','CCI@tv-basicstudies':'CCI','DM@tv-basicstudies':'ADX',
-    'PSAR@tv-basicstudies':'Parabolic SAR',
-    'PivotPointsStandard@tv-basicstudies':'Pivots',
-  };
+  // Derived from the single INDS registry rather than a second hand-kept
+  // list, so a label can never drift out of sync with the real study id
+  // (exactly the bug class that had "ADX" pointing at the DMI study).
+  const IND_NAMES=Object.fromEntries(INDS.map(i=>[i.id,i.name]));
+  IND_NAMES['PivotPointsStandard@tv-basicstudies']=IND_NAMES['PivotPointsStandard@tv-basicstudies']||'Pivots';
   const TF_DISPLAY={'1':'1M','3':'3M','5':'5M','15':'15M','30':'30M','60':'1H','120':'2H','240':'4H','D':'1D','W':'1W'};
   const STYLE_DISPLAY={1:'Candles',2:'Line',3:'Bars',8:'Heikin Ashi'};
   let html='';
@@ -3510,14 +3749,7 @@ initTheme();
 buildIndList();
 updatePnlPreview();
 
-if(typeof TradingView!=='undefined'){
-  buildChart();
-} else {
-  const s=document.createElement('script');
-  s.src='https://s3.tradingview.com/tv.js';
-  s.onload=buildChart;
-  document.head.appendChild(s);
-}
+window.__tvReady.then(buildChart);
 </script>
 
 <!-- ── SETUP MODAL ── -->
