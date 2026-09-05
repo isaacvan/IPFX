@@ -16,10 +16,10 @@ line between "verified" and "authored, pending verification" throughout.
 
 | Area | File | Status |
 |---|---|---|
-| Full data model (36 tables incl. `person`/`review_case`/`audit_event`/etc.) | `internal-control-core.sql` | **Written, NOT yet deployed** — see "Deployment log" below |
-| RLS: owner-only tables + trader-own-row tables | same file, §10 | Written, not yet deployed |
-| Append-only audit hash chain | same file, §8 | Written, not yet deployed |
-| Terms/rule-policy immutability once referenced by a live challenge | same file, §9a | Written, not yet deployed |
+| Full data model (36 tables incl. `person`/`review_case`/`audit_event`/etc.) | `internal-control-core.sql` | **Deployed to production Supabase, verified** — see "Deployment log" below |
+| RLS: owner-only tables + trader-own-row tables | same file, §10 | Deployed; `rowsecurity=true` confirmed on a sample of owner-only and trader-visible tables |
+| Append-only audit hash chain | same file, §8 | Deployed and **live-tested**: appended two real events, `fn_verify_audit_chain()` returned zero rows (chain intact), then confirmed the append-only trigger genuinely blocks deletion (attempted a cleanup delete on the test rows — correctly rejected) |
+| Terms/rule-policy immutability once referenced by a live challenge | same file, §9a | Deployed, not yet live-tested with a real challenge_instance row (no traits have one yet — pre-launch) |
 | Deterministic metrics (PF, expectancy, Sharpe/Sortino, drawdown, exposure, HHI, etc.) | `internal-control/lib/metrics.ts` | Authored, unexecuted |
 | Block bootstrap, Monte Carlo path sim, BH-FDR, evidence confidence, data quality | `internal-control/lib/probability.ts` | Authored, unexecuted |
 | Review state machine (human-only rejection, independent appeal reviewer) | `internal-control/lib/review-state-machine.ts` | Authored, unexecuted |
@@ -64,26 +64,35 @@ line between "verified" and "authored, pending verification" throughout.
 
 ## Deployment log
 
-- **Not yet deployed.** The browser-automation connection this session used
-  earlier to drive the Supabase SQL editor (Claude in Chrome, on the user's
-  own logged-in Chrome) disconnected mid-session and did not reconnect after
-  several retries, with the user away for the next few hours. `git` push
-  went through fine (no browser needed for that) — everything under
-  `internal-control/`, `docs/risk-framework/`, and `internal-control-core.sql`
-  is committed and pushed to `origin/main`, but the SQL has not been run
-  against the live database and none of it takes effect until it is.
-- **To deploy once reconnected:** paste the contents of
-  `internal-control-core.sql` into the Supabase SQL editor
-  (`https://supabase.com/dashboard/project/agulweemteoeagscmppy/sql/new`) and
-  run it, or fetch it via
-  `https://raw.githubusercontent.com/isaacvan/IPFX/main/internal-control-core.sql`
-  from inside that editor's console the same way every other migration this
-  session was deployed. It is idempotent — safe to run more than once.
-- Verification query to run immediately after:
-  `select * from public.fn_verify_audit_chain();` → confirm zero rows before
-  trusting the chain on an ongoing basis.
-- `select public.fn_is_admin();` while authenticated as an existing
-  `public.admins` row should return `true`; as any other user, `false`.
+- **Deployed.** Ran clean against the live production Supabase project on
+  the first attempt (all 36 tables, RLS, triggers, audit-chain functions).
+  Supabase's own pre-run linter flagged "creates tables without enabling
+  RLS" as a false positive — it can't see RLS being enabled via the
+  `do $$ ... execute format('alter table %I enable row level security')
+  ... $$` loops used for the owner-only table group; every table was in
+  fact already covered. Chose "Run and enable RLS" anyway (harmless no-op
+  where already covered, a safety net if this analysis missed anything).
+- **A real bug was found and fixed during deployment, not just review.**
+  `fn_append_audit_event()` initially failed with
+  `function digest(text, unknown) does not exist` on its first live call.
+  Cause: Supabase installs `pgcrypto` into the `extensions` schema, not
+  `public` — confirmed via `select extnamespace::regnamespace from
+  pg_extension where extname='pgcrypto'` → `extensions`. `fn_sha256`,
+  `fn_encrypt_pii`, and `fn_decrypt_pii` all called pgcrypto functions
+  without `extensions` in their `search_path`, which only breaks at CALL
+  time, not CREATE time — exactly why running this for real mattered more
+  than the hand-review alone. Fixed by adding
+  `set search_path = public, extensions` to all three; re-verified live
+  with two real `fn_append_audit_event()` calls forming a genuine two-link
+  chain, `fn_verify_audit_chain()` returning zero rows (intact), and a
+  direct attempt to delete the two test rows being correctly rejected by
+  the append-only trigger (`fn_audit_immutable`) — proving the immutability
+  guarantee holds even for the two harmless test rows, which is why they
+  were left in place rather than fought past.
+- Verification queries used (safe to re-run any time):
+  `select * from public.fn_verify_audit_chain();` → zero rows.
+  `select public.fn_is_admin();` while authenticated as an existing
+  `public.admins` row → `true`; as any other user → `false`.
 
 ## How to verify each §19.1 acceptance item
 

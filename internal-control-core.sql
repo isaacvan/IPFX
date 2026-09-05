@@ -66,22 +66,30 @@ begin
 end;
 $$;
 
+-- NOTE: pgcrypto's functions (pgp_sym_encrypt/decrypt, digest) install
+-- into the `extensions` schema on Supabase, not `public` — confirmed by
+-- querying pg_extension against the live project. Every function below
+-- that calls one explicitly adds `extensions` to search_path; omitting
+-- this fails at CALL time with "function digest(text, unknown) does not
+-- exist", not at CREATE time, so it's easy to miss without actually
+-- running it once (as happened here — found and fixed via a live test
+-- call, not caught by review alone).
 create or replace function public.fn_encrypt_pii(plaintext text) returns bytea
-language sql stable as $$
+language sql stable set search_path = public, extensions as $$
   select case when plaintext is null then null
     else pgp_sym_encrypt(plaintext, public.fn_pii_key())
   end;
 $$;
 
 create or replace function public.fn_decrypt_pii(ciphertext bytea) returns text
-language sql stable as $$
+language sql stable set search_path = public, extensions as $$
   select case when ciphertext is null then null
     else pgp_sym_decrypt(ciphertext, public.fn_pii_key())
   end;
 $$;
 
 create or replace function public.fn_sha256(input text) returns text
-language sql immutable as $$
+language sql immutable set search_path = public, extensions as $$
   select encode(digest(coalesce(input,''), 'sha256'), 'hex');
 $$;
 
