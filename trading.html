@@ -2045,6 +2045,12 @@ function buildChart(){
     withdateranges:true,
     hide_volume:false,
     studies:[...selectedStudies],
+    // Hide TradingView's own native Indicators button — it opens their
+    // free-plan-limited picker, which competes with (and would confuse
+    // traders alongside) the iPFX Indicators tab in the side panel. Only
+    // this one header feature is disabled; documented, supported config
+    // for the embeddable widget (not a CSS/DOM hack on their iframe).
+    disabled_features:['header_indicators'],
     overrides:{
       'paneProperties.background':dark?'#0a0a0c':'#ffffff',
       'paneProperties.backgroundType':'solid',
