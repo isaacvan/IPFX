@@ -874,7 +874,8 @@ begin
     'person','device','session','api_token','trading_account','challenge_product','terms_version',
     'rule_definition','rule_policy','challenge_instance','objective','trade_order','position',
     'review_case','appeal','flag_definition','flag_case','risk_limit','kill_switch',
-    'internal_capital_decision','payout_request','broker_account','replication_event','dest_order'
+    'internal_capital_decision','payout_request','broker_account','replication_event','dest_order',
+    'review_policy_config'
   ]) loop
     execute format('drop trigger if exists trg_touch_updated_at on public.%I;', t);
     execute format('create trigger trg_touch_updated_at before update on public.%I for each row execute function public.fn_touch_updated_at();', t);
