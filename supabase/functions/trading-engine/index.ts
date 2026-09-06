@@ -53,7 +53,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-ipfx-bot-token",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -977,13 +977,20 @@ Deno.serve(async (req) => {
   // A bot token only ever resolves to that same trader's auth_user_id, so
   // every downstream check (account ownership, RLS-equivalent filters by
   // user.id) applies identically regardless of which path authenticated it.
+  //
+  // The bot token travels in X-IPFX-Bot-Token, NOT Authorization: Supabase's
+  // edge gateway rejects any Authorization value that isn't JWT-shaped
+  // before a function's own code ever runs, so a bot caller must still send
+  // the public anon key as a normal Bearer token in Authorization (exactly
+  // like the browser already does) and put its real credential here instead.
   const authHeader = req.headers.get("Authorization") ?? "";
-  const bearer = authHeader.replace(/^Bearer\s+/i, "");
+  const botTokenHeader = req.headers.get("X-IPFX-Bot-Token") ?? "";
   // deno-lint-ignore no-explicit-any
   let user: any = null;
   let authMethod: "session" | "bot" = "session";
 
-  if (bearer.startsWith("ipfx_bot_")) {
+  if (botTokenHeader.startsWith("ipfx_bot_")) {
+    const bearer = botTokenHeader;
     authMethod = "bot";
     const tokenHash = await sha256Hex(bearer);
     const { data: tokenRow } = await db.from("api_token")
