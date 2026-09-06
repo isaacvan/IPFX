@@ -4,13 +4,28 @@ Companion to `docs/risk-framework/deepseek-ipfx-report.md`. This tracks what was
 actually built against that report's Phase 0-3 scope, how to verify it, and
 exactly what remains before Phase 4+ can even be discussed.
 
-**Environment note, stated once and load-bearing for everything below:** the
-session that authored this had no Node.js/npm installed. Every `.ts` file
-under `internal-control/` was written and hand-reviewed but **never compiled
-or run**. The SQL in `internal-control-core.sql` was deployed against the
-live Supabase project's SQL editor, which is real Postgres — that part *was*
-executed and its own errors (if any) are real. Treat that difference as the
-line between "verified" and "authored, pending verification" throughout.
+**Environment note, updated mid-session:** this started with no Node.js/npm
+installed, so the TS modules below were originally written and hand-reviewed
+but not compiled. **Node.js was installed partway through this session**
+(`winget install OpenJS.NodeJS.LTS`, v24.19.0) and everything has now
+actually been compiled and run. Results:
+- `tsc --strict` on all 5 lib files + the test suite: **zero type errors**.
+- `internal-control/tests/core.test.ts` (compiled to JS, run with node):
+  **26/26 passed, 0 failed** — first real execution, no fixes needed to the
+  library code itself.
+- `tests/indicator-registry.test.js` (pre-existing, from the earlier trading-
+  terminal-upgrade pass): **172/172 assertions passed** after fixing a bug in
+  the *test harness itself* (Node's `vm` module doesn't attach top-level
+  `const`/`let` bindings to the context object — only `var`/function
+  declarations do — so the test silently saw `INDS`/`SETUP_IND_MAP` as
+  `undefined` even though the underlying script ran with no error; fixed by
+  appending an explicit `this.INDS = INDS` trailer).
+- The SQL in `internal-control-core.sql` and `order-position-id-integrity.sql`
+  were deployed against the live Supabase project's SQL editor — that part
+  *was* executed the whole time and its own errors were real (see the
+  pgcrypto `search_path` bug found and fixed there).
+- **Not yet run:** the actual Next.js dashboard (`internal-control/dashboard`)
+  — `npm install` there hasn't been attempted yet; see its own section below.
 
 ## What exists
 
@@ -20,12 +35,12 @@ line between "verified" and "authored, pending verification" throughout.
 | RLS: owner-only tables + trader-own-row tables | same file, §10 | Deployed; `rowsecurity=true` confirmed on a sample of owner-only and trader-visible tables |
 | Append-only audit hash chain | same file, §8 | Deployed and **live-tested**: appended two real events, `fn_verify_audit_chain()` returned zero rows (chain intact), then confirmed the append-only trigger genuinely blocks deletion (attempted a cleanup delete on the test rows — correctly rejected) |
 | Terms/rule-policy immutability once referenced by a live challenge | same file, §9a | Deployed, not yet live-tested with a real challenge_instance row (no traits have one yet — pre-launch) |
-| Deterministic metrics (PF, expectancy, Sharpe/Sortino, drawdown, exposure, HHI, etc.) | `internal-control/lib/metrics.ts` | Authored, unexecuted |
-| Block bootstrap, Monte Carlo path sim, BH-FDR, evidence confidence, data quality | `internal-control/lib/probability.ts` | Authored, unexecuted |
-| Review state machine (human-only rejection, independent appeal reviewer) | `internal-control/lib/review-state-machine.ts` | Authored, unexecuted |
-| Similarity scoring, cohort z-score, FDR, deterministic clustering | `internal-control/lib/similarity.ts` | Authored, unexecuted |
-| Alert dedup/cooldown/throttle/quiet-hours/dead-letter | `internal-control/lib/alerts.ts` | Authored, unexecuted |
-| Test suite mirroring §19.1 acceptance criteria | `internal-control/tests/core.test.ts` | Authored, unexecuted — **run this first** in any environment that picks this up |
+| Deterministic metrics (PF, expectancy, Sharpe/Sortino, drawdown, exposure, HHI, etc.) | `internal-control/lib/metrics.ts` | **Type-checks clean, 6/6 of its tests pass** |
+| Block bootstrap, Monte Carlo path sim, BH-FDR, evidence confidence, data quality | `internal-control/lib/probability.ts` | **Type-checks clean, 7/7 of its tests pass** |
+| Review state machine (human-only rejection, independent appeal reviewer) | `internal-control/lib/review-state-machine.ts` | **Type-checks clean, 6/6 of its tests pass** |
+| Similarity scoring, cohort z-score, FDR, deterministic clustering | `internal-control/lib/similarity.ts` | **Type-checks clean, 3/3 of its tests pass** |
+| Alert dedup/cooldown/throttle/quiet-hours/dead-letter | `internal-control/lib/alerts.ts` | **Type-checks clean, 4/4 of its tests pass** |
+| Test suite mirroring §19.1 acceptance criteria | `internal-control/tests/core.test.ts` | **Run: 26/26 passed.** Re-run with (from repo root, after `npm install -D typescript` somewhere on PATH): `tsc --target ES2022 --lib ES2022,DOM --module commonjs --esModuleInterop --outDir /tmp/ipfx-build internal-control/lib/*.ts internal-control/tests/core.test.ts && node /tmp/ipfx-build/tests/core.test.js` |
 
 ## What does NOT exist yet (explicitly out of scope this pass)
 
