@@ -1,0 +1,34 @@
+/* Design tokens from docs/risk-framework/deepseek-ipfx-report.md §10.2 —
+   near-black institutional dark layout, tabular numbers, colors always
+   paired with text/icons (never color alone) for accessibility. */
+:root {
+  --bg: #0b0e11;
+  --panel: #11151b;
+  --line: #1c222b;
+  --label: #8b99a6;
+  --text: #f5f7fa;
+  --focus: #2f6fed;
+  --pos: #2ebe86;
+  --neg: #e45555;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
+.label { color: var(--label); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+.pos { color: var(--pos); }
+.neg { color: var(--neg); }
+a { color: var(--focus); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid var(--line); padding: 0.5rem 0.75rem; text-align: left; font-size: 0.8rem; }
+th { color: var(--label); font-weight: 600; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.03em; }

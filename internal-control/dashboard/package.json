@@ -1,0 +1,27 @@
+{
+  "name": "ipfx-internal-control-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "IPFX Capital owner-only internal control dashboard (Phase 2 of docs/risk-framework/deepseek-ipfx-report.md). Never publish this app publicly or point it at an anon-key-only Supabase client.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "node --loader ts-node/esm --test ../tests/*.test.ts"
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@supabase/ssr": "0.5.2",
+    "@supabase/supabase-js": "2.115.0"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4",
+    "@types/node": "20.14.15",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "ts-node": "10.9.2"
+  }
+}
