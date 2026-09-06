@@ -35,7 +35,21 @@ if (!scriptBlocks.length) {
   console.error('FAIL: found no inline <script> blocks in trading.html — did the file move or change structure?');
   process.exit(1);
 }
-const code = scriptBlocks.join('\n;\n');
+let code = scriptBlocks.join('\n;\n');
+// Node's vm module does NOT attach top-level const/let bindings to the
+// context object (only var and function declarations, and plain
+// assignments, become context properties) — found by actually running
+// this, not by reasoning about it in advance. Without this trailer,
+// `sandbox.INDS`/`sandbox.SETUP_IND_MAP` are always undefined even
+// though the script runs with no error, which silently made every
+// assertion below vacuously fail. Plain assignment onto `this` at
+// top-level script scope (non-strict, non-module) targets the context
+// global and can still see the const bindings via the shared lexical
+// scope from this same concatenated script.
+code += `
+;this.INDS = (typeof INDS !== 'undefined') ? INDS : undefined;
+this.SETUP_IND_MAP = (typeof SETUP_IND_MAP !== 'undefined') ? SETUP_IND_MAP : undefined;
+`;
 
 // ---- minimal DOM/browser stub sufficient to survive far enough to
 // define INDS / SETUP_IND_MAP, which are declared early in the file.
