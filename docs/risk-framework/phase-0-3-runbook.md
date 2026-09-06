@@ -44,21 +44,48 @@ actually been compiled and run. Results:
 
 ## What does NOT exist yet (explicitly out of scope this pass)
 
-- **The Next.js/React owner dashboard itself.** No `package.json`, no framework
-  scaffold, nothing UI-shaped was created. Building one blind, with no way to
-  `npm install` or `next build` and catch the errors that produces, would mean
-  shipping unverified framework-glue code and calling it done — that's the
-  "describe planned work as completed" failure mode this task explicitly
-  prohibits. The data model and domain logic above are the real foundation a
-  dashboard needs; wiring them into Next.js pages/server actions needs a
-  session with a working Node environment.
-- **Server-side session/MFA enforcement code.** This depends entirely on
-  which auth stack the dashboard ends up using (Next.js middleware,
-  Supabase Auth helpers, etc.) — there is no dashboard yet to attach it to.
-  The RLS layer in `internal-control-core.sql` is real and deployed and is
-  itself one full layer of the "RLS plus server authorization, never RLS
-  alone" requirement — the *other* layer (server-side session check on every
-  route) has to live in the dashboard app.
+- ~~The Next.js/React owner dashboard itself~~ — **built and build-verified**
+  once Node.js became available mid-session. `internal-control/dashboard/`
+  is a real Next.js 14 App Router scaffold: `npm run build` succeeds, all 7
+  routes compile (`/`, `/login`, `/not-authorized`, `/review-queue`,
+  `/traders`, `/traders/[personId]`, plus the auth middleware). It covers:
+  - server-side session + MFA(AAL2) + admin-status authorization
+    (`lib/supabase-server.ts` → `requireOwner()`), never client-side route
+    hiding;
+  - a password + TOTP login flow (enrollment itself is NOT built — that's a
+    one-time admin-onboarding action, see the file's own comment for why);
+  - two real data-fetching pages against the deployed schema, using the
+    RLS-respecting session client rather than service-role, so RLS stays a
+    genuine second layer of defense per report §10.1.
+  Building it for real (not just authoring blind) caught 3 concrete bugs
+  hand-review had missed: two stray `#`-instead-of-`//` typos, a path alias
+  pointing at the wrong directory, and two implicit-`any` TypeScript errors
+  on the cookie adapter. None of those would have been caught without
+  actually running `next build`. Still missing: the rest of report §10.2's
+  panels (performance/probability/exposure/audit-log panels on the trader
+  profile) — those need a `metric_run` population pipeline to exist first
+  (see "What does NOT exist yet" below), not just more UI.
+- ~~Server-side session/MFA enforcement code~~ — **done**, see the dashboard
+  bullet above (`requireOwner()`).
+- **A `metric_run`/`prob_estimate` population pipeline.** `internal-control/
+  lib/metrics.ts` and `probability.ts` have real, tested calculation
+  functions, but nothing calls them on a schedule and writes rows into
+  `metric_run`/`prob_estimate` yet. Without this, the trader-profile
+  performance/probability panels in report §10.2 have nothing to render —
+  correctly showing "no data" rather than a fabricated number, but still a
+  real gap. This is most naturally a scheduled Supabase Edge Function
+  (`pg_cron` + an HTTP call, the same pattern already used for
+  `ipfx-drawdown-sweep` in `setup-drawdown-sweep-cron.sql`), not a
+  dashboard-side job.
+- **Next.js is still one major version behind patched** (14.2.35, not 16.x).
+  `npm audit` in `internal-control/dashboard/` reports 2 "high" advisories
+  whose only fix path is Next 16, a breaking change. Not force-upgraded this
+  session because: (a) it needs real testing this session's remaining time
+  didn't allow for, and (b) the specific affected surfaces — `next/image`,
+  i18n middleware, custom WebSocket upgrades — aren't used by this app yet.
+  Re-run `npm audit` in that directory before this ever handles real trader
+  PII in production, and budget time to actually test the Next 16 upgrade
+  rather than force it blind.
 - **`app.settings.pii_key`** — not set. Every PII write will fail closed
   (`fn_pii_key()` raises) until an operator sets this via Supabase Vault or
   `ALTER DATABASE ... SET app.settings.pii_key = '<32+ char secret>'`. This is
