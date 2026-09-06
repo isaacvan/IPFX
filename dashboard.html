@@ -499,6 +499,29 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
     <!-- ACCOUNTS -->
     <div class="page active" id="pg-accounts">
+      <div id="botKeyBanner" style="display:none;background:rgba(37,99,235,.08);border:1px solid var(--cobalt);border-radius:12px;padding:1.1rem 1.25rem;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt)" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span style="font-weight:700;font-size:.9rem;">Your Bot API Key — shown once, save it now</span>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem;">This key lets your own trading bot place and manage orders on this account through IPFX Markets. It cannot access payouts or account settings. Once you leave this page it will never be shown again — if you lose it, you'll need to ask support to rotate it.</div>
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+          <code id="botKeyValue" style="background:var(--bgcard);border:1px solid var(--line);border-radius:7px;padding:.5rem .75rem;font-size:.78rem;color:var(--fg);word-break:break-all;flex:1;min-width:220px;"></code>
+          <button class="promo-btn" onclick="copyBotKey()" id="botKeyCopyBtn" style="white-space:nowrap;">Copy</button>
+          <button class="promo-btn" onclick="dismissBotKey()" style="white-space:nowrap;background:transparent;border:1px solid var(--line);color:var(--fg);">I've saved it — dismiss</button>
+        </div>
+        <details style="margin-top:.7rem;">
+          <summary style="font-size:.75rem;color:var(--muted);cursor:pointer;">How do I use this?</summary>
+          <pre style="background:var(--bgcard);border:1px solid var(--line);border-radius:7px;padding:.75rem;font-size:.72rem;color:var(--muted);overflow-x:auto;margin-top:.5rem;">curl -X POST https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine \
+  -H "Authorization: Bearer &lt;your key&gt;" -H "Content-Type: application/json" \
+  -d '{"action":"open","symbol":"EURUSD","side":"buy","volume":0.1}'
+
+// Allowed actions: state, price, open, close, close_all, modify,
+// partial_close, place_pending, cancel_pending.
+// This key only trades on your own account — it cannot touch
+// payouts, KYC, or account settings.</pre>
+        </details>
+      </div>
       <div class="promo-banner">
         <div class="promo-left"><div class="promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="promo-title">Ready to scale your capital?</div><div class="promo-sub">Apply for the <b>Application Challenge</b> — no evaluation, funded from day one, up to $250K. Consistent traders scale to $500K.</div></div></div>
         <a href="/personalised-challenge.html" class="promo-btn">Apply Now →</a>
@@ -571,17 +594,36 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="stat-card"><div class="sc-label">Last Payout</div><div class="sc-val" id="pout-last">—</div><div class="sc-sub" id="pout-last-sub">No payouts yet</div></div>
         <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val" id="pout-next">—</div><div class="sc-sub">After first funded week</div></div>
       </div>
+      <div id="poutKycNotice" style="display:none;padding:.9rem 1.1rem;border-radius:var(--r);margin-bottom:1rem;font-size:.85rem"></div>
       <div class="pout-req">
         <div class="pout-req-title">Request Payout</div>
-        <div class="pout-amt"><span style="font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;color:var(--muted)">$</span><input type="number" id="poutAmt" placeholder="0.00"></div>
-        <div class="pout-note">Available balance shown above · 85% profit split · Paid in 1–3 business days to your connected method.</div>
-        <button class="full-btn" onclick="doPayout()">Request Payout</button>
+        <div class="pout-amt" id="poutAmtDisplay" style="font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700">$0.00</div>
+        <div style="margin:.75rem 0">
+          <label style="display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);font-weight:700;margin-bottom:.35rem">Payout method</label>
+          <select id="poutMethodSelect" style="width:100%;background:var(--bgcard);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.55rem .7rem;font-size:.85rem"></select>
+        </div>
+        <div class="pout-note" id="poutNote">Available balance shown above · profit split applied · full period paid at once.</div>
+        <button class="full-btn" id="poutSubmitBtn" onclick="doPayout()">Request Payout</button>
       </div>
-      <div class="sec-hd"><div><div class="sec-title">Payment Methods</div></div><button class="cbtn p">+ Add Method</button></div>
-      <div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r)">No payment methods added yet. Add a bank account or card to receive payouts.</div>
+      <div class="sec-hd"><div><div class="sec-title">Payment Methods</div></div><button class="cbtn p" onclick="showAddMethodForm()">+ Add Method</button></div>
+      <div id="poutMethodForm" style="display:none;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:.7rem">
+          <select id="pmType" style="background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.5rem .6rem;font-size:.85rem">
+            <option value="bank_transfer">Bank transfer</option>
+            <option value="paypal">PayPal</option>
+            <option value="wire">Wire</option>
+          </select>
+          <input id="pmLabel" placeholder="Nickname (e.g. Chase checking)" style="background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.5rem .6rem;font-size:.85rem">
+        </div>
+        <input id="pmReference" placeholder="Reference (e.g. account ending 1234, or PayPal email)" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.5rem .6rem;font-size:.85rem;margin-bottom:.7rem">
+        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.7rem">Enter a reference only — never a full card/account number. The actual transfer is arranged with our payments team outside this form.</div>
+        <button class="cbtn p" onclick="submitAddMethod()">Save method</button>
+        <button class="cbtn" onclick="document.getElementById('poutMethodForm').style.display='none'">Cancel</button>
+      </div>
+      <div id="poutMethodsList" style="padding:2rem;text-align:center;color:var(--muted2);font-size:.85rem;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r)">No payment methods added yet. Add a bank account or card to receive payouts.</div>
       <div class="sec-hd" style="margin-top:1.4rem"><div><div class="sec-title">Payout History</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
-        <tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No payouts yet. Your payout history will appear here once you request your first withdrawal.</td></tr>
+      <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody id="poutHistoryBody">
+        <tr><td colspan="4" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No payouts yet. Your payout history will appear here once you request your first withdrawal.</td></tr>
       </tbody></table></div>
     </div>
 
@@ -813,11 +855,22 @@ tr:hover td{background:rgba(255,255,255,.015);}
 const SUPABASE_URL='https://agulweemteoeagscmppy.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const ENGINE_FN=SUPABASE_URL+'/functions/v1/trading-engine';
+async function engineCall(body){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='login.html';return null;}
+  const r=await fetch(ENGINE_FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>null);
+  if(!j||j.ok===false){return{ok:false,error:(j&&j.error)||'Request failed'};}
+  return j;
+}
 
 async function initDashboard(){
   const{data:{session},error}=await sb.auth.getSession();
   if(!session){window.location.href='login.html';return;}
   const user=session.user;
+
+  loadPayoutsPage();
 
   // populate sidebar user info
   const name=user.user_metadata?.full_name||user.user_metadata?.name||user.email.split('@')[0];
@@ -857,6 +910,36 @@ async function initDashboard(){
   if(hasEnrollments) renderAccounts(enrollments);
   acLoaded=true;
   applyFilter();
+
+  loadBotKeyBanner();
+}
+
+// ── Bot API key one-time reveal ──
+// api_token_pending_reveal is RLS-restricted to this trader's own row
+// (see bot-api-token-rollout.sql). We show the plaintext once, then the
+// trader's own "dismiss" click deletes the row — after that, nobody
+// (including us) can ever read the plaintext again, only its hash.
+let _pendingRevealId=null;
+async function loadBotKeyBanner(){
+  const{data,error}=await sb.from('api_token_pending_reveal').select('id,plaintext').limit(1).maybeSingle();
+  if(error||!data)return;
+  _pendingRevealId=data.id;
+  document.getElementById('botKeyValue').textContent=data.plaintext;
+  document.getElementById('botKeyBanner').style.display='block';
+}
+function copyBotKey(){
+  const val=document.getElementById('botKeyValue').textContent;
+  navigator.clipboard?.writeText(val).then(()=>{
+    const btn=document.getElementById('botKeyCopyBtn');
+    const prev=btn.textContent; btn.textContent='Copied!';
+    setTimeout(()=>{btn.textContent=prev;},1500);
+  });
+}
+async function dismissBotKey(){
+  if(_pendingRevealId){
+    await sb.from('api_token_pending_reveal').delete().eq('id',_pendingRevealId);
+  }
+  document.getElementById('botKeyBanner').style.display='none';
 }
 
 function renderClaims(list){
@@ -1133,8 +1216,122 @@ function copyCred(btn,val){if(!val)return;navigator.clipboard.writeText(val).the
 // FAQ
 function toggleFaq(el){const item=el.parentElement;const was=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!was)item.classList.add('open');}
 
-// Payout
-function doPayout(){const v=parseFloat(document.getElementById('poutAmt').value);if(!v||v<=0){alert('Enter a valid amount.');return;}alert(`Payout of $${v.toFixed(2)} submitted. Processing in 1–3 business days.`);}
+// ── Payouts ──
+let PAYOUT_SUMMARY=null, PAYOUT_METHODS=[];
+const poutFmt=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+async function loadPayoutsPage(){
+  const[summary,methods,history,kyc]=await Promise.all([
+    engineCall({action:'payout_summary'}),
+    engineCall({action:'list_payout_methods'}),
+    engineCall({action:'list_payouts'}),
+    engineCall({action:'kyc_status'}),
+  ]);
+  PAYOUT_SUMMARY=summary&&summary.ok!==false?summary:null;
+  PAYOUT_METHODS=(methods&&methods.methods)||[];
+  renderPayoutStats(kyc);
+  renderPayoutMethods();
+  renderPayoutHistory((history&&history.payouts)||[]);
+}
+
+function renderPayoutStats(kyc){
+  const notice=document.getElementById('poutKycNotice');
+  const kycStatus=(kyc&&kyc.status)||'unverified';
+  if(kycStatus!=='verified'){
+    notice.style.display='block';
+    notice.style.background='rgba(245,158,11,.1)';notice.style.border='1px solid rgba(245,158,11,.3)';notice.style.color='#f5c473';
+    notice.textContent=kycStatus==='rejected'
+      ?'Identity verification was rejected. Contact support to resolve this before you can request a payout.'
+      :kycStatus==='pending'
+      ?'Identity verification is in progress. Payouts are unavailable until this clears.'
+      :'Identity verification (KYC) is required before you can request a payout. Contact support to get verified.';
+  } else {
+    notice.style.display='none';
+  }
+
+  const s=PAYOUT_SUMMARY;
+  if(!s||!s.has_funded_account){
+    document.getElementById('pout-avail').textContent='$0.00';
+    document.getElementById('pout-avail-sub').textContent='No funded account yet';
+    document.getElementById('poutAmtDisplay').textContent='$0.00';
+    document.getElementById('poutSubmitBtn').disabled=true;
+    return;
+  }
+  document.getElementById('pout-total').textContent=poutFmt(s.total_paid_out);
+  document.getElementById('pout-avail').textContent=poutFmt(s.available_now);
+  document.getElementById('pout-avail-sub').textContent=s.account_status==='active'?'Funded — good standing':'Account '+s.account_status;
+  document.getElementById('poutAmtDisplay').textContent=poutFmt(s.available_now);
+  const blocked=s.investigation_hold?'Account under review':kycStatus!=='verified'?'Verify identity first':s.available_now<=0?'Nothing available yet':null;
+  document.getElementById('poutSubmitBtn').disabled=!!blocked||!PAYOUT_METHODS.length;
+  document.getElementById('poutNote').textContent=blocked||(!PAYOUT_METHODS.length?'Add a payout method below first.':'Available balance shown above · profit split already applied · full period paid at once.');
+}
+
+function renderPayoutMethods(){
+  const sel=document.getElementById('poutMethodSelect');
+  sel.innerHTML=PAYOUT_METHODS.length
+    ?PAYOUT_METHODS.map(m=>`<option value="${m.id}">${m.label} (${m.method_type.replace('_',' ')})</option>`).join('')
+    :'<option value="">No method added yet</option>';
+  const list=document.getElementById('poutMethodsList');
+  if(!PAYOUT_METHODS.length){
+    list.innerHTML='No payment methods added yet. Add a bank account or card to receive payouts.';
+    return;
+  }
+  list.style.textAlign='left';list.style.padding='0';list.style.background='transparent';list.style.border='none';
+  list.innerHTML=PAYOUT_METHODS.map(m=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:.9rem 1.1rem;margin-bottom:.5rem">
+      <div><div style="font-weight:600">${m.label} ${m.is_default?'<span style=\"color:var(--gold);font-size:.7rem\">DEFAULT</span>':''}</div><div style="color:var(--muted2);font-size:.78rem">${m.method_type.replace('_',' ')} · ${m.reference}</div></div>
+      <button class="cbtn" onclick="deletePayoutMethod('${m.id}')">Remove</button>
+    </div>`).join('');
+}
+
+function showAddMethodForm(){document.getElementById('poutMethodForm').style.display='block';}
+async function submitAddMethod(){
+  const method_type=document.getElementById('pmType').value;
+  const label=document.getElementById('pmLabel').value.trim();
+  const reference=document.getElementById('pmReference').value.trim();
+  if(!label||!reference){alert('Enter a nickname and a reference.');return;}
+  const j=await engineCall({action:'add_payout_method',method_type,label,reference});
+  if(!j||j.ok===false){alert(j&&j.error||'Could not save payout method.');return;}
+  document.getElementById('poutMethodForm').style.display='none';
+  document.getElementById('pmLabel').value='';document.getElementById('pmReference').value='';
+  loadPayoutsPage();
+}
+async function deletePayoutMethod(id){
+  if(!confirm('Remove this payout method?'))return;
+  await engineCall({action:'delete_payout_method',method_id:id});
+  loadPayoutsPage();
+}
+
+function renderPayoutHistory(rows){
+  const body=document.getElementById('poutHistoryBody');
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No payouts yet. Your payout history will appear here once you request your first withdrawal.</td></tr>';
+    return;
+  }
+  const stLabel={requested:'Requested — under review',approved:'Approved — processing',paid:'Paid',void:'Voided'};
+  body.innerHTML=rows.map(p=>`<tr>
+    <td>${new Date(p.created_at).toLocaleDateString()}</td>
+    <td style="font-size:.8rem;color:var(--muted2)">${p.period_start?new Date(p.period_start).toLocaleDateString():'—'} → ${new Date(p.period_end).toLocaleDateString()}</td>
+    <td class="pos">${poutFmt(p.trader_share)}</td>
+    <td>${stLabel[p.status]||p.status}</td>
+  </tr>`).join('');
+}
+
+async function doPayout(){
+  const s=PAYOUT_SUMMARY;
+  if(!s||!s.has_funded_account){alert('You need a funded account before you can request a payout.');return;}
+  const method_id=document.getElementById('poutMethodSelect').value;
+  if(!method_id){alert('Add and select a payout method first.');return;}
+  if(!confirm(`Request a payout of ${poutFmt(s.available_now)}?`))return;
+  const btn=document.getElementById('poutSubmitBtn');
+  btn.disabled=true;btn.textContent='Submitting…';
+  const idempotency_key='req_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  const j=await engineCall({action:'request_payout',payout_method_id:method_id,idempotency_key});
+  btn.textContent='Request Payout';
+  if(!j||j.ok===false){alert(j&&j.error||'Could not submit payout request.');btn.disabled=false;return;}
+  alert('Payout requested — you\'ll see it in your history below once it\'s reviewed.');
+  loadPayoutsPage();
+}
 
 // Referral copy
 function copyRefCode(){

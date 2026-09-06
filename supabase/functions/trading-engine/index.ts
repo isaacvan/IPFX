@@ -843,6 +843,15 @@ const err = (msg: string, code = 400) =>
     status: code, headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// Matches public.fn_sha256(text) exactly (encode(digest(input,'sha256'),'hex')
+// — lowercase hex) so a bot token's hash always looks up the same row
+// regardless of which side computed it.
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // Turns a raw plpgsql RAISE EXCEPTION message (e.g. "too_soon:2.3 days
 // since last payout, minimum 7 days") into a client-facing sentence.
 // Postgres wraps our message as-is, so this just maps the leading code.
@@ -960,16 +969,62 @@ Deno.serve(async (req) => {
       { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
-  // authenticate the caller
-  const authClient = createClient(
-    Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
-  );
-  const { data: { user } } = await authClient.auth.getUser();
-  if (!user) return err("Not signed in", 401);
-
   // privileged client for writes (bypasses RLS — server is the only writer)
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  // authenticate the caller — either a normal signed-in session, or a
+  // trader's own bot API token (ipfx_bot_... — see bot-api-token-rollout.sql).
+  // A bot token only ever resolves to that same trader's auth_user_id, so
+  // every downstream check (account ownership, RLS-equivalent filters by
+  // user.id) applies identically regardless of which path authenticated it.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const bearer = authHeader.replace(/^Bearer\s+/i, "");
+  // deno-lint-ignore no-explicit-any
+  let user: any = null;
+  let authMethod: "session" | "bot" = "session";
+
+  if (bearer.startsWith("ipfx_bot_")) {
+    authMethod = "bot";
+    const tokenHash = await sha256Hex(bearer);
+    const { data: tokenRow } = await db.from("api_token")
+      .select("person_id, expires_at, revoked_at")
+      .eq("token_hash_sha256", tokenHash)
+      .maybeSingle();
+    if (!tokenRow || tokenRow.revoked_at || (tokenRow.expires_at && new Date(tokenRow.expires_at) <= new Date())) {
+      return err("Invalid or revoked API token", 401);
+    }
+    const { data: personRow } = await db.from("person")
+      .select("auth_user_id").eq("id", tokenRow.person_id).maybeSingle();
+    if (!personRow) return err("Invalid or revoked API token", 401);
+    // Fetch the full auth user (not just the id) so every downstream code
+    // path that reads user.user_metadata/user.email behaves identically
+    // whether the caller came in via session or bot token.
+    const { data: adminUser, error: adminErr } = await db.auth.admin.getUserById(personRow.auth_user_id);
+    if (adminErr || !adminUser?.user) return err("Invalid or revoked API token", 401);
+    user = adminUser.user;
+  } else {
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user: sessionUser } } = await authClient.auth.getUser();
+    user = sessionUser;
+  }
+  if (!user) return err("Not signed in", 401);
+
+  // A bot token is scoped to trading only (api_token.scope_text:
+  // 'trade:own_account') — a leaked key can move positions on that one
+  // simulated account but can never touch payouts, KYC, or account
+  // settings. Same restriction applies regardless of which action-name
+  // format a given branch below checks (body.action vs the `action`
+  // local declared further down — both read the same request body).
+  const BOT_ALLOWED_ACTIONS = new Set([
+    "state", "price", "open", "close", "close_all", "modify",
+    "partial_close", "place_pending", "cancel_pending",
+  ]);
+  if (authMethod === "bot" && !BOT_ALLOWED_ACTIONS.has(body.action)) {
+    return err("This API key is trade-only — it cannot access payouts, KYC, or account settings", 403);
+  }
 
   // Live quote for the order ticket — no trading account needed. Reports
   // feed status honestly (closed/stale/demo) so the client can grey out
