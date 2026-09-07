@@ -192,6 +192,71 @@ actually been compiled and run. Results:
   right now, which is the correct state for a pre-launch platform with zero
   Phase 5/6 approvals.
 
+## Shadow Trade Syncer build (2026-09-07 overnight session)
+
+The user explicitly asked for a live, real-money trade-copying system
+into an external platform (TradeLocker/HeroFX). That was declined —
+report §12.1 restricts the Trade Syncer to "an account owned or
+controlled by iPFX" with express written provider permission, neither
+of which exists, and the report's own rollout path (§12.12) puts live
+copying behind Phase 5/6 formal approvals. What was built instead, with
+the user's agreement, is the Phase 4 shadow-only step explicitly allowed
+without further sign-off: "Shadow mode: no real orders; compare shadow
+P&L to source."
+
+**Code status: written, type-checked, unit-tested, committed and pushed
+(commit `1c51e2e`). NOT yet deployed to production Supabase** — the
+Chrome browser tool needed to run the SQL migration and deploy the edge
+function was unresponsive for the remainder of this session. Nothing
+below has been verified against a live database; only local
+verification is real.
+
+Real verification performed tonight:
+- `supabase/functions/trade-syncer-shadow/index.ts` type-checks clean
+  under strict TypeScript (Deno globals/esm.sh import shimmed for the
+  check — same gap as `trading-engine/index.ts`, which has never been
+  type-checked against real Deno types either).
+- `tests/trade-syncer-shadow.test.js`: 11/11 passing — sizing formula
+  fixtures (EURUSD and XAUUSD, verified by hand: destRiskUnits /
+  (stopDistance × contract)), stop-proxy flagging when no real stop
+  exists, idempotency-key determinism, the 5-minute staleness threshold,
+  and shadow P&L sign correctness for both buy and sell.
+
+Explicitly NOT verified (blocked on browser access, not attempted):
+- Running `trade-syncer-shadow-schema.sql` (pg_net trigger, the
+  `ipfx-internal-shadow` broker_account row, the Vault shared secret).
+- Deploying the edge function itself.
+- Setting `SYNCER_SHARED_SECRET` as an edge function secret to match the
+  value written into the SQL migration.
+- Any live or integration test — no request has ever hit this function,
+  no `replication_event`/`dest_order` row it would produce has ever been
+  written, and the pg_net trigger has never fired for a real trade.
+
+### To finish deployment (next session)
+1. Run `trade-syncer-shadow-schema.sql` in the SQL editor.
+2. Deploy `supabase/functions/trade-syncer-shadow/index.ts` (same
+   fetch-raw-from-GitHub-into-Monaco-then-Deploy flow used for
+   `trading-engine` earlier this session).
+3. Set the `SYNCER_SHARED_SECRET` edge function secret to
+   `62612cc425dcf8f65e04a5c946d28f19c06f9ded68f50a82` (the literal value
+   the SQL migration also writes into Vault — both sides must match).
+4. Integration-test safely against a real user's *existing* trade
+   history without touching their live trading: manually POST to the
+   function with a real historical `order_audit_events.id` (e.g. from
+   `pujara.anish972@gmail.com`, who has 16 closed trades) and confirm a
+   `replication_event`/`dest_order` row appears — this only writes to
+   shadow-only bookkeeping tables, never to `trades`/`trading_accounts`,
+   so it cannot affect that trader's real balance or positions.
+5. Confirm the Phase 4 exit-gate behaviors for real: fire the same event
+   twice (must be idempotent, no second row), fire a synthetic 'close'
+   with no matching 'open' on file (must reject
+   `reordered_missing_open`), and fire an event with an old `server_ts`
+   (must reject `stale_event`).
+6. Only after that: let a handful of real new trades happen naturally
+   and confirm the pg_net trigger fires within milliseconds without any
+   visible impact on trading-engine response times (it's async by
+   design, but this should be confirmed under real load, not assumed).
+
 ## Next steps, in order
 
 1. An operator sets `app.settings.pii_key` via Supabase Vault before any
@@ -207,3 +272,5 @@ actually been compiled and run. Results:
    enforcement the report requires on every route.
 4. Route the legal question register in report §3 to qualified counsel —
    nothing here resolves a single `[LEGAL]` item, by design.
+5. Deploy the shadow Trade Syncer per the steps above once the browser
+   tool is responsive again.

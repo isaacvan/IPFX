@@ -3,9 +3,29 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Start Your Challenge</title>
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>Choose a Trading Programme | IPFX Capital</title>
+    <meta name="description" content="Compare IPFX Capital programme options, account sizes, objectives and rules before completing your order.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://ipfxcapital.com/start-challenge.html">
+    <link rel="icon" href="/assets/images/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="IPFX Capital">
+    <meta property="og:title" content="Choose a Trading Programme | IPFX Capital">
+    <meta property="og:description" content="Compare IPFX Capital programme options, account sizes, objectives and rules before completing your order.">
+    <meta property="og:url" content="https://ipfxcapital.com/start-challenge.html">
+    <meta property="og:image" content="https://ipfxcapital.com/assets/images/social-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="IPFX Capital">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Choose a Trading Programme | IPFX Capital">
+    <meta name="twitter:description" content="Compare IPFX Capital programme options, account sizes, objectives and rules before completing your order.">
+    <meta name="twitter:image" content="https://ipfxcapital.com/assets/images/social-card.png">
+    <link rel="stylesheet" href="/assets/css/site-foundation.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -1105,6 +1125,10 @@
                     <label for="terms">I agree to the <a href="/terms.html">Terms & Conditions</a> and <a href="/privacy.html">Privacy Policy</a> <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group">
+                    <input type="checkbox" id="cancellationWaiver" required>
+                    <label for="cancellationWaiver">I want my Challenge to start immediately once payment is confirmed, and I understand that I lose my 14-day right to a full refund as soon as I place my first trade (see Terms &amp; Conditions §6) <span class="required">*</span></label>
+                </div>
+                <div class="checkbox-group">
                     <input type="checkbox" id="newsletter">
                     <label for="newsletter">Send me trading tips and IPFX updates via email</label>
                 </div>
@@ -1402,6 +1426,11 @@
                 alert('Please accept the Terms & Conditions');
             }
 
+            if (!document.getElementById('cancellationWaiver').checked) {
+                valid = false;
+                alert('Please confirm you understand the 14-day cancellation right, per Consumer Contracts Regulations 2013');
+            }
+
             if (valid) {
                 goToStep(3);
             }
@@ -1460,6 +1489,8 @@
                             stripe_payment_intent_id: paymentIntent.id,
                             country_code: document.getElementById('country').value,
                             age_confirmed: document.getElementById('ageConfirm').checked,
+                            cancellation_waiver_confirmed: document.getElementById('cancellationWaiver').checked,
+                            cancellation_waiver_confirmed_at: new Date().toISOString(),
                             terms_version: '1.0',
                             privacy_version: '1.0',
                         },
@@ -1549,5 +1580,16 @@
     })();
     </script>
 
+
+  <div class="ipfx-launch-footer" aria-label="Legal and sharing">
+    <span>&copy; 2026 IPFX Capital Ltd</span>
+    <a href="/privacy.html">Privacy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/faq.html">FAQ</a>
+    <a href="/contact.html">Contact</a>
+    <button class="ipfx-share-button" type="button" data-ipfx-share>Share this page</button>
+  </div>
+<noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
+<script defer src="/assets/js/site-foundation.js"></script>
 </body>
 </html>
