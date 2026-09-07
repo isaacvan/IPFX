@@ -1128,6 +1128,90 @@ function nav(id,btn){
   btn.classList.add('active');
   document.getElementById('pageTitle').textContent=btn.textContent.trim();
   closeSb();
+  if(id==='journal')loadJournalPageData();
+}
+
+// ── JOURNAL PAGE ── real trade history + stats, computed from the same
+// trading-engine state the terminal uses — never fabricated placeholders.
+let journalPageLoaded=false;
+function jSignedMoney(n){
+  n=Number(n)||0;
+  return (n<0?'-$':'$')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// R-multiple = realized price distance ÷ planned stop distance, signed by
+// win/loss — see trading.html's computeR() for why volume/contract-size
+// must NOT be multiplied in here (it cancels out; multiplying it in
+// produces nonsense values like "+10033R").
+function jComputeR(t){
+  if(t.sl==null||t.pnl==null||t.close_price==null)return null;
+  const stopDist=Math.abs(Number(t.open_price)-Number(t.sl));
+  if(stopDist<=0)return null;
+  const moveDist=Math.abs(Number(t.close_price)-Number(t.open_price));
+  const sign=Number(t.pnl)>=0?1:-1;
+  return sign*(moveDist/stopDist);
+}
+async function loadJournalPageData(){
+  journalPageLoaded=true;
+  const tbody=document.getElementById('journal-tbody');
+  const state=await engineCall({action:'state'});
+  const closed=(state&&state.closed_trades)||[];
+
+  const{data:{session}}=await sb.auth.getSession();
+  let notesByTrade={};
+  if(session){
+    const{data:entries}=await sb.from('trade_journal_entries').select('trade_id,note,strategy')
+      .eq('user_id',session.user.id).not('trade_id','is',null);
+    (entries||[]).forEach(e=>{notesByTrade[e.trade_id]=[e.strategy,e.note].filter(Boolean).join(' — ');});
+  }
+
+  if(!closed.length){
+    document.getElementById('jrnl-total').textContent='0';
+    document.getElementById('jrnl-wr').textContent='—';
+    document.getElementById('jrnl-wr-sub').textContent='No data yet';
+    document.getElementById('jrnl-rr').textContent='—';
+    document.getElementById('jrnl-best').textContent='—';
+    document.getElementById('jrnl-best-sub').textContent='No trades yet';
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted2);padding:2.5rem 1rem;font-size:.875rem">No trades logged yet. Your trade history will appear here once your account is active.</td></tr>';
+    return;
+  }
+
+  const now=new Date();
+  const thisMonth=closed.filter(t=>{const d=new Date(t.closed_at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  document.getElementById('jrnl-total').textContent=thisMonth.length;
+
+  const wins=closed.filter(t=>Number(t.pnl)>0).length;
+  document.getElementById('jrnl-wr').textContent=Math.round(wins/closed.length*100)+'%';
+  document.getElementById('jrnl-wr-sub').textContent=wins+'W / '+(closed.length-wins)+'L';
+
+  const rMultiples=closed.map(jComputeR).filter(r=>r!==null);
+  document.getElementById('jrnl-rr').textContent=rMultiples.length
+    ? '1:'+(rMultiples.reduce((a,b)=>a+b,0)/rMultiples.length).toFixed(1)
+    : '—';
+
+  const byDay={};
+  closed.forEach(t=>{const d=new Date(t.closed_at).toISOString().slice(0,10);byDay[d]=(byDay[d]||0)+(Number(t.pnl)||0);});
+  const bestDayEntry=Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+  if(bestDayEntry&&bestDayEntry[1]>0){
+    document.getElementById('jrnl-best').textContent=jSignedMoney(bestDayEntry[1]);
+    document.getElementById('jrnl-best-sub').textContent=new Date(bestDayEntry[0]).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+  }else{
+    document.getElementById('jrnl-best').textContent='—';
+    document.getElementById('jrnl-best-sub').textContent='No profitable days yet';
+  }
+
+  const sorted=[...closed].sort((a,b)=>new Date(b.closed_at)-new Date(a.closed_at));
+  tbody.innerHTML=sorted.map(t=>{
+    const pnl=Number(t.pnl)||0;
+    return '<tr>'
+      +'<td>'+new Date(t.closed_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})+'</td>'
+      +'<td>'+t.symbol+'</td>'
+      +'<td style="text-transform:capitalize">'+t.side+'</td>'
+      +'<td>'+t.open_price+'</td>'
+      +'<td>'+(t.close_price??'—')+'</td>'
+      +'<td style="color:'+(pnl>=0?'var(--green)':'var(--red)')+';font-weight:700">'+jSignedMoney(pnl)+'</td>'
+      +'<td style="color:var(--muted2);font-size:.8rem">'+(notesByTrade[t.id]||'—')+'</td>'
+      +'</tr>';
+  }).join('');
 }
 
 // Account filter
