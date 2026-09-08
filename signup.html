@@ -3,9 +3,29 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>IPFX | Pre-Register for Launch</title>
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>Create an IPFX Capital Account</title>
+    <meta name="description" content="Create your IPFX Capital account to access programme applications, account verification and IPFX Markets.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://ipfxcapital.com/signup.html">
+    <link rel="icon" href="/assets/images/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="IPFX Capital">
+    <meta property="og:title" content="Create an IPFX Capital Account">
+    <meta property="og:description" content="Create your IPFX Capital account to access programme applications, account verification and IPFX Markets.">
+    <meta property="og:url" content="https://ipfxcapital.com/signup.html">
+    <meta property="og:image" content="https://ipfxcapital.com/assets/images/social-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="IPFX Capital">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Create an IPFX Capital Account">
+    <meta name="twitter:description" content="Create your IPFX Capital account to access programme applications, account verification and IPFX Markets.">
+    <meta name="twitter:image" content="https://ipfxcapital.com/assets/images/social-card.png">
+    <link rel="stylesheet" href="/assets/css/site-foundation.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -741,7 +761,7 @@
                         <option value="">Select your country…</option>
                     </select>
                     <div class="error-message" id="countryError">Please select your country</div>
-                    <div style="font-size:0.72rem;color:var(--muted,#8a8f98);margin-top:0.4rem;line-height:1.5;">IPFX Capital is not available to residents of certain jurisdictions, including the United States and United Kingdom.</div>
+                    <div style="font-size:0.72rem;color:var(--muted,#8a8f98);margin-top:0.4rem;line-height:1.5;">IPFX Capital is not available to residents of sanctioned jurisdictions.</div>
                 </div>
 
                 <div class="form-group">
@@ -825,7 +845,7 @@
 
         // ── GEO RESTRICTION ──
         // Residents of these jurisdictions cannot register. Codes are ISO-3166.
-        const RESTRICTED_COUNTRIES = { US: 'the United States', GB: 'the United Kingdom' };
+        const RESTRICTED_COUNTRIES = { CU: 'Cuba', IR: 'Iran', KP: 'North Korea', SY: 'Syria' };
         const COUNTRIES = [
             ['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],['AG','Antigua & Barbuda'],['AR','Argentina'],['AM','Armenia'],['AU','Australia'],['AT','Austria'],['AZ','Azerbaijan'],['BS','Bahamas'],['BH','Bahrain'],['BD','Bangladesh'],['BB','Barbados'],['BE','Belgium'],['BZ','Belize'],['BJ','Benin'],['BT','Bhutan'],['BO','Bolivia'],['BA','Bosnia & Herzegovina'],['BW','Botswana'],['BR','Brazil'],['BN','Brunei'],['BG','Bulgaria'],['BF','Burkina Faso'],['BI','Burundi'],['KH','Cambodia'],['CM','Cameroon'],['CA','Canada'],['CV','Cape Verde'],['CL','Chile'],['CN','China'],['CO','Colombia'],['KM','Comoros'],['CG','Congo'],['CR','Costa Rica'],['HR','Croatia'],['CY','Cyprus'],['CZ','Czechia'],['DK','Denmark'],['DJ','Djibouti'],['DM','Dominica'],['DO','Dominican Republic'],['EC','Ecuador'],['EG','Egypt'],['SV','El Salvador'],['EE','Estonia'],['SZ','Eswatini'],['ET','Ethiopia'],['FJ','Fiji'],['FI','Finland'],['FR','France'],['GA','Gabon'],['GM','Gambia'],['GE','Georgia'],['DE','Germany'],['GH','Ghana'],['GR','Greece'],['GD','Grenada'],['GT','Guatemala'],['GN','Guinea'],['GY','Guyana'],['HT','Haiti'],['HN','Honduras'],['HK','Hong Kong'],['HU','Hungary'],['IS','Iceland'],['IN','India'],['ID','Indonesia'],['IE','Ireland'],['IL','Israel'],['IT','Italy'],['JM','Jamaica'],['JP','Japan'],['JO','Jordan'],['KZ','Kazakhstan'],['KE','Kenya'],['KW','Kuwait'],['KG','Kyrgyzstan'],['LA','Laos'],['LV','Latvia'],['LB','Lebanon'],['LS','Lesotho'],['LR','Liberia'],['LI','Liechtenstein'],['LT','Lithuania'],['LU','Luxembourg'],['MO','Macau'],['MG','Madagascar'],['MW','Malawi'],['MY','Malaysia'],['MV','Maldives'],['ML','Mali'],['MT','Malta'],['MU','Mauritius'],['MX','Mexico'],['MD','Moldova'],['MC','Monaco'],['MN','Mongolia'],['ME','Montenegro'],['MA','Morocco'],['MZ','Mozambique'],['NA','Namibia'],['NP','Nepal'],['NL','Netherlands'],['NZ','New Zealand'],['NI','Nicaragua'],['NE','Niger'],['NG','Nigeria'],['MK','North Macedonia'],['NO','Norway'],['OM','Oman'],['PK','Pakistan'],['PA','Panama'],['PG','Papua New Guinea'],['PY','Paraguay'],['PE','Peru'],['PH','Philippines'],['PL','Poland'],['PT','Portugal'],['QA','Qatar'],['RO','Romania'],['RW','Rwanda'],['KN','Saint Kitts & Nevis'],['LC','Saint Lucia'],['WS','Samoa'],['SM','San Marino'],['SA','Saudi Arabia'],['SN','Senegal'],['RS','Serbia'],['SC','Seychelles'],['SL','Sierra Leone'],['SG','Singapore'],['SK','Slovakia'],['SI','Slovenia'],['ZA','South Africa'],['KR','South Korea'],['ES','Spain'],['LK','Sri Lanka'],['SR','Suriname'],['SE','Sweden'],['CH','Switzerland'],['TW','Taiwan'],['TZ','Tanzania'],['TH','Thailand'],['TG','Togo'],['TO','Tonga'],['TT','Trinidad & Tobago'],['TN','Tunisia'],['TR','Türkiye'],['UG','Uganda'],['UA','Ukraine'],['AE','United Arab Emirates'],['GB','United Kingdom'],['US','United States'],['UY','Uruguay'],['UZ','Uzbekistan'],['VU','Vanuatu'],['VE','Venezuela'],['VN','Vietnam'],['ZM','Zambia'],['ZW','Zimbabwe']
         ];
@@ -1156,7 +1176,7 @@
                     options: {
                         data: {
                             full_name: fullNameInput.value,
-                            country: countryInput.value,
+                            country_code: countryInput.value,
                             referral_code: referralCodeInput.value.trim().toUpperCase() || null,
                             promo_code: validatedPromo ? validatedPromo.code : null
                         }
@@ -1250,5 +1270,16 @@
     })();
     </script>
 
+
+  <div class="ipfx-launch-footer" aria-label="Legal and sharing">
+    <span>&copy; 2026 IPFX Capital Ltd</span>
+    <a href="/privacy.html">Privacy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/faq.html">FAQ</a>
+    <a href="/contact.html">Contact</a>
+    <button class="ipfx-share-button" type="button" data-ipfx-share>Share this page</button>
+  </div>
+<noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
+<script defer src="/assets/js/site-foundation.js"></script>
 </body>
 </html>
