@@ -915,12 +915,35 @@
 
         async function checkPromoCode(code) {
             try {
-                const { data, error } = await supabaseClient
-                    .from('promo_codes')
-                    .select('code, challenge_name, challenge_type')
-                    .eq('code', code)
-                    .eq('is_active', true)
-                    .single();
+                // Validated server-side via a SECURITY DEFINER function so the
+                // promo_codes table is never selectable from the client — the
+                // anon key is public, so a plain .from('promo_codes') let anyone
+                // enumerate every code. The function also re-checks
+                // use_count < max_uses rather than trusting is_active alone.
+                let { data: rows, error } = await supabaseClient
+                    .rpc('validate_promo_code', { p_code: code });
+
+                // Deploy-order safety net: if fix-promo-code-exposure.sql has not
+                // been applied yet the function does not exist (PGRST202), and
+                // without this fallback every promo code would read as invalid.
+                // Once the SQL is deployed this branch stops being reachable and
+                // RLS makes the direct read return nothing anyway.
+                if (error && (error.code === 'PGRST202' || /Could not find the function/i.test(error.message || ''))) {
+                    const legacy = await supabaseClient
+                        .from('promo_codes')
+                        .select('code, challenge_name, challenge_type, max_uses, use_count')
+                        .ilike('code', code)
+                        .eq('is_active', true)
+                        .limit(1);
+                    const row = Array.isArray(legacy.data) ? legacy.data[0] : null;
+                    // is_active alone is not enough — a fully-redeemed code is
+                    // still active until something flips the flag.
+                    const exhausted = row && row.max_uses != null && Number(row.use_count) >= Number(row.max_uses);
+                    rows = (row && !exhausted) ? [row] : [];
+                    error = legacy.error;
+                }
+
+                const data = Array.isArray(rows) ? rows[0] : rows;
                 promoSpinner.classList.remove('show');
                 if (data && !error) {
                     validatedPromo = data;
