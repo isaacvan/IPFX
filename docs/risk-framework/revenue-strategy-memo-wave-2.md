@@ -5,6 +5,21 @@
 **Same constraints:** ≤ ~£3,000 total setup capital, no FCA authorisation, built from code that
 already exists.
 
+> [!WARNING]
+> **Parts of this memo have been corrected.** An adversarial review against primary sources found
+> six load-bearing legal claims across this document and its wave-2 companion to be materially
+> overstated. Read `revenue-strategy-memo-wave-3-corrections.md` FIRST. In particular: the
+> "simulated, therefore outside the FCA perimeter" reasoning used throughout is **not safe** (RAO
+> art 85(1)(b) reaches a contract whose *"pretended purpose"* is profit by reference to price
+> fluctuations), and the claim that shifting revenue to subscriptions reduces Gambling Act exposure
+> is **wrong** (s6 gaming is payment-blind).
+
+> Additionally in this memo: risk-priced evaluations (§3) are **withdrawn entirely**; the
+> Counterfactual Engine (§1), employer assessment (§4) and Ulysses contracts (§2) each need
+> redesign before building.
+
+
+
 ---
 
 ## 0. Where wave 1 stopped short

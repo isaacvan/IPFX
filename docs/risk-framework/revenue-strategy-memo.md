@@ -6,6 +6,17 @@ buying a handful of prop-firm evaluations costs), requires no FCA authorisation,
 code that already exists in this repository.
 **Companion to:** `docs/risk-framework/legal-hardening-memo.md`
 
+> [!WARNING]
+> **Parts of this memo have been corrected.** An adversarial review against primary sources found
+> six load-bearing legal claims across this document and its wave-2 companion to be materially
+> overstated. Read `revenue-strategy-memo-wave-3-corrections.md` FIRST. In particular: the
+> "simulated, therefore outside the FCA perimeter" reasoning used throughout is **not safe** (RAO
+> art 85(1)(b) reaches a contract whose *"pretended purpose"* is profit by reference to price
+> fluctuations), and the claim that shifting revenue to subscriptions reduces Gambling Act exposure
+> is **wrong** (s6 gaming is payment-blind).
+
+
+
 ---
 
 ## 0. The one-paragraph answer
