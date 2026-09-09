@@ -898,7 +898,7 @@ async function logAudit(db: Db, row: {
   requested_price?: number | null; fill_price?: number | null; quote?: Quote | null; client_ip?: string | null;
 }): Promise<string | null> {
   try {
-    const { data } = await db.from("order_audit_events").insert({
+    const { data, error } = await db.from("order_audit_events").insert({
       trade_id: row.trade_id ?? null, pending_order_id: row.pending_order_id ?? null,
       user_id: row.user_id, account_id: row.account_id,
       event: row.event, reject_reason: row.reject_reason ?? null, symbol: row.symbol,
@@ -910,8 +910,28 @@ async function logAudit(db: Db, row: {
       latency_ms: row.quote?.providerTs ? Date.now() - row.quote.providerTs : null,
       source_id: SOURCE_ID, client_ip: row.client_ip ?? null,
     }).select("id").single();
+    // Audit logging must never block trading, so a failure here is swallowed
+    // rather than surfaced to the caller — but it must not be swallowed
+    // SILENTLY. The event-enum check constraint rejected every 'modify' insert
+    // for months and nobody noticed, precisely because this path returned null
+    // without a trace (see order-position-id-integrity.sql). The Supabase
+    // client returns errors rather than throwing, so the catch below never
+    // fired for that class of bug; `error` is the branch that actually matters.
+    if (error) {
+      console.error("[audit] order_audit_events insert failed", {
+        event: row.event, symbol: row.symbol, account_id: row.account_id,
+        code: (error as { code?: string }).code, message: error.message,
+      });
+      return null;
+    }
     return data ? String(data.id) : null;
-  } catch (_) { return null; /* audit logging must never block trading */ }
+  } catch (e) {
+    console.error("[audit] order_audit_events insert threw", {
+      event: row.event, symbol: row.symbol, account_id: row.account_id,
+      message: e instanceof Error ? e.message : String(e),
+    });
+    return null;
+  }
 }
 // Best-effort client IP for multi-accounting detection (see
 // shared_ip_accounts in prop-firm-hardening.sql). Deno Deploy/Supabase
