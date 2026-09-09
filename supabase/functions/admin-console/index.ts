@@ -19,6 +19,12 @@
 //          needs attention today, merging breach proximity, behavioural
 //          vetoes, KYC/jurisdiction/investigation state, shared-IP leads
 //          and crowded-book exposure into a single view
+//   { action:"trade_safety_review", status?:"open"|"reviewed"|"dismissed" }
+//       -> { flags:[...] } persisted per-trade flags written by the
+//          trade_safety_flags DB trigger (unusual size, missing stop,
+//          risk-cap breach, cap-hugging, drawdown swing, revenge sizing)
+//   { action:"trade_safety_mark", flag_id, status:"reviewed"|"dismissed"|"open" }
+//       -> mark one trade_safety_flags row reviewed/dismissed
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -1159,6 +1165,39 @@ Deno.serve(async (req) => {
     });
 
     return json({ ok: true, flags: results, scored_at: new Date().toISOString() });
+  }
+
+  // ---- trade_safety_flags review queue (see 20260909193000_trade_safety_flags.sql
+  // and 20260909211500_trade_safety_flags_v2.sql) ----
+  // These are persisted, per-trade, trigger-written flags -- a different
+  // layer from "trader_flags" above, which computes aggregate behavioural
+  // signals live on every call. This surfaces the DB-level event log:
+  // UNUSUAL_SAME_SYMBOL_SIZE, REQUIRED_STOP_MISSING, ACCOUNT_STOP_RISK_LIMIT,
+  // CAP_HUGGING, DRAWDOWN_SWING, REVENGE_SIZING. Read-only list plus one
+  // state change (mark reviewed/dismissed) -- it never touches an account.
+  if (action === "trade_safety_review") {
+    const status = ["open", "reviewed", "dismissed"].includes(String(body.status)) ? String(body.status) : "open";
+    const { data: flagRows, error: flagErr } = await db.from("trade_safety_flags")
+      .select("id,trade_id,account_id,user_id,reason,evidence,status,created_at")
+      .eq("status", status).order("created_at", { ascending: false }).limit(200);
+    if (flagErr) return err("Could not load trade safety flags", 500);
+    const userIds = [...new Set((flagRows ?? []).map((f: Record<string, unknown>) => f.user_id as string))];
+    const { data: profiles } = userIds.length
+      ? await db.from("user_profiles").select("user_id,full_name").in("user_id", userIds)
+      : { data: [] };
+    const nameBy = new Map<string, string>((profiles ?? []).map((p: Record<string, unknown>) => [p.user_id as string, p.full_name as string]));
+    const out = (flagRows ?? []).map((f: Record<string, unknown>) => ({ ...f, full_name: nameBy.get(f.user_id as string) || "—" }));
+    return json({ ok: true, status, flags: out });
+  }
+
+  if (action === "trade_safety_mark") {
+    const flag_id = body.flag_id ? String(body.flag_id) : null;
+    const newStatus = String(body.status);
+    if (!flag_id || !["reviewed", "dismissed", "open"].includes(newStatus)) return err("flag_id and a valid status are required");
+    const { error: updateErr } = await db.from("trade_safety_flags").update({ status: newStatus }).eq("id", flag_id);
+    if (updateErr) return err("Could not update flag", 500);
+    await logAdmin("trade_safety_mark", { detail: { flag_id, status: newStatus } });
+    return json({ ok: true });
   }
 
   // ---- admin audit log (read-only, admin-gated by definition since

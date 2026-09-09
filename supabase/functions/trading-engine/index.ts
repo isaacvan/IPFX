@@ -336,7 +336,7 @@ async function provisionNextStage(db: Db, evalAcct: Acct): Promise<void> {
   // balance (profit from Phase 1 does not carry) — that is how two-phase
   // evaluations work everywhere.
   const startBal = Number(next.starting_balance);
-  await db.from("trading_accounts").insert({
+  const { data: provisioned } = await db.from("trading_accounts").insert({
     user_id: evalAcct.user_id,
     label: String(next.label),
     preset_id: next.id,
@@ -361,7 +361,17 @@ async function provisionNextStage(db: Db, evalAcct: Acct): Promise<void> {
     challenge_fee_usd: evalAcct.challenge_fee_usd ?? null,
     funded_from_account_id: evalAcct.id,
     total_paid_out: 0,
-  });
+  }).select("id").single();
+
+  // Opt into qualification-v2 (see 20260909212000_qualification_v2_activation.sql)
+  // if a published version exists for this challenge_type/stage -- a no-op
+  // for anything but Infinity today, and a no-op entirely if that
+  // migration has not been deployed yet. Never blocks provisioning: a
+  // trader always gets their next stage even if this call fails.
+  if (provisioned?.id) {
+    try { await db.rpc("accept_qualification_v2", { p_account_id: provisioned.id }); }
+    catch (_) { /* never block provisioning on this */ }
+  }
 }
 
 // Terminal step of the chain: a real funded account. Idempotent for the
@@ -552,6 +562,12 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
 
   if (p.trading_days < needDays) unmet.push(`${p.trading_days}/${needDays} trading days`);
   if (p.trades_closed < needTrades) unmet.push(`${p.trades_closed}/${needTrades} trades`);
+  // Only explicitly accepted v2 contracts apply; legacy terms remain intact.
+  const qualification = await db.rpc("qualification_progress_v2", { p_account: acct.id });
+  if (qualification.error || !qualification.data) unmet.push("Qualification verification unavailable");
+  else if (qualification.data.applies && !qualification.data.eligible) {
+    unmet.push(...(qualification.data.unmet ?? ["Extended qualification incomplete"]));
+  }
   if (needProfPct !== null && (p.profitable_days_pct ?? 0) < needProfPct) {
     unmet.push(`${p.profitable_days_pct ?? 0}%/${needProfPct}% profitable days`);
   }
@@ -1100,26 +1116,9 @@ Deno.serve(async (req) => {
     } else if (last && body.action === "state") {
       acct = last;
     } else if (!last) {
-      // Jurisdiction gate — Terms §5 excludes several jurisdictions.
-      // Enforced here (not by aborting the signup trigger) so a failure
-      // mode is a clean, expected rejection rather than a broken auth
-      // flow. See prop-firm-hardening.sql.
-      const { data: profile } = await db.from("user_profiles").select("restricted_jurisdiction").eq("user_id", user.id).maybeSingle();
-      if (profile?.restricted_jurisdiction) {
-        return err("Sorry — we can't offer challenges in your jurisdiction. Contact support@ipfxcapital.com if you believe this is incorrect.", 403);
-      }
-
-      const tier = String((user.user_metadata as Record<string, unknown> | undefined)?.challenge_tier ?? "100k").toLowerCase();
-      const startBal = TIER_BALANCE[tier] ?? 100000;
-      const fee = TIER_FEE[tier] ?? null;
-      const { data: fresh, error } = await db.from("trading_accounts")
-        .insert({
-          user_id: user.id, label: tier.toUpperCase() + " Challenge",
-          starting_balance: startBal, balance: startBal, day_start_equity: startBal,
-          challenge_fee_usd: fee,
-        }).select("*").single();
-      if (error) return err("Could not provision account", 500);
-      acct = fresh;
+      // Account creation belongs to verified server-side enrollment, never
+      // user-editable signup metadata or a browser state request.
+      return err("Your challenge account has not been provisioned. Contact support before making another payment.", 403);
     } else {
       return err("No active account — your challenge is " + last.status, 409);
     }
