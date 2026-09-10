@@ -755,7 +755,7 @@
             margin-top: 30px;
         }
 
-        button {
+        button, .button-group a.btn-secondary {
             padding: 14px 32px;
             border: none;
             border-radius: 8px;
@@ -765,6 +765,8 @@
             transition: all 0.3s ease;
             font-family: 'Inter', system-ui;
         }
+        .button-group a.btn-secondary { text-decoration: none; text-align: center; }
+        #paySummaryTotal { font-size: 18px; line-height: 1.4; text-align: right; }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
@@ -904,7 +906,7 @@
 <body>
 <nav>
     <a href="/" class="logo">
-        <img src="/assets/images/favicon.ico" alt="IPFX Logo">
+        <img src="/assets/images/logo.svg" alt="IPFX Logo">
         <span class="logo-text">IPFX Capital</span>
     </a>
     <div class="hamburger">
@@ -990,60 +992,61 @@
         <!-- Step 1: Choose Tier -->
         <div class="step-content active" id="step1">
             <div class="form-section">
-                <h2>Select Your Challenge Size</h2>
+                <h2>Traditional Challenge</h2>
+                <p>Three phases: 8%, 5% and 4% profit targets. 3% daily loss limit and 6% maximum loss limit.</p>
                 <div class="tier-grid">
-                    <div class="tier-card" data-tier="10k" data-price="79">
+                    <div class="tier-card" data-tier="10k" data-price="129" role="radio" aria-checked="false" tabindex="0">
                         <div class="checkmark">✓</div>
                         <h3>$10K</h3>
-                        <div class="tier-price">$79</div>
-                        <div class="tier-refund">Fully refundable</div>
+                        <div class="tier-price">$129</div>
+                        <div class="tier-refund">Refunds subject to terms</div>
                         <div class="tier-features">
-                            <div class="tier-feature">$500 daily loss limit</div>
-                            <div class="tier-feature">$1,000 total loss limit</div>
+                            <div class="tier-feature">$300 daily loss limit</div>
+                            <div class="tier-feature">$600 total loss limit</div>
                             <div class="tier-feature">$800 profit target</div>
                         </div>
                     </div>
-                    <div class="tier-card" data-tier="25k" data-price="149">
+                    <div class="tier-card" data-tier="25k" data-price="199" role="radio" aria-checked="false" tabindex="0">
                         <div class="checkmark">✓</div>
                         <h3>$25K</h3>
-                        <div class="tier-price">$149</div>
-                        <div class="tier-refund">Fully refundable</div>
+                        <div class="tier-price">$199</div>
+                        <div class="tier-refund">Refunds subject to terms</div>
                         <div class="tier-features">
-                            <div class="tier-feature">$1,250 daily loss limit</div>
-                            <div class="tier-feature">$2,500 total loss limit</div>
+                            <div class="tier-feature">$750 daily loss limit</div>
+                            <div class="tier-feature">$1,500 total loss limit</div>
                             <div class="tier-feature">$2,000 profit target</div>
                         </div>
                     </div>
-                    <div class="tier-card" data-tier="50k" data-price="249">
+                    <div class="tier-card" data-tier="50k" data-price="299" role="radio" aria-checked="false" tabindex="0">
                         <div class="checkmark">✓</div>
                         <h3>$50K</h3>
-                        <div class="tier-price">$249</div>
-                        <div class="tier-refund">Fully refundable</div>
+                        <div class="tier-price">$299</div>
+                        <div class="tier-refund">Refunds subject to terms</div>
                         <div class="tier-features">
-                            <div class="tier-feature">$2,500 daily loss limit</div>
-                            <div class="tier-feature">$5,000 total loss limit</div>
+                            <div class="tier-feature">$1,500 daily loss limit</div>
+                            <div class="tier-feature">$3,000 total loss limit</div>
                             <div class="tier-feature">$4,000 profit target</div>
                         </div>
                     </div>
-                    <div class="tier-card" data-tier="100k" data-price="399">
+                    <div class="tier-card" data-tier="100k" data-price="449" role="radio" aria-checked="false" tabindex="0">
                         <div class="checkmark">✓</div>
                         <h3>$100K</h3>
-                        <div class="tier-price">$399</div>
-                        <div class="tier-refund">Fully refundable</div>
+                        <div class="tier-price">$449</div>
+                        <div class="tier-refund">Refunds subject to terms</div>
                         <div class="tier-features">
-                            <div class="tier-feature">$5,000 daily loss limit</div>
-                            <div class="tier-feature">$10,000 total loss limit</div>
+                            <div class="tier-feature">$3,000 daily loss limit</div>
+                            <div class="tier-feature">$6,000 total loss limit</div>
                             <div class="tier-feature">$8,000 profit target</div>
                         </div>
                     </div>
-                    <div class="tier-card" data-tier="200k" data-price="699">
+                    <div class="tier-card" data-tier="200k" data-price="799" role="radio" aria-checked="false" tabindex="0">
                         <div class="checkmark">✓</div>
                         <h3>$200K</h3>
-                        <div class="tier-price">$699</div>
-                        <div class="tier-refund">Fully refundable</div>
+                        <div class="tier-price">$799</div>
+                        <div class="tier-refund">Refunds subject to terms</div>
                         <div class="tier-features">
-                            <div class="tier-feature">$10,000 daily loss limit</div>
-                            <div class="tier-feature">$20,000 total loss limit</div>
+                            <div class="tier-feature">$6,000 daily loss limit</div>
+                            <div class="tier-feature">$12,000 total loss limit</div>
                             <div class="tier-feature">$16,000 profit target</div>
                         </div>
                     </div>
@@ -1149,9 +1152,9 @@
                     <span class="pay-summary-value" id="paySummaryTotal">-</span>
                 </div>
 
-                <div id="payDemoNotice" class="pay-demo-notice" style="display:none;">
+                <div id="payDemoNotice" class="pay-demo-notice" role="status" aria-live="polite" style="display:none;">
                     <strong>Payments aren't connected yet</strong>
-                    This is a preview build — Stripe test keys haven't been added, so no payment form can load and nothing can be charged. Add <code>STRIPE_PUBLISHABLE_KEY</code> and deploy the <code>create-payment-intent</code> function to enable checkout.
+                    Checkout is currently unavailable. No payment has been taken.
                 </div>
 
                 <div id="payLoading" class="pay-loading" style="display:none;">
@@ -1160,16 +1163,17 @@
 
                 <form id="payForm" style="display:none;">
                     <div id="payment-element"></div>
-                    <div id="payError" class="pay-error"></div>
+                    <div id="payError" class="pay-error" role="alert"></div>
                 </form>
 
                 <div class="pay-secure-row">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    Payments are processed by Stripe. IPFX never sees or stores your card number.
+                    Card details are entered directly into the payment provider's secure form.
                 </div>
             </div>
             <div class="button-group">
                 <button class="btn-secondary" id="step3Back">Back</button>
+                <a class="btn-secondary" href="login.html">Sign In</a>
                 <button class="btn-primary" id="step3Next">Review Order</button>
             </div>
         </div>
@@ -1205,7 +1209,7 @@
             </div>
             <div class="button-group">
                 <button class="btn-secondary" id="step4Back">Back</button>
-                <button class="btn-primary" id="step4Submit">Complete Purchase</button>
+                <button class="btn-primary" id="step4Submit">Confirm Test Payment</button>
             </div>
         </div>
 
@@ -1214,20 +1218,10 @@
             <div class="form-section">
                 <div class="success-icon">✓</div>
                 <div class="success-content">
-                    <h2>Check Your Email!</h2>
-                    <p>Thank you for joining IPFX Capital. We've sent a confirmation email to <strong id="confirmEmail">-</strong></p>
-                    <p style="color: var(--cobalt); font-weight: 600; margin-top: 1rem;">Please click the confirmation link in your email to activate your account before logging in.</p>
-
-                    <div class="info-box">
-                        <h3>What Happens Next?</h3>
-                        <ul>
-                            <li><strong>Step 1:</strong> Check your email inbox (and spam folder)</li>
-                            <li><strong>Step 2:</strong> Click the confirmation link to verify your email</li>
-                            <li><strong>Step 3:</strong> Set your password using the link in the email</li>
-                            <li><strong>Step 4:</strong> Log in to your trader dashboard</li>
-                            <li><strong>Step 5:</strong> Start trading and hit your profit targets!</li>
-                        </ul>
-                    </div>
+                    <h2>Test Payment Recorded</h2>
+                    <p>Order <strong id="confirmationOrder">-</strong></p>
+                    <p>Receipt destination: <strong id="confirmEmail">-</strong></p>
+                    <p>This test payment does not activate a trading account. Receipt delivery and account provisioning are separate server-side checks.</p>
 
                     <div class="button-group" style="justify-content: center;">
                         <button class="btn-primary" onclick="window.location.href='login.html'">Go to Dashboard</button>
@@ -1243,300 +1237,7 @@
     <!-- Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
 
-    <script>
-        // ============================================
-        // SUPABASE CONFIGURATION
-        // ============================================
-        const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-        const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ============================================
-        // STRIPE CONFIGURATION
-        // Replace with a real publishable key (pk_test_... while testing,
-        // pk_live_... once you're actually ready to take real payments).
-        // The matching secret key goes into the create-payment-intent
-        // Supabase Edge Function's STRIPE_SECRET_KEY env var — never here.
-        // ============================================
-        const STRIPE_PUBLISHABLE_KEY = 'pk_test_YOUR_KEY_HERE';
-        const CREATE_PAYMENT_INTENT_URL = SUPABASE_URL + '/functions/v1/create-payment-intent';
-        const PAYMENTS_CONFIGURED = !STRIPE_PUBLISHABLE_KEY.includes('YOUR_KEY_HERE');
-
-        let stripe = null;
-        let elements = null;
-        let clientSecret = null;
-
-        // State management
-        let currentStep = 1;
-        let selectedTier = null;
-        let selectedPrice = 0;
-
-        // Tier selection
-        document.querySelectorAll('.tier-card').forEach(card => {
-            card.addEventListener('click', function() {
-                document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedTier = this.dataset.tier;
-                selectedPrice = this.dataset.price;
-                document.getElementById('step1Next').disabled = false;
-                document.getElementById('paySummaryTotal').textContent = '$' + selectedPrice;
-            });
-        });
-
-        // ============================================
-        // STRIPE PAYMENT ELEMENT
-        // One mount handles card, Apple Pay, Google Pay, and Link —
-        // Stripe shows whichever the browser/device actually supports.
-        // ============================================
-        let paymentElementReady = false;
-
-        async function initPaymentElement() {
-            if (paymentElementReady) return;
-
-            if (!PAYMENTS_CONFIGURED) {
-                document.getElementById('payDemoNotice').style.display = 'block';
-                document.getElementById('step3Next').disabled = true;
-                return;
-            }
-
-            document.getElementById('payLoading').style.display = 'flex';
-            try {
-                stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-
-                const resp = await fetch(CREATE_PAYMENT_INTENT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                        'apikey': SUPABASE_ANON_KEY,
-                    },
-                    body: JSON.stringify({ tier: selectedTier, amount_usd: Number(selectedPrice) }),
-                });
-                if (!resp.ok) throw new Error('Could not start checkout (' + resp.status + ')');
-                const data = await resp.json();
-                clientSecret = data.client_secret;
-
-                elements = stripe.elements({
-                    clientSecret,
-                    appearance: {
-                        theme: 'night',
-                        variables: {
-                            colorPrimary: '#2563eb',
-                            colorBackground: '#0a0a0c',
-                            colorText: '#ffffff',
-                            colorDanger: '#ef4444',
-                            fontFamily: 'Inter, sans-serif',
-                            borderRadius: '8px',
-                        },
-                        rules: {
-                            '.Input': { border: '2px solid #2a2a2c', padding: '12px' },
-                            '.Input:focus': { border: '2px solid #2563eb', boxShadow: 'none' },
-                            '.Label': { color: '#a0a0a0', fontSize: '0.9rem' },
-                        },
-                    },
-                });
-                const paymentElement = elements.create('payment');
-                paymentElement.mount('#payment-element');
-
-                document.getElementById('payLoading').style.display = 'none';
-                document.getElementById('payForm').style.display = 'block';
-                paymentElementReady = true;
-            } catch (e) {
-                document.getElementById('payLoading').style.display = 'none';
-                const err = document.getElementById('payError');
-                err.textContent = e.message || 'Could not load the payment form. Please try again.';
-                err.style.display = 'block';
-            }
-        }
-
-        // Navigation functions
-        function goToStep(stepNum) {
-            // Update step indicators
-            document.querySelectorAll('.step').forEach((step, index) => {
-                step.classList.remove('active', 'completed');
-                if (index + 1 < stepNum) {
-                    step.classList.add('completed');
-                } else if (index + 1 === stepNum) {
-                    step.classList.add('active');
-                }
-            });
-
-            // Update progress bar
-            const progress = ((stepNum - 1) / 3) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
-
-            // Update step content
-            document.querySelectorAll('.step-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById('step' + stepNum).classList.add('active');
-
-            currentStep = stepNum;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            if (stepNum === 3) initPaymentElement();
-        }
-
-        function updateReview() {
-            const tierText = selectedTier.toUpperCase();
-            document.getElementById('reviewTier').textContent = '$' + tierText.replace('K', ',000');
-            document.getElementById('reviewName').textContent =
-                document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value;
-            document.getElementById('reviewEmail').textContent = document.getElementById('email').value;
-            document.getElementById('reviewCountry').textContent =
-                document.getElementById('country').options[document.getElementById('country').selectedIndex].text;
-            document.getElementById('reviewTotal').textContent = '$' + selectedPrice;
-        }
-
-        // Step navigation
-        document.getElementById('step1Next').addEventListener('click', () => goToStep(2));
-        document.getElementById('step2Back').addEventListener('click', () => goToStep(1));
-        // Client-side convenience check only — the server (trading-engine,
-        // reading user_profiles.restricted_jurisdiction) is the real gate
-        // and re-checks this independently at account-provisioning time.
-        // Keep in sync with restricted_countries in prop-firm-hardening.sql.
-        const RESTRICTED_COUNTRY_CODES = ['CU', 'IR', 'KP', 'SY'];
-
-        document.getElementById('step2Next').addEventListener('click', () => {
-            // Basic validation
-            const required = ['firstName', 'lastName', 'email', 'country', 'experience'];
-            let valid = true;
-            required.forEach(id => {
-                if (!document.getElementById(id).value) {
-                    valid = false;
-                    document.getElementById(id).style.borderColor = 'var(--error)';
-                } else {
-                    document.getElementById(id).style.borderColor = 'var(--line)';
-                }
-            });
-
-            if (RESTRICTED_COUNTRY_CODES.includes(document.getElementById('country').value)) {
-                valid = false;
-                alert('Sorry — we can\'t currently offer challenges to residents of the selected country.');
-            }
-
-            if (!document.getElementById('ageConfirm').checked) {
-                valid = false;
-                alert('Please confirm you are 18 years of age or older');
-            }
-
-            if (!document.getElementById('terms').checked) {
-                valid = false;
-                alert('Please accept the Terms & Conditions');
-            }
-
-            if (!document.getElementById('cancellationWaiver').checked) {
-                valid = false;
-                alert('Please confirm you understand the 14-day cancellation right, per Consumer Contracts Regulations 2013');
-            }
-
-            if (valid) {
-                goToStep(3);
-            }
-        });
-
-        document.getElementById('step3Back').addEventListener('click', () => goToStep(2));
-        document.getElementById('step3Next').addEventListener('click', () => {
-            if (!PAYMENTS_CONFIGURED || !paymentElementReady) {
-                alert('Payments are not connected yet in this preview build.');
-                return;
-            }
-            document.getElementById('payError').style.display = 'none';
-            updateReview();
-            goToStep(4);
-        });
-
-        document.getElementById('step4Back').addEventListener('click', () => goToStep(3));
-        document.getElementById('step4Submit').addEventListener('click', async () => {
-            const submitBtn = document.getElementById('step4Submit');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Processing payment…';
-
-            try {
-                // 1. Confirm payment with Stripe first — no account is created
-                //    unless the charge actually succeeds.
-                const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
-                    elements,
-                    redirect: 'if_required',
-                    confirmParams: {
-                        receipt_email: document.getElementById('email').value,
-                    },
-                });
-
-                if (stripeError) {
-                    throw new Error(stripeError.message || 'Payment failed. Please check your details and try again.');
-                }
-                if (!paymentIntent || paymentIntent.status !== 'succeeded') {
-                    throw new Error('Payment was not completed (status: ' + (paymentIntent?.status || 'unknown') + ').');
-                }
-
-                submitBtn.textContent = 'Creating Account...';
-
-                const email = document.getElementById('email').value;
-                const name = document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value;
-                const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '!1';
-
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: tempPassword,
-                    options: {
-                        data: {
-                            name: name,
-                            challenge_tier: selectedTier,
-                            challenge_price: selectedPrice,
-                            stripe_payment_intent_id: paymentIntent.id,
-                            country_code: document.getElementById('country').value,
-                            age_confirmed: document.getElementById('ageConfirm').checked,
-                            cancellation_waiver_confirmed: document.getElementById('cancellationWaiver').checked,
-                            cancellation_waiver_confirmed_at: new Date().toISOString(),
-                            terms_version: '1.0',
-                            privacy_version: '1.0',
-                        },
-                        emailRedirectTo: window.location.origin + '/email-confirmed.html'
-                    }
-                });
-
-                if (error) {
-                    throw error;
-                }
-
-                document.getElementById('confirmEmail').textContent = email;
-                goToStep(5);
-
-                document.getElementById('progressFill').style.width = '100%';
-                document.querySelectorAll('.step').forEach(step => step.classList.add('completed'));
-
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
-
-            } catch (error) {
-                console.error('Checkout error:', error);
-                const err = document.getElementById('payError');
-                err.textContent = error.message || 'Something went wrong completing your order.';
-                err.style.display = 'block';
-
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
-                goToStep(3);
-            }
-        });
-
-        // Pre-select tier if arriving from anchor link
-        window.addEventListener('DOMContentLoaded', function() {
-            if (window.location.hash) {
-                const tierFromHash = window.location.hash.substring(1); // Remove the #
-                const targetCard = document.querySelector(`[data-tier="${tierFromHash}"]`);
-                if (targetCard) {
-                    // Simulate click to select the tier
-                    targetCard.click();
-                    // Scroll to the tier selection
-                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-        });
-    </script>
+    <script src="assets/js/checkout-flow.js"></script>
 
     <script>
     // Standard nav scroll + hamburger
@@ -1587,7 +1288,6 @@
     <a href="/terms.html">Terms</a>
     <a href="/faq.html">FAQ</a>
     <a href="/contact.html">Contact</a>
-    <button class="ipfx-share-button" type="button" data-ipfx-share>Share this page</button>
   </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>

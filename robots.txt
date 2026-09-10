@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /dashboard.html
+Disallow: /email-confirmed.html
+Disallow: /login.html
+Disallow: /market-data.html
+Disallow: /referral-dashboard-component.html
+Disallow: /test-signup.html
+Disallow: /trading.html
+
+Sitemap: https://ipfxcapital.com/sitemap.xml

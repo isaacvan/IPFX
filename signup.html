@@ -736,9 +736,9 @@
             </div>
 
             <div class="launch-badge">Launching October 2026</div>
-            <h1>Pre-Register for Launch</h1>
-            <p class="subtitle">Secure your spot for our October 2026 launch</p>
-            <p class="pre-register-info">Be among the first to access our platform and start your funded trading journey when we go live.</p>
+            <h1>Create Your Account</h1>
+            <p class="subtitle">Get started ahead of our October 2026 launch</p>
+            <p class="pre-register-info">Create your account now and start your challenge as soon as our platform goes live.</p>
 
             <div id="alertBox" class="alert"></div>
 
@@ -809,7 +809,7 @@
                     <div class="promo-type-note" id="promoTypeNote">Select your account type above to continue</div>
                 </div>
 
-                <button type="submit" class="btn-signup" id="submitBtn">Pre-Register Now</button>
+                <button type="submit" class="btn-signup" id="submitBtn">Create Account</button>
             </form>
 
             <div class="divider">or</div>
@@ -1187,7 +1187,7 @@
 
             // Disable submit button
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Pre-Registering...';
+            submitBtn.textContent = 'Creating Account...';
 
             try {
                 // ============================================
@@ -1243,10 +1243,10 @@
                     ? 'Too many sign-up attempts — please wait a few minutes and try again.'
                     : error.message?.toLowerCase().includes('already registered') || error.message?.toLowerCase().includes('already been registered')
                     ? 'An account with this email already exists. <a href="login.html" style="color:var(--cobalt)">Login here</a>.'
-                    : error.message || 'An error occurred during pre-registration. Please try again.';
+                    : error.message || 'An error occurred creating your account. Please try again.';
                 showAlert(errMsg, 'error');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Pre-Register Now';
+                submitBtn.textContent = 'Create Account';
             }
         });
     </script>
@@ -1300,7 +1300,6 @@
     <a href="/terms.html">Terms</a>
     <a href="/faq.html">FAQ</a>
     <a href="/contact.html">Contact</a>
-    <button class="ipfx-share-button" type="button" data-ipfx-share>Share this page</button>
   </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
