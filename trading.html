@@ -2917,6 +2917,38 @@ function engineMsg(txt,ok){
   el.style.background=ok?'#10b981':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3500);
 }
+// Announces positions the ENGINE closed between polls (stop-loss hit,
+// take-profit hit, a drawdown-breach flatten) — the events TradeLocker
+// surfaces as "Stop loss hit / Position closed" toasts and IPFX
+// previously only reflected as a silent row disappearing from the
+// table. Every trading-engine action (not just `state`) returns the
+// same statePayload() shape, so this runs after every call — harmless
+// for opens (nothing disappears), but 'manual' and 'partial' closes are
+// ALREADY announced directly at their own call site (closeTradeById /
+// closePosition / flattenAll / the partial-close flow), so both are
+// excluded here or every self-initiated close would toast twice.
+let prevOpenTradeIds=null;
+function announceAutoClosedTrades(state){
+  const openNow=new Set((state.open_trades||[]).map(t=>t.id));
+  if(prevOpenTradeIds){
+    const closedMap=new Map((state.closed_trades||[]).map(t=>[t.id,t]));
+    const SELF_ANNOUNCED=new Set(['manual','partial']);
+    for(const id of prevOpenTradeIds){
+      if(openNow.has(id))continue; // still open
+      const t=closedMap.get(id);
+      if(!t||SELF_ANNOUNCED.has(t.close_reason))continue; // already announced at the click site, or unknown — don't guess
+      const sym=(t.symbol||'').replace(/^[^:]+:/,'');
+      const pnl=(+t.pnl||0);
+      const money=(v)=>(v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+      const label=t.close_reason==='sl'?'Stop loss hit'
+        :t.close_reason==='tp'?'Take profit hit'
+        :t.close_reason==='breach'?'Account breach — position flattened'
+        :'Position closed';
+      engineMsg(`${label} — ${t.side==='buy'?'Sell':'Buy'} ${(+t.volume).toFixed(2)} ${sym} @ ${fmtPx(t.close_price)} (${money(pnl)})`,pnl>=0);
+    }
+  }
+  prevOpenTradeIds=openNow;
+}
 // Official client (auto-refreshes tokens). Falls back to raw localStorage
 // parsing if the CDN script failed to load. Uses local public constants so
 // it has NO dependency on the SUPABASE_URL/KEY consts declared later in the
@@ -2956,6 +2988,7 @@ async function engineCall(body){
     const j=await r.json().catch(()=>null);
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
     if(!r.ok||!j||j.ok===false){engineMsg((j&&j.error)||'Order rejected');return null;}
+    announceAutoClosedTrades(j);
     engineState=j;renderPositions();renderEngineAccount();if(typeof renderJournal==='function')renderJournal();return j;
   }catch(e){
     engineMsg(e&&e.name==='AbortError'?'No response after 15s — check your connection and try again':'Network error — order not placed');
