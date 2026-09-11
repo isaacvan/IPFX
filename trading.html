@@ -1583,6 +1583,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
     <div class="btab active" onclick="switchBtab('positions',this)">Positions <span class="btab-badge" id="posBadge">0</span></div>
     <div class="btab" onclick="switchBtab('pending',this)">Pending Orders <span class="btab-badge" id="pendBadge">0</span></div>
     <div class="btab" onclick="switchBtab('closed',this)">Closed Positions</div>
+    <div class="btab" onclick="switchBtab('orders',this)">Order History</div>
     <div class="btab" onclick="switchBtab('challenge',this)">Challenge <span class="btab-badge" id="chBadge">—</span></div>
     <div class="btab" onclick="switchBtab('account',this)">Account</div>
     <div class="btab" onclick="switchBtab('risk',this)">Risk Calculator</div>
@@ -1657,6 +1658,28 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
             <th>Exit Price</th><th>Fee</th><th>Swaps</th><th>P&amp;L</th><th>Net P&amp;L</th><th>Order ID</th><th>Position ID</th>
           </tr></thead>
           <tbody id="closedTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ORDER HISTORY: every order EVENT (open/close/modify/reject), not
+         just completed round-trips like Closed Positions above. Rejects
+         especially — a trader who gets "risk cap exceeded" has nowhere
+         today to look back and see that happened. order_audit_events
+         already has an own-row RLS read policy (see
+         market-data-audit-migration.sql), so this reads it directly
+         instead of adding a new trading-engine action. -->
+    <div class="bpanel postbl-panel" id="bp-orders">
+      <div class="postbl-toolbar">
+        <div class="postbl-summary" id="orderHistSummary">Last 100 events</div>
+      </div>
+      <div class="postbl-wrap">
+        <table class="postbl">
+          <thead><tr>
+            <th>Time (UTC)</th><th>Event</th><th>Instrument</th><th>Side</th>
+            <th>Requested Vol</th><th>Requested Price</th><th>Fill Price</th><th>Spread</th><th>Detail</th>
+          </tr></thead>
+          <tbody id="orderHistBody"></tbody>
         </table>
       </div>
     </div>
@@ -2447,6 +2470,42 @@ function switchBtab(id,el){
   document.querySelectorAll('.bpanel').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('bp-'+id).classList.add('active');
+  if(id==='orders')loadOrderHistory();
+}
+// ── ORDER HISTORY ── full order-event audit trail (open/close/modify/
+// reject), not just completed round-trips. Read directly via the
+// Supabase client rather than trading-engine — order_audit_events has
+// its own "own audit read" RLS policy, so no new engine action needed.
+async function loadOrderHistory(){
+  const body=document.getElementById('orderHistBody');
+  if(!body)return;
+  const sb=typeof getSbEngine==='function'?getSbEngine():null;
+  const acctId=engineState&&engineState.account&&engineState.account.id;
+  if(!sb||!acctId){body.innerHTML='<tr><td colspan="9"><div class="postbl-empty">Log in to view order history</div></td></tr>';return;}
+  body.innerHTML='<tr><td colspan="9"><div class="postbl-empty">Loading…</div></td></tr>';
+  try{
+    const{data,error}=await sb.from('order_audit_events')
+      .select('event,reject_reason,symbol,side,requested_volume,requested_price,fill_price,spread,server_ts')
+      .eq('account_id',acctId).order('server_ts',{ascending:false}).limit(100);
+    if(error||!data){body.innerHTML='<tr><td colspan="9"><div class="postbl-empty">Could not load order history</div></td></tr>';return;}
+    if(!data.length){body.innerHTML='<tr><td colspan="9"><div class="postbl-empty">No order events yet</div></td></tr>';return;}
+    const EVENT_LABEL={open:'Opened',close:'Closed',modify:'Modified',reject:'Rejected'};
+    body.innerHTML=data.map(e=>{
+      const cls=e.event==='reject'?'neg':e.event==='open'?'pos':'';
+      const detail=e.event==='reject'?(e.reject_reason||'—'):'—';
+      return `<tr>
+        <td>${utcStamp(e.server_ts)}</td>
+        <td class="postbl-side ${cls==='pos'?'buy':cls==='neg'?'sell':''}">${EVENT_LABEL[e.event]||e.event}</td>
+        <td>${(e.symbol||'—').replace(/^[^:]+:/,'')}</td>
+        <td>${e.side?e.side.toUpperCase():'—'}</td>
+        <td>${e.requested_volume!=null?(+e.requested_volume).toFixed(2):'—'}</td>
+        <td>${e.requested_price!=null?fmtPx(e.requested_price):'—'}</td>
+        <td>${e.fill_price!=null?fmtPx(e.fill_price):'—'}</td>
+        <td>${e.spread!=null?(+e.spread).toFixed(5):'—'}</td>
+        <td${e.event==='reject'?' style="color:var(--red)"':''}>${detail}</td>
+      </tr>`;
+    }).join('');
+  }catch(_){body.innerHTML='<tr><td colspan="9"><div class="postbl-empty">Could not load order history</div></td></tr>';}
 }
 
 let btmExpandedHeight=260;
