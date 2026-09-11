@@ -1114,6 +1114,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
           <div class="wl-cat" data-cat="forex" onclick="setWlCat('forex',this)">Forex</div>
           <div class="wl-cat" data-cat="metals" onclick="setWlCat('metals',this)">Metals</div>
           <div class="wl-cat" data-cat="indices" onclick="setWlCat('indices',this)">Indices</div>
+          <div class="wl-cat" data-cat="crypto" onclick="setWlCat('crypto',this)">Crypto</div>
         </div>
         <div class="wl-cols"><span>Instrument</span><span>Bid</span><span>Ask</span></div>
         <div class="wl-list" id="wlList"></div>
@@ -2017,6 +2018,7 @@ function contractSizeFor(sym){
   const s=String(sym||'').replace(/^[^:]+:/,'').toUpperCase();
   if(/^(XAU|XAG|XPT|XPD)/.test(s)) return s.startsWith('XAG')?5000:100;
   if(/^(SPX|NSX|DJI|UK100|GER40|FRA40|JPN225|US2000|US500|NAS100|US30)/.test(s)) return 10;
+  if(/^(BTC|ETH|LTC|ADA|SOL|DOT)USD/.test(s)) return 1; // crypto: 1 coin per lot
   return 100000; // forex
 }
 function updateRiskPreview(){
@@ -3895,6 +3897,14 @@ const WL_DATA={
     {sym:'FOREXCOM:FRA40',name:'CAC 40',base:8120,d:1,sp:1.5},
     {sym:'FOREXCOM:JPN225',name:'Nikkei 225',base:39800,d:0,sp:8.0},
     {sym:'FOREXCOM:US2000',name:'Russell 2000',base:2040,d:1,sp:0.8},
+  ],
+  crypto:[
+    {sym:'OANDA:BTCUSD',name:'Bitcoin',base:77300,d:2,sp:25},
+    {sym:'OANDA:ETHUSD',name:'Ethereum',base:2455,d:2,sp:2.5},
+    {sym:'OANDA:LTCUSD',name:'Litecoin',base:53.10,d:2,sp:0.5},
+    {sym:'OANDA:ADAUSD',name:'Cardano',base:0.2089,d:4,sp:0.003},
+    {sym:'OANDA:SOLUSD',name:'Solana',base:99.87,d:2,sp:0.15},
+    {sym:'OANDA:DOTUSD',name:'Polkadot',base:1.146,d:3,sp:0.02},
   ]
 };
 
@@ -4073,7 +4083,7 @@ function getPipValue(){
   if(['USDJPY','GBPJPY','EURJPY','AUDJPY','CADJPY'].some(s=>sym.includes(s.replace('/','')))){return 9.09;}
   if(sym.includes('XAUUSD'))return 100;
   if(sym.includes('XAGUSD'))return 50;
-  if(sym.includes('BTC'))return 1;
+  if(/^(BTC|ETH|LTC|ADA|SOL|DOT)USD/.test(sym))return 1; // crypto: 1 coin per lot, same as contractSizeFor()
   if(['SPXUSD','US500'].some(s=>sym.includes(s)))return 25;
   if(sym.includes('NSXUSD')||sym.includes('NAS'))return 20;
   if(sym.includes('GER')||sym.includes('JPN')||sym.includes('FRA'))return 10;

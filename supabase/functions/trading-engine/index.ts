@@ -69,7 +69,7 @@ type Inst = {
   maxSpread: number;   // reject fills if effective spread exceeds this
   contract: number;    // units per 1.00 lot (per point for indices)
   quote: string;       // quote currency for PnL conversion
-  cls: "forex" | "metal" | "index";
+  cls: "forex" | "metal" | "index" | "crypto";
 };
 
 const I = (code: string, digits: number, spread: number, contract: number, cls: Inst["cls"], quote = "USD", alt?: string, maxSpread?: number): Inst =>
@@ -103,6 +103,16 @@ const INSTRUMENTS: Record<string, Inst> = {
   FRA40:  I("^FCHI",  1, 1.5, 10, "index", "EUR"),
   JPN225: I("^N225",  0, 8.0, 10, "index", "JPY"),
   US2000: I("^RUT",   1, 0.8, 10, "index"),
+  // crypto — 1 coin per lot (CFD convention), trades every day incl.
+  // weekends: see marketOpen()'s crypto branch. Spreads are indicative
+  // retail-CFD widths, not sourced from a live order book (this feed has
+  // no real bid/ask -- see the "testing tier" note on fetchQuote below).
+  BTCUSD: I("BTC-USD", 2, 25,   1, "crypto"),
+  ETHUSD: I("ETH-USD", 2, 2.5,  1, "crypto"),
+  LTCUSD: I("LTC-USD", 2, 0.5,  1, "crypto"),
+  ADAUSD: I("ADA-USD", 4, 0.003,1, "crypto"),
+  SOLUSD: I("SOL-USD", 2, 0.15, 1, "crypto"),
+  DOTUSD: I("DOT-USD", 3, 0.02, 1, "crypto"),
 };
 
 const ALIASES: Record<string, string> = {
@@ -115,7 +125,14 @@ const MAX_OPEN_POSITIONS = 20;
 // ---------- market session (weekend closure) ----------
 // Forex/metals/indices via this feed: closed Fri 22:00 UTC -> Sun 22:00 UTC
 // (approximates the real FX week close). Coarse but real, fail-closed.
-function marketOpen(): boolean {
+// symbol is optional so existing callers that don't have one in scope
+// keep the old forex-week behaviour unchanged. Crypto genuinely trades
+// weekends -- unlike forex, there is no exchange to close -- so a
+// crypto symbol skips the Fri 22:00 UTC -> Sun 22:00 UTC closure
+// entirely rather than reporting a market that, for that instrument,
+// was never actually shut.
+function marketOpen(symbol?: string): boolean {
+  if (symbol && INSTRUMENTS[symbol]?.cls === "crypto") return true;
   const now = new Date();
   const day = now.getUTCDay(); // 0=Sun 6=Sat
   const hour = now.getUTCHours();
@@ -463,7 +480,7 @@ async function processPendingOrders(
     if (!inst) continue;
     const q = await fetchQuote(symbol);
     if (q === null || quoteStale(q)) continue;      // never fill on a bad quote
-    if (!marketOpen()) continue;
+    if (!marketOpen(symbol)) continue;
     if (!pendingTriggered(o, q)) continue;
 
     const reject = async (reason: string) => {
@@ -1076,7 +1093,7 @@ Deno.serve(async (req) => {
     const symbol = cleanSymbol(body.symbol);
     if (!symbol) return err("Unknown instrument");
     const inst = INSTRUMENTS[symbol];
-    if (!marketOpen()) {
+    if (!marketOpen(symbol)) {
       return new Response(JSON.stringify({ ok: true, symbol, status: "closed", digits: inst.digits }),
         { headers: { ...CORS, "Content-Type": "application/json" } });
     }
@@ -1107,10 +1124,12 @@ Deno.serve(async (req) => {
     const raw = Array.isArray(body.symbols) ? body.symbols : [];
     const symbols = [...new Set(raw.map((s: unknown) => cleanSymbol(s)).filter((s): s is string => !!s))].slice(0, 40);
     if (!symbols.length) return err("No valid instruments requested");
-    const closed = !marketOpen();
     const quotes = await Promise.all(symbols.map(async (symbol) => {
       const inst = INSTRUMENTS[symbol];
-      if (closed) return { symbol, status: "closed" as const, digits: inst.digits };
+      // Per-symbol, not shared across the batch: a crypto symbol in the
+      // same request as a forex pair over a weekend must not inherit the
+      // forex closure just because it was fetched in the same call.
+      if (!marketOpen(symbol)) return { symbol, status: "closed" as const, digits: inst.digits };
       const q = await fetchQuote(symbol);
       if (q === null) return { symbol, status: "no_feed" as const, digits: inst.digits };
       const stale = quoteStale(q);
@@ -1349,7 +1368,7 @@ Deno.serve(async (req) => {
     };
 
     // fail-closed gates, in order: market session -> symbol enabled -> quote -> stale -> spread
-    if (!marketOpen()) return reject("Market is closed for this instrument");
+    if (!marketOpen(symbol)) return reject("Market is closed for this instrument");
     const spec = await symbolCheck(db, symbol);
     if (!spec.ok) return reject(spec.reason || "Symbol disabled");
 
