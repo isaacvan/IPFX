@@ -752,7 +752,42 @@ body.light .postbl tbody td{color:#0c0c16;}
 .op-lot-minus,.op-lot-plus{width:26px;height:30px;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:rgba(255,255,255,.35);cursor:pointer;background:none;border:none;transition:all .12s;}
 .op-lot-minus:hover,.op-lot-plus:hover{color:var(--fg);background:rgba(255,255,255,.07);}
 .op-lot-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.op-lot-num{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;line-height:1.1;}
+.op-lot-num{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;line-height:1.1;background:transparent;border:none;outline:none;color:inherit;text-align:center;width:100%;padding:0;-moz-appearance:textfield;}
+.op-lot-num::-webkit-outer-spin-button,.op-lot-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.op-lot-num:focus{color:var(--gold,#f5b342);}
+
+/* ── INSTRUMENTS WATCHLIST ── */
+.wl-wrap{flex-shrink:0;border-bottom:1px solid var(--line);background:var(--bg2);}
+.wl-hd{display:flex;align-items:center;gap:.5rem;padding:.55rem .8rem;cursor:pointer;user-select:none;}
+.wl-hd-lbl{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+.wl-hd-cur{margin-left:auto;font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:700;color:var(--fg);}
+.wl-chev{flex-shrink:0;color:var(--muted2);transition:transform .18s;}
+.wl-wrap.collapsed .wl-chev{transform:rotate(-90deg);}
+.wl-wrap.collapsed .wl-body{display:none;}
+.wl-body{padding:0 .6rem .6rem;}
+.wl-search-row{display:flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;padding:.4rem .55rem;color:var(--muted2);margin-bottom:.5rem;}
+.wl-search-row input{flex:1;background:transparent;border:none;outline:none;color:var(--fg);font-size:.75rem;font-family:inherit;}
+.wl-search-row input::placeholder{color:var(--muted2);}
+.wl-cats{display:flex;gap:.35rem;margin-bottom:.5rem;flex-wrap:wrap;}
+.wl-cat{padding:.22rem .55rem;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:.66rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
+.wl-cat:hover{color:var(--fg);}
+.wl-cat.active{background:var(--cobalt-d);border-color:var(--cobalt);color:var(--cobalt);}
+.wl-cols{display:grid;grid-template-columns:1fr 62px 62px;gap:.3rem;padding:.2rem .5rem;font-size:.6rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.03em;}
+.wl-cols span:not(:first-child){text-align:right;}
+.wl-list{max-height:190px;overflow-y:auto;}
+.wl-row{display:grid;grid-template-columns:1fr 62px 62px;gap:.3rem;align-items:center;padding:.4rem .5rem;border-radius:6px;cursor:pointer;transition:background .12s;}
+.wl-row:hover{background:rgba(255,255,255,.045);}
+.wl-row.active{background:var(--cobalt-d);}
+.wl-row-name{font-family:'Space Grotesk',sans-serif;font-size:.74rem;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wl-row-sym{display:block;font-size:.62rem;font-weight:600;color:var(--muted2);}
+.wl-row-bid,.wl-row-ask{font-family:'Space Grotesk',sans-serif;font-size:.72rem;font-weight:600;text-align:right;white-space:nowrap;transition:color .3s;}
+.wl-row-bid{color:var(--red);}
+.wl-row-ask{color:var(--green);}
+.wl-row-bid.flash-up,.wl-row-ask.flash-up{color:var(--green)!important;}
+.wl-row-bid.flash-dn,.wl-row-ask.flash-dn{color:var(--red)!important;}
+.wl-empty{padding:1rem .5rem;text-align:center;font-size:.72rem;color:var(--muted2);}
+body.light .wl-wrap{background:#fff;}
+body.light .wl-search-row,body.light .wl-cat{background:rgba(0,0,0,.03);}
 .op-lot-sub{font-size:.5rem;color:rgba(255,255,255,.22);letter-spacing:.04em;}
 .op-lot-unit{padding:0 .38rem;font-size:.6rem;color:rgba(255,255,255,.28);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.18rem;flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;height:30px;white-space:nowrap;}
 .op-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:.42rem;}
@@ -955,6 +990,7 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
   <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">IPFX Markets</strong></div>
   <!-- No real "Server" field exists — this is a simulated environment, not broker infrastructure. -->
   <div class="tb-right">
+    <a href="downloads.html" class="back-btn desktop-download-link" title="IPFX Markets desktop downloads">Desktop App</a>
     <div class="tb-tool-grp">
       <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1045,6 +1081,33 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
     <div class="guide-resize-handle" id="guideResizeHandle"><div class="guide-resize-grip"></div></div>
+
+    <!-- INSTRUMENTS WATCHLIST — collapsible, sits above the tabs so it's
+         visible alongside the order ticket (not a tab you switch away
+         from it to see, like TradeLocker's own layout). The whole-panel
+         guideTog above still hides/shows everything including this. -->
+    <div class="wl-wrap" id="wlWrap">
+      <div class="wl-hd" onclick="toggleWatchlist()">
+        <span class="wl-hd-lbl">Instruments</span>
+        <span class="wl-hd-cur" id="wlCurSym">EUR/USD</span>
+        <svg class="wl-chev" id="wlChev" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="1,1 5,5 9,1"/></svg>
+      </div>
+      <div class="wl-body" id="wlBody">
+        <div class="wl-search-row">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="wlSearch" placeholder="Search instruments…" oninput="filterWatchlist(this.value)">
+        </div>
+        <div class="wl-cats" id="wlCats">
+          <div class="wl-cat active" data-cat="all" onclick="setWlCat('all',this)">All</div>
+          <div class="wl-cat" data-cat="forex" onclick="setWlCat('forex',this)">Forex</div>
+          <div class="wl-cat" data-cat="metals" onclick="setWlCat('metals',this)">Metals</div>
+          <div class="wl-cat" data-cat="indices" onclick="setWlCat('indices',this)">Indices</div>
+        </div>
+        <div class="wl-cols"><span>Instrument</span><span>Bid</span><span>Ask</span></div>
+        <div class="wl-list" id="wlList"></div>
+      </div>
+    </div>
+
     <div class="guide-tabs">
       <div class="gtab" onclick="switchTab('order',this)">Order</div>
       <div class="gtab active" onclick="switchTab('ind',this)">Indicators</div>
@@ -1157,7 +1220,9 @@ body.light .algo-sub-item{background:rgba(0,0,0,.02);}
           <div class="op-lot-ctrl">
             <button class="op-lot-minus" onclick="adjLots(-1)">−</button>
             <div class="op-lot-mid">
-              <div class="op-lot-num" id="ord-lots">0.01</div>
+              <input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01"
+                     onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)"
+                     onkeydown="if(event.key==='Enter')this.blur()">
               <div class="op-lot-sub">LOTS</div>
             </div>
             <button class="op-lot-plus" onclick="adjLots(1)">+</button>
@@ -2876,15 +2941,41 @@ async function engineCall(body){
 function adjLots(d){
   const step=ordLots<0.1?0.01:ordLots<1?0.1:1;
   ordLots=Math.round(Math.max(0.01,ordLots+(d>0?step:-step))*100)/100;
-  document.getElementById('ord-lots').textContent=ordLots.toFixed(2);
+  document.getElementById('ord-lots').value=ordLots.toFixed(2);
+  document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>p.classList.remove('active'));
   updatePnlPreview();
+  if(typeof updateRiskPreview==='function')updateRiskPreview();
 }
 function setLots(n,btn){
   ordLots=n;
-  document.getElementById('ord-lots').textContent=(+n).toFixed(2);
+  document.getElementById('ord-lots').value=(+n).toFixed(2);
   document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>p.classList.remove('active'));
   if(btn)btn.classList.add('active');
   updatePnlPreview();
+  if(typeof updateRiskPreview==='function')updateRiskPreview();
+}
+// Typed lot size — the field used to be a plain <div>, only movable via the
+// +/- buttons or the fixed presets. Free typing needs two passes: let
+// almost anything through while the user is mid-keystroke (so "0." or an
+// empty field doesn't get stomped on every character), then validate and
+// clamp once they commit (blur / change / Enter).
+function lotsInputTyping(el){
+  el.value=el.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');
+}
+function lotsInputCommit(el){
+  const MIN_LOT=0.01, MAX_LOT=100, STEP=0.01;
+  let n=parseFloat(el.value);
+  if(!isFinite(n)||n<=0)n=MIN_LOT;
+  n=Math.min(MAX_LOT,Math.max(MIN_LOT,n));
+  n=Math.round(n/STEP)*STEP;
+  n=Math.round(n*100)/100;
+  ordLots=n;
+  el.value=n.toFixed(2);
+  document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>{
+    p.classList.toggle('active',Math.abs(parseFloat(p.textContent)-n)<0.001);
+  });
+  updatePnlPreview();
+  if(typeof updateRiskPreview==='function')updateRiskPreview();
 }
 // ---- order type (market / limit / stop) ----
 let orderType='market';
@@ -3697,8 +3788,99 @@ function changeInstrument(sym){
   const name=inst?inst.name:sym.replace(/^[^:]+:/,'');
   const symEl=document.getElementById('op-sym');
   if(symEl)symEl.textContent=name;
+  const curEl=document.getElementById('wlCurSym');
+  if(curEl)curEl.textContent=name;
+  document.querySelectorAll('.wl-row').forEach(r=>r.classList.toggle('active',r.dataset.sym===sym));
   if(typeof pollTicketPrice==='function')pollTicketPrice(); // real quote for new symbol
 }
+
+// ── INSTRUMENTS WATCHLIST ──
+// Data (WL_DATA above) is reference-only: name/base/decimals/typical
+// spread for rendering instantly. Real bid/ask comes from the engine's
+// bulk `prices` action (one request for the whole visible list, not one
+// per symbol) and overwrites the placeholder once it lands.
+let wlCat='all',wlQuery='',wlCollapsed=false,wlPollBusy=false;
+function toggleWatchlist(){
+  wlCollapsed=!wlCollapsed;
+  document.getElementById('wlWrap').classList.toggle('collapsed',wlCollapsed);
+  if(!wlCollapsed)pollWatchlist();
+}
+function setWlCat(cat,btn){
+  wlCat=cat;
+  document.querySelectorAll('.wl-cat').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  renderWatchlist();
+}
+function filterWatchlist(q){
+  wlQuery=q.trim().toLowerCase();
+  renderWatchlist();
+}
+function wlEntries(){
+  const cats=wlCat==='all'?Object.keys(WL_DATA):[wlCat];
+  let entries=cats.flatMap(c=>WL_DATA[c].map(i=>({...i,cat:c})));
+  if(wlQuery)entries=entries.filter(i=>i.name.toLowerCase().includes(wlQuery)||i.sym.toLowerCase().includes(wlQuery));
+  return entries;
+}
+function renderWatchlist(){
+  const list=document.getElementById('wlList');
+  if(!list)return;
+  const entries=wlEntries();
+  if(!entries.length){list.innerHTML='<div class="wl-empty">No instruments match</div>';return;}
+  list.innerHTML=entries.map(i=>{
+    const short=i.sym.replace(/^[^:]+:/,'');
+    const bid=i.base?(i.base-i.sp/2).toFixed(i.d):'—';
+    const ask=i.base?(i.base+i.sp/2).toFixed(i.d):'—';
+    return `<div class="wl-row${i.sym===activeSym?' active':''}" data-sym="${i.sym}" onclick="wlPick('${i.sym}')">`
+      +`<span class="wl-row-name">${i.name}<span class="wl-row-sym">${short}</span></span>`
+      +`<span class="wl-row-bid" id="wlb-${short}" data-raw="${bid}">${bid}</span>`
+      +`<span class="wl-row-ask" id="wla-${short}" data-raw="${ask}">${ask}</span>`
+      +`</div>`;
+  }).join('');
+  pollWatchlist();
+}
+function wlPick(sym){
+  changeInstrument(sym);
+  const orderTabBtn=[...document.querySelectorAll('.gtab')].find(t=>(t.getAttribute('onclick')||'').includes("'order'"));
+  if(orderTabBtn)switchTab('order',orderTabBtn);
+}
+function flashWlCell(el,newText){
+  const old=parseFloat(el.dataset.raw||'');
+  const next=parseFloat(newText);
+  el.textContent=newText;
+  el.dataset.raw=newText;
+  if(isFinite(old)&&isFinite(next)&&next!==old){
+    el.classList.remove('flash-up','flash-dn');
+    void el.offsetWidth; // restart the CSS transition
+    el.classList.add(next>old?'flash-up':'flash-dn');
+    setTimeout(()=>el.classList.remove('flash-up','flash-dn'),600);
+  }
+}
+async function pollWatchlist(){
+  if(wlCollapsed||wlPollBusy||typeof hasSession!=='function'||!hasSession())return;
+  const list=document.getElementById('wlList');
+  if(!list||!list.children.length)return;
+  wlPollBusy=true;
+  try{
+    const tok=await freshToken();
+    if(tok){
+      const syms=wlEntries().map(i=>i.sym);
+      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'prices',symbols:syms})});
+      const j=await r.json().catch(()=>null);
+      if(j&&j.ok&&Array.isArray(j.quotes)){
+        for(const q of j.quotes){
+          if(!isFinite(q.bid)||!isFinite(q.ask))continue;
+          const d=q.digits??5;
+          const bidEl=document.getElementById('wlb-'+q.symbol), askEl=document.getElementById('wla-'+q.symbol);
+          if(bidEl)flashWlCell(bidEl,q.bid.toFixed(d));
+          if(askEl)flashWlCell(askEl,q.ask.toFixed(d));
+        }
+      }
+    }
+  }catch(_){}
+  wlPollBusy=false;
+}
+if(document.getElementById('wlList'))renderWatchlist();
+setInterval(pollWatchlist,4000);
 
 // ── SL/TP ──
 let slOn=false,tpOn=false,trailOn=false;

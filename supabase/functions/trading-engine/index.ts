@@ -1062,7 +1062,7 @@ Deno.serve(async (req) => {
   // format a given branch below checks (body.action vs the `action`
   // local declared further down — both read the same request body).
   const BOT_ALLOWED_ACTIONS = new Set([
-    "state", "price", "open", "close", "close_all", "modify",
+    "state", "price", "prices", "open", "close", "close_all", "modify",
     "partial_close", "place_pending", "cancel_pending",
   ]);
   if (authMethod === "bot" && !BOT_ALLOWED_ACTIONS.has(body.action)) {
@@ -1094,6 +1094,33 @@ Deno.serve(async (req) => {
       quote_ts: q.providerTs, received_ts: q.receivedTs,
       digits: inst.digits, source: SOURCE_ID,
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+
+  // Bulk quotes for a watchlist -- one round trip instead of the client
+  // polling N symbols individually. Reuses fetchQuote(), which already
+  // sits behind the 4s in-process cache, so this is cheap whenever
+  // another request (this user's own ticket poll, or another user
+  // watching the same symbol) has already warmed that symbol recently.
+  // Fetched in parallel, capped at 40 symbols/request so one call can't
+  // be used to hammer the upstream feed.
+  if (body.action === "prices") {
+    const raw = Array.isArray(body.symbols) ? body.symbols : [];
+    const symbols = [...new Set(raw.map((s: unknown) => cleanSymbol(s)).filter((s): s is string => !!s))].slice(0, 40);
+    if (!symbols.length) return err("No valid instruments requested");
+    const closed = !marketOpen();
+    const quotes = await Promise.all(symbols.map(async (symbol) => {
+      const inst = INSTRUMENTS[symbol];
+      if (closed) return { symbol, status: "closed" as const, digits: inst.digits };
+      const q = await fetchQuote(symbol);
+      if (q === null) return { symbol, status: "no_feed" as const, digits: inst.digits };
+      const stale = quoteStale(q);
+      return {
+        symbol, status: (stale ? "stale" : "demo") as const,
+        mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread, digits: inst.digits,
+      };
+    }));
+    return new Response(JSON.stringify({ ok: true, quotes, source: SOURCE_ID }),
+      { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
   // load or provision the active account
