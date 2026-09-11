@@ -49,7 +49,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;-w
 .toc{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:1.5rem 2rem;margin-bottom:3rem;}
 .toc-title{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:.9rem;}
 .toc ol{padding-left:1.2rem;display:grid;grid-template-columns:1fr 1fr;gap:.25rem .5rem;}
-@media(max-width:600px){.toc ol{grid-template-columns:1fr;}}
+@media(max-width:600px){.toc ol{grid-template-columns:1fr}.def-table,.def-table tbody,.def-table tr,.def-table td{display:block;width:100%}.def-table td:first-child{width:auto;white-space:normal;padding-bottom:.2rem}.def-table td:last-child{padding-top:.2rem}.def-table tr{padding:.45rem 0;border-bottom:1px solid var(--line)}.def-table td{border-bottom:0}}
 .toc li{font-size:.82rem;color:var(--muted);}
 .toc a{color:var(--muted);text-decoration:none;transition:color .12s;}
 .toc a:hover{color:var(--fg);}
@@ -137,8 +137,8 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <h2><span class="sec-num">1.</span> Definitions</h2>
     <p>In these Terms and Conditions, the following definitions apply:</p>
     <table class="def-table">
-      <tr><td>"Company", "we", "us", "our"</td><td>IPFX Capital Ltd, a company incorporated in England and Wales, whose registered address is [registered address].</td></tr>
-      <tr><td>"Platform"</td><td>The IPFX Capital website (ipfxcapital.com), the IPFX Capital Markets trading interface, the dashboard, and all associated software, tools, and services operated by the Company. <strong>IPFX Capital Markets is the sole trading interface through which all Participants must conduct their trading activity.</strong> No third-party trading platforms (including MetaTrader 4, MetaTrader 5, cTrader, or any other external software) are authorised or supported for use in connection with any Challenge or Funded Account. All trades must be placed directly through IPFX Capital Markets.</td></tr>
+      <tr><td>"Company", "we", "us", "our"</td><td>IPFX Capital Ltd, described on the Platform as a company incorporated in England and Wales. The Company’s verified registration number and registered-office details must be published before paid services launch.</td></tr>
+      <tr><td>"Platform"</td><td>The IPFX Capital website (ipfxcapital.com), the IPFX Markets trading interface, the dashboard, and all associated software, tools, and services operated by the Company. <strong>IPFX Markets is the sole trading interface through which all Participants must conduct their trading activity.</strong> No third-party trading platforms (including MetaTrader 4, MetaTrader 5, cTrader, or any other external software) are authorised or supported for use in connection with any Challenge or Funded Account. All trades must be placed directly through IPFX Markets.</td></tr>
       <tr><td>"User", "you", "Participant"</td><td>Any individual who registers an account, purchases a Challenge, or accesses any part of the Platform.</td></tr>
       <tr><td>"Challenge"</td><td>A paid evaluation programme offered by the Company, including the Traditional Challenge, Infinity Challenge, and Personalised Application Challenge (PAC), through which a Participant may demonstrate trading ability.</td></tr>
       <tr><td>"Evaluation Account"</td><td>A simulated trading account provided to a Participant during a Challenge, funded with virtual capital for assessment purposes only. This is not a live trading account; no real funds are placed or risked by the Participant during evaluation.</td></tr>
@@ -473,7 +473,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <p>The Company employs automated pattern-matching analysis, cross-account trade correlation detection, IP address logging, and device fingerprinting to identify copy trading. Detection of correlated trading patterns across two or more accounts — regardless of whether those accounts belong to the same registered user — will trigger an investigation and may result in the termination of all correlated accounts.</p>
 
     <h3>8.4 Algorithmic Trading — Submission and Approval Required</h3>
-    <p>All trading on the Platform must be conducted directly through IPFX Capital Markets. Third-party trading software, Expert Advisors (EAs), external bots, or any application that connects to the Platform programmatically without Company authorisation is strictly prohibited. Algorithmic trading strategies may only operate on a Participant's account where all of the following conditions are met:</p>
+    <p>All trading on the Platform must be conducted directly through IPFX Markets. Third-party trading software, Expert Advisors (EAs), external bots, or any application that connects to the Platform programmatically without Company authorisation is strictly prohibited. Algorithmic trading strategies may only operate on a Participant's account where all of the following conditions are met:</p>
     <ul>
       <li>The strategy has been submitted to the Company in full via the Platform's designated algorithmic strategy submission tool, including the complete strategy code, the programming language used, and the intended maximum risk per trade;</li>
       <li>The Company has reviewed and explicitly approved the strategy in writing before it is activated on any account. Submission alone does not constitute approval;</li>
@@ -725,7 +725,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <p>The Evaluation Account operates in a simulated or demo trading environment. Performance on a simulated account may not reflect performance achievable in live market conditions. Simulated environments may have differences in pricing, slippage, execution speed, liquidity, and spread compared to live market conditions. The Company makes no warranty that a trading strategy successful on an Evaluation Account will be successful on a Funded Account or in any real market.</p>
 
     <h3>15.4 Third-Party Services</h3>
-    <p>The Platform may integrate with third-party services, including payment processors and charting data providers (including TradingView for chart visualisation). All trading activity takes place exclusively through IPFX Capital Markets. Third-party trading platforms such as MetaTrader 4, MetaTrader 5, and cTrader are not supported and must not be used in connection with any Challenge or Funded Account. The Company is not responsible for the availability, accuracy, or performance of any third-party service and does not endorse any third-party content accessible through the Platform.</p>
+    <p>The Platform may integrate with third-party services, including payment processors and charting data providers (including TradingView for chart visualisation). All trading activity takes place exclusively through IPFX Markets. Third-party trading platforms such as MetaTrader 4, MetaTrader 5, and cTrader are not supported and must not be used in connection with any Challenge or Funded Account. The Company is not responsible for the availability, accuracy, or performance of any third-party service and does not endorse any third-party content accessible through the Platform.</p>
   </section>
 
   <!-- ─────────────────── SECTION 16 ─────────────────── -->
@@ -894,6 +894,8 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <a href="/terms.html">Terms</a>
     <a href="/faq.html">FAQ</a>
     <a href="/contact.html">Contact</a>
+    <a href="/risk-disclosure.html">Risk</a>
+    <button type="button" class="ipfx-share-button" data-ipfx-share>Share this page</button>
   </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>

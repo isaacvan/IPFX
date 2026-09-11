@@ -49,7 +49,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;-w
 .toc{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:1.5rem 2rem;margin-bottom:3rem;}
 .toc-title{font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:.9rem;}
 .toc ol{padding-left:1.2rem;display:grid;grid-template-columns:1fr 1fr;gap:.25rem .5rem;}
-@media(max-width:600px){.toc ol{grid-template-columns:1fr;}}
+@media(max-width:600px){.toc ol{grid-template-columns:1fr}.def-table,.def-table tbody,.def-table tr,.def-table td{display:block;width:100%}.def-table td:first-child{width:auto;white-space:normal;padding-bottom:.2rem}.def-table td:last-child{padding-top:.2rem}.def-table tr{padding:.45rem 0;border-bottom:1px solid var(--line)}.def-table td{border-bottom:0}}
 .toc li{font-size:.82rem;color:var(--muted);}
 .toc a{color:var(--muted);text-decoration:none;transition:color .12s;}
 .toc a:hover{color:var(--fg);}
@@ -95,7 +95,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <div class="hero-meta">
       <span>IPFX Capital Ltd</span>
       <span>Governed by UK GDPR / Data Protection Act 2018</span>
-      <span>Last updated: August 2026</span>
+      <span>Last updated: September 2026</span>
       <span>Version 1.0</span>
     </div>
   </div>
@@ -127,7 +127,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
 
   <section id="who-we-are">
     <h2><span class="sec-num">1.</span>Who we are</h2>
-    <p>IPFX Capital Ltd ("IPFX", "we", "us", "our") operates ipfxcapital.com and the IPFX Capital Markets trading interface (together, the "Platform"). This policy explains what personal data we collect when you use the Platform, why we collect it, who we share it with, and the choices and rights you have.</p>
+    <p>IPFX Capital Ltd ("IPFX", "we", "us", "our") operates ipfxcapital.com and the IPFX Markets trading interface (together, the "Platform"). This policy explains what personal data we collect when you use the Platform, why we collect it, who we share it with, and the choices and rights you have.</p>
     <p>IPFX Capital Ltd is not authorised or regulated by the Financial Conduct Authority. This policy covers data protection only — for the terms governing your use of the Platform itself, see our <a href="/terms.html" style="color:var(--cobalt);">Terms and Conditions</a>, which this Privacy Policy is incorporated into by reference.</p>
   </section>
 
@@ -158,17 +158,14 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
 
   <section id="trading-data">
     <h2><span class="sec-num">4.</span>Trading data specifically</h2>
-    <p>Our Terms and Conditions (Section 11, "Intellectual Property and Data Rights") grant IPFX a broad licence to use Trading Data generated on your account. We want to be direct about what that can include in practice, beyond internal analytics:</p>
-    <div class="danger-box">
-      <p><strong>Trade mirroring:</strong> IPFX operates an internal feature that can replicate a trader's order activity from their evaluation/funded account onto a separate live trading account that IPFX controls or has an interest in, scaled by a volume multiplier. This is an admin-controlled setting, not something every account has enabled by default. Where it is enabled on your account, your live order decisions are copied — in real time and at your actual size and timing — onto that other account.</p>
-    </div>
-    <p>We are disclosing this here, plainly, because we think a general "we may use your data" clause is not adequate notice for something this specific. If this section doesn't yet fully and accurately describe how mirroring works for your account, or if you have questions about whether it applies to you, contact us using the details in Section 14 before continuing to trade.</p>
-    <p>Aggregated or anonymised trading statistics (e.g. platform-wide win rates, instrument popularity) may also be used publicly or shared with third parties without identifying you individually.</p>
+    <p>We record Trading Data to operate your account, calculate results, enforce programme rules, investigate fraud and improve the Platform. We may create aggregated or anonymised statistics, such as instrument usage or platform-wide performance patterns, where individuals are not identifiable.</p>
+    <div class="danger-box"><p><strong>No individual trade mirroring under these terms:</strong> IPFX does not use your identifiable Trading Data to place, mirror, replicate or derive trades on a live account. Any future programme that did so would require a separate, clearly described opt-in agreement and compensation terms.</p></div>
+    <p>This wording matches Section 11 of the <a href="/terms.html" style="color:var(--cobalt);">Terms and Conditions</a>.</p>
   </section>
 
   <section id="legal-basis">
     <h2><span class="sec-num">5.</span>Our legal basis for processing</h2>
-    <p>Where UK/EU GDPR applies, we rely on the following legal bases, depending on the activity: performance of our contract with you (running your account, processing payments); compliance with a legal obligation (KYC/AML record-keeping); our legitimate interests (fraud and rule-violation detection, service improvement) balanced against your rights; and, for marketing emails and the trade-mirroring feature described in Section 4, your consent, which you can withdraw at any time by contacting us.</p>
+    <p>Where UK/EU GDPR applies, we rely on the following legal bases, depending on the activity: performance of our contract with you (running your account, processing payments); compliance with a legal obligation (KYC/AML record-keeping); our legitimate interests (fraud and rule-violation detection, service improvement) balanced against your rights; and, for marketing emails and optional analytics, your consent, which you can withdraw through cookie settings or by contacting us.</p>
   </section>
 
   <section id="sharing">
@@ -177,7 +174,6 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
       <tr><td>Supabase</td><td>Our database, authentication, and backend infrastructure provider. Account, trading, and audit data is stored on Supabase's servers.</td></tr>
       <tr><td>Stripe</td><td>Our payment processor once live. Handles card data directly — see Section 2.</td></tr>
       <tr><td>TradingView</td><td>Chart visualisation embedded in the trading interface. TradingView may set its own cookies; see their privacy policy for details.</td></tr>
-      <tr><td>MetaApi / broker connections</td><td>Used to execute the trade-mirroring feature described in Section 4, where enabled on an account.</td></tr>
       <tr><td>Law enforcement / regulators</td><td>Where we are legally required to disclose data, or to protect our rights, users, or the public.</td></tr>
     </table>
     <p>We do not sell your personal data.</p>
@@ -185,7 +181,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
 
   <section id="cookies">
     <h2><span class="sec-num">7.</span>Cookies and similar technologies</h2>
-    <p>We use essential cookies to keep you logged in and to remember your session. We may also use analytics cookies to understand how the Platform is used. You can control cookies through your browser settings; disabling essential cookies may prevent parts of the Platform from working.</p>
+    <p>We use essential storage for security, account sessions and consent preferences. Optional analytics is disabled until you choose “Accept analytics” in the consent panel. You can change that choice at any time using “Cookie settings” in the page footer. Disabling essential storage may prevent account features from working.</p>
   </section>
 
   <section id="international">
@@ -235,6 +231,8 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <a href="/terms.html">Terms</a>
     <a href="/faq.html">FAQ</a>
     <a href="/contact.html">Contact</a>
+    <a href="/risk-disclosure.html">Risk</a>
+    <button type="button" class="ipfx-share-button" data-ipfx-share>Share this page</button>
   </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>

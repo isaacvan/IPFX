@@ -13,4 +13,6 @@
   <url><loc>https://ipfxcapital.com/start-challenge.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://ipfxcapital.com/terms.html</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
   <url><loc>https://ipfxcapital.com/trading-pot.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://ipfxcapital.com/downloads.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://ipfxcapital.com/risk-disclosure.html</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
 </urlset>

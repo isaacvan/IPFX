@@ -2,7 +2,7 @@
   'use strict';
   const url = 'https://agulweemteoeagscmppy.supabase.co';
   const anon = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-  const db = window.supabase.createClient(url, anon);
+  const db = window.supabase?.createClient ? window.supabase.createClient(url, anon) : null;
   const $ = id => document.getElementById(id);
   let tier = null, quote = null, stripe = null, elements = null, element = null;
   let checkout = null, generation = 0, busy = false, verifiedEmail = '';
@@ -55,6 +55,10 @@
   });
   async function mountPayment() {
     if (elements || busy) return;
+    if (!db || typeof window.Stripe !== 'function') {
+      message('Secure checkout is temporarily unavailable. Please refresh or contact support.');
+      return;
+    }
     const current = ++generation;
     $('step3Next').disabled = true;
     $('payDemoNotice').style.display = 'none';

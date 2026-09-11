@@ -1,0 +1,21 @@
+*{box-sizing:border-box}body{margin:0;background:#0a0a0c;color:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Inter,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.6;font-synthesis:none;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:inherit}a:focus-visible,button:focus-visible{outline:3px solid #8ab8ff;outline-offset:4px}
+.download-nav{border-bottom:1px solid #282a30;display:flex;align-items:center;justify-content:space-between;padding:18px 28px;gap:20px}
+.download-nav a{text-decoration:none;font-weight:500;letter-spacing:-.01em}.brand{display:flex;align-items:center;gap:12px}
+main{max-width:1160px;margin:0 auto;padding:52px 28px}.download-heading{display:flex;align-items:center;gap:20px}
+h1{font-size:48px;font-weight:600;line-height:1.08;letter-spacing:-.045em;margin:0}h2{font-size:22px;font-weight:600;line-height:1.2;letter-spacing:-.025em;margin:10px 0}
+.eyebrow{font-size:11px;font-weight:700;color:#a7afc1;margin:0 0 8px}.release-state{color:#e4bf75;margin:26px 0 32px}
+.download-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.download-grid section{border:1px solid #30333d;border-radius:6px;padding:24px;background:#111216;min-width:0}
+.system{color:#bbc0cb;margin:0 0 28px;min-height:24px}
+button,.primary{font:500 14px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,"Helvetica Neue",Arial,sans-serif;border-radius:5px;padding:12px 16px;min-height:46px;text-align:center}
+button{width:100%;border:1px solid #373d4c;background:#202633;color:#b9c3d6;cursor:not-allowed}
+.availability{color:#a6abb7;font-size:12px;min-height:38px;margin:14px 0 0}
+.download-web{padding:30px 0;margin-top:30px;border-top:1px solid #30333d;border-bottom:1px solid #30333d;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.download-web h2{font-size:20px;margin:0}.download-web p{color:#aeb6c4;margin:6px 0 0}.primary{background:#2563eb;color:white;text-decoration:none;flex-shrink:0}
+.release-details{padding-top:30px}.release-details h2{font-size:18px}.release-details dl{margin:20px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px 28px}
+dl div{display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid #24262b;padding:10px 0}dt{color:#b9bfca}dd{margin:0;text-align:right}
+.release-details>p{color:#aeb6c4;font-size:13px;max-width:760px}
+footer{border-top:1px solid #282a30;padding:24px 28px;display:flex;gap:24px;flex-wrap:wrap;font-size:13px;color:#b1b7c2}footer span{margin-right:auto}
+@media(max-width:800px){.download-grid{grid-template-columns:1fr}.download-grid section{padding:22px}.system{margin-bottom:18px}main{padding:32px 20px}
+h1{font-size:30px}.download-web{align-items:flex-start;flex-direction:column}.release-details dl{grid-template-columns:1fr}.download-nav{padding:16px 20px}}

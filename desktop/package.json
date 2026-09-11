@@ -1,0 +1,25 @@
+{
+  "name": "ipfx-markets-desktop",
+  "version": "0.1.0-preview.1",
+  "private": true,
+  "description": "IPFX Markets desktop client",
+  "author": "IPFX Capital",
+  "license": "UNLICENSED",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "test:runtime": "node tests/runtime-smoke.cjs",
+    "pack:preview": "electron-builder --dir --config builder.preview.cjs --publish never",
+    "dist:win:preview": "electron-builder --win nsis --x64 --config builder.preview.cjs --publish never",
+    "dist:win": "electron-builder --win nsis --x64 --config builder.cjs --publish never",
+    "dist:mac": "electron-builder --mac dmg --arm64 --x64 --config builder.cjs --publish never",
+    "dist:mac:preview": "electron-builder --mac dmg --arm64 --x64 --config builder.preview.cjs --publish never"
+  },
+  "devDependencies": {
+    "@electron/fuses": "2.1.3",
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3",
+    "playwright": "1.62.1"
+  }
+}
