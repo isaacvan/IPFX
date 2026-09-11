@@ -841,6 +841,20 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
     </div>
 
+    <!-- Lives inside .content (not as a <body> sibling) deliberately: body
+         is `display:flex` with no flex-direction, i.e. a row, for the
+         sidebar+main app-shell layout. A footer appended after </main>
+         became a third row item sitting beside the content instead of
+         below it. Putting it here keeps it in .content's own vertical
+         flow, at the bottom of whichever page is currently active. -->
+    <div class="ipfx-launch-footer" aria-label="Legal and sharing">
+      <span>&copy; 2026 IPFX Capital Ltd</span>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/contact.html">Contact</a>
+    </div>
+
   </div>
 </main>
 
@@ -1529,13 +1543,6 @@ function askSug(btn){document.getElementById('chatInput').value=btn.textContent;
 function toggleChat(){const w=document.getElementById('chatW');w.classList.toggle('open');document.getElementById('chatNotif').style.display='none';}
 </script>
 
-  <div class="ipfx-launch-footer" aria-label="Legal and sharing">
-    <span>&copy; 2026 IPFX Capital Ltd</span>
-    <a href="/privacy.html">Privacy</a>
-    <a href="/terms.html">Terms</a>
-    <a href="/faq.html">FAQ</a>
-    <a href="/contact.html">Contact</a>
-  </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 </body>
