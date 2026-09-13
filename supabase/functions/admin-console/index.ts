@@ -573,6 +573,20 @@ Deno.serve(async (req) => {
         db.from("platform_config").select("*").eq("id", true).maybeSingle(),
         db.from("shared_ip_accounts").select("*").limit(50),
       ]);
+    // Trader detector state (Codex v2). Fetched separately and tolerantly:
+    // until its migrations are applied the table doesn't exist, and the
+    // performance board must still work -- it just reports the detector as
+    // not deployed instead of failing the whole overview.
+    const detByAcct = new Map<string, Record<string, unknown>>();
+    let detectorDeployed = false;
+    try {
+      const { data: detRows, error: detErr } = await db.from("trader_detector_states").select("*");
+      if (!detErr) {
+        detectorDeployed = true;
+        for (const d of detRows ?? []) detByAcct.set(d.trading_account_id, d);
+      }
+    } catch (_) { /* not deployed */ }
+
     const kycByUser = new Map<string, string>();
     for (const k of kycRows ?? []) kycByUser.set(k.user_id, k.status);
     const restrictedByUser = new Set<string>();
@@ -609,6 +623,15 @@ Deno.serve(async (req) => {
         email: emailById.get(a.user_id as string) || "",
         status: a.status,
         phase: a.phase ?? "evaluation",
+        challenge_type: a.challenge_type ?? "traditional",
+        stage: Number(a.stage ?? 1),
+        detector: (() => {
+          const d = detByAcct.get(a.id as string);
+          return d ? {
+            state: d.state, since: d.state_since, previous_state: d.previous_state ?? null,
+            data_status: d.data_status ?? "OK", last_checked_at: d.last_checked_at ?? d.updated_at ?? null,
+          } : null;
+        })(),
         investigation_hold: !!a.investigation_hold,
         kyc_status: kycByUser.get(a.user_id as string) ?? "unverified",
         restricted_jurisdiction: restrictedByUser.has(a.user_id as string),
@@ -664,6 +687,7 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true, is_admin: true, firm, traders, payouts: payouts ?? [],
+      detector_deployed: detectorDeployed,
       platform: { trading_halted: !!platCfg?.trading_halted, halted_reason: platCfg?.halted_reason ?? null, halted_at: platCfg?.halted_at ?? null },
       shared_ip_accounts: sharedIps ?? [],
     });

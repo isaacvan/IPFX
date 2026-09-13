@@ -10,7 +10,16 @@
     <link rel="icon" href="/assets/images/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
+    <!-- Owner app: "Add to Home Screen" from this page installs a standalone
+         IPFX Owner app that opens straight to this board (Android via the
+         manifest, iPhone via the apple-* tags below). -->
+    <link rel="manifest" href="/owner.webmanifest">
+    <meta name="theme-color" content="#0a0a0c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IPFX Owner">
+    <link rel="apple-touch-icon" href="/favicon/android-chrome-192x192.png">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="IPFX Capital">
     <meta property="og:title" content="IPFX Administration">
@@ -82,6 +91,39 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
 .fld .hint{font-size:.7rem;color:var(--muted2);margin-top:.3rem;}
 .mrow{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem;}
 .warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:.6rem .75rem;font-size:.74rem;color:#f5c473;margin-bottom:1rem;}
+/* trader performance board */
+.perf-search,.perf-sort{background:var(--bg2);border:1px solid var(--line);border-radius:999px;color:var(--fg);padding:.4rem .9rem;font-size:.8rem;font-family:inherit;}
+.perf-search{min-width:220px;flex:0 1 320px;}
+.perf-search:focus,.perf-sort:focus{outline:none;border-color:var(--cobalt);}
+.perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:.75rem;}
+.perf-card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;cursor:pointer;transition:border-color .15s,transform .15s;}
+.perf-card:hover{border-color:var(--cobalt);}
+.perf-card:active{transform:scale(.99);}
+.perf-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;}
+.perf-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.perf-meta{font-size:.72rem;color:var(--muted2);margin-top:.2rem;display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;}
+.perf-pnl{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;margin:.7rem 0 .6rem;}
+.perf-pct{font-size:.78rem;font-weight:600;opacity:.85;}
+.perf-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .6rem;border-top:1px solid var(--line);padding-top:.65rem;}
+.perf-kpis div{display:flex;flex-direction:column;min-width:0;}
+.perf-kpis span{font-size:.62rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted2);font-weight:700;white-space:nowrap;}
+.perf-kpis b{font-size:.8rem;font-weight:600;margin-top:.1rem;white-space:nowrap;}
+.perf-flag{margin-top:.6rem;font-size:.7rem;color:#f5c473;background:rgba(245,158,11,.1);border-radius:6px;padding:.3rem .5rem;}
+.det{flex-shrink:0;font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:.22rem .5rem;border-radius:6px;white-space:nowrap;}
+.det.d-live{background:rgba(16,185,129,.18);color:#4ade9f;box-shadow:0 0 0 1px rgba(16,185,129,.4) inset;}
+.det.d-conf{background:rgba(16,185,129,.14);color:#4ade9f;}
+.det.d-high{background:rgba(37,99,235,.16);color:#93b8ff;}
+.det.d-obs{background:rgba(255,255,255,.06);color:var(--muted);}
+.det.d-risk{background:rgba(239,68,68,.15);color:#f98a8a;}
+.det.d-none{background:transparent;color:var(--muted2);box-shadow:0 0 0 1px var(--line) inset;}
+.det-high-v{color:#93b8ff;}
+@media(max-width:640px){
+  .wrap{padding:1rem;}
+  .top{padding:.8rem 1rem;}
+  .stat{min-width:calc(50% - .4rem);}
+  .perf-search{flex:1 1 100%;min-width:0;}
+  .perf-grid{grid-template-columns:1fr;}
+}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:.6rem 1.1rem;border-radius:8px;font-size:.8rem;font-weight:600;opacity:0;transition:.3s;z-index:99;box-shadow:0 6px 24px rgba(0,0,0,.4);}
 </style>
 </head>
@@ -103,10 +145,37 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
 </div>
 
 <div id="main" class="wrap" style="display:none">
-  <div id="haltBanner" style="display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);border-radius:10px;padding:.85rem 1.1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem">
+  <div id="haltBanner" style="display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);border-radius:10px;padding:.85rem 1.1rem;margin-bottom:1rem;justify-content:space-between;align-items:center;gap:1rem">
     <div style="font-size:.85rem;color:#f98a8a"><strong>Trading halted:</strong> <span id="haltReasonTxt"></span></div>
     <button class="btn btn-o" onclick="setPlatformHalt(false)">Resume trading</button>
   </div>
+  <!-- TRADER PERFORMANCE BOARD: every account at a glance, plus where the
+       trader detector currently places it. Sits first because "how is every
+       trader doing" is the question you open this page (or the phone app) to
+       answer. -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;gap:.75rem;flex-wrap:wrap">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">
+      Trader performance <span id="perfCount" style="color:var(--muted2);font-weight:400;text-transform:none;letter-spacing:0"></span>
+    </h2>
+    <input id="perfSearch" class="perf-search" placeholder="Search name or email…" oninput="renderPerformance()">
+  </div>
+  <div class="stat-row" id="detTiles"></div>
+  <div id="detNotice" class="warn" style="display:none"></div>
+  <div class="bar" id="perfChips"></div>
+  <div class="bar">
+    <span style="font-size:.7rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Sort</span>
+    <select id="perfSort" class="perf-sort" onchange="renderPerformance()">
+      <option value="pnl">Realised P&amp;L</option>
+      <option value="pnlpct">Return %</option>
+      <option value="wr">Win rate</option>
+      <option value="pf">Profit factor</option>
+      <option value="trades">Trades</option>
+      <option value="dd">Max drawdown</option>
+      <option value="det">Detector state</option>
+    </select>
+  </div>
+  <div id="perfWrap" style="margin-bottom:1.75rem"><div class="msg" style="padding:1.25rem">Loading…</div></div>
+
   <!-- trader flags: single triage view merging every signal this console
        computes elsewhere into "who needs a look today, and why" -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
@@ -262,8 +331,115 @@ async function load(){
   document.getElementById('denied').style.display='none';
   document.getElementById('main').style.display='block';
   TRADERS=j.traders||[];PAYOUTS=j.payouts||[];FIRM=j.firm||{};PLATFORM=j.platform||{};SHARED_IPS=j.shared_ip_accounts||[];
+  DETECTOR_DEPLOYED=!!j.detector_deployed;
+  document.getElementById('subline').textContent=`${TRADERS.length} account${TRADERS.length===1?'':'s'} · updated ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
+  renderPerformance();
   renderStats();render();renderPayouts();renderHaltBanner();renderSharedIps();
   loadTraderFlags();
+}
+
+// ══ TRADER PERFORMANCE BOARD ═══════════════════════════════════════
+// One card per account: live results from overview's own stats plus
+// where the trader detector currently places it. Detector states are
+// SHADOW_UNCALIBRATED until validated -- the board labels them as
+// signals to review, never as instructions.
+let DETECTOR_DEPLOYED=false,perfState='all';
+const DET_META={
+  LIVE_REVIEW_REQUIRED:{label:'Live review',cls:'d-live',rank:0},
+  PROFITABILITY_CONFIRMED:{label:'Confirmed',cls:'d-conf',rank:1},
+  HIGH_POTENTIAL:{label:'High potential',cls:'d-high',rank:2},
+  OBSERVE:{label:'Observe',cls:'d-obs',rank:3},
+  INSUFFICIENT_EVIDENCE:{label:'Insufficient data',cls:'d-none',rank:4},
+  RISK_NO_GO:{label:'Risk no-go',cls:'d-risk',rank:5},
+  NONE:{label:'Not assessed',cls:'d-none',rank:6},
+};
+const CH_LABEL={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application',funded:'Funded'};
+function detKey(t){return t.detector&&t.detector.state?t.detector.state:'NONE';}
+function perfChip(key){perfState=key;renderPerformance();}
+
+function renderPerformance(){
+  const all=TRADERS;
+  const counts={};
+  for(const t of all){const k=detKey(t);counts[k]=(counts[k]||0)+1;}
+
+  // headline tiles
+  const netPnl=all.reduce((s,t)=>s+(Number(t.realized_pnl)||0),0);
+  const profitable=all.filter(t=>Number(t.realized_pnl)>0).length;
+  const active=all.filter(t=>t.status==='active').length;
+  const tile=(k,v,cls)=>`<div class="stat"><div class="k">${k}</div><div class="v ${cls||''}">${v}</div></div>`;
+  document.getElementById('detTiles').innerHTML=
+    tile('Traders',all.length)+
+    tile('Active',active)+
+    tile('In profit',`${profitable}`,'pos')+
+    tile('Net trader P&amp;L',fmt(netPnl),netPnl>=0?'pos':'neg')+
+    tile('High potential',counts.HIGH_POTENTIAL||0,'det-high-v')+
+    tile('Confirmed / live review',(counts.PROFITABILITY_CONFIRMED||0)+(counts.LIVE_REVIEW_REQUIRED||0),'pos')+
+    tile('Risk no-go',counts.RISK_NO_GO||0,'neg');
+
+  const notice=document.getElementById('detNotice');
+  if(!DETECTOR_DEPLOYED){
+    notice.style.display='';
+    notice.innerHTML='<b>Trader detector not deployed yet.</b> Performance figures below are live. Detector states will appear once its two migrations and the <span class="mono">trader-detector</span> function are deployed — every account shows “Not assessed” until then.';
+  }else{
+    notice.style.display='';
+    notice.innerHTML='Detector states run in <b>shadow mode</b> (uncalibrated). Treat them as “worth a look”, not a verdict — they never enable live copying or touch payouts.';
+  }
+
+  // state filter chips (only states that exist, in priority order)
+  const keys=Object.keys(DET_META).filter(k=>counts[k]).sort((a,b)=>DET_META[a].rank-DET_META[b].rank);
+  document.getElementById('perfChips').innerHTML=
+    `<button class="chip ${perfState==='all'?'on':''}" onclick="perfChip('all')">All · ${all.length}</button>`+
+    keys.map(k=>`<button class="chip ${perfState===k?'on':''}" onclick="perfChip('${k}')">${DET_META[k].label} · ${counts[k]}</button>`).join('');
+
+  const q=(document.getElementById('perfSearch').value||'').trim().toLowerCase();
+  let rows=all.filter(t=>(perfState==='all'||detKey(t)===perfState)&&
+    (!q||(t.full_name||'').toLowerCase().includes(q)||(t.email||'').toLowerCase().includes(q)));
+
+  const s=document.getElementById('perfSort').value;
+  const num=v=>v==null||!isFinite(Number(v))?-Infinity:Number(v);
+  const ret=t=>Number(t.starting_balance)>0?Number(t.realized_pnl)/Number(t.starting_balance):0;
+  rows.sort((a,b)=>{
+    if(s==='det')return DET_META[detKey(a)].rank-DET_META[detKey(b)].rank||num(b.realized_pnl)-num(a.realized_pnl);
+    if(s==='pnlpct')return ret(b)-ret(a);
+    if(s==='wr')return num(b.stats.win_rate)-num(a.stats.win_rate);
+    if(s==='pf')return num(b.stats.profit_factor)-num(a.stats.profit_factor);
+    if(s==='trades')return num(b.stats.trades)-num(a.stats.trades);
+    if(s==='dd')return num(b.stats.max_drawdown_pct)-num(a.stats.max_drawdown_pct);
+    return num(b.realized_pnl)-num(a.realized_pnl);
+  });
+  document.getElementById('perfCount').textContent=`— showing ${rows.length} of ${all.length}`;
+
+  const wrap=document.getElementById('perfWrap');
+  if(!rows.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No traders match.</div>';return;}
+  wrap.innerHTML='<div class="perf-grid">'+rows.map(t=>{
+    const st=t.stats||{};
+    const pnl=Number(t.realized_pnl)||0;
+    const pct=Number(t.starting_balance)>0?pnl/Number(t.starting_balance)*100:0;
+    const dk=detKey(t),dm=DET_META[dk];
+    const since=t.detector&&t.detector.since?new Date(t.detector.since).toLocaleDateString('en-GB'):null;
+    const dataErr=t.detector&&t.detector.data_status==='ERROR';
+    const ch=CH_LABEL[t.challenge_type]||t.challenge_type||'—';
+    return `<div class="perf-card" onclick='openTraderDetail(${JSON.stringify(t.user_id)})'>
+      <div class="perf-top">
+        <div style="min-width:0">
+          <div class="perf-name">${esc(t.full_name)}</div>
+          <div class="perf-meta">${esc(ch)}${t.phase==='funded'?' · Funded':` · Stage ${t.stage||1}`} · <span class="st ${t.status}">${t.status}</span></div>
+        </div>
+        <span class="det ${dm.cls}" title="${since?'Since '+since:''}">${dm.label}</span>
+      </div>
+      <div class="perf-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)} <span class="perf-pct">${pct>=0?'+':''}${pct.toFixed(2)}%</span></div>
+      <div class="perf-kpis">
+        <div><span>Balance</span><b class="mono">${fmt(t.balance)}</b></div>
+        <div><span>Trades</span><b class="mono">${st.trades||0}</b></div>
+        <div><span>Win rate</span><b class="mono">${st.win_rate==null?'—':Number(st.win_rate).toFixed(1)+'%'}</b></div>
+        <div><span>Profit factor</span><b class="mono">${st.profit_factor==null?'—':Number(st.profit_factor).toFixed(2)}</b></div>
+        <div><span>Max DD</span><b class="mono ${Number(st.max_drawdown_pct)>=5?'neg':''}">${st.max_drawdown_pct==null?'—':Number(st.max_drawdown_pct).toFixed(2)+'%'}</b></div>
+        <div><span>Best trade share</span><b class="mono ${Number(st.consistency_pct)>50?'neg':''}">${st.consistency_pct==null?'—':st.consistency_pct+'%'}</b></div>
+      </div>
+      ${dataErr?`<div class="perf-flag">Detector data error — last result withheld</div>`:''}
+      ${t.investigation_hold?`<div class="perf-flag">Investigation hold</div>`:''}
+    </div>`;
+  }).join('')+'</div>';
 }
 
 // ---- trader flags: triage view ----
