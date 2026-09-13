@@ -121,11 +121,66 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
 .sec-title{font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;}
 .sec-sub{font-size:.78rem;color:var(--muted);margin-top:.1rem;}
 
+/* ── OVERVIEW PAGE ── */
+.ov-hero{display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.35rem 1.5rem;margin-bottom:1.25rem;}
+.ov-hero-left{display:flex;align-items:center;gap:1rem;min-width:0;}
+.ov-avatar{width:46px;height:46px;border-radius:50%;background:var(--cobalt-d);border:1px solid var(--cobalt);color:var(--cobalt);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.05rem;flex-shrink:0;}
+.ov-greet{font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin:0;line-height:1.2;}
+.ov-greet-sub{font-size:.82rem;color:var(--muted);margin-top:.2rem;}
+.ov-hero-right{text-align:right;}
+.ov-tenure-lbl{font-size:.72rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+.ov-tenure-val{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;margin-top:.2rem;}
+@media(max-width:640px){.ov-hero-right{text-align:left;}}
+
+.ov-cal-nav{display:flex;align-items:center;gap:.5rem;}
+.ov-cal-btn{width:28px;height:28px;border-radius:7px;background:var(--bgcard);border:1px solid var(--line);color:var(--muted);font-size:1rem;cursor:pointer;line-height:1;transition:all .15s;}
+.ov-cal-btn:hover{color:var(--fg);border-color:var(--cobalt);}
+.ov-cal-month{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:700;min-width:130px;text-align:center;}
+.ov-cal{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1rem;}
+.ov-cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem;margin-bottom:.5rem;}
+.ov-cal-head span{text-align:center;font-size:.68rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;}
+.ov-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem;}
+.ov-cal-cell{aspect-ratio:1/.82;border-radius:8px;background:var(--bg2);border:1px solid var(--line2);padding:.4rem .45rem;display:flex;flex-direction:column;min-width:0;}
+.ov-cal-cell.out{opacity:.28;}
+.ov-cal-cell.today{border-color:var(--cobalt);}
+.ov-cal-cell.win{background:var(--green-d);border-color:rgba(16,185,129,.35);}
+.ov-cal-cell.loss{background:var(--red-d);border-color:rgba(239,68,68,.35);}
+.ov-cal-day{font-size:.7rem;font-weight:700;color:var(--muted);}
+.ov-cal-pnl{margin-top:auto;font-family:'Space Grotesk',sans-serif;font-size:.74rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ov-cal-pnl.pos{color:var(--green);}
+.ov-cal-pnl.neg{color:var(--red);}
+.ov-cal-trades{font-size:.62rem;color:var(--muted2);white-space:nowrap;}
+.ov-cal-foot{margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--line2);font-size:.78rem;color:var(--muted);}
+@media(max-width:560px){.ov-cal-cell{aspect-ratio:1/1.05;padding:.3rem;}.ov-cal-pnl{font-size:.62rem;}.ov-cal-trades{display:none;}}
+
+.ov-snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.75rem;}
+.ov-snap-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem 1.25rem;border-top:3px solid var(--line);}
+.ov-snap-card.good{border-top-color:var(--green);}
+.ov-snap-card.fair{border-top-color:var(--gold);}
+.ov-snap-card.poor{border-top-color:var(--red);}
+.ov-snap-card.info{border-top-color:var(--cobalt);}
+.ov-snap-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.55rem;}
+.ov-snap-lbl{font-size:.7rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;}
+.ov-snap-tag{font-size:.62rem;font-weight:700;padding:.12rem .4rem;border-radius:4px;text-transform:uppercase;letter-spacing:.03em;}
+.ov-snap-tag.good{background:var(--green-d);color:var(--green);}
+.ov-snap-tag.fair{background:var(--gold-d);color:var(--gold);}
+.ov-snap-tag.poor{background:var(--red-d);color:var(--red);}
+.ov-snap-tag.info{background:var(--cobalt-d);color:var(--cobalt);}
+.ov-snap-val{font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;line-height:1.1;}
+.ov-snap-sub{font-size:.76rem;color:var(--muted);margin-top:.3rem;line-height:1.45;}
+.ov-snap-bars{margin-top:.7rem;display:flex;flex-direction:column;gap:.32rem;}
+.ov-snap-bar-row{display:grid;grid-template-columns:76px 1fr 42px;align-items:center;gap:.45rem;font-size:.7rem;color:var(--muted);}
+.ov-snap-bar{height:5px;border-radius:3px;background:var(--line2);overflow:hidden;}
+.ov-snap-bar i{display:block;height:100%;background:var(--cobalt);border-radius:3px;}
+.ov-snap-bar-val{text-align:right;font-weight:600;color:var(--muted);}
+.ov-empty{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.6rem;text-align:center;font-size:.85rem;color:var(--muted);line-height:1.6;}
+
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1.5rem;}
 .stat-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem 1.25rem;}
 .sc-label{font-size:.72rem;color:var(--muted2);margin-bottom:.4rem;}
 .sc-val{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;}
 .sc-val.pos{color:var(--green);}
+.sc-val.neg{color:var(--red);}
 .sc-val.gold{color:var(--gold);}
 .sc-sub{font-size:.73rem;color:var(--muted2);margin-top:.2rem;}
 
@@ -517,6 +572,65 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 
   <div class="content">
+
+    <!-- OVERVIEW — the personalised landing page. Everything here is
+         computed from this trader's OWN trades/accounts/payouts (read
+         through RLS), never placeholder numbers. -->
+    <div class="page" id="pg-overview">
+      <div class="ov-hero">
+        <div class="ov-hero-left">
+          <div class="ov-avatar" id="ovAvatar">—</div>
+          <div>
+            <h2 class="ov-greet" id="ovGreeting">Welcome back</h2>
+            <div class="ov-greet-sub">Here is a summary of your statistics.</div>
+          </div>
+        </div>
+        <div class="ov-hero-right">
+          <div class="ov-tenure-lbl">You have been trading with IPFX Capital since</div>
+          <div class="ov-tenure-val" id="ovTenure">—</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-label">Biggest Payout</div><div class="sc-val pos" id="ovBiggestPayout">$0.00</div><div class="sc-sub">Single largest</div></div>
+        <div class="stat-card"><div class="sc-label">Average Payout</div><div class="sc-val" id="ovAvgPayout">$0.00</div><div class="sc-sub" id="ovAvgPayoutSub">No payouts yet</div></div>
+        <div class="stat-card"><div class="sc-label">Total Payouts</div><div class="sc-val pos" id="ovTotalPayout">$0.00</div><div class="sc-sub">All time</div></div>
+        <div class="stat-card"><div class="sc-label">Active Challenges</div><div class="sc-val" id="ovActiveChallenges">0</div><div class="sc-sub">In evaluation</div></div>
+        <div class="stat-card"><div class="sc-label">Funded Accounts</div><div class="sc-val gold" id="ovFundedAccounts">0</div><div class="sc-sub">Live simulated capital</div></div>
+        <div class="stat-card"><div class="sc-label">Realised P&amp;L</div><div class="sc-val" id="ovRealisedPnl">$0.00</div><div class="sc-sub" id="ovRealisedSub">Across all accounts</div></div>
+      </div>
+
+      <!-- TRADING CALENDAR -->
+      <div class="sec-hd">
+        <div><div class="sec-title">Trading Calendar</div></div>
+        <div class="ov-cal-nav">
+          <button class="ov-cal-btn" onclick="ovCalShift(-1)" aria-label="Previous month">‹</button>
+          <span class="ov-cal-month" id="ovCalMonth">—</span>
+          <button class="ov-cal-btn" onclick="ovCalShift(1)" aria-label="Next month">›</button>
+        </div>
+      </div>
+      <div class="ov-cal">
+        <div class="ov-cal-head">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="ov-cal-grid" id="ovCalGrid"></div>
+        <div class="ov-cal-foot" id="ovCalFoot">No closed trades this month</div>
+      </div>
+
+      <!-- BEHAVIOURAL SNAPSHOT — the same measurements the internal
+           review stack already computes, shown to the trader about
+           themselves rather than kept admin-only. -->
+      <div class="sec-hd" style="margin-top:1.5rem">
+        <div>
+          <div class="sec-title">Performance Snapshot</div>
+          <div class="sec-sub" id="ovSnapScope">Across your closed trades</div>
+        </div>
+      </div>
+      <div class="ov-snap" id="ovSnap"></div>
+      <div class="ov-empty" id="ovSnapEmpty" style="display:none">
+        Your performance snapshot appears once you have closed trades. Everything here is measured from your own trade history — nothing is estimated.
+      </div>
+    </div>
 
     <!-- ACCOUNTS -->
     <div class="page active" id="pg-accounts">
@@ -1178,6 +1292,271 @@ function nav(id,btn){
   document.getElementById('pageTitle').textContent=btn.textContent.trim();
   closeSb();
   if(id==='journal')loadJournalPageData();
+  if(id==='overview'&&!OV_LOADED)loadOverview();
+}
+
+// ══ OVERVIEW PAGE ══════════════════════════════════════════════════
+// Everything below is computed from THIS trader's own rows, read
+// through RLS ("own trades read" / "own accounts read"). The engine's
+// state payload caps closed_trades at 30, which is fine for the
+// terminal but would silently truncate a calendar and every
+// behavioural average, so this reads public.trades directly instead.
+let OV_TRADES=[],OV_LOADED=false,ovCalCursor=new Date();
+
+function ovMoney(n,signed){
+  n=Number(n)||0;
+  const s=Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(signed)return (n<0?'-$':'+$')+s;
+  return (n<0?'-$':'$')+s;
+}
+function ovCompact(n){
+  n=Number(n)||0;
+  const a=Math.abs(n);
+  const sign=n<0?'-':'+';
+  if(a>=1000)return sign+'$'+(a/1000).toFixed(a>=10000?0:1)+'k';
+  return sign+'$'+a.toFixed(0);
+}
+// Same session buckets the internal review stack uses (admin-console's
+// sessionOf) so a trader sees exactly the figure IPFX sees.
+function ovSession(hourUtc){
+  if(hourUtc>=0&&hourUtc<8)return 'Asian';
+  if(hourUtc>=8&&hourUtc<13)return 'London';
+  if(hourUtc>=13&&hourUtc<17)return 'Overlap';
+  if(hourUtc>=17&&hourUtc<22)return 'New York';
+  return 'Off-hours';
+}
+
+async function loadOverview(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session)return;
+  const u=session.user;
+
+  // ---- greeting + tenure (personal, from this account only) ----
+  const meta=u.user_metadata||{};
+  const fullName=(meta.full_name||meta.name||'').trim();
+  const first=fullName?fullName.split(/\s+/)[0]:(u.email||'').split('@')[0];
+  const pretty=first?first.charAt(0).toUpperCase()+first.slice(1):'trader';
+  const h=new Date().getHours();
+  const partOfDay=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
+  const gEl=document.getElementById('ovGreeting');
+  if(gEl)gEl.textContent=`${partOfDay} ${pretty}!`;
+  const avEl=document.getElementById('ovAvatar');
+  if(avEl)avEl.textContent=(fullName?fullName.split(/\s+/).map(w=>w[0]).slice(0,2).join(''):pretty.slice(0,2)).toUpperCase();
+  if(u.created_at){
+    const since=new Date(u.created_at);
+    const days=Math.max(0,Math.floor((Date.now()-since.getTime())/86400000));
+    const tEl=document.getElementById('ovTenure');
+    if(tEl)tEl.textContent=`${since.toLocaleDateString('en-GB')} (${days} day${days===1?'':'s'})`;
+  }
+
+  // ---- data: full trade history + accounts + payouts ----
+  const [tradesRes,acctRes,payoutRes]=await Promise.all([
+    sb.from('trades').select('symbol,side,volume,open_price,close_price,sl,tp,pnl,opened_at,closed_at,close_reason')
+      .eq('status','closed').not('closed_at','is',null).order('closed_at',{ascending:true}).limit(5000),
+    sb.from('trading_accounts').select('status,phase'),
+    engineCall({action:'list_payouts'}),
+  ]);
+  OV_TRADES=(tradesRes&&tradesRes.data)||[];
+  const accts=(acctRes&&acctRes.data)||[];
+  const payouts=((payoutRes&&payoutRes.payouts)||[]).filter(p=>p.status==='paid');
+
+  // ---- payout stats (paid only — money actually received) ----
+  const shares=payouts.map(p=>Number(p.trader_share)||0);
+  const total=shares.reduce((a,b)=>a+b,0);
+  const setTxt=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setTxt('ovBiggestPayout',shares.length?ovMoney(Math.max(...shares)):'$0.00');
+  setTxt('ovAvgPayout',shares.length?ovMoney(total/shares.length):'$0.00');
+  setTxt('ovAvgPayoutSub',shares.length?`Across ${shares.length} payout${shares.length===1?'':'s'}`:'No payouts yet');
+  setTxt('ovTotalPayout',ovMoney(total));
+  setTxt('ovActiveChallenges',accts.filter(a=>a.status==='active'&&a.phase!=='funded').length);
+  setTxt('ovFundedAccounts',accts.filter(a=>a.phase==='funded').length);
+
+  const realised=OV_TRADES.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+  const rEl=document.getElementById('ovRealisedPnl');
+  if(rEl){rEl.textContent=ovMoney(realised);rEl.className='sc-val '+(realised>0?'pos':realised<0?'neg':'');}
+  setTxt('ovRealisedSub',OV_TRADES.length?`${OV_TRADES.length} closed trade${OV_TRADES.length===1?'':'s'}`:'No closed trades yet');
+
+  OV_LOADED=true;
+  ovCalCursor=new Date();
+  renderOvCalendar();
+  renderOvSnapshot();
+}
+
+// ---- Trading calendar: one cell per day, this trader's realised P&L ----
+function ovCalShift(delta){
+  ovCalCursor=new Date(ovCalCursor.getFullYear(),ovCalCursor.getMonth()+delta,1);
+  renderOvCalendar();
+}
+function renderOvCalendar(){
+  const grid=document.getElementById('ovCalGrid');
+  if(!grid)return;
+  const year=ovCalCursor.getFullYear(),month=ovCalCursor.getMonth();
+  const mEl=document.getElementById('ovCalMonth');
+  if(mEl)mEl.textContent=ovCalCursor.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+
+  // Bucket by LOCAL calendar day so the grid matches the trader's own
+  // clock, which is what they compare against when they look back.
+  const byDay=new Map();
+  for(const t of OV_TRADES){
+    const d=new Date(t.closed_at);
+    const key=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const cur=byDay.get(key)||{pnl:0,n:0};
+    cur.pnl+=Number(t.pnl)||0;cur.n++;
+    byDay.set(key,cur);
+  }
+
+  const first=new Date(year,month,1);
+  const startOffset=first.getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const today=new Date();
+  const cells=[];
+  for(let i=0;i<startOffset;i++){
+    const d=new Date(year,month,-(startOffset-1-i));
+    cells.push({d,out:true});
+  }
+  for(let day=1;day<=daysInMonth;day++)cells.push({d:new Date(year,month,day),out:false});
+  while(cells.length%7!==0){
+    const last=cells[cells.length-1].d;
+    cells.push({d:new Date(last.getFullYear(),last.getMonth(),last.getDate()+1),out:true});
+  }
+
+  let monthPnl=0,monthTrades=0,greenDays=0,redDays=0;
+  grid.innerHTML=cells.map(({d,out})=>{
+    const key=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const rec=byDay.get(key);
+    const isToday=d.toDateString()===today.toDateString();
+    let cls='ov-cal-cell'+(out?' out':'')+(isToday?' today':'');
+    let inner=`<span class="ov-cal-day">${d.getDate()}</span>`;
+    if(rec&&!out){
+      monthPnl+=rec.pnl;monthTrades+=rec.n;
+      if(rec.pnl>0)greenDays++;else if(rec.pnl<0)redDays++;
+      cls+=rec.pnl>0?' win':rec.pnl<0?' loss':'';
+      inner+=`<span class="ov-cal-pnl ${rec.pnl>=0?'pos':'neg'}">${ovCompact(rec.pnl)}</span>`
+        +`<span class="ov-cal-trades">${rec.n} trade${rec.n===1?'':'s'}</span>`;
+    }
+    return `<div class="${cls}">${inner}</div>`;
+  }).join('');
+
+  const foot=document.getElementById('ovCalFoot');
+  if(foot){
+    foot.innerHTML=monthTrades
+      ? `<b style="color:${monthPnl>=0?'var(--green)':'var(--red)'}">${ovMoney(monthPnl,true)}</b> this month · ${monthTrades} trade${monthTrades===1?'':'s'} · ${greenDays} green day${greenDays===1?'':'s'} · ${redDays} red day${redDays===1?'':'s'}`
+      : 'No closed trades this month';
+  }
+}
+
+// ---- Behavioural snapshot: the same measurements IPFX's own review
+// stack computes about a trader, shown to that trader about themselves.
+function renderOvSnapshot(){
+  const wrap=document.getElementById('ovSnap');
+  const empty=document.getElementById('ovSnapEmpty');
+  if(!wrap)return;
+  const ts=OV_TRADES;
+  if(!ts.length){wrap.innerHTML='';wrap.style.display='none';if(empty)empty.style.display='';return;}
+  wrap.style.display='';if(empty)empty.style.display='none';
+  const scope=document.getElementById('ovSnapScope');
+  if(scope)scope.textContent=`Measured across your ${ts.length} closed trade${ts.length===1?'':'s'}`;
+
+  const n=ts.length;
+  const cards=[];
+  const card=(lbl,tag,tone,val,sub,extra)=>cards.push(
+    `<div class="ov-snap-card ${tone}"><div class="ov-snap-hd"><span class="ov-snap-lbl">${lbl}</span>`
+    +(tag?`<span class="ov-snap-tag ${tone}">${tag}</span>`:'')
+    +`</div><div class="ov-snap-val">${val}</div><div class="ov-snap-sub">${sub}</div>${extra||''}</div>`);
+
+  // Consistency — profitable days, and how much of total profit came
+  // from the single best day (concentration is the real risk signal).
+  const byDay=new Map();
+  for(const t of ts){
+    const d=new Date(t.closed_at);
+    const k=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    byDay.set(k,(byDay.get(k)||0)+(Number(t.pnl)||0));
+  }
+  const dayVals=[...byDay.values()];
+  const profDays=dayVals.filter(v=>v>0).length;
+  const profDayPct=dayVals.length?(profDays/dayVals.length*100):0;
+  const grossDayWin=dayVals.filter(v=>v>0).reduce((a,b)=>a+b,0);
+  const bestDay=dayVals.length?Math.max(...dayVals):0;
+  const bestShare=grossDayWin>0?(bestDay/grossDayWin*100):0;
+  const consTone=bestShare>50||profDayPct<30?'poor':bestShare>30||profDayPct<45?'fair':'good';
+  card('Consistency',consTone==='good'?'Healthy':consTone==='fair'?'Fair':'Concentrated',consTone,
+    profDayPct.toFixed(1)+'%',
+    `${profDays} profitable of ${dayVals.length} trading day${dayVals.length===1?'':'s'}. Best day is ${bestShare.toFixed(1)}% of all profit${bestShare>50?' — one day carrying the record is not a repeatable edge.':'.'}`);
+
+  // Strategy — classified from actual hold time, not self-declared.
+  const holds=ts.map(t=>(new Date(t.closed_at)-new Date(t.opened_at))/60000).filter(v=>isFinite(v)&&v>=0);
+  const avgHold=holds.length?holds.reduce((a,b)=>a+b,0)/holds.length:0;
+  const sortedH=[...holds].sort((a,b)=>a-b);
+  const medHold=sortedH.length?(sortedH.length%2?sortedH[(sortedH.length-1)/2]:(sortedH[sortedH.length/2-1]+sortedH[sortedH.length/2])/2):0;
+  const style=avgHold<15?'Scalper':avgHold<240?'Intraday':avgHold<2880?'Swing':'Position';
+  const fmtMin=m=>m<60?Math.round(m)+'m':m<1440?(m/60).toFixed(1)+'h':(m/1440).toFixed(1)+'d';
+  const scalps=holds.filter(v=>v<=15).length,dayT=holds.filter(v=>v>15&&v<=1440).length,swing=holds.filter(v=>v>1440).length;
+  const bar=(l,v)=>`<div class="ov-snap-bar-row"><span>${l}</span><span class="ov-snap-bar"><i style="width:${v.toFixed(1)}%"></i></span><span class="ov-snap-bar-val">${v.toFixed(1)}%</span></div>`;
+  card('Strategy','Measured','info',style,
+    `Average hold ${fmtMin(avgHold)} · median ${fmtMin(medHold)}.`,
+    `<div class="ov-snap-bars">${bar('Scalps ≤15m',scalps/n*100)}${bar('Day trades',dayT/n*100)}${bar('Swing',swing/n*100)}</div>`);
+
+  // Revenge trading — re-entry within 5 minutes of a loss at equal or
+  // larger size. Same definition the internal review uses.
+  const chron=[...ts].sort((a,b)=>new Date(a.opened_at)-new Date(b.opened_at));
+  let revenge=0,opps=0;
+  for(let i=0;i<chron.length-1;i++){
+    const cur=chron[i],next=chron[i+1];
+    const gap=(new Date(next.opened_at)-new Date(cur.closed_at))/60000;
+    if(gap>=0){opps++;if(Number(cur.pnl)<0&&gap<5&&Number(next.volume)>=Number(cur.volume))revenge++;}
+  }
+  const revPct=opps?revenge/opps*100:0;
+  const revTone=revPct>20?'poor':revPct>8?'fair':'good';
+  card('Revenge Trading',revPct>20?'High':revPct>8?'Moderate':'Low',revTone,
+    revenge+(revenge===1?' event':' events'),
+    `Re-entered within 5 minutes of a loss at equal or larger size ${revPct.toFixed(1)}% of the time.`);
+
+  // SL/TP discipline — did the plan exist before the trade, and did the
+  // rules close it rather than a manual override.
+  const withSl=ts.filter(t=>t.sl!=null).length,withTp=ts.filter(t=>t.tp!=null).length;
+  const slPct=withSl/n*100,tpPct=withTp/n*100;
+  const ruleClosed=ts.filter(t=>t.close_reason==='sl'||t.close_reason==='tp').length;
+  const disc=(slPct+tpPct)/2;
+  const discTone=disc>=70?'good':disc>=40?'fair':'poor';
+  card('SL/TP Discipline',discTone==='good'?'Strong':discTone==='fair'?'Fair':'Weak',discTone,
+    disc.toFixed(1),
+    `Stop set on ${slPct.toFixed(1)}% of trades, target on ${tpPct.toFixed(1)}%. ${(ruleClosed/n*100).toFixed(1)}% closed by their own rule rather than by hand.`);
+
+  // Session distribution — when this trader actually trades.
+  const sess={'Asian':0,'London':0,'Overlap':0,'New York':0,'Off-hours':0};
+  for(const t of ts)sess[ovSession(new Date(t.opened_at).getUTCHours())]++;
+  const domSess=Object.entries(sess).sort((a,b)=>b[1]-a[1])[0];
+  card('Session Focus','Measured','info',domSess[0],
+    `${(domSess[1]/n*100).toFixed(1)}% of your trades open in this session.`,
+    `<div class="ov-snap-bars">${Object.entries(sess).filter(([,v])=>v>0).map(([k,v])=>bar(k,v/n*100)).join('')}</div>`);
+
+  // Win rate + profit factor — the headline pair, stated together so
+  // neither can flatter the other in isolation.
+  const wins=ts.filter(t=>Number(t.pnl)>0),losses=ts.filter(t=>Number(t.pnl)<0);
+  const gw=wins.reduce((s,t)=>s+Number(t.pnl),0),gl=Math.abs(losses.reduce((s,t)=>s+Number(t.pnl),0));
+  const pf=gl>0?gw/gl:null;
+  const wr=wins.length/n*100;
+  const pfTone=pf===null?'info':pf>=1.3?'good':pf>=1?'fair':'poor';
+  card('Win Rate / Profit Factor',pf===null?'No losses yet':pf>=1.3?'Healthy':pf>=1?'Marginal':'Losing',pfTone,
+    wr.toFixed(1)+'% · '+(pf===null?'—':pf.toFixed(2)),
+    `${wins.length} win${wins.length===1?'':'s'}, ${losses.length} loss${losses.length===1?'':'es'}. Profit factor is gross win ÷ gross loss — above 1.0 means the wins outweigh the losses.`);
+
+  // Symbol concentration — HHI, the same measure the internal exposure
+  // stack uses. One instrument carrying everything is a real fragility.
+  const bySym=new Map();
+  for(const t of ts){
+    const s=(t.symbol||'—').replace(/^[^:]+:/,'');
+    const c=bySym.get(s)||{n:0,pnl:0};c.n++;c.pnl+=Number(t.pnl)||0;bySym.set(s,c);
+  }
+  const symArr=[...bySym.entries()].sort((a,b)=>b[1].n-a[1].n);
+  const hhi=symArr.reduce((s,[,v])=>s+Math.pow(v.n/n,2),0);
+  const topPct=symArr.length?symArr[0][1].n/n*100:0;
+  const cTone=hhi>0.6?'fair':'good';
+  card('Instrument Spread',symArr.length===1?'Single symbol':hhi>0.6?'Concentrated':'Diversified',cTone,
+    symArr.length+(symArr.length===1?' symbol':' symbols'),
+    `${symArr[0][0]} is ${topPct.toFixed(1)}% of your trades (${ovMoney(symArr[0][1].pnl,true)}). Concentration index ${hhi.toFixed(2)} — 1.00 means everything in one instrument.`);
+
+  wrap.innerHTML=cards.join('');
 }
 
 // ── JOURNAL PAGE ── real trade history + stats, computed from the same
@@ -1309,34 +1688,14 @@ function toggleSidebar(){
 }
 
 // Home panel (iframe inside dashboard)
+// Home used to open the public marketing site in an iframe, which meant
+// a signed-in trader's "Home" showed them the sales page rather than
+// their own account. It now opens the Overview page instead.
 function navHome(btn){
   const panel=document.getElementById('homePanel');
-  const frame=document.getElementById('homeFrame');
-  const isOpen=panel.style.display==='block';
-  if(isOpen){
-    panel.style.display='none';
-    document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    var acPage=document.getElementById('pg-accounts');
-    if(acPage) acPage.classList.add('active');
-    var acBtn=document.querySelector('[onclick*="nav(\'accounts\'"]');
-    if(acBtn) acBtn.classList.add('active');
-    document.getElementById('pageTitle').textContent='Accounts';
-    const cw=document.getElementById('chatW');if(cw)cw.style.display='';
-  } else {
-    // Always set src so re-opening after switching pages works
-    if(!frame.getAttribute('data-loaded')){
-      frame.src='/index.html';
-      frame.setAttribute('data-loaded','1');
-    }
-    panel.style.display='block';
-    const cw=document.getElementById('chatW');if(cw)cw.style.display='none';
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.querySelectorAll('.nl').forEach(n=>n.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('pageTitle').textContent='Home';
-  }
-  closeSb();
+  if(panel)panel.style.display='none';
+  const cw=document.getElementById('chatW');if(cw)cw.style.display='';
+  nav('overview',btn);
 }
 
 // Credentials
