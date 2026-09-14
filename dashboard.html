@@ -175,6 +175,43 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
 .ov-snap-bar-val{text-align:right;font-weight:600;color:var(--muted);}
 .ov-empty{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.6rem;text-align:center;font-size:.85rem;color:var(--muted);line-height:1.6;}
 
+/* ── ANALYTICS PAGE ── */
+.an-sel{background:var(--bgcard);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.5rem .8rem;font-size:.82rem;font-family:inherit;min-width:200px;}
+.an-sel:focus{outline:none;border-color:var(--cobalt);}
+.an-empty{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.6rem;text-align:center;font-size:.85rem;color:var(--muted);line-height:1.6;}
+.an-grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.75rem;}
+.an-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.2rem 1.35rem;}
+.an-card-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.6rem;}
+.an-card-hd>span:first-child{font-size:.72rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;}
+.an-tag{font-size:.62rem;font-weight:700;padding:.14rem .45rem;border-radius:4px;text-transform:uppercase;letter-spacing:.03em;}
+.an-tag.good{background:var(--green-d);color:var(--green);}
+.an-tag.fair{background:var(--gold-d);color:var(--gold);}
+.an-tag.poor{background:var(--red-d);color:var(--red);}
+.an-big{font-family:'Space Grotesk',sans-serif;font-size:1.7rem;font-weight:700;line-height:1;}
+.an-card-sub{font-size:.76rem;color:var(--muted);margin-top:.35rem;}
+.an-card-sub b{color:var(--fg);}
+.an-kv{display:grid;grid-template-columns:1fr 1fr;gap:.55rem .8rem;margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--line2);}
+.an-kv div{display:flex;flex-direction:column;min-width:0;}
+.an-kv span{font-size:.64rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted2);font-weight:700;white-space:nowrap;}
+.an-kv b{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;margin-top:.15rem;}
+.an-kv b.pos{color:var(--green);}.an-kv b.neg{color:var(--red);}
+.an-bars{margin-top:1rem;display:flex;flex-direction:column;gap:.4rem;}
+.an-bar-row{display:grid;grid-template-columns:110px 1fr 48px;align-items:center;gap:.5rem;font-size:.72rem;color:var(--muted);}
+.an-bar{height:6px;border-radius:3px;background:var(--line2);overflow:hidden;}
+.an-bar i{display:block;height:100%;background:var(--cobalt);border-radius:3px;}
+.an-bar-val{text-align:right;font-weight:600;color:var(--muted);}
+.mono{font-family:'JetBrains Mono','Space Grotesk',monospace;}
+td.pos,.pos{color:var(--green);}td.neg,.neg{color:var(--red);}
+/* ── ORDERS ── */
+.ord-chip{background:var(--bgcard);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:.35rem .85rem;font-size:.76rem;font-weight:600;cursor:pointer;transition:.15s;}
+.ord-chip.on{background:var(--cobalt);border-color:var(--cobalt);color:#fff;}
+.ord-chip:hover{color:#fff;}
+.ord-badge{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:.2rem .55rem;border-radius:6px;}
+.ord-b-paid{background:var(--green-d);color:var(--green);}
+.ord-b-pend{background:var(--gold-d);color:var(--gold);}
+.ord-b-unp{background:rgba(255,255,255,.06);color:var(--muted);}
+.ord-b-canc{background:var(--red-d);color:var(--red);}
+
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1.5rem;}
 .stat-card{background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem 1.25rem;}
 .sc-label{font-size:.72rem;color:var(--muted2);margin-bottom:.4rem;}
@@ -522,6 +559,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <button class="nl" onclick="navHome(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
     <button class="nl active" onclick="nav('accounts',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Accounts</button>
     <button class="nl" onclick="nav('journal',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Journal</button>
+    <button class="nl" onclick="nav('analytics',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>Analytics</button>
     <button class="nl" onclick="nav('payouts',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Payouts</button>
     <button class="nl" onclick="nav('billing',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Billing</button>
     <div class="sb-label">Programmes</div>
@@ -725,6 +763,46 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
     </div>
 
+    <!-- ANALYTICS — deep execution-quality review of one account, computed
+         from that account's own closed trades. Mirrors E8's Analytics
+         page: account selector, hold-time win/loss, drawdown recovery,
+         per-symbol table. -->
+    <div class="page" id="pg-analytics">
+      <div class="sec-hd">
+        <div><div class="sec-title">Performance Analysis</div><div class="sec-sub">Win rate, expectancy, hold times and consistency across the sample.</div></div>
+        <select id="anAcctSel" class="an-sel" onchange="renderAnalytics()"></select>
+      </div>
+      <div class="stat-row" id="anTiles"></div>
+      <div class="an-empty" id="anEmpty" style="display:none">No closed trades on this account yet. Analytics appear once you have a trade history — every figure is measured from real trades, never estimated.</div>
+      <div id="anBody" style="display:none">
+        <div class="an-grid3">
+          <div class="an-card">
+            <div class="an-card-hd"><span>Consistency</span><span class="an-tag" id="anConsTag">—</span></div>
+            <div class="an-big" id="anCons">—</div>
+            <div class="an-card-sub" id="anConsSub">—</div>
+            <div class="an-kv"><div><span>Avg daily P&amp;L</span><b id="anAvgDay">—</b></div><div><span>Best day</span><b class="pos" id="anBestDay">—</b></div><div><span>Worst day</span><b class="neg" id="anWorstDay">—</b></div><div><span>Max win streak</span><b id="anWinStreak">—</b></div></div>
+          </div>
+          <div class="an-card">
+            <div class="an-card-hd"><span>Hold Time</span><span class="an-tag" id="anHoldTag">—</span></div>
+            <div class="an-big" id="anAvgHold">—</div>
+            <div class="an-card-sub">Average hold · median <b id="anMedHold">—</b></div>
+            <div class="an-kv"><div><span>Loss hold (avg)</span><b class="neg" id="anLossHold">—</b></div><div><span>Win hold (avg)</span><b class="pos" id="anWinHold">—</b></div><div><span>Hold ratio L/W</span><b id="anHoldRatio">—</b></div></div>
+            <div class="an-bars" id="anStyleBars"></div>
+          </div>
+          <div class="an-card">
+            <div class="an-card-hd"><span>Recovery Speed</span><span class="an-tag" id="anRecTag">—</span></div>
+            <div class="an-big" id="anMaxDD">—</div>
+            <div class="an-card-sub">Max drawdown from peak equity</div>
+            <div class="an-kv"><div><span>Drawdown episodes</span><b id="anDDEp">—</b></div><div><span>Recovered</span><b class="pos" id="anRecov">—</b></div><div><span>Unrecovered</span><b class="neg" id="anUnrec">—</b></div><div><span>Avg recovery</span><b id="anAvgRec">—</b></div></div>
+          </div>
+        </div>
+        <div class="sec-hd" style="margin-top:1.5rem"><div><div class="sec-title">Session Distribution</div></div></div>
+        <div class="an-card"><div class="an-bars" id="anSessionBars"></div></div>
+        <div class="sec-hd" style="margin-top:1.5rem"><div><div class="sec-title">Symbol P&amp;L Breakdown</div><div class="sec-sub" id="anSymSub">—</div></div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Symbol</th><th>Trades</th><th>Win %</th><th>P&amp;L</th><th>Expectancy</th><th>Profit factor</th></tr></thead><tbody id="anSymBody"></tbody></table></div>
+      </div>
+    </div>
+
     <!-- PAYOUTS -->
     <div class="page" id="pg-payouts">
       <div class="stat-row">
@@ -768,10 +846,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
     <!-- BILLING -->
     <div class="page" id="pg-billing">
-      <div style="padding:2rem;text-align:center;color:var(--muted2);font-size:.875rem;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);margin-bottom:1.25rem">No active plan. Purchase a challenge to get started.</div>
-      <div class="sec-hd"><div><div class="sec-title">Invoices</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Invoice</th><th>Date</th><th>Plan</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
-        <tr><td colspan="6" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No invoices yet. Your purchase history will appear here.</td></tr>
+      <div class="sec-hd"><div><div class="sec-title">Orders</div><div class="sec-sub">Your challenge purchases and their payment status.</div></div></div>
+      <div class="bar" id="ordersChips" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem"></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Order</th><th>Created</th><th>Item</th><th>Amount</th><th>Status</th></tr></thead><tbody id="ordersWrap">
+        <tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">Loading…</td></tr>
       </tbody></table></div>
     </div>
 
@@ -1293,6 +1371,8 @@ function nav(id,btn){
   closeSb();
   if(id==='journal')loadJournalPageData();
   if(id==='overview'&&!OV_LOADED)loadOverview();
+  if(id==='analytics'&&!AN_LOADED)loadAnalytics();
+  if(id==='billing'&&!ORDERS_LOADED)loadOrders();
 }
 
 // ══ OVERVIEW PAGE ══════════════════════════════════════════════════
@@ -1557,6 +1637,176 @@ function renderOvSnapshot(){
     `${symArr[0][0]} is ${topPct.toFixed(1)}% of your trades (${ovMoney(symArr[0][1].pnl,true)}). Concentration index ${hhi.toFixed(2)} — 1.00 means everything in one instrument.`);
 
   wrap.innerHTML=cards.join('');
+}
+
+// ══ ANALYTICS PAGE ═════════════════════════════════════════════════
+// Per-account execution-quality review. Reads public.trades (RLS) with
+// account_id so it can drive the account selector, then computes every
+// figure — nothing here is placeholder.
+let AN_LOADED=false,AN_TRADES=[],AN_ACCTS=[];
+function anFmt(n,signed){n=Number(n)||0;const s=Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});return signed?(n<0?'-$':'+$')+s:(n<0?'-$':'$')+s;}
+function anMin(m){m=Number(m)||0;return m<60?Math.round(m)+'m':m<1440?(m/60).toFixed(1)+'h':(m/1440).toFixed(1)+'d';}
+async function loadAnalytics(){
+  AN_LOADED=true;
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session)return;
+  const[tr,ac]=await Promise.all([
+    sb.from('trades').select('account_id,symbol,side,volume,open_price,close_price,sl,tp,pnl,opened_at,closed_at,close_reason')
+      .eq('status','closed').not('closed_at','is',null).order('closed_at',{ascending:true}).limit(5000),
+    sb.from('trading_accounts').select('id,label,challenge_type,stage,phase,starting_balance,status').order('created_at',{ascending:false}),
+  ]);
+  AN_TRADES=(tr&&tr.data)||[];
+  AN_ACCTS=(ac&&ac.data)||[];
+  const sel=document.getElementById('anAcctSel');
+  if(!AN_ACCTS.length){sel.innerHTML='<option>No accounts</option>';document.getElementById('anEmpty').style.display='';document.getElementById('anBody').style.display='none';document.getElementById('anTiles').innerHTML='';return;}
+  const chL={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application',funded:'Funded'};
+  sel.innerHTML=AN_ACCTS.map(a=>`<option value="${a.id}">${(chL[a.challenge_type]||a.label)} · ${a.phase==='funded'?'Funded':'Stage '+(a.stage||1)} · ${a.id.slice(0,8).toUpperCase()}</option>`).join('');
+  renderAnalytics();
+}
+function renderAnalytics(){
+  const acctId=document.getElementById('anAcctSel').value;
+  const acct=AN_ACCTS.find(a=>a.id===acctId);
+  const ts=AN_TRADES.filter(t=>t.account_id===acctId);
+  const tiles=document.getElementById('anTiles');
+  const body=document.getElementById('anBody'),empty=document.getElementById('anEmpty');
+  if(!ts.length){tiles.innerHTML='';body.style.display='none';empty.style.display='';return;}
+  empty.style.display='none';body.style.display='';
+  const n=ts.length;
+  const start=acct?Number(acct.starting_balance):0;
+  const wins=ts.filter(t=>Number(t.pnl)>0),losses=ts.filter(t=>Number(t.pnl)<0);
+  const gw=wins.reduce((s,t)=>s+Number(t.pnl),0),gl=Math.abs(losses.reduce((s,t)=>s+Number(t.pnl),0));
+  const net=ts.reduce((s,t)=>s+Number(t.pnl),0);
+  const wr=wins.length/n*100;
+  const pf=gl>0?gw/gl:null;
+  const expc=net/n;
+  const tile=(k,v,cls,sub)=>`<div class="stat-card"><div class="sc-label">${k}</div><div class="sc-val ${cls||''}">${v}</div><div class="sc-sub">${sub||''}</div></div>`;
+  tiles.innerHTML=
+    tile('Total P&amp;L',anFmt(net,true),net>=0?'pos':'neg',`${n} trade${n===1?'':'s'}`)+
+    tile('Win Rate',wr.toFixed(1)+'%',wr>=50?'pos':'','')+
+    tile('Profit Factor',pf==null?'—':pf.toFixed(2),pf!=null&&pf>=1.3?'pos':pf!=null&&pf<1?'neg':'','')+
+    tile('Expectancy',anFmt(expc,true),expc>=0?'pos':'neg','Per trade')+
+    tile('Symbols',new Set(ts.map(t=>(t.symbol||'').replace(/^[^:]+:/,''))).size,'','')+
+    tile('Return',start>0?(net/start*100).toFixed(2)+'%':'—',net>=0?'pos':'neg','On starting balance');
+
+  // ── Consistency: profitable days, day P&L stats, best-day share, win streak ──
+  const byDay=new Map();
+  for(const t of ts){const d=new Date(t.closed_at);const k=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;byDay.set(k,(byDay.get(k)||0)+Number(t.pnl));}
+  const dayVals=[...byDay.values()];
+  const profDays=dayVals.filter(v=>v>0).length;
+  const profDayPct=dayVals.length?profDays/dayVals.length*100:0;
+  const avgDay=dayVals.length?dayVals.reduce((a,b)=>a+b,0)/dayVals.length:0;
+  const bestDay=dayVals.length?Math.max(...dayVals):0,worstDay=dayVals.length?Math.min(...dayVals):0;
+  const gdw=dayVals.filter(v=>v>0).reduce((a,b)=>a+b,0);
+  const bestShare=gdw>0?bestDay/gdw*100:0;
+  // longest run of consecutive profitable days (chronological)
+  const dayKeysSorted=[...byDay.entries()].sort((a,b)=>new Date(a[0].replace(/-/g,'/'))-new Date(b[0].replace(/-/g,'/')));
+  let streak=0,maxStreak=0;
+  for(const[,v]of dayKeysSorted){if(v>0){streak++;maxStreak=Math.max(maxStreak,streak);}else streak=0;}
+  const consScore=(profDayPct*0.6+(100-Math.min(100,bestShare))*0.4);
+  const consTone=consScore>=60?'good':consScore>=40?'fair':'poor';
+  const set=(id,v,cls)=>{const e=document.getElementById(id);if(e){e.textContent=v;if(cls!=null)e.className=e.className.replace(/\b(pos|neg)\b/g,'')+' '+cls;}};
+  set('anCons',consScore.toFixed(0));
+  document.getElementById('anConsTag').textContent=consTone==='good'?'Healthy':consTone==='fair'?'Fair':'Concentrated';
+  document.getElementById('anConsTag').className='an-tag '+consTone;
+  document.getElementById('anConsSub').innerHTML=`${profDays} profitable of ${dayVals.length} day${dayVals.length===1?'':'s'} (${profDayPct.toFixed(1)}%). Best day is <b>${bestShare.toFixed(1)}%</b> of all profit.`;
+  document.getElementById('anAvgDay').textContent=anFmt(avgDay,true);document.getElementById('anAvgDay').className=avgDay>=0?'pos':'neg';
+  document.getElementById('anBestDay').textContent=anFmt(bestDay,true);
+  document.getElementById('anWorstDay').textContent=anFmt(worstDay,true);
+  document.getElementById('anWinStreak').textContent=maxStreak+(maxStreak===1?' day':' days');
+
+  // ── Hold time: win vs loss, ratio, style breakdown ──
+  const holds=ts.map(t=>({m:(new Date(t.closed_at)-new Date(t.opened_at))/60000,pnl:Number(t.pnl)})).filter(h=>isFinite(h.m)&&h.m>=0);
+  const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+  const allH=holds.map(h=>h.m),sorted=[...allH].sort((a,b)=>a-b);
+  const med=sorted.length?(sorted.length%2?sorted[(sorted.length-1)/2]:(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2):0;
+  const avgH=mean(allH);
+  const lossHold=mean(holds.filter(h=>h.pnl<0).map(h=>h.m)),winHold=mean(holds.filter(h=>h.pnl>0).map(h=>h.m));
+  set('anAvgHold',anMin(avgH));set('anMedHold',anMin(med));
+  set('anLossHold',anMin(lossHold));set('anWinHold',anMin(winHold));
+  set('anHoldRatio',winHold>0?(lossHold/winHold).toFixed(2)+'x':'—');
+  const style=avgH<15?'Scalper':avgH<240?'Intraday':avgH<2880?'Swing':'Position';
+  const holdHealthy=winHold>=lossHold; // holding winners at least as long as losers is the disciplined shape
+  document.getElementById('anHoldTag').textContent=holdHealthy?'Healthy':'Cuts winners';
+  document.getElementById('anHoldTag').className='an-tag '+(holdHealthy?'good':'fair');
+  const scalps=allH.filter(m=>m<=15).length,dayT=allH.filter(m=>m>15&&m<=1440).length,sw=allH.filter(m=>m>1440).length;
+  const bar=(l,v)=>`<div class="an-bar-row"><span>${l}</span><span class="an-bar"><i style="width:${v.toFixed(1)}%"></i></span><span class="an-bar-val">${v.toFixed(1)}%</span></div>`;
+  document.getElementById('anStyleBars').innerHTML=bar('Scalps ≤15m',scalps/n*100)+bar('Day trades',dayT/n*100)+bar('Swing',sw/n*100)+`<div class="an-card-sub" style="margin-top:.5rem">Primarily a <b>${style}</b>.</div>`;
+
+  // ── Recovery speed: drawdown episodes from a running realised-equity curve ──
+  // Peak-to-trough episodes on cumulative realised P&L (chronological),
+  // matched to whether/when equity later exceeded the prior peak.
+  const chron=[...ts].sort((a,b)=>new Date(a.closed_at)-new Date(b.closed_at));
+  let eq=start||0,peak=eq,peakTime=chron.length?new Date(chron[0].closed_at):null;
+  const episodes=[];let inDD=false,trough=0,ddStart=null;
+  for(const t of chron){
+    eq+=Number(t.pnl);const tm=new Date(t.closed_at);
+    if(eq>peak){ if(inDD){episodes.push({depth:peak-trough,start:ddStart,recovered:true,recTime:tm});inDD=false;} peak=eq;peakTime=tm; }
+    else{ if(!inDD){inDD=true;trough=eq;ddStart=peakTime;} if(eq<trough)trough=eq; }
+  }
+  if(inDD)episodes.push({depth:peak-trough,start:ddStart,recovered:false,recTime:null});
+  const maxDDabs=episodes.length?Math.max(...episodes.map(e=>e.depth)):0;
+  const maxDDpct=start>0?maxDDabs/start*100:0;
+  const recov=episodes.filter(e=>e.recovered),unrec=episodes.filter(e=>!e.recovered);
+  const recDays=recov.map(e=>(e.recTime-e.start)/86400000).filter(d=>isFinite(d)&&d>=0);
+  const avgRec=recDays.length?recDays.reduce((a,b)=>a+b,0)/recDays.length:0;
+  set('anMaxDD',maxDDpct.toFixed(2)+'%');
+  document.getElementById('anMaxDD').className='an-big';
+  document.getElementById('anDDEp').textContent=episodes.length;
+  document.getElementById('anRecov').textContent=recov.length;
+  document.getElementById('anUnrec').textContent=unrec.length;
+  set('anAvgRec',recDays.length?avgRec.toFixed(1)+' days':'—');
+  const recTone=unrec.length===0&&episodes.length?'good':maxDDpct>8?'poor':'fair';
+  document.getElementById('anRecTag').textContent=recTone==='good'?'Healthy':recTone==='fair'?'Fair':'Deep';
+  document.getElementById('anRecTag').className='an-tag '+recTone;
+
+  // ── Session distribution ──
+  const sessB={'Asian':0,'London':0,'Overlap':0,'New York':0,'Off-hours':0};
+  for(const t of ts){const h=new Date(t.opened_at).getUTCHours();sessB[h<8?'Asian':h<13?'London':h<17?'Overlap':h<22?'New York':'Off-hours']++;}
+  document.getElementById('anSessionBars').innerHTML=Object.entries(sessB).map(([k,v])=>bar(k,v/n*100)).join('');
+
+  // ── Symbol P&L table ──
+  const bySym=new Map();
+  for(const t of ts){const s=(t.symbol||'—').replace(/^[^:]+:/,'');const c=bySym.get(s)||{n:0,w:0,pnl:0,gw:0,gl:0};c.n++;const p=Number(t.pnl);c.pnl+=p;if(p>0){c.w++;c.gw+=p;}else if(p<0)c.gl+=Math.abs(p);bySym.set(s,c);}
+  const rows=[...bySym.entries()].sort((a,b)=>b[1].pnl-a[1].pnl);
+  document.getElementById('anSymSub').textContent=`${rows.length} instrument${rows.length===1?'':'s'} traded`;
+  document.getElementById('anSymBody').innerHTML=rows.map(([s,c])=>{
+    const spf=c.gl>0?(c.gw/c.gl).toFixed(2):'—';const sexp=c.pnl/c.n;
+    return `<tr><td style="font-weight:600">${s.replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]))}</td><td class="mono">${c.n}</td><td class="mono">${(c.w/c.n*100).toFixed(0)}%</td><td class="mono ${c.pnl>=0?'pos':'neg'}">${anFmt(c.pnl,true)}</td><td class="mono ${sexp>=0?'pos':'neg'}">${anFmt(sexp,true)}</td><td class="mono">${spf}</td></tr>`;
+  }).join('');
+}
+
+// ══ ORDERS (Billing) ═══════════════════════════════════════════════
+// Real purchase history from commerce_orders (RLS: own rows only), with
+// the paid/pending/cancelled filter chips E8's order list has.
+let ORDERS_LOADED=false,ORDERS=[],orderFilter='all';
+async function loadOrders(){
+  ORDERS_LOADED=true;
+  const{data,error}=await sb.from('commerce_orders')
+    .select('id,sku,amount_minor,currency,status,test_mode,created_at,paid_at,product_snapshot')
+    .order('created_at',{ascending:false}).limit(200);
+  // commerce_orders may not be deployed in every environment — degrade
+  // to the existing "no invoices" empty state rather than erroring.
+  ORDERS=(error?[]:(data||[]));
+  renderOrders();
+}
+function orderChip(f){orderFilter=f;renderOrders();}
+function renderOrders(){
+  const wrap=document.getElementById('ordersWrap');
+  if(!wrap)return;
+  const STL={created:'Unpaid',pending:'Pending',paid:'Paid',cancelled:'Cancelled',review:'In review'};
+  const groups={all:ORDERS.length,paid:0,pending:0,unpaid:0,cancelled:0};
+  for(const o of ORDERS){if(o.status==='paid')groups.paid++;else if(o.status==='pending'||o.status==='review')groups.pending++;else if(o.status==='cancelled')groups.cancelled++;else groups.unpaid++;}
+  const chipDefs=[['all','All'],['paid','Paid'],['pending','Pending'],['unpaid','Unpaid'],['cancelled','Cancelled']];
+  document.getElementById('ordersChips').innerHTML=chipDefs.map(([k,l])=>`<button class="ord-chip ${orderFilter===k?'on':''}" onclick="orderChip('${k}')">${l} · ${groups[k]||0}</button>`).join('');
+  const match=o=>orderFilter==='all'||(orderFilter==='paid'&&o.status==='paid')||(orderFilter==='pending'&&(o.status==='pending'||o.status==='review'))||(orderFilter==='cancelled'&&o.status==='cancelled')||(orderFilter==='unpaid'&&o.status==='created');
+  const rows=ORDERS.filter(match);
+  const money=o=>{const s=(Number(o.amount_minor)||0)/100;return '$'+s.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  if(!rows.length){wrap.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted2);padding:2rem 1rem;font-size:.875rem">No orders in this filter. Your purchase history appears here after checkout.</td></tr>';return;}
+  const badge={paid:'ord-b-paid',pending:'ord-b-pend',review:'ord-b-pend',created:'ord-b-unp',cancelled:'ord-b-canc'};
+  wrap.innerHTML=rows.map(o=>{
+    const label=(o.product_snapshot&&o.product_snapshot.label)||o.sku||'Challenge';
+    return `<tr><td style="font-family:'JetBrains Mono',monospace;font-size:.78rem">${String(o.id).slice(0,8).toUpperCase()}</td><td>${new Date(o.created_at).toLocaleDateString('en-GB')} ${new Date(o.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</td><td>${String(label).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]))}${o.test_mode?' <span style="font-size:.62rem;color:var(--muted2)">(test)</span>':''}</td><td style="font-weight:600">${money(o)}</td><td><span class="ord-badge ${badge[o.status]||'ord-b-unp'}">${STL[o.status]||o.status}</span></td></tr>`;
+  }).join('');
 }
 
 // ── JOURNAL PAGE ── real trade history + stats, computed from the same
