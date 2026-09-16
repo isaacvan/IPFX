@@ -908,6 +908,155 @@
                 height: 36px;
             }
         }
+
+        /* ==========================================================
+           Apple-checkout-inspired layer (additive — layered on top of
+           the rules above via cascade order; original selectors and
+           every id used by assets/js/checkout-flow.js are untouched).
+           ========================================================== */
+
+        body { padding: 88px 20px 60px; }
+
+        .checkout-topbar {
+            max-width: 1180px;
+            margin: 0 auto 32px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .checkout-eyebrow {
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--cobalt);
+            margin-bottom: 6px;
+        }
+        .checkout-topbar h1 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            margin: 0;
+        }
+        .checkout-topbar h1 span { background: none; -webkit-text-fill-color: var(--fg); }
+        .header { display: none; } /* replaced by .checkout-topbar */
+
+        .checkout-layout {
+            max-width: 1180px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 56px;
+            align-items: start;
+        }
+        .checkout-main { min-width: 0; }
+
+        .progress-container { margin-bottom: 44px; }
+        .progress-steps { max-width: 100%; justify-content: space-between; }
+        .step-circle { width: 32px; height: 32px; font-size: 0.8rem; border-width: 1.5px; background: var(--bg); }
+        .step.active .step-circle { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); }
+        .step-label { font-size: 0.8rem; }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 36px 36px 32px;
+        }
+        .form-section h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        .form-section > p { color: var(--muted); font-size: 0.95rem; margin: -14px 0 26px; line-height: 1.5; }
+
+        /* Tier cards — Apple product-configurator feel */
+        .tier-grid { gap: 14px; }
+        .tier-card {
+            border-radius: 16px;
+            border-width: 1.5px;
+            padding: 24px 20px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+        .tier-card:hover { transform: none; border-color: rgba(37, 99, 235, 0.5); }
+        .tier-card.selected { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25); }
+        .tier-card .checkmark {
+            top: 18px; right: 18px; width: 22px; height: 22px;
+            box-shadow: 0 0 0 3px var(--bg);
+        }
+        .tier-card h3 { font-size: 1.6rem; font-weight: 700; margin-bottom: 2px; }
+        .tier-price { font-size: 1rem; font-weight: 600; color: var(--fg); opacity: 0.85; margin-bottom: 4px; }
+        .tier-refund { font-size: 0.78rem; }
+        .tier-features { text-align: left; }
+
+        /* Inputs — taller, more generous, Apple-style */
+        input, select, textarea {
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            min-height: 50px;
+        }
+        select { -webkit-appearance: none; appearance: none; }
+        label { font-size: 0.85rem; }
+
+        /* Payment method rows presented like Apple's checkout radios */
+        .payment-methods { grid-template-columns: 1fr; gap: 10px; }
+        .payment-method { border-radius: 12px; }
+
+        /* Buttons — Apple pill shape */
+        button, .button-group a.btn-secondary {
+            border-radius: 980px;
+            padding: 15px 30px;
+            font-size: 0.98rem;
+        }
+        .btn-primary { background: var(--cobalt); background-image: none; }
+        .btn-primary:hover { background: #1d4ed8; transform: none; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); }
+
+        /* Sticky order-summary sidebar */
+        .order-summary {
+            position: sticky;
+            top: 100px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 28px;
+        }
+        .os-title { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+        .os-empty { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+        .os-tier {
+            display: flex; align-items: center; gap: 14px;
+            padding-bottom: 20px; margin-bottom: 20px;
+            border-bottom: 1px solid var(--line);
+        }
+        .os-tier-icon {
+            width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(30,58,138,0.18));
+            border: 1px solid rgba(37,99,235,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--cobalt);
+        }
+        .os-tier-name { font-weight: 600; font-size: 1.02rem; }
+        .os-tier-sub { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+        .os-line { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--muted); padding: 6px 0; }
+        .os-line span:last-child { color: var(--fg); font-weight: 500; }
+        .os-total {
+            display: flex; justify-content: space-between; align-items: baseline;
+            margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line);
+        }
+        .os-total-label { font-weight: 600; }
+        .os-total-value { font-family: 'Space Grotesk', 'Inter', system-ui; font-size: 1.5rem; font-weight: 700; }
+        .os-perks { list-style: none; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+        .os-perks li { display: flex; align-items: center; gap: 9px; font-size: 0.85rem; color: var(--muted); }
+        .os-perks li svg { flex-shrink: 0; color: var(--success); }
+
+        @media (max-width: 960px) {
+            .checkout-layout { grid-template-columns: 1fr; gap: 28px; }
+            .order-summary { position: static; order: -1; }
+        }
+        @media (max-width: 768px) {
+            .form-section { padding: 26px 20px; }
+        }
     </style>
 </head>
 <body>
@@ -964,12 +1113,16 @@
         </li>
     </ul>
 </nav>
-    <div class="container">
-        <div class="header">
-            <a href="index.html" class="back-link">← Back to Home</a>
-            <h1>Start Your <span>Challenge</span></h1>
-            <p class="subtitle">Join hundreds of traders already funded by IPFX Capital</p>
+    <div class="checkout-topbar">
+        <div>
+            <div class="checkout-eyebrow">Checkout</div>
+            <h1>Start your <span>Challenge</span></h1>
         </div>
+        <a href="index.html" class="back-link">← Back to Home</a>
+    </div>
+
+    <div class="checkout-layout">
+    <div class="checkout-main">
 
         <!-- Progress Steps -->
         <div class="progress-container">
@@ -1068,7 +1221,7 @@
         <!-- Step 2: Personal Details -->
         <div class="step-content" id="step2">
             <div class="form-section">
-                <h2>Your Information</h2>
+                <h2>Tell us about you</h2>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="firstName">First Name <span class="required">*</span></label>
@@ -1152,7 +1305,7 @@
         <!-- Step 3: Payment -->
         <div class="step-content" id="step3">
             <div class="form-section">
-                <h2>Payment</h2>
+                <h2>How would you like to pay?</h2>
 
                 <div class="pay-summary">
                     <span class="pay-summary-label">Challenge fee</span>
@@ -1243,7 +1396,34 @@
                 </div>
             </div>
         </div>
-    </div>
+
+    </div><!-- /.checkout-main -->
+
+    <aside class="order-summary" id="orderSummary" aria-label="Order summary">
+        <div class="os-title">Order Summary</div>
+        <div id="osEmpty" class="os-empty">Choose an account size to see your order summary here.</div>
+        <div id="osFilled" style="display:none;">
+            <div class="os-tier">
+                <div class="os-tier-icon" id="osTierIcon">—</div>
+                <div>
+                    <div class="os-tier-name" id="osTierName">—</div>
+                    <div class="os-tier-sub">Traditional Challenge · 3 phases</div>
+                </div>
+            </div>
+            <div class="os-line"><span>Challenge fee</span><span id="osFee">—</span></div>
+            <div class="os-line"><span>Profit split</span><span>85%</span></div>
+            <div class="os-total">
+                <span class="os-total-label">Total</span>
+                <span class="os-total-value" id="osTotal">—</span>
+            </div>
+        </div>
+        <ul class="os-perks">
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Fee refunded on first payout</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Weekly payouts, $100 minimum</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> 85% profit split when funded</li>
+        </ul>
+    </aside>
+    </div><!-- /.checkout-layout -->
 
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1251,6 +1431,48 @@
     <script src="https://js.stripe.com/v3/"></script>
 
     <script src="assets/js/checkout-flow.js"></script>
+
+    <script>
+    // Order-summary sidebar sync — purely presentational, reads state that
+    // checkout-flow.js already owns (selected tier card, #paySummaryTotal)
+    // rather than duplicating its checkout logic.
+    (function() {
+        var TIER_LABEL = {'10k':'$10K','25k':'$25K','50k':'$50K','100k':'$100K','200k':'$200K'};
+        var empty = document.getElementById('osEmpty');
+        var filled = document.getElementById('osFilled');
+        function showTier(tier, price) {
+            if (!tier) return;
+            empty.style.display = 'none';
+            filled.style.display = 'block';
+            document.getElementById('osTierIcon').textContent = TIER_LABEL[tier] ? TIER_LABEL[tier].replace('$','').replace('K','K') : tier;
+            document.getElementById('osTierName').textContent = (TIER_LABEL[tier] || tier) + ' Challenge';
+            if (price) {
+                document.getElementById('osFee').textContent = '$' + price;
+                document.getElementById('osTotal').textContent = '$' + price;
+            }
+        }
+        document.querySelectorAll('.tier-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+                showTier(card.dataset.tier, card.dataset.price);
+            });
+        });
+        // Once real checkout totals are known (currency-formatted, post-quote),
+        // mirror them into the sidebar total too.
+        var paySummaryTotal = document.getElementById('paySummaryTotal');
+        if (paySummaryTotal) {
+            new MutationObserver(function() {
+                var text = paySummaryTotal.textContent;
+                if (text && text !== '-' && text !== 'Sign in to view') {
+                    document.getElementById('osTotal').textContent = text;
+                    document.getElementById('osFee').textContent = text;
+                }
+            }).observe(paySummaryTotal, {childList: true, characterData: true, subtree: true});
+        }
+        // Restore selection if a tier was pre-selected via #hash on load.
+        var pre = document.querySelector('.tier-card.selected');
+        if (pre) showTier(pre.dataset.tier, pre.dataset.price);
+    })();
+    </script>
 
     <script>
     // Standard nav scroll + hamburger
