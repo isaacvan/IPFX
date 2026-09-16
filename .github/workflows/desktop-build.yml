@@ -41,6 +41,9 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
       - run: npm ci
+      - name: Authorize private Supabase transfer
+        if: github.event_name == 'push'
+        run: node scripts/upload-preview-to-supabase.mjs --check
       - run: npm test
       - name: Build unsigned preview
         if: github.event_name == 'push' || inputs.preview

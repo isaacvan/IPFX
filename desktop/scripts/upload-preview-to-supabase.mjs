@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub25iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
 const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/desktop-release-upload`;
 const AUDIENCE = 'ipfx-desktop-upload';
 const BUCKET = 'desktop-releases';
@@ -46,24 +46,40 @@ async function createUploadToken(oidcToken, objectPath) {
   return body.token;
 }
 
-const dist = path.resolve('dist');
-const entries = await readdir(dist);
-const releaseFiles = entries.filter((name) => ALLOWED_FILES.has(name));
-if (!releaseFiles.length) throw new Error('No approved preview installer was found in desktop/dist');
+async function main() {
+  const oidcToken = await getGitHubOidcToken();
+  const firstName = ALLOWED_FILES.keys().next().value;
+  if (process.argv.includes('--check')) {
+    await createUploadToken(oidcToken, `${RELEASE}/${firstName}`);
+    console.log('Private Supabase transfer authorization verified');
+    return;
+  }
 
-const oidcToken = await getGitHubOidcToken();
-const storage = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-}).storage;
+  const dist = path.resolve('dist');
+  const entries = await readdir(dist);
+  const releaseFiles = entries.filter((name) => ALLOWED_FILES.has(name));
+  if (!releaseFiles.length) throw new Error('No approved preview installer was found in desktop/dist');
 
-for (const name of releaseFiles) {
-  const objectPath = `${RELEASE}/${name}`;
-  const token = await createUploadToken(oidcToken, objectPath);
-  const bytes = await readFile(path.join(dist, name));
-  const { error } = await storage.from(BUCKET).uploadToSignedUrl(objectPath, token, bytes, {
-    contentType: ALLOWED_FILES.get(name),
-    upsert: true,
-  });
-  if (error) throw error;
-  console.log(`Uploaded private desktop release: ${name}`);
+  const storage = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  }).storage;
+
+  for (const name of releaseFiles) {
+    const objectPath = `${RELEASE}/${name}`;
+    const token = await createUploadToken(oidcToken, objectPath);
+    const bytes = await readFile(path.join(dist, name));
+    const { error } = await storage.from(BUCKET).uploadToSignedUrl(objectPath, token, bytes, {
+      contentType: ALLOWED_FILES.get(name),
+      upsert: true,
+    });
+    if (error) throw error;
+    console.log(`Uploaded private desktop release: ${name}`);
+  }
 }
+
+main().catch((error) => {
+  const reason = error instanceof Error ? error.message : String(error);
+  const annotation = reason.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+  console.error(`::error title=Private Supabase transfer::${annotation}`);
+  process.exitCode = 1;
+});
