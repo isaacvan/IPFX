@@ -120,8 +120,7 @@ Deno.serve(async (request) => {
 
     return json({ path: body.path, token: data.token });
   } catch (error) {
-    const reason = error instanceof Error ? error.message : "Unauthorized";
-    console.error("desktop release upload authorization failed", reason);
-    return json({ error: reason }, 401);
+    console.error("desktop release upload authorization failed", error);
+    return json({ error: "Unauthorized" }, 401);
   }
 });
