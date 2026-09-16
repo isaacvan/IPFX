@@ -12,16 +12,16 @@
 <header class="download-nav"><a href="/" class="brand"><img src="/assets/images/favicon.ico" alt="" width="32" height="32">IPFX Capital</a><a href="/trading.html">Open Markets</a></header>
 <main id="main-content">
 <div class="download-heading"><img src="/assets/images/favicon.ico" alt="IPFX Capital" width="64" height="64"><div><p class="eyebrow">DESKTOP PLATFORM</p><h1>IPFX Markets</h1></div></div>
-<p class="release-state" role="status">The Windows desktop app has passed preview testing. Signed public installers are being prepared for Windows and macOS.</p>
+<p class="release-state" id="desktop-access-status" role="status">Checking private preview access…</p>
 <div class="download-grid">
-<section><p class="eyebrow">WINDOWS</p><h2>Windows PC</h2><p class="system">64-bit Intel / AMD</p><button type="button" disabled>Windows installer coming soon</button><p class="availability">Preview build verified · signing required for public download</p></section>
-<section><p class="eyebrow">MACOS</p><h2>Apple Silicon</h2><p class="system">Apple M-series</p><button type="button" disabled>Mac download pending</button><p class="availability">Mac build and notarization pending</p></section>
-<section><p class="eyebrow">MACOS</p><h2>Intel Mac</h2><p class="system">64-bit Intel</p><button type="button" disabled>Mac download pending</button><p class="availability">Mac build and notarization pending</p></section>
+<section><p class="eyebrow">WINDOWS</p><h2>Windows PC</h2><p class="system">64-bit Intel / AMD</p><button type="button" data-desktop-download="windows" disabled>Private preview unavailable</button><p class="availability" data-desktop-availability="windows">Sign in with the authorized account to check availability</p></section>
+<section><p class="eyebrow">MACOS</p><h2>Apple Silicon</h2><p class="system">Apple M-series</p><button type="button" data-desktop-download="mac-arm64" disabled>Private preview unavailable</button><p class="availability" data-desktop-availability="mac-arm64">Sign in with the authorized account to check availability</p></section>
+<section><p class="eyebrow">MACOS</p><h2>Intel Mac</h2><p class="system">64-bit Intel</p><button type="button" data-desktop-download="mac-x64" disabled>Private preview unavailable</button><p class="availability" data-desktop-availability="mac-x64">Sign in with the authorized account to check availability</p></section>
 </div>
 <div class="download-web"><div><h2>IPFX Markets Web</h2><p>The existing browser platform remains available.</p></div><a class="primary" href="/trading.html">Open Web Platform</a></div>
 <section class="release-details"><h2>Release Information</h2><dl>
 <div><dt>Client version</dt><dd>0.1.0-preview.1</dd></div><div><dt>Connection</dt><dd>Internet required</dd></div>
-<div><dt>Windows status</dt><dd>Preview installer built and runtime-tested</dd></div><div><dt>Desktop updates</dt><dd>Manual installation during preview</dd></div>
+<div><dt>Release access</dt><dd>Private owner preview</dd></div><div><dt>Desktop updates</dt><dd>Manual installation during preview</dd></div>
 </dl><p>A desktop installation does not change your trading rules, market-data source or account permissions. Closing the app does not close positions.</p></section>
-</main><div class="ipfx-launch-footer" aria-label="Legal and sharing"><span>&copy; 2026 IPFX Capital Ltd</span><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/risk-disclosure.html">Risk</a><a href="/faq.html">FAQ</a><a href="/contact.html">Contact</a><button type="button" class="ipfx-share-button" data-ipfx-share>Share this page</button></div><noscript><div class="ipfx-noscript">JavaScript is required for consent controls.</div></noscript><script defer src="/assets/js/site-foundation.js"></script>
+</main><div class="ipfx-launch-footer" aria-label="Legal and sharing"><span>&copy; 2026 IPFX Capital Ltd</span><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/risk-disclosure.html">Risk</a><a href="/faq.html">FAQ</a><a href="/contact.html">Contact</a><button type="button" class="ipfx-share-button" data-ipfx-share>Share this page</button></div><noscript><div class="ipfx-noscript">JavaScript is required for consent controls and private desktop downloads.</div></noscript><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script><script defer src="/assets/js/desktop-downloads.js"></script><script defer src="/assets/js/site-foundation.js"></script>
 </body></html>

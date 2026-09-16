@@ -10,6 +10,9 @@ h1{font-size:48px;font-weight:600;line-height:1.08;letter-spacing:-.045em;margin
 .system{color:#bbc0cb;margin:0 0 28px;min-height:24px}
 button,.primary{font:500 14px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,"Helvetica Neue",Arial,sans-serif;border-radius:5px;padding:12px 16px;min-height:46px;text-align:center}
 button{width:100%;border:1px solid #373d4c;background:#202633;color:#b9c3d6;cursor:not-allowed}
+.download-grid button:not(:disabled){border-color:#4776ee;background:#2f64e5;color:#fff;cursor:pointer;box-shadow:0 8px 22px rgba(37,99,235,.2)}
+.download-grid button:not(:disabled):hover{background:#3b72f1}.download-grid button:not(:disabled):active{transform:translateY(1px)}
+.release-state a{color:#f3cb7b;font-weight:600;text-underline-offset:3px}
 .availability{color:#a6abb7;font-size:12px;min-height:38px;margin:14px 0 0}
 .download-web{padding:30px 0;margin-top:30px;border-top:1px solid #30333d;border-bottom:1px solid #30333d;display:flex;align-items:center;justify-content:space-between;gap:24px}
 .download-web h2{font-size:20px;margin:0}.download-web p{color:#aeb6c4;margin:6px 0 0}.primary{background:#2563eb;color:white;text-decoration:none;flex-shrink:0}

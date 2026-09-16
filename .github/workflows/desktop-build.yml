@@ -6,10 +6,15 @@ on:
         description: Build unsigned internal previews only
         type: boolean
         default: true
+  push:
+    branches:
+      - codex/desktop-preview-build
 permissions:
   contents: read
+  id-token: write
 jobs:
   build:
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -36,11 +41,22 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
       - run: npm ci
+      - name: Authorize private Supabase transfer
+        if: github.event_name == 'push'
+        run: node scripts/upload-preview-to-supabase.mjs --check
       - run: npm test
-      - run: npm run dist:${{ matrix.target }}${{ inputs.preview && ':preview' || '' }}
+      - name: Build unsigned preview
+        if: github.event_name == 'push' || inputs.preview
+        run: npm run dist:${{ matrix.target }}:preview
+      - name: Build signed candidate
+        if: github.event_name == 'workflow_dispatch' && !inputs.preview
+        run: npm run dist:${{ matrix.target }}
+      - name: Transfer preview to private Supabase Storage
+        if: github.event_name == 'push'
+        run: node scripts/upload-preview-to-supabase.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: ipfx-markets-${{ matrix.target }}-${{ inputs.preview && 'UNSIGNED-PREVIEW' || 'signed-candidate' }}
+          name: ipfx-markets-${{ matrix.target }}-${{ (github.event_name == 'push' || inputs.preview) && 'UNSIGNED-PREVIEW' || 'signed-candidate' }}
           path: |
             desktop/dist/*.exe
             desktop/dist/*.dmg
