@@ -11,6 +11,7 @@ on:
       - codex/desktop-preview-build
 permissions:
   contents: read
+  id-token: write
 jobs:
   build:
     timeout-minutes: 30
@@ -47,6 +48,9 @@ jobs:
       - name: Build signed candidate
         if: github.event_name == 'workflow_dispatch' && !inputs.preview
         run: npm run dist:${{ matrix.target }}
+      - name: Transfer preview to private Supabase Storage
+        if: github.event_name == 'push'
+        run: node scripts/upload-preview-to-supabase.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: ipfx-markets-${{ matrix.target }}-${{ (github.event_name == 'push' || inputs.preview) && 'UNSIGNED-PREVIEW' || 'signed-candidate' }}
