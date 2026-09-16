@@ -13,9 +13,19 @@ test('download page links resolve and installers stay behind owner auth', () => 
   }
   assert.doesNotMatch(html, /href="[^"]+\.(exe|dmg)"/i);
   assert.equal((html.match(/\bdisabled\b/g) || []).length, 3);
+
   const script = fs.readFileSync(path.join(root, 'assets/js/desktop-downloads.js'), 'utf8');
   assert.match(script, /client\.auth\.getUser\(\)/);
   assert.match(script, /AUTHORIZED_USER_ID/);
-  assert.match(script, /createSignedUrl\(/);
+  assert.match(script, /\.download\(/);
+  assert.match(script, /manifestPath/);
+  assert.doesNotMatch(script, /createSignedUrl\(/);
   assert.match(script, /desktop-releases/);
+
+  const transfer = fs.readFileSync(path.join(root, 'desktop/scripts/upload-preview-to-supabase.mjs'), 'utf8');
+  assert.match(transfer, /CHUNK_BYTES = 40 \* 1024 \* 1024/);
+  assert.match(transfer, /uploadToSignedUrl\(/);
+
+  const gate = fs.readFileSync(path.join(root, 'supabase/functions/desktop-release-upload/index.ts'), 'utf8');
+  assert.match(gate, /manifest\\\.json\|part-/);
 });

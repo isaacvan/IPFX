@@ -7,11 +7,7 @@ const EXPECTED_REPOSITORY = "isaacvan/IPFX";
 const EXPECTED_REF = "refs/heads/codex/desktop-preview-build";
 const EXPECTED_WORKFLOW_PREFIX = "isaacvan/IPFX/.github/workflows/desktop-build.yml@";
 const BUCKET = "desktop-releases";
-const ALLOWED_PATHS = new Set([
-  "v0.1.0-preview.1/IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.1-win-x64.exe",
-  "v0.1.0-preview.1/IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.1-mac-arm64.dmg",
-  "v0.1.0-preview.1/IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.1-mac-x64.dmg",
-]);
+const ALLOWED_PATH = /^v0\.1\.0-preview\.1\/IPFX-Markets-UNSIGNED-PREVIEW-0\.1\.0-preview\.1-(?:win-x64\.exe|mac-(?:arm64|x64)\.dmg)\.(?:manifest\.json|part-\d{4}-of-\d{4})$/;
 
 type JsonObject = Record<string, unknown>;
 let jwks: { keys: JsonObject[]; fetchedAt: number } | null = null;
@@ -105,7 +101,7 @@ Deno.serve(async (request) => {
     await verifyGitHubToken(authorization.slice(7));
 
     const body = await request.json() as { path?: unknown };
-    if (typeof body.path !== "string" || !ALLOWED_PATHS.has(body.path)) {
+    if (typeof body.path !== "string" || !ALLOWED_PATH.test(body.path)) {
       return json({ error: "Release path not allowed" }, 400);
     }
 

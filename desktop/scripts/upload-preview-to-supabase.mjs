@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -8,6 +9,7 @@ const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/desktop-release-upload`;
 const AUDIENCE = 'ipfx-desktop-upload';
 const BUCKET = 'desktop-releases';
 const RELEASE = 'v0.1.0-preview.1';
+const CHUNK_BYTES = 40 * 1024 * 1024;
 const ALLOWED_FILES = new Map([
   ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.1-win-x64.exe', 'application/vnd.microsoft.portable-executable'],
   ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.1-mac-arm64.dmg', 'application/x-apple-diskimage'],
@@ -46,11 +48,25 @@ async function createUploadToken(oidcToken, objectPath) {
   return body.token;
 }
 
+function partPath(name, index, total) {
+  return `${RELEASE}/${name}.part-${String(index).padStart(4, '0')}-of-${String(total).padStart(4, '0')}`;
+}
+
+async function uploadObject(storage, oidcToken, objectPath, bytes) {
+  const token = await createUploadToken(oidcToken, objectPath);
+  const { error } = await storage.from(BUCKET).uploadToSignedUrl(objectPath, token, bytes, {
+    contentType: 'application/octet-stream',
+    cacheControl: '3600',
+    upsert: true,
+  });
+  if (error) throw error;
+}
+
 async function main() {
   const oidcToken = await getGitHubOidcToken();
   const firstName = ALLOWED_FILES.keys().next().value;
   if (process.argv.includes('--check')) {
-    await createUploadToken(oidcToken, `${RELEASE}/${firstName}`);
+    await createUploadToken(oidcToken, `${RELEASE}/${firstName}.manifest.json`);
     console.log('Private Supabase transfer authorization verified');
     return;
   }
@@ -65,15 +81,30 @@ async function main() {
   }).storage;
 
   for (const name of releaseFiles) {
-    const objectPath = `${RELEASE}/${name}`;
-    const token = await createUploadToken(oidcToken, objectPath);
     const bytes = await readFile(path.join(dist, name));
-    const { error } = await storage.from(BUCKET).uploadToSignedUrl(objectPath, token, bytes, {
+    const total = Math.ceil(bytes.length / CHUNK_BYTES);
+    const parts = [];
+    for (let index = 1; index <= total; index += 1) {
+      const start = (index - 1) * CHUNK_BYTES;
+      const end = Math.min(start + CHUNK_BYTES, bytes.length);
+      const objectPath = partPath(name, index, total);
+      const chunk = bytes.subarray(start, end);
+      await uploadObject(storage, oidcToken, objectPath, chunk);
+      parts.push({ path: objectPath, size: chunk.length });
+      console.log(`Uploaded private chunk ${index}/${total}: ${name}`);
+    }
+
+    const manifest = {
+      version: 1,
+      filename: name,
+      size: bytes.length,
       contentType: ALLOWED_FILES.get(name),
-      upsert: true,
-    });
-    if (error) throw error;
-    console.log(`Uploaded private desktop release: ${name}`);
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+      parts,
+    };
+    const manifestPath = `${RELEASE}/${name}.manifest.json`;
+    await uploadObject(storage, oidcToken, manifestPath, Buffer.from(JSON.stringify(manifest)));
+    console.log(`Uploaded private desktop release manifest: ${name}`);
   }
 }
 
