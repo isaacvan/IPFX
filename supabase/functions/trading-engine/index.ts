@@ -58,7 +58,7 @@ const CORS: Record<string, string> = {
 };
 
 // The one official quote source. Must match a row in market_data_sources.
-const SOURCE_ID = "yahoo-demo";
+const SOURCE_ID = "fxcm-basic";
 
 // ---------- instrument registry (forex, metals, indices — no crypto) ----------
 type Inst = {
@@ -115,6 +115,17 @@ const INSTRUMENTS: Record<string, Inst> = {
   DOTUSD: I("DOT-USD", 3, 0.02, 1, "crypto"),
 };
 
+// FXCM's public XML feed uses broker-facing names for the index CFDs.
+const FXCM_SYMBOLS: Record<string, string> = {
+  EURUSD: "EURUSD", GBPUSD: "GBPUSD", USDJPY: "USDJPY", AUDUSD: "AUDUSD",
+  USDCAD: "USDCAD", USDCHF: "USDCHF", NZDUSD: "NZDUSD", GBPJPY: "GBPJPY",
+  EURJPY: "EURJPY", EURGBP: "EURGBP", EURCAD: "EURCAD", AUDCAD: "AUDCAD",
+  XAUUSD: "XAUUSD", XAGUSD: "XAGUSD",
+  SPXUSD: "SPX500", NSXUSD: "NAS100", DJI: "US30", UK100: "UK100",
+  GER40: "GER30", FRA40: "FRA40", JPN225: "JPN225", US2000: "US2000",
+  BTCUSD: "BTCUSD", ETHUSD: "ETHUSD", LTCUSD: "LTCUSD",
+};
+
 const ALIASES: Record<string, string> = {
   US500: "SPXUSD", SPX500: "SPXUSD", NAS100: "NSXUSD", US30: "DJI",
 };
@@ -150,14 +161,45 @@ function cleanSymbol(raw: unknown): string | null {
 }
 
 // ---------- price feed (server-side, cached, fail-closed) ----------
-// TESTING TIER: single provider (Yahoo, unofficial), no real bid/ask.
-// providerTs = the provider's own reported tick time when available;
-// STALE_MS is generous because this feed cannot promise sub-second
-// freshness — this is exactly the launch-blocking gap documented above.
-type Quote = { symbol: string; mid: number; bid: number; ask: number; spread: number; providerTs: number | null; receivedTs: number };
+// FXCM basic live feed: genuine broker bid/ask, sampled through the public XML endpoint.
+// Provider timestamps drive staleness so a cached-but-dead feed fails closed.
+type Quote = { symbol: string; mid: number; bid: number; ask: number; spread: number; providerTs: number | null; receivedTs: number; source: string };
 const quoteCache = new Map<string, Quote>();
-const CACHE_TTL_MS = 4000;
-const STALE_MS = 90_000; // testing-tier threshold; tighten drastically once on a real feed
+const CACHE_TTL_MS = 750;
+const STALE_MS = 30_000; // live provider timestamp; fail closed when updates stop
+
+function fxcmTimestamp(last: string, receivedTs: number): number | null {
+  const m = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(last.trim());
+  if (!m) return null;
+  const d = new Date(receivedTs);
+  d.setUTCHours(Number(m[1]), Number(m[2]), Number(m[3]), 0);
+  let ts = d.getTime();
+  if (ts > receivedTs + 60_000) ts -= 86_400_000;
+  return ts;
+}
+
+async function fetchFxcmRaw(symKey: string): Promise<{ bid: number; ask: number; ts: number | null } | null> {
+  const providerSymbol = FXCM_SYMBOLS[symKey];
+  if (!providerSymbol) return null;
+  try {
+    const r = await fetch("https://rates.fxcm.com/RatesXML?ts=" + Date.now(), {
+      headers: { "Accept": "application/xml", "Cache-Control": "no-cache", "User-Agent": "IPFXEngine/2.0" },
+    });
+    if (!r.ok) return null;
+    const xml = await r.text();
+    const block = new RegExp('<Rate\\s+Symbol="' + providerSymbol + '">([\\s\\S]*?)<\\/Rate>').exec(xml)?.[1];
+    if (!block) return null;
+    const read = (tag: string) => {
+      const value = new RegExp("<" + tag + ">([^<]+)<\\/" + tag + ">").exec(block)?.[1];
+      return value == null ? NaN : Number(value);
+    };
+    const bid = read("Bid"), ask = read("Ask");
+    if (!isFinite(bid) || !isFinite(ask) || bid <= 0 || ask <= bid) return null;
+    const receivedTs = Date.now();
+    const last = /<Last>([^<]+)<\/Last>/.exec(block)?.[1] ?? "";
+    return { bid, ask, ts: fxcmTimestamp(last, receivedTs) };
+  } catch (_) { return null; }
+}
 
 async function fetchYahooRaw(code: string): Promise<{ price: number; ts: number | null } | null> {
   try {
@@ -208,6 +250,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
           spread: Number(cached.spread),
           providerTs: cached.provider_ts ? new Date(cached.provider_ts).getTime() : null,
           receivedTs: new Date(cached.received_at).getTime(),
+          source: FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo",
         };
         quoteCache.set(symKey, q);
         return q;
@@ -215,14 +258,26 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
     }
   } catch (_) { /* shared cache is an optimisation, never a hard dependency */ }
 
-  let raw = await fetchYahooRaw(inst.code);
-  if (raw === null && inst.alt) raw = await fetchYahooRaw(inst.alt);
-  if (raw === null) return null;
-  const q: Quote = {
-    symbol: symKey, mid: raw.price,
-    bid: round6(raw.price - inst.spread / 2), ask: round6(raw.price + inst.spread / 2),
-    spread: inst.spread, providerTs: raw.ts, receivedTs: Date.now(),
-  };
+  let q: Quote;
+  if (FXCM_SYMBOLS[symKey]) {
+    const raw = await fetchFxcmRaw(symKey);
+    if (raw === null) return null;
+    const receivedTs = Date.now();
+    q = {
+      symbol: symKey, mid: round6((raw.bid + raw.ask) / 2),
+      bid: round6(raw.bid), ask: round6(raw.ask),
+      spread: round6(raw.ask - raw.bid), providerTs: raw.ts, receivedTs, source: "fxcm-basic",
+    };
+  } else {
+    let raw = await fetchYahooRaw(inst.code);
+    if (raw === null && inst.alt) raw = await fetchYahooRaw(inst.alt);
+    if (raw === null) return null;
+    q = {
+      symbol: symKey, mid: raw.price,
+      bid: round6(raw.price - inst.spread / 2), ask: round6(raw.price + inst.spread / 2),
+      spread: inst.spread, providerTs: raw.ts, receivedTs: Date.now(), source: "yahoo-demo",
+    };
+  }
   quoteCache.set(symKey, q);
   try {
     const db2 = getCacheClient();
@@ -941,7 +996,7 @@ async function logAudit(db: Db, row: {
       quote_ts: row.quote?.providerTs ? new Date(row.quote.providerTs).toISOString() : null,
       server_ts: new Date().toISOString(),
       latency_ms: row.quote?.providerTs ? Date.now() - row.quote.providerTs : null,
-      source_id: SOURCE_ID, client_ip: row.client_ip ?? null,
+      source_id: row.quote?.source ?? SOURCE_ID, client_ip: row.client_ip ?? null,
     }).select("id").single();
     // Audit logging must never block trading, so a failure here is swallowed
     // rather than surfaced to the caller — but it must not be swallowed
@@ -1106,10 +1161,10 @@ Deno.serve(async (req) => {
     const stale = quoteStale(q);
     if (stale) await logFeedEvent(db, "stale", symbol, `age_ms=${Date.now() - (q.providerTs ?? q.receivedTs)}`);
     return new Response(JSON.stringify({
-      ok: true, symbol, status: stale ? "stale" : "demo",
+      ok: true, symbol, status: stale ? "stale" : (q.source === "fxcm-basic" ? "live" : "demo"),
       mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
       quote_ts: q.providerTs, received_ts: q.receivedTs,
-      digits: inst.digits, source: SOURCE_ID,
+      digits: inst.digits, source: q.source,
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 

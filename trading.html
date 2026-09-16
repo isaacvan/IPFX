@@ -80,6 +80,8 @@ body{font-family:var(--font-ui);background:var(--bg);color:var(--fg);display:fle
 .feed-lbl{font-size:.7rem;font-weight:700;letter-spacing:.3px;color:var(--muted);white-space:nowrap;}
 .feed-badge.demo .feed-dot{background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,.7);animation:pd 2s ease infinite;}
 .feed-badge.demo .feed-lbl{color:#f59e0b;}
+.feed-badge.live .feed-dot{background:#10b981;box-shadow:0 0 7px rgba(16,185,129,.72);animation:pd 2s ease infinite;}
+.feed-badge.live .feed-lbl{color:#34d399;}
 .feed-badge.stale .feed-dot{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.7);}
 .feed-badge.stale .feed-lbl{color:#ef4444;}
 .feed-badge.closed .feed-dot{background:var(--muted2);}
@@ -3779,17 +3781,18 @@ function updateOrdPrices(value){
 // visually alive). Logged-out visitors keep the static seed price.
 let priceFetchBusy=false;
 // ── FEED STATUS + STALE DETECTION (fail-closed execution) ──
-// Current pricing is a DEMO/testing feed (not a launch-grade single-source
-// gateway). Order buttons are disabled whenever the last quote is stale.
+// Quotes come from the server-side single-source gateway. Order buttons
+// are disabled whenever the last genuine provider quote is stale.
 let lastQuoteTs=0, feedState='connecting';
-const STALE_MS=6000; // last tick older than this => stale (poll is 4s)
+const STALE_MS=6000; // client-side guard; normal poll cadence is 750 ms
 function setFeed(state,label){
   feedState=state;
   const badge=document.getElementById('feedBadge');
   const lbl=document.getElementById('feedLbl');
   if(!badge||!lbl)return;
-  badge.classList.remove('demo','stale','closed');
+  badge.classList.remove('demo','live','stale','closed');
   if(state==='demo'){badge.classList.add('demo');lbl.textContent=label||'DEMO · testing feed';}
+  else if(state==='live'){badge.classList.add('live');lbl.textContent=label||'LIVE · FXCM';}
   else if(state==='stale'){badge.classList.add('stale');lbl.textContent=label||'STALE · trading paused';}
   else if(state==='closed'){badge.classList.add('closed');lbl.textContent=label||'NO FEED';}
   else{lbl.textContent=label||'Connecting…';}
@@ -3823,9 +3826,9 @@ async function pollTicketPrice(){
         domPrice=j.mid;
         lastQuoteTs=Date.now();
         updateOrdPrices(j);
-        // engine reports its own status ('demo' or 'stale') based on the
+        // engine reports its own status ('live', 'demo', or 'stale') based on the
         // provider tick age — trust that over our own poll cadence.
-        setFeed(j.status==='stale'?'stale':'demo');
+        setFeed(j.status==='stale'?'stale':j.status==='live'?'live':'demo');
       }else{
         if(!feedFresh())setFeed(lastQuoteTs?'stale':'closed');
       }
@@ -3836,7 +3839,7 @@ async function pollTicketPrice(){
 // continuously re-evaluate staleness even if a poll is in flight
 setInterval(()=>{ if(hasSession()&&!feedFresh()&&feedState!=='closed')setFeed(lastQuoteTs?'stale':'connecting'); },1000);
 pollTicketPrice();
-setInterval(pollTicketPrice,1250);
+setInterval(pollTicketPrice,750);
 
 // ── WELCOME CARD ──
 function dismissWelcome(){
