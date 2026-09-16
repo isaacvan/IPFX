@@ -19,10 +19,10 @@
     $('payDemoNotice').textContent = text;
     $('payDemoNotice').style.display = 'block';
   }
-  async function call(body) {
+  async function call(body, fn) {
     const {data:{session}} = await db.auth.getSession();
     if (!session) throw new Error('Sign in or create and verify your account before checkout.');
-    const response = await fetch(url + '/functions/v1/create-payment-intent', {
+    const response = await fetch(url + '/functions/v1/' + (fn || 'create-payment-intent'), {
       method:'POST', headers:{'Content-Type':'application/json', apikey:anon, Authorization:'Bearer ' + session.access_token},
       body:JSON.stringify(body),
     });
@@ -36,6 +36,9 @@
     element = null; elements = null; checkout = null; quote = null;
     $('step3Next').disabled = true;
     $('payForm').style.display = 'none';
+    $('payDivider').style.display = 'none';
+    $('payCrypto').style.display = 'none';
+    $('cryptoError').style.display = 'none';
   }
   document.querySelectorAll('.tier-card').forEach(card => {
     card.addEventListener('keydown', event => {
@@ -69,6 +72,10 @@
       verifiedEmail = user.email;
       $('email').value = user.email; $('email').readOnly = true;
       const sku = 'trad_' + tier + '_p1';
+      $('payDivider').style.display = 'flex';
+      $('payCrypto').style.display = 'block';
+      $('payCrypto').disabled = false;
+      $('payCrypto').textContent = 'Pay with Crypto (BTC, ETH, USDT & more)';
       const data = await call({action:'quote',sku});
       if (current !== generation) return;
       quote = data.product;
@@ -145,6 +152,31 @@
       step(5);
     } catch(error) { step(3); message(error.message || 'Payment status unavailable. Do not pay again.'); }
     finally { busy=false; $('step4Submit').disabled=false; $('step4Back').disabled=false; $('step4Submit').textContent='Confirm Test Payment'; }
+  });
+  $('payCrypto').addEventListener('click', async () => {
+    if (busy || !tier) return;
+    $('cryptoError').style.display = 'none';
+    busy = true; $('payCrypto').disabled = true; $('step3Next').disabled = true;
+    $('payCrypto').textContent = 'Opening crypto checkout…';
+    try {
+      const {data:{user},error} = await db.auth.getUser();
+      if (error || !user?.email) throw new Error('Sign in or create and verify your account before checkout.');
+      const sku = 'trad_' + tier + '_p1';
+      const cryptoQuote = await call({action:'quote',sku}, 'nowpayments-checkout');
+      const storageKey = 'ipfx-checkout-crypto-v1:' + user.id + ':' + sku;
+      let key;
+      try { key = sessionStorage.getItem(storageKey); } catch {}
+      if (!/^[0-9a-f-]{36}$/i.test(key || '')) key = crypto.randomUUID();
+      try { sessionStorage.setItem(storageKey,key); } catch {}
+      const invoice = await call({sku,request_key:key,terms_version:cryptoQuote.product.terms_version,terms_accepted:$('terms').checked}, 'nowpayments-checkout');
+      if (!invoice.invoice_url) throw new Error('Crypto checkout is unavailable right now.');
+      location.href = invoice.invoice_url;
+    } catch(error) {
+      $('cryptoError').textContent = error.message || 'Crypto checkout is currently unavailable.';
+      $('cryptoError').style.display = 'block';
+      $('payCrypto').disabled = false; $('step3Next').disabled = false;
+      $('payCrypto').textContent = 'Pay with Crypto (BTC, ETH, USDT & more)';
+    } finally { busy = false; }
   });
   const initial = location.hash.slice(1);
   document.querySelectorAll('.tier-card').forEach(card => { if (card.dataset.tier === initial) card.click(); });

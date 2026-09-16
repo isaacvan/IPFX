@@ -699,6 +699,13 @@
             color: var(--muted); font-size: 0.82rem; margin-top: 16px;
         }
         .pay-secure-row svg { flex-shrink: 0; opacity: 0.7; }
+        .pay-divider {
+            display: flex; align-items: center; gap: 12px;
+            color: var(--muted); font-size: 0.8rem; margin: 14px 0;
+        }
+        .pay-divider::before, .pay-divider::after {
+            content: ''; flex: 1; height: 1px; background: var(--border, rgba(255,255,255,0.1));
+        }
         .pay-demo-notice {
             background: rgba(245, 158, 11, 0.1);
             border: 1px solid rgba(245, 158, 11, 0.3);
@@ -1165,6 +1172,12 @@
                     <div id="payment-element"></div>
                     <div id="payError" class="pay-error" role="alert"></div>
                 </form>
+
+                <div class="pay-divider" id="payDivider" style="display:none;">or</div>
+                <button type="button" class="btn-secondary" id="payCrypto" style="display:none; width:100%; margin-bottom:12px;">
+                    Pay with Crypto (BTC, ETH, USDT &amp; more)
+                </button>
+                <div id="cryptoError" class="pay-error" role="alert"></div>
 
                 <div class="pay-secure-row">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
