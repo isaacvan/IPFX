@@ -38,9 +38,13 @@ ALTER TABLE challenge_claims ADD COLUMN IF NOT EXISTS account_type TEXT NOT NULL
 ALTER TABLE challenge_claims ENABLE ROW LEVEL SECURITY;
 
 -- Users can insert their own claim on signup
-CREATE POLICY "Users can claim challenges"
-  ON challenge_claims FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+-- REMOVED 2026-09-17 (security). This allowed a trader to insert a claim with
+-- no promo code, with a used-up single-use code, or repeatedly: the only check
+-- was that the row was their own. Claims are now created solely by
+-- public.redeem_promo_code(), which validates the code under a row lock and
+-- requires a verified email. Do not reinstate.
+--
+-- CREATE POLICY "Users can claim challenges" ON challenge_claims FOR INSERT ...
 
 -- Users can view their own claims (for dashboard display)
 CREATE POLICY "Users can view own claims"

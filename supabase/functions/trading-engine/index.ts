@@ -164,6 +164,27 @@ const BAD_TICK_WINDOW_MS = 60_000;
 const ORDER_BURST_LIMIT = 5;
 const ORDER_BURST_WINDOW_MS = 10_000;
 
+// ---------- futures session (CME hours, America/Chicago) ----------
+// The futures programme is advertised as flat by 16:00 CT with no weekend
+// positions. Enforced for accounts opened from the rules-v2 date.
+function chicagoNow(now: Date): { weekday: string; hour: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago", hour12: false, weekday: "short", hour: "2-digit",
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return { weekday: get("weekday"), hour: Number(get("hour")) % 24 };
+}
+function futuresSessionOpen(now = new Date()): boolean {
+  const { weekday, hour } = chicagoNow(now);
+  if (weekday === "Sat") return false;              // closed all Saturday
+  if (weekday === "Sun") return hour >= 17;         // reopens 17:00 CT Sunday
+  if (weekday === "Fri") return hour < 16;          // closes 16:00 CT Friday
+  return !(hour >= 16 && hour < 17);                // daily maintenance break
+}
+function futuresSessionEnforced(acct: Acct): boolean {
+  return (acct.challenge_type ?? "") === "futures" && rulesV2(acct);
+}
+
 // ---------- market session (weekend closure) ----------
 // Forex/metals/indices via this feed: closed Fri 22:00 UTC -> Sun 22:00 UTC
 // (approximates the real FX week close). Coarse but real, fail-closed.
@@ -510,6 +531,21 @@ async function provisionFundedAccount(db: Db, evalAcct: Acct): Promise<void> {
     profit_target_pct: 0, // funded accounts don't "pass" again — see enforce()
     max_drawdown_pct: evalAcct.max_drawdown_pct, daily_loss_pct: evalAcct.daily_loss_pct,
     profit_split_pct: evalAcct.profit_split_pct ?? 85,
+    // The funded account keeps the rule set the trader earned it under.
+    // Without these it silently reverted to schema defaults: risk caps and
+    // the stop-loss requirement disappeared, a trailing drawdown became a
+    // static one, and challenge_fee_usd was lost — which is what the fee
+    // credit (Terms 10.9) and the referral commission are calculated from.
+    challenge_type: evalAcct.challenge_type ?? "traditional",
+    stage: Number(evalAcct.stage ?? 1),
+    drawdown_mode: evalAcct.drawdown_mode ?? "static",
+    trailing_peak: startBal,
+    max_risk_per_trade_pct: evalAcct.max_risk_per_trade_pct ?? null,
+    daily_profit_cap_pct: evalAcct.daily_profit_cap_pct ?? null,
+    require_stop_loss: !!evalAcct.require_stop_loss,
+    challenge_fee_usd: evalAcct.challenge_fee_usd ?? null,
+    // Minimum days/trades are pass requirements; a funded account never passes.
+    min_trading_days: 0, min_trades: 0,
     funded_from_account_id: evalAcct.id, funded_at: new Date().toISOString(),
     total_paid_out: 0,
   });
@@ -903,6 +939,23 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       if (!done) still.push(t);
     }
     open = still;
+  }
+
+  // Futures positions must be flat outside the CME session. Closing here
+  // rather than breaching the account: an open position at the bell is a
+  // session rule, not a drawdown failure.
+  if (acct.status === "active" && open.length && futuresSessionEnforced(acct) && !futuresSessionOpen()) {
+    const remaining: Tr[] = [];
+    for (const t of open) {
+      const q = await fetchQuote(t.symbol);
+      if (q === null || quoteStale(q)) { remaining.push(t); continue; }
+      const takingAsk = t.side === "sell";
+      const spec = await symbolCheck(db, t.symbol);
+      const exit = roundPrice(t.symbol, adverse(takingAsk ? q.ask : q.bid, takingAsk, spec.slippageBps));
+      const closed = await closeTrade(db, acct, t, exit, "session_close", q);
+      if (!closed) remaining.push(t);
+    }
+    open = remaining;
   }
 
   // Resting limit/stop orders are checked before marking to market, so a
@@ -1770,6 +1823,9 @@ Deno.serve(async (req) => {
 
       // fail-closed gates, in order: market session -> symbol enabled -> quote -> stale -> spread
       if (!marketOpen(symbol)) return reject("Market is closed for this instrument");
+      if (futuresSessionEnforced(acct as Acct) && !futuresSessionOpen()) {
+        return reject("The futures session is closed — positions must be flat by 16:00 CT and cannot be held over the weekend.");
+      }
       const spec = await symbolCheck(db, symbol);
       if (!spec.ok) return reject(spec.reason || "Symbol disabled");
 

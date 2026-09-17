@@ -145,16 +145,14 @@ CREATE POLICY "Users can view own trades"
   TO authenticated
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own trades"
-  ON trades FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own trades"
-  ON trades FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+-- REMOVED 2026-09-17 (security). These two policies let a signed-in trader
+-- INSERT and UPDATE their own trades through the public API — i.e. write
+-- their own profit and pass an evaluation without trading. Trades are
+-- written only by the trading-engine edge function using the service role.
+-- Do not reinstate. See SECURITY-FIXES-2026-09-17.sql.
+--
+-- CREATE POLICY "Users can insert own trades" ON trades FOR INSERT ...
+-- CREATE POLICY "Users can update own trades" ON trades FOR UPDATE ...
 
 -- Indexes
 CREATE INDEX trades_user_id_idx ON trades(user_id);
