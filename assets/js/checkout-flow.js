@@ -6,6 +6,7 @@
   const $ = id => document.getElementById(id);
   let tier = null, quote = null, stripe = null, elements = null, element = null;
   let checkout = null, generation = 0, busy = false, verifiedEmail = '';
+  const REQUEST_TIMEOUT_MS = 12000;
   function step(n) {
     document.querySelectorAll('.step-content').forEach(el => el.classList.toggle('active', el.id === 'step' + n));
     document.querySelectorAll('.step').forEach((el, i) => {
@@ -22,13 +23,22 @@
   async function call(body) {
     const {data:{session}} = await db.auth.getSession();
     if (!session) throw new Error('Sign in or create and verify your account before checkout.');
-    const response = await fetch(url + '/functions/v1/create-payment-intent', {
-      method:'POST', headers:{'Content-Type':'application/json', apikey:anon, Authorization:'Bearer ' + session.access_token},
-      body:JSON.stringify(body),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Checkout is currently unavailable. No new payment was taken.');
-    return data;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(url + '/functions/v1/create-payment-intent', {
+        method:'POST', headers:{'Content-Type':'application/json', apikey:anon, Authorization:'Bearer ' + session.access_token},
+        body:JSON.stringify(body), signal:controller.signal,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Checkout is currently unavailable. No new payment was taken.');
+      return data;
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('Checkout took too long to respond. No new payment was requested; retry the same checkout.');
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
   function resetPayment() {
     generation++;
