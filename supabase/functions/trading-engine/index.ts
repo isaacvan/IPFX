@@ -132,6 +132,14 @@ const ALIASES: Record<string, string> = {
 
 const LEVERAGE = 100;
 const MAX_OPEN_POSITIONS = 20;
+// Terms 8.1: profit from trades closed under MIN_HOLD_SECONDS after opening does
+// not count toward the profit target, for accounts opened on or after the
+// effective date (14 days' notice per the Terms' amendment clause).
+const MIN_HOLD_SECONDS = 60;
+const MIN_HOLD_EFFECTIVE_MS = Date.parse("2026-10-01T00:00:00Z");
+// Terms 8.1: no more than ORDER_BURST_LIMIT new orders per account per window.
+const ORDER_BURST_LIMIT = 5;
+const ORDER_BURST_WINDOW_MS = 10_000;
 
 // ---------- market session (weekend closure) ----------
 // Forex/metals/indices via this feed: closed Fri 22:00 UTC -> Sun 22:00 UTC
@@ -166,7 +174,12 @@ function cleanSymbol(raw: unknown): string | null {
 type Quote = { symbol: string; mid: number; bid: number; ask: number; spread: number; providerTs: number | null; receivedTs: number; source: string };
 const quoteCache = new Map<string, Quote>();
 const CACHE_TTL_MS = 750;
-const STALE_MS = 30_000; // live provider timestamp; fail closed when updates stop
+// Staleness is judged on the provider's own timestamp. Calibrated against the
+// FXCM public feed (2026-09-17, London session): FX, metals and indices ran
+// 2-4s behind at the median and under 10s at worst; crypto up to ~16s.
+// The previous 30s allowance let traders act on prices up to half a minute old.
+const STALE_MS = 8_000;
+const STALE_MS_CRYPTO = 20_000;
 
 function fxcmTimestamp(last: string, receivedTs: number): number | null {
   const m = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(last.trim());
@@ -292,7 +305,8 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
 function round6(n: number) { return Math.round(n * 1e6) / 1e6; }
 function quoteStale(q: Quote): boolean {
   const refTs = q.providerTs ?? q.receivedTs;
-  return Date.now() - refTs > STALE_MS;
+  const limit = INSTRUMENTS[q.symbol]?.cls === "crypto" ? STALE_MS_CRYPTO : STALE_MS;
+  return Date.now() - refTs > limit;
 }
 
 // backward-compatible mid-price accessor for PnL/conversion math
@@ -364,6 +378,7 @@ type Acct = {
   min_profitable_days_pct?: number | null;
   drawdown_mode?: string;
   trailing_peak?: number | null; trailing_peak_date?: string | null;
+  created_at?: string;
   require_stop_loss?: boolean;
 };
 
@@ -622,6 +637,108 @@ async function fetchProgress(db: Db, accountId: string): Promise<Progress> {
   };
 }
 
+// Profit from winning trades closed under MIN_HOLD_SECONDS after opening.
+// Partial closes keep the original opened_at, so splitting a position cannot
+// reset the clock.
+async function quickTradeProfit(db: Db, accountId: string): Promise<number> {
+  const { data } = await db.from("trades").select("pnl,opened_at,closed_at")
+    .eq("account_id", accountId).eq("status", "closed").gt("pnl", 0).limit(10000);
+  let sum = 0;
+  for (const t of data ?? []) {
+    const heldSec = (Date.parse(t.closed_at) - Date.parse(t.opened_at)) / 1000;
+    if (Number.isFinite(heldSec) && heldSec < MIN_HOLD_SECONDS) sum += Number(t.pnl);
+  }
+  return round2(sum);
+}
+
+async function orderBurstExceeded(db: Db, accountId: string): Promise<boolean> {
+  const since = new Date(Date.now() - ORDER_BURST_WINDOW_MS).toISOString();
+  const { count, error } = await db.from("order_audit_events")
+    .select("id", { count: "exact", head: true })
+    .eq("account_id", accountId).in("event", ["open", "place_pending"]).gte("created_at", since);
+  if (error) return false; // audit trouble must never halt trading
+  return (count ?? 0) >= ORDER_BURST_LIMIT;
+}
+
+// Last price the feed actually printed for a symbol, however old.
+async function lastKnownQuote(symKey: string): Promise<Quote | null> {
+  try {
+    const { data } = await getCacheClient().from("live_quotes").select("*").eq("symbol", symKey).maybeSingle();
+    if (!data) return null;
+    return {
+      symbol: symKey, mid: Number(data.mid), bid: Number(data.bid), ask: Number(data.ask),
+      spread: Number(data.spread),
+      providerTs: data.provider_ts ? Date.parse(data.provider_ts) : null,
+      receivedTs: Date.parse(data.received_at),
+      source: FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo",
+    };
+  } catch (_) { return null; }
+}
+
+// First account for a verified-email user holding a redeemed promo claim.
+// Size and rules come from the claim's preset, never from signup metadata,
+// and the fee is recorded as $0 so no fee credit or referral commission is
+// ever paid on a free challenge.
+type ProvisionResult = { ok: true; account: Acct } | { ok: false; error: string; status: number };
+// deno-lint-ignore no-explicit-any
+async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResult> {
+  const notProvisioned: ProvisionResult = {
+    ok: false, status: 403,
+    error: "Your challenge account has not been provisioned. Contact support before making another payment.",
+  };
+  if (!user?.email_confirmed_at) return notProvisioned;
+
+  const { data: profile } = await db.from("user_profiles").select("restricted_jurisdiction").eq("user_id", user.id).maybeSingle();
+  if (profile?.restricted_jurisdiction) {
+    return { ok: false, status: 403, error: "Sorry — we can't offer challenges in your jurisdiction. Contact support@ipfxcapital.com if you believe this is incorrect." };
+  }
+
+  const { data: claim } = await db.from("challenge_claims").select("promo_code,challenge_type,account_type")
+    .eq("user_id", user.id).not("promo_code", "is", null)
+    .order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (!claim) return notProvisioned;
+
+  const size = String(claim.challenge_type ?? "").toLowerCase();
+  if (!/^\d{2,3}k$/.test(size)) return notProvisioned;
+  const presetId = (claim.account_type === "futures" ? "fut_" : "trad_") + size + "_p1";
+  const { data: preset } = await db.from("challenge_presets").select("*").eq("id", presetId).maybeSingle();
+  if (!preset) {
+    return { ok: false, status: 409, error: "Your promo challenge could not be set up automatically. Contact support@ipfxcapital.com." };
+  }
+
+  const startBal = Number(preset.starting_balance);
+  const { data: account, error } = await db.from("trading_accounts").insert({
+    user_id: user.id,
+    label: String(preset.label),
+    preset_id: preset.id,
+    challenge_type: preset.challenge_type,
+    stage: Number(preset.stage ?? 1),
+    phase: "evaluation",
+    status: "active",
+    starting_balance: startBal, balance: startBal, day_start_equity: startBal,
+    day_start_date: new Date().toISOString().slice(0, 10),
+    profit_target_pct: Number(preset.profit_target_pct),
+    max_drawdown_pct: Number(preset.max_drawdown_pct),
+    daily_loss_pct: Number(preset.daily_loss_pct),
+    drawdown_mode: preset.drawdown_mode,
+    trailing_peak: startBal,
+    min_trading_days: Number(preset.min_trading_days ?? 0),
+    min_trades: Number(preset.min_trades ?? 0),
+    max_risk_per_trade_pct: preset.max_risk_per_trade_pct ?? null,
+    daily_profit_cap_pct: preset.daily_profit_cap_pct ?? null,
+    min_profitable_days_pct: preset.min_profitable_days_pct ?? null,
+    require_stop_loss: !!preset.require_stop_loss,
+    profit_split_pct: Number(preset.profit_split_pct ?? 85),
+    challenge_fee_usd: 0,
+    total_paid_out: 0,
+  }).select("*").single();
+  if (error || !account) return { ok: false, status: 500, error: "Could not provision account" };
+
+  try { await db.rpc("accept_qualification_v2", { p_account_id: account.id }); }
+  catch (_) { /* never block provisioning on this */ }
+  return { ok: true, account: account as Acct };
+}
+
 // The requirements that must ALL hold, alongside the profit target,
 // before an evaluation account is allowed to pass. Returns the unmet
 // items so the trader can be shown exactly what is left.
@@ -642,6 +759,13 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
   }
   if (needProfPct !== null && (p.profitable_days_pct ?? 0) < needProfPct) {
     unmet.push(`${p.profitable_days_pct ?? 0}%/${needProfPct}% profitable days`);
+  }
+  if (Date.parse(String(acct.created_at ?? "")) >= MIN_HOLD_EFFECTIVE_MS) {
+    const quick = await quickTradeProfit(db, acct.id);
+    const target = round2(Number(acct.starting_balance) * (1 + Number(acct.profit_target_pct) / 100));
+    if (quick > 0 && round2(Number(acct.balance) - quick) < target) {
+      unmet.push(`$${quick.toFixed(2)} of profit came from trades held under ${MIN_HOLD_SECONDS}s and does not count toward the target`);
+    }
   }
   return { ok: unmet.length === 0, unmet, progress: p };
 }
@@ -690,7 +814,7 @@ async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: strin
 
 // Marks positions, applies SL/TP, daily rollover, breach/pass rules.
 // Mutates acct in memory; persists account changes at the end.
-async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number }> {
+async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number; unpriced: number }> {
   const { data: openRows } = await db.from("trades")
     .select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at");
   let open: Tr[] = openRows ?? [];
@@ -724,9 +848,17 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   // mark to market
   let floating = 0;
+  let unpriced = 0;
   for (const t of open) {
-    const q = await fetchQuote(t.symbol);
-    if (q === null || quoteStale(q)) continue;
+    let q = await fetchQuote(t.symbol);
+    if (q === null || quoteStale(q)) {
+      // Never value a position at zero because its price is missing or old:
+      // that hid its loss from the drawdown checks. Mark it at the last price
+      // the feed printed, and pause new orders while its market is open.
+      if (marketOpen(t.symbol)) unpriced++;
+      q = (await lastKnownQuote(t.symbol)) ?? q;
+      if (q === null) continue;
+    }
     const mark = t.side === "buy" ? q.bid : q.ask;
     const pnl = await tradePnl(t, mark);
     if (pnl !== null) {
@@ -834,7 +966,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     updated_at: new Date().toISOString(),
   }).eq("id", acct.id);
 
-  return { open, equity, floating: round2(floating) };
+  return { open, equity, floating: round2(floating), unpriced };
 }
 
 async function usedMarginUsd(open: Tr[]): Promise<number> {
@@ -1057,6 +1189,13 @@ Deno.serve(async (req) => {
     if (!expected || secret !== expected) return err("Not authorized", 401);
 
     const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // The sweep runs every few seconds; a lease stops a slow run and the next
+    // one enforcing the same account at once. Missing lease function = run.
+    const lease = await db.rpc("claim_engine_sweep", { p_seconds: 55 });
+    if (!lease.error && lease.data === false) {
+      return new Response(JSON.stringify({ ok: true, skipped: "previous sweep still running" }),
+        { headers: { ...CORS, "Content-Type": "application/json" } });
+    }
     const { data: candidates } = await db.from("trading_accounts")
       .select("id")
       .eq("status", "active")
@@ -1074,6 +1213,7 @@ Deno.serve(async (req) => {
         if (after?.status === "breached") breached++;
       }
     }
+    if (!lease.error) await db.rpc("release_engine_sweep");
     return new Response(JSON.stringify({ ok: true, swept: seen.size, breached }),
       { headers: { ...CORS, "Content-Type": "application/json" } });
   }
@@ -1219,8 +1359,11 @@ Deno.serve(async (req) => {
       acct = last;
     } else if (!last) {
       // Account creation belongs to verified server-side enrollment, never
-      // user-editable signup metadata or a browser state request.
-      return err("Your challenge account has not been provisioned. Contact support before making another payment.", 403);
+      // user-editable signup metadata. Until paid checkout provisioning is
+      // live, the one exception is a verified promo winner.
+      const provisioned = await provisionFromPromoClaim(db, user);
+      if (!provisioned.ok) return err(provisioned.error, provisioned.status);
+      acct = provisioned.account;
     } else {
       return err("No active account — your challenge is " + last.status, 409);
     }
@@ -1327,6 +1470,12 @@ Deno.serve(async (req) => {
   // ---- pending orders (limit / stop) ----
   if (action === "place_pending") {
     if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
+    if (await orderBurstExceeded(db, (acct as Acct).id)) {
+      return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
+    }
+    if (state.unpriced > 0) {
+      return err("Pricing is unavailable for one of your open positions — new orders are paused until it returns.", 503);
+    }
     const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();
     if (platCfg?.trading_halted) return err("Trading is temporarily paused: " + (platCfg.halted_reason || "platform maintenance"), 503);
 
@@ -1402,6 +1551,12 @@ Deno.serve(async (req) => {
   if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
 
   if (action === "open") {
+    if (await orderBurstExceeded(db, (acct as Acct).id)) {
+      return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
+    }
+    if (state.unpriced > 0) {
+      return err("Pricing is unavailable for one of your open positions — new orders are paused until it returns.", 503);
+    }
     // Platform kill switch: new orders only. Closing/flattening stays
     // allowed during a halt so traders can protect existing positions.
     const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();

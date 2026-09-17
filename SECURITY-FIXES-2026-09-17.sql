@@ -1,5 +1,5 @@
 -- ============================================================
--- IPFX Capital — security fixes 1 & 2 (2026-09-17)
+-- IPFX Capital — security fixes 1, 2 and 5 (2026-09-17)
 -- Paste into the Supabase SQL editor and Run. Safe to run again.
 --
 -- 1. Traders must never write trading data directly. Every legitimate
@@ -15,6 +15,12 @@
 --    code, or unlimited claims. redeem_promo_code() validates the code
 --    under a row lock, requires a verified email, allows one claim per
 --    code per user, and takes the tier from the promo row itself.
+--
+-- 5. The offline drawdown sweep. The old job sent no Authorization header
+--    and the gateway rejected every call, so drawdown was never enforced
+--    while traders were offline. The engine now authenticates the sweep
+--    itself (x-cron-secret), runs every 10 seconds instead of every
+--    minute, and uses a lease so overlapping runs never double-process.
 -- ============================================================
 
 begin;
@@ -110,10 +116,60 @@ end $$;
 
 commit;
 
+-- ---- 5a. Sweep lease ----
+begin;
+create table if not exists public.engine_sweep_lease (
+  id boolean primary key default true check (id),
+  locked_until timestamptz not null default 'epoch'
+);
+insert into public.engine_sweep_lease (id) values (true) on conflict (id) do nothing;
+alter table public.engine_sweep_lease enable row level security;
+revoke all on public.engine_sweep_lease from anon, authenticated;
+
+create or replace function public.claim_engine_sweep(p_seconds int default 55)
+returns boolean language plpgsql security definer set search_path = public as $$
+begin
+  update public.engine_sweep_lease
+     set locked_until = now() + make_interval(secs => greatest(5, least(coalesce(p_seconds, 55), 120)))
+   where id and locked_until < now();
+  return found;
+end $$;
+
+create or replace function public.release_engine_sweep()
+returns void language sql security definer set search_path = public as $$
+  update public.engine_sweep_lease set locked_until = now() where id;
+$$;
+
+revoke all on function public.claim_engine_sweep(int) from public, anon, authenticated;
+revoke all on function public.release_engine_sweep() from public, anon, authenticated;
+grant execute on function public.claim_engine_sweep(int) to service_role;
+grant execute on function public.release_engine_sweep() to service_role;
+commit;
+
+-- ---- 5b. Reschedule the sweep every 10 seconds with the engine's secret ----
+do $$
+declare cmd text := $cmd$
+  select net.http_post(
+    url := 'https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', '<CRON_SECRET>'),
+    body := jsonb_build_object('action', 'sweep'),
+    timeout_milliseconds := 30000
+  );
+$cmd$;
+begin
+  perform cron.unschedule(jobid) from cron.job where jobname = 'ipfx-drawdown-sweep';
+  begin
+    perform cron.schedule('ipfx-drawdown-sweep', '10 seconds', cmd);
+  exception when others then
+    raise notice 'sub-minute schedules unavailable (%); scheduling every minute instead', sqlerrm;
+    perform cron.schedule('ipfx-drawdown-sweep', '* * * * *', cmd);
+  end;
+end $$;
+
 -- ---- Verification (single result row) ----
 -- Expect: client_write_policies_left = 0, client_can_insert_trades = false,
 -- client_can_update_accounts = false, client_can_insert_claims = false,
--- redeem_fn_present = 1.
+-- redeem_fn_present = 1, sweep_lease_present = 1, sweep_schedule = '10 seconds'.
 -- The last four columns are REPORTS, not errors — see notes below.
 select
   (select count(*) from pg_policies
@@ -127,9 +183,9 @@ select
     where n.nspname = 'public' and p.proname = 'redeem_promo_code')               as redeem_fn_present,
   (select count(*) from public.challenge_claims where promo_code is null)         as claims_without_code,
   (select count(*) from public.trading_accounts where preset_id is null)          as accounts_without_preset,
-  (select count(*) from cron.job where jobname = 'ipfx-drawdown-sweep')           as sweep_job_exists,
-  (select count(*) from cron.job where jobname = 'ipfx-drawdown-sweep'
-      and command ilike '%authorization%')                                        as sweep_job_sends_auth;
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'claim_engine_sweep')              as sweep_lease_present,
+  (select schedule from cron.job where jobname = 'ipfx-drawdown-sweep')           as sweep_schedule;
 
 -- NOTES ON THE REPORT COLUMNS
 -- claims_without_code > 0: claims inserted without any promo code — the
@@ -139,6 +195,3 @@ select
 --   auto-provisioning in the trading engine (no payment, no claim). Review with:
 --     select id, user_id, label, starting_balance, status, phase, created_at
 --     from public.trading_accounts where preset_id is null order by created_at;
--- sweep_job_sends_auth = 0 while sweep_job_exists = 1: the offline
---   drawdown sweep is being rejected at the gateway (the engine requires
---   an Authorization header), so offline breaches are not enforced.
