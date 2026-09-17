@@ -12,11 +12,11 @@ Do not claim the desktop wrapper reduces quote latency or changes execution qual
 
 ## Verified Windows preview
 
-- Artifact: `dist/IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.1-win-x64.exe`
-- Size: 111,474,087 bytes
-- SHA-256: `183D9E020937CCDB327BEE8C342AEA289A8D14DB5FFEBAF93BAD4CAF6A1C0FD5`
+- Artifact: `dist/IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-win-x64.exe`
+- Size: 111,763,592 bytes
+- SHA-256: `B41CF2087187DA13C9D5CAA0298FED56A63BE1D2EAEE8704562477C48E86345B`
 - Status: unsigned internal preview; do not publish as a customer release
-- Verified: nine policy/release tests, Electron runtime isolation and offline behavior, package allowlist, and Electron security fuses
+- Verified: twelve policy/release tests, Electron runtime isolation and offline behavior, package allowlist, and Electron security fuses
 
 The Windows checksum changes whenever the installer is rebuilt. Recalculate and update it before distributing any later artifact.
 
@@ -34,7 +34,7 @@ Requires Node.js 22+ and npm. Run from this directory:
 
 The icon is a raster export of the existing IPFX logo.
 The persistent desktop profile is separate from the user's browser profile.
-Users sign in independently in the desktop app using the Markets / Sign In menu.
+Users sign in independently through the account connection dialog on the Markets screen.
 Close and reload commands require confirmation and never submit close/cancel orders.
 
 ## Release prerequisites

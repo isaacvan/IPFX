@@ -2,12 +2,15 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {trustedNavigation,exportAllowed,windowBounds}=require('../policy.cjs');
 test('only exact HTTPS IPFX origin is trusted',()=>{
-  assert.ok(trustedNavigation('https://ipfxcapital.com/trading.html?symbol=EURUSD'));
+  assert.ok(trustedNavigation('https://ipfxcapital.com/trading.html?desktop=1&symbol=EURUSD'));
   for(const url of ['http://ipfxcapital.com','https://ipfxcapital.com.evil.test','https://evil.test@ipfxcapital.com',
-    'javascript:alert(1)','file:///C:/secret','data:text/html,x','https://ipfxcapital.com:444/trading.html','https://evil.test'])
+    'javascript:alert(1)','file:///C:/secret','data:text/html,x','https://ipfxcapital.com:444/trading.html','https://evil.test',
+    'https://ipfxcapital.com/dashboard.html','https://ipfxcapital.com/login.html','https://ipfxcapital.com/downloads.html'])
     assert.equal(trustedNavigation(url),false,url);
 });
-test('OAuth callback fragments remain on their trusted origin',()=>assert.ok(trustedNavigation('https://ipfxcapital.com/login.html#access_token=test')));
+test('desktop navigation remains locked to the trading screen',()=>{
+  assert.ok(trustedNavigation('https://ipfxcapital.com/trading.html#account'));
+});
 test('export permits reports but never executable or path-traversal names',()=>{
   assert.ok(exportAllowed('blob:https://ipfxcapital.com/uuid','positions.csv'));
   for(const name of ['trade.exe','../positions.csv','a/b.pdf','file.csv:exe','bad.csv\u0000.exe'])

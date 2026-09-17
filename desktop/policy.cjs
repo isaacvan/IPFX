@@ -1,11 +1,12 @@
 'use strict';
 const ORIGIN = 'https://ipfxcapital.com';
-const ENTRY = ORIGIN + '/trading.html';
+const ENTRY = ORIGIN + '/trading.html?desktop=1';
 function trustedNavigation(raw, origin = ORIGIN) {
   try {
     const u = new URL(raw);
     return !u.username && !u.password && u.origin === origin &&
-      (u.protocol === 'https:' || (origin.startsWith('http://127.0.0.1:') && u.protocol === 'http:'));
+      (u.protocol === 'https:' || (origin.startsWith('http://127.0.0.1:') && u.protocol === 'http:')) &&
+      u.pathname === '/trading.html';
   } catch { return false; }
 }
 function exportAllowed(raw, filename, origin = ORIGIN) {
