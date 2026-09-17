@@ -1,5 +1,5 @@
 'use strict';
-const {app,BrowserWindow,Menu,dialog,session,shell,screen} = require('electron');
+const {app,BrowserWindow,Menu,dialog,session,screen} = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const {pathToFileURL} = require('node:url');
@@ -121,17 +121,12 @@ else {
     Menu.setApplicationMenu(Menu.buildFromTemplate([...platformMenu,
       {label:'Markets',submenu:[
         {label:'Open Markets',click:()=>loadEntry()},
-        {label:'Account Dashboard',click:()=>loadEntry(origin+'/dashboard.html')},
-        {label:'Sign In',click:()=>loadEntry(origin+'/login.html')},
-        {type:'separator'},{label:'Reload Connection',click:reload},
+        {label:'Reload Connection',click:reload},
         ...(process.platform!=='darwin'?[{label:'Exit',click:requestQuit}]:[])
       ]},
       {role:'editMenu'},
       {label:'View',submenu:[{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{type:'separator'},{role:'togglefullscreen'}]},
       {label:'Help',submenu:[
-        {label:'Open Web Platform',click:()=>shell.openExternal(ENTRY)},
-        {label:'Downloads & Releases',click:()=>shell.openExternal(ORIGIN+'/downloads.html')},
-        {label:'Contact Support',click:()=>shell.openExternal(ORIGIN+'/contact.html')},
         {label:'About IPFX Markets',click:()=>app.showAboutPanel()}
       ]}
     ]));

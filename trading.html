@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>if(new URLSearchParams(location.search).get('desktop')==='1')document.documentElement.classList.add('desktop-app');</script>
 <title>IPFX Markets</title>
     <meta name="description" content="Secure IPFX Capital account and operations page.">
     <meta name="robots" content="noindex, nofollow, noarchive">
@@ -1229,7 +1230,56 @@ body.light .op-exec-buy{background:#2f8064;}
 @media(max-width:1180px){.guide{width:390px}.guide.order-mode #tab-order{padding:13px 14px 10px}.op-trade-row{grid-template-columns:minmax(0,1fr) 105px minmax(0,1fr)}}
 @media(max-height:820px){.guide.order-mode .wl-list{max-height:100px}.guide.order-mode #tab-order{gap:7px;padding-top:10px;padding-bottom:8px}.op-type-btn{padding:7px}.op-quick{min-height:30px;padding:5px}.op-limit-card{padding:8px 10px}.op-exec-btn{min-height:60px}.op-feed-label{display:none}}
 
-</style>
+
+/* Desktop client: a TradeLocker-scale workspace with no website chrome. */
+.desktop-app .topbar{height:40px;padding:0 10px;gap:8px;background:#111113}
+.desktop-app #dashboardBackBtn,.desktop-app .desktop-download-link{display:none!important}
+.desktop-app .topbar>.tb-div:first-of-type{display:none}
+.desktop-app .tb-logo img{width:22px;height:22px}
+.desktop-app .tb-logo span{font-size:13px;letter-spacing:-.01em}
+.desktop-app .tb-acct{font-size:13px}
+.desktop-app .tb-pill{padding:3px 7px;font-size:10px}
+.desktop-app .chart-toolbar{min-height:36px;padding:4px 10px;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.desktop-app .chart-toolbar::-webkit-scrollbar{display:none}
+.desktop-app .tf-btn,.desktop-app .style-btn{min-height:26px;padding:3px 8px;font-size:11px}
+.desktop-app .chart-footer{height:20px;padding:0 8px;justify-content:center;overflow:hidden;white-space:nowrap;font-size:9px;line-height:20px}
+.desktop-app .chart-footer br{display:none}
+.desktop-app .guide{width:clamp(360px,27vw,430px)}
+.desktop-app .guide.order-mode #tab-order{padding:10px 12px 8px;gap:7px}
+.desktop-app .guide-tabs{min-height:36px}
+.desktop-app .gtab{padding:9px 8px 8px;font-size:11px}
+.desktop-app .op-quick{min-height:30px;padding:5px 4px}
+.desktop-app .op-type-btn{padding:7px}
+.desktop-app .op-limit-card{padding:8px 10px}
+.desktop-app .op-exec-btn{min-height:60px}
+.desktop-app .btm-outer{height:132px;box-shadow:none}
+.desktop-app .btm-outer.collapsed{height:36px}
+.desktop-app .btm-header{height:36px;padding:3px 8px}
+.desktop-app .btab{height:28px;padding:0 10px;font-size:11px}
+.desktop-app .btm-tog{height:28px}
+.desktop-app .postbl-stats{min-height:42px;height:42px;padding:5px 12px}
+.desktop-app .acell{min-width:118px;padding:0 14px}
+.desktop-app .albl{margin-bottom:1px;font-size:10px}
+.desktop-app .aval{font-size:12px}
+.desktop-app .postbl thead th{height:28px;padding:0 10px;font-size:10px}
+.desktop-app .postbl tbody td{height:32px;padding:0 10px;font-size:11px}
+.desktop-app .postbl-empty{padding:14px 12px;font-size:11px}
+.desktop-app .ipfx-launch-footer,.desktop-app #chatBtn,.desktop-app #chatWin,.desktop-app #welcomeCard{display:none!important}
+.desktop-app .desktop-auth{display:none;position:fixed;inset:0;z-index:4000;align-items:center;justify-content:center;background:rgba(0,0,0,.68);backdrop-filter:blur(12px)}
+.desktop-app .desktop-auth.open{display:flex}
+.desktop-auth-card{width:min(380px,calc(100vw - 32px));padding:22px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#171719;box-shadow:0 24px 80px rgba(0,0,0,.65)}
+.desktop-auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.desktop-auth-brand img{width:30px;height:30px}
+.desktop-auth-title{margin-bottom:5px;font-size:20px;font-weight:700;letter-spacing:-.025em}
+.desktop-auth-copy{margin-bottom:17px;color:#9b9ba0;font-size:12px;line-height:1.5}
+.desktop-auth-field{display:block;margin-bottom:11px;color:#9b9ba0;font-size:11px;font-weight:600}
+.desktop-auth-field input{width:100%;height:40px;margin-top:5px;padding:0 11px;border:1px solid #343438;border-radius:9px;background:#0d0d0f;color:#fff;font-size:13px;outline:none}
+.desktop-auth-field input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+.desktop-auth-error{min-height:18px;margin:2px 0 8px;color:#ff7b86;font-size:11px}
+.desktop-auth-submit{width:100%;height:40px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.desktop-auth-submit:disabled{opacity:.55;cursor:wait}
+.desktop-auth-note{margin-top:11px;color:#6e6e73;font-size:10px;line-height:1.45;text-align:center}
+@media(max-width:980px){.desktop-app .guide{width:360px}.desktop-app .tb-acct,.desktop-app .tb-pill{display:none}}</style>
 </head>
 <body>
 
@@ -1271,11 +1321,24 @@ body.light .op-exec-buy{background:#2f8064;}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12V8a8 8 0 0 1 16 0v4"/><rect x="2" y="12" width="20" height="10" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
       <span id="tvConnectLbl">Unlock Indicators</span>
     </button>
-    <div class="feed-badge" id="feedBadge" title="Market data feed status">
+    <div class="feed-badge" id="feedBadge" title="Market data feed status" role="button" tabindex="0" onclick="openDesktopAuth()" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;)openDesktopAuth()">
       <span class="feed-dot" id="feedDot"></span>
       <span class="feed-lbl" id="feedLbl">Connecting…</span>
     </div>
   </div>
+</div>
+
+<div class="desktop-auth" id="desktopAuth" role="dialog" aria-modal="true" aria-labelledby="desktopAuthTitle">
+  <form class="desktop-auth-card" id="desktopAuthForm">
+    <div class="desktop-auth-brand"><img src="/assets/images/favicon.ico" alt=""><span>IPFX Markets</span></div>
+    <div class="desktop-auth-title" id="desktopAuthTitle">Connect your trading account</div>
+    <div class="desktop-auth-copy">Sign in here once. Your session stays inside the encrypted IPFX Markets desktop profile.</div>
+    <label class="desktop-auth-field">Email<input id="desktopAuthEmail" type="email" autocomplete="username" required></label>
+    <label class="desktop-auth-field">Password<input id="desktopAuthPassword" type="password" autocomplete="current-password" required></label>
+    <div class="desktop-auth-error" id="desktopAuthError" role="alert"></div>
+    <button class="desktop-auth-submit" id="desktopAuthSubmit" type="submit">Connect account</button>
+    <div class="desktop-auth-note">This window only connects the trading workspace. It does not open the IPFX website or dashboard.</div>
+  </form>
 </div>
 
 <!-- LAYOUT -->
@@ -2627,7 +2690,7 @@ async function loadOrderHistory(){
   }catch(_){body.innerHTML='<tr><td colspan="9"><div class="postbl-empty">Could not load order history</div></td></tr>';}
 }
 
-let btmExpandedHeight=260;
+let btmExpandedHeight=desktopMode()?132:260;
 function toggleBtm(){
   const o=document.getElementById('btmOuter');
   const t=document.getElementById('btmTog');
@@ -3152,6 +3215,50 @@ async function freshToken(){
 }
 // Sync check for display only ("Log in to trade" vs "No open positions").
 function hasSession(){return !!engineToken();}
+function desktopMode(){return document.documentElement.classList.contains('desktop-app');}
+function openDesktopAuth(){
+  if(!desktopMode()||hasSession())return;
+  const modal=document.getElementById('desktopAuth');
+  if(modal){modal.classList.add('open');setTimeout(()=>document.getElementById('desktopAuthEmail')?.focus(),0);}
+}
+function closeDesktopAuth(){document.getElementById('desktopAuth')?.classList.remove('open');}
+function applyDesktopSession(session){
+  if(!desktopMode())return;
+  if(!session){lastQuoteTs=0;setFeed('closed','CONNECT ACCOUNT');openDesktopAuth();return;}
+  document.getElementById('tbAcct').textContent=session.user?.user_metadata?.name||session.user?.email||'My Account';
+  closeDesktopAuth();setFeed('connecting','CONNECTING');
+  // Keep the auth callback synchronous; defer follow-up Supabase work.
+  setTimeout(()=>{engineCall({action:'state'});pollTicketPrice();},0);
+}
+async function connectDesktopAccount(event){
+  event.preventDefault();
+  const email=document.getElementById('desktopAuthEmail').value.trim();
+  const password=document.getElementById('desktopAuthPassword').value;
+  const errorEl=document.getElementById('desktopAuthError');
+  const submit=document.getElementById('desktopAuthSubmit');
+  errorEl.textContent='';submit.disabled=true;submit.textContent='Connecting…';
+  try{
+    const c=getSbEngine();
+    if(!c)throw new Error('The secure connection library did not load. Use Markets → Reload Connection.');
+    const{data,error}=await c.auth.signInWithPassword({email,password});
+    if(error||!data?.session)throw error||new Error('Sign-in did not return a session.');
+    applyDesktopSession(data.session);
+  }catch(error){
+    errorEl.textContent=(error&&error.message)||'Could not connect this account.';
+  }finally{submit.disabled=false;submit.textContent='Connect account';}
+}
+function initialiseDesktopAccount(){
+  if(!desktopMode())return;
+  document.getElementById('desktopAuthForm')?.addEventListener('submit',connectDesktopAccount);
+  const c=getSbEngine();
+  if(!c){setFeed('closed','CONNECTION ERROR');return;}
+  c.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_OUT'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED')applyDesktopSession(session);
+  });
+  c.auth.getSession().then(({data})=>applyDesktopSession(data?.session||null))
+    .catch(()=>{setFeed('closed','CONNECTION ERROR');openDesktopAuth();});
+}
+document.addEventListener('DOMContentLoaded',initialiseDesktopAccount);
 async function engineCall(body){
   const tok=await freshToken();
   if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
@@ -3736,9 +3843,9 @@ function renderEngineAccount(){
 let lastEngineStatus=null;
 if(hasSession()){
   engineCall({action:'state'});
-  setInterval(()=>{if(!engineBusy&&hasSession())engineCall({action:'state'});},4000);
   loadJournalEntries().then(renderJournal);
 }
+setInterval(()=>{if(!engineBusy&&hasSession())engineCall({action:'state'});},4000);
 function updateOrdPrices(value){
   const q=(value&&typeof value==='object')?value:{mid:+value};
   const mid=+q.mid;
