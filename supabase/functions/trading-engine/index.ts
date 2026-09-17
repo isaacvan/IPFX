@@ -136,7 +136,30 @@ const MAX_OPEN_POSITIONS = 20;
 // not count toward the profit target, for accounts opened on or after the
 // effective date (14 days' notice per the Terms' amendment clause).
 const MIN_HOLD_SECONDS = 60;
-const MIN_HOLD_EFFECTIVE_MS = Date.parse("2026-10-01T00:00:00Z");
+// Every rule and cost introduced with the September 2026 Terms update applies
+// to accounts opened on or after this moment (Terms 14-day notice clause).
+const RULES_V2_EFFECTIVE_MS = Date.parse("2026-10-01T00:00:00Z");
+const rulesV2 = (acct: { created_at?: string | null }) =>
+  Date.parse(String(acct.created_at ?? "")) >= RULES_V2_EFFECTIVE_MS;
+// Execution model (Terms 7.10): market orders and trader-initiated closes fill
+// after a short randomised delay at the less favourable of the arrival and
+// execution prices, plus per-instrument slippage; commission is charged per
+// lot on close. Costs are configured per symbol in symbol_specs.
+const EXEC_DELAY_MIN_MS = 300;
+const EXEC_DELAY_MAX_MS = 900;
+const DEFAULT_COSTS: Record<string, { commissionPerLot: number; slippageBps: number }> = {
+  forex: { commissionPerLot: 6, slippageBps: 0.3 },
+  metal: { commissionPerLot: 6, slippageBps: 0.5 },
+  index: { commissionPerLot: 0, slippageBps: 0.5 },
+  crypto: { commissionPerLot: 0, slippageBps: 5 },
+};
+// Terms 7.7: total open risk (entry to stop, all positions) may not exceed this
+// multiple of the per-trade risk cap.
+const MAX_TOTAL_RISK_MULTIPLE = 3;
+// Off-market tick filter: a quote that moves further than this fraction from
+// the last accepted price within BAD_TICK_WINDOW_MS is dropped.
+const BAD_TICK_MAX_MOVE: Record<string, number> = { forex: 0.01, metal: 0.03, index: 0.03, crypto: 0.08 };
+const BAD_TICK_WINDOW_MS = 60_000;
 // Terms 8.1: no more than ORDER_BURST_LIMIT new orders per account per window.
 const ORDER_BURST_LIMIT = 5;
 const ORDER_BURST_WINDOW_MS = 10_000;
@@ -290,6 +313,15 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
       bid: round6(raw.price - inst.spread / 2), ask: round6(raw.price + inst.spread / 2),
       spread: inst.spread, providerTs: raw.ts, receivedTs: Date.now(), source: "yahoo-demo",
     };
+  }
+  // Off-market tick filter: a price that jumps implausibly far from the last
+  // accepted quote within a minute is dropped (fail closed) rather than
+  // filling orders or triggering stops. A genuine move is accepted once the
+  // last good quote is older than the window.
+  const prev = quoteCache.get(symKey) ?? (await lastKnownQuote(symKey));
+  if (prev && prev.mid > 0 && q.receivedTs - prev.receivedTs < BAD_TICK_WINDOW_MS) {
+    const move = Math.abs(q.mid - prev.mid) / prev.mid;
+    if (move > (BAD_TICK_MAX_MOVE[inst.cls] ?? 0.03)) return null;
   }
   quoteCache.set(symKey, q);
   try {
@@ -499,7 +531,7 @@ function pendingTriggered(o: Record<string, unknown>, q: Quote): boolean {
 // Returns null when the order may proceed, or a rejection reason.
 function ruleGate(
   acct: Acct, inst: Inst, volume: number, fill: number, sl: number | null,
-  conv: number, equityNow: number, usedMargin: number,
+  conv: number, equityNow: number, usedMargin: number, openRisk: number | null = null,
 ): string | null {
   const startBal = Number(acct.starting_balance);
 
@@ -516,6 +548,12 @@ function ruleGate(
     const maxRisk = round2(startBal * Number(acct.max_risk_per_trade_pct) / 100);
     if (riskUsd > maxRisk + 0.01) {
       return `Risk $${riskUsd.toFixed(2)} exceeds the ${acct.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)})`;
+    }
+    if (openRisk !== null) {
+      const cap = round2(maxRisk * MAX_TOTAL_RISK_MULTIPLE);
+      if (openRisk + riskUsd > cap + 0.01) {
+        return `Total open risk would be $${(openRisk + riskUsd).toFixed(2)}, above the limit ($${cap.toFixed(2)})`;
+      }
     }
   }
   const needed = (inst.contract * volume * fill * conv) / LEVERAGE;
@@ -569,7 +607,14 @@ async function processPendingOrders(
     if (!spec.ok) { await reject(spec.reason || "Symbol disabled"); continue; }
     if (q.spread > (spec.maxSpread ?? inst.maxSpread)) { await reject("Spread too wide at trigger"); continue; }
 
-    const fill = o.side === "buy" ? q.ask : q.bid;
+    const takingAsk = o.side === "buy";
+    const arrivalPx = takingAsk ? q.ask : q.bid;
+    const v2 = rulesV2(acct);
+    // A triggered stop order executes as a market order and can slip; a limit
+    // order fills at its price or better.
+    const fill = v2 && o.order_type === "stop"
+      ? roundPrice(symbol, adverse(arrivalPx, takingAsk, spec.slippageBps))
+      : arrivalPx;
     const sl = o.sl === null || o.sl === undefined ? null : Number(o.sl);
     const tp = o.tp === null || o.tp === undefined ? null : Number(o.tp);
     // Levels must still make sense against the actual fill, not the trigger.
@@ -583,7 +628,8 @@ async function processPendingOrders(
     const conv = await usdPerQuote(inst.quote);
     if (conv === null) { await reject("No conversion rate at trigger"); continue; }
     const usedMargin = await usedMarginUsd(working);
-    const gate = ruleGate(acct, inst, Number(o.volume), fill, sl, conv, equityNow, usedMargin);
+    const openRisk = v2 ? await openRiskUsd(working) : null;
+    const gate = ruleGate(acct, inst, Number(o.volume), fill, sl, conv, equityNow, usedMargin, openRisk);
     if (gate) { await reject(gate); continue; }
 
     // Claim the order BEFORE inserting the trade, and check that this
@@ -603,6 +649,11 @@ async function processPendingOrders(
     const { data: inserted, error } = await db.from("trades").insert({
       account_id: acct.id, user_id: acct.user_id, symbol, side: o.side,
       volume: Number(o.volume), open_price: fill, sl, tp,
+      ...(v2 ? {
+        decision_price: arrivalPx,
+        execution_shortfall: await shortfallUsd(symbol, takingAsk, arrivalPx, fill, Number(o.volume)),
+        pnl_basis: "NET_AFTER_COSTS",
+      } : {}),
     }).select("*").single();
     if (error || !inserted) {
       // We claimed the order but the fill itself failed — put it back
@@ -760,7 +811,7 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
   if (needProfPct !== null && (p.profitable_days_pct ?? 0) < needProfPct) {
     unmet.push(`${p.profitable_days_pct ?? 0}%/${needProfPct}% profitable days`);
   }
-  if (Date.parse(String(acct.created_at ?? "")) >= MIN_HOLD_EFFECTIVE_MS) {
+  if (rulesV2(acct)) {
     const quick = await quickTradeProfit(db, acct.id);
     const target = round2(Number(acct.starting_balance) * (1 + Number(acct.profit_target_pct) / 100));
     if (quick > 0 && round2(Number(acct.balance) - quick) < target) {
@@ -786,9 +837,15 @@ type Tr = {
 type Db = any;
 
 // ---------- engine ----------
-async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null, clientIp?: string | null): Promise<boolean> {
-  const pnl = await tradePnl(t, exit);
-  if (pnl === null) return false;
+async function closeTrade(
+  db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null, clientIp?: string | null,
+  exec?: { shortfallUsd?: number },
+): Promise<boolean> {
+  const gross = await tradePnl(t, exit);
+  if (gross === null) return false;
+  const v2 = rulesV2(acct);
+  const commission = v2 ? round2((await symbolCheck(db, t.symbol)).commissionPerLot * Number(t.volume)) : 0;
+  const pnl = gross - commission;
   // .eq("status","open") makes this UPDATE atomic and conditional at the
   // database level, but a filtered update that matches zero rows is NOT
   // an error in supabase-js — it silently succeeds with no data. Without
@@ -799,6 +856,12 @@ async function closeTrade(db: Db, acct: Acct, t: Tr, exit: number, reason: strin
   const { data: closedRow, error: e1 } = await db.from("trades").update({
     status: "closed", close_price: exit, pnl: round2(pnl),
     close_reason: reason, closed_at: new Date().toISOString(),
+    ...(v2 ? {
+      commission,
+      // deno-lint-ignore no-explicit-any
+      execution_shortfall: round2(Number((t as any).execution_shortfall ?? 0) + (exec?.shortfallUsd ?? 0)),
+      pnl_basis: "NET_AFTER_COSTS",
+    } : {}),
   }).eq("id", t.id).eq("status", "open").select("id");
   if (e1 || !closedRow || closedRow.length === 0) return false; // already closed elsewhere — no-op, not an error
   acct.balance = round2(Number(acct.balance) + pnl);
@@ -831,10 +894,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const tp = t.tp === null ? null : Number(t.tp);
       let done = false;
       if (t.side === "buy") {
-        if (sl !== null && ex <= sl) done = await closeTrade(db, acct, t, Math.min(sl, ex), "sl", q);
+        if (sl !== null && ex <= sl) done = await closeTrade(db, acct, t, await stopFill(db, acct, t.symbol, Math.min(sl, ex), false), "sl", q);
         else if (tp !== null && ex >= tp) done = await closeTrade(db, acct, t, tp, "tp", q);
       } else {
-        if (sl !== null && ex >= sl) done = await closeTrade(db, acct, t, Math.max(sl, ex), "sl", q);
+        if (sl !== null && ex >= sl) done = await closeTrade(db, acct, t, await stopFill(db, acct, t.symbol, Math.max(sl, ex), true), "sl", q);
         else if (tp !== null && ex <= tp) done = await closeTrade(db, acct, t, tp, "tp", q);
       }
       if (!done) still.push(t);
@@ -886,7 +949,9 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
         acct.trailing_peak_date = todayUtc;
       }
       acct.day_start_date = todayUtc;
-      acct.day_start_equity = equity;
+      // Terms 7.2 (rules v2): the day starts from the higher of balance and
+      // equity, so a floating loss carried over midnight still counts.
+      acct.day_start_equity = rulesV2(acct) ? round2(Math.max(Number(acct.balance), equity)) : equity;
       await db.from("equity_snapshots").insert({
         account_id: acct.id, user_id: acct.user_id, balance: acct.balance, equity,
       });
@@ -1099,10 +1164,113 @@ function cleanRpcError(raw: string): string {
 }
 
 // ---------- symbol tradeability (symbol_specs: enabled + max spread) ----------
-async function symbolCheck(db: Db, symKey: string): Promise<{ ok: boolean; reason?: string; maxSpread?: number }> {
-  const { data: spec } = await db.from("symbol_specs").select("enabled,disabled_reason,max_spread").eq("symbol", symKey).maybeSingle();
-  if (spec && spec.enabled === false) return { ok: false, reason: spec.disabled_reason || "Symbol disabled" };
-  return { ok: true, maxSpread: spec ? Number(spec.max_spread) : undefined };
+type SymbolCheck = { ok: boolean; reason?: string; maxSpread?: number; commissionPerLot: number; slippageBps: number };
+async function symbolCheck(db: Db, symKey: string): Promise<SymbolCheck> {
+  const { data: spec } = await db.from("symbol_specs")
+    .select("enabled,disabled_reason,max_spread,commission_per_lot_usd,slippage_bps").eq("symbol", symKey).maybeSingle();
+  const fallback = DEFAULT_COSTS[INSTRUMENTS[symKey]?.cls ?? "forex"] ?? DEFAULT_COSTS.forex;
+  const costs = {
+    commissionPerLot: spec?.commission_per_lot_usd != null ? Number(spec.commission_per_lot_usd) : fallback.commissionPerLot,
+    slippageBps: spec?.slippage_bps != null ? Number(spec.slippage_bps) : fallback.slippageBps,
+  };
+  if (spec && spec.enabled === false) return { ok: false, reason: spec.disabled_reason || "Symbol disabled", ...costs };
+  return { ok: true, maxSpread: spec ? Number(spec.max_spread) : undefined, ...costs };
+}
+
+function roundPrice(symKey: string, px: number): number {
+  return Number(px.toFixed(INSTRUMENTS[symKey]?.digits ?? 5));
+}
+
+// Moves a price against the trader by `bps` basis points.
+function adverse(px: number, takingAsk: boolean, bps: number): number {
+  const slip = px * bps / 10000;
+  return takingAsk ? px + slip : px - slip;
+}
+
+type Execution = { price: number; decision: number; latencyMs: number; quote: Quote };
+
+// Market execution. takingAsk = buying (opening a buy or closing a sell).
+// Fills at the less favourable of the arrival price and the price after the
+// delay, then applies slippage: a move in the trader's favour during the
+// delay is never passed on, which removes any edge from the feed's lag.
+// Returns null only when failClosed and no usable quote exists afterwards.
+async function executeAtMarket(
+  symKey: string, takingAsk: boolean, arrival: Quote, slippageBps: number, failClosed: boolean, skipDelay = false,
+): Promise<Execution | null> {
+  const decision = takingAsk ? arrival.ask : arrival.bid;
+  const started = Date.now();
+  if (!skipDelay) {
+    const delay = EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1));
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  let later = await fetchQuote(symKey);
+  if (later === null || quoteStale(later)) {
+    if (failClosed) return null;
+    later = arrival;
+  }
+  const atExecution = takingAsk ? later.ask : later.bid;
+  const worse = takingAsk ? Math.max(decision, atExecution) : Math.min(decision, atExecution);
+  return {
+    price: roundPrice(symKey, adverse(worse, takingAsk, slippageBps)),
+    decision, latencyMs: Date.now() - started, quote: later,
+  };
+}
+
+// USD cost of filling at `price` rather than `decision`.
+async function shortfallUsd(symKey: string, takingAsk: boolean, decision: number, price: number, volume: number): Promise<number> {
+  const inst = INSTRUMENTS[symKey];
+  const conv = inst ? await usdPerQuote(inst.quote) : null;
+  if (!inst || conv === null) return 0;
+  const diff = takingAsk ? price - decision : decision - price;
+  return round2(Math.max(0, diff) * inst.contract * volume * conv);
+}
+
+// Stop-loss fill for rules-v2 accounts: slippage on top of the gap-true price.
+async function stopFill(db: Db, acct: Acct, symKey: string, px: number, takingAsk: boolean): Promise<number> {
+  if (!rulesV2(acct)) return px;
+  const spec = await symbolCheck(db, symKey);
+  return roundPrice(symKey, adverse(px, takingAsk, spec.slippageBps));
+}
+
+// Money at risk if every open stop is hit (positions without a stop, or with
+// a stop already in profit, contribute nothing).
+async function openRiskUsd(open: Tr[]): Promise<number> {
+  let total = 0;
+  for (const t of open) {
+    if (t.sl === null || t.sl === undefined) continue;
+    const inst = INSTRUMENTS[t.symbol];
+    const conv = inst ? await usdPerQuote(inst.quote) : null;
+    if (!inst || conv === null) continue;
+    const perUnit = t.side === "buy" ? Number(t.open_price) - Number(t.sl) : Number(t.sl) - Number(t.open_price);
+    total += Math.max(0, perUnit) * inst.contract * Number(t.volume) * conv;
+  }
+  return round2(total);
+}
+
+async function claimOrderLock(db: Db, accountId: string): Promise<boolean> {
+  const { data, error } = await db.rpc("claim_account_order_lock", { p_account: accountId, p_seconds: 5 });
+  return error ? true : data !== false; // lock trouble must never halt trading
+}
+async function releaseOrderLock(db: Db, accountId: string): Promise<void> {
+  try { await db.rpc("release_account_order_lock", { p_account: accountId }); } catch (_) { /* expires on its own */ }
+}
+
+// Terms 8.2: flag (never block, shared IPs are common) an opposite position on
+// the same instrument held by a different trader who traded from this IP.
+async function flagCrossAccountHedge(db: Db, userId: string, symbol: string, side: string, clientIp: string | null): Promise<void> {
+  if (!clientIp) return;
+  try {
+    const since = new Date(Date.now() - 86_400_000).toISOString();
+    const { data: peers } = await db.from("order_audit_events").select("user_id")
+      .eq("client_ip", clientIp).neq("user_id", userId).gte("created_at", since).limit(50);
+    const others = [...new Set((peers ?? []).map((p: { user_id: string }) => p.user_id))];
+    if (!others.length) return;
+    const { data: opposite } = await db.from("trades").select("id").in("user_id", others)
+      .eq("symbol", symbol).eq("status", "open").eq("side", side === "buy" ? "sell" : "buy").limit(1);
+    if (opposite && opposite.length) {
+      await db.from("security_events").insert({ user_id: userId, event_type: "possible_cross_account_hedge", ip_address: clientIp });
+    }
+  } catch (_) { /* flagging must never block an order */ }
 }
 
 // ---------- audit trail: every order-type action ----------
@@ -1196,16 +1364,27 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: "previous sweep still running" }),
         { headers: { ...CORS, "Content-Type": "application/json" } });
     }
-    const { data: candidates } = await db.from("trading_accounts")
-      .select("id")
-      .eq("status", "active")
-      .in("id", (await db.from("trades").select("account_id").eq("status", "open")).data?.map((r: { account_id: string }) => r.account_id) ?? []);
-
-    const seen = new Set((candidates ?? []).map((c: { id: string }) => c.id));
+    // Page through open trades instead of packing every account id into one
+    // URL filter (which fails past a few hundred accounts), and visit accounts
+    // in random order under a time budget so a slow run never leaves the same
+    // accounts unchecked every time.
+    const ids = new Set<string>();
+    for (let from = 0; ; from += 1000) {
+      const { data: page, error: pageErr } = await db.from("trades").select("account_id")
+        .eq("status", "open").order("id").range(from, from + 999);
+      if (pageErr || !page || !page.length) break;
+      for (const r of page) ids.add(r.account_id);
+      if (page.length < 1000) break;
+    }
+    const queue = [...ids].sort(() => Math.random() - 0.5);
+    const deadline = Date.now() + 40_000;
+    let visited = 0;
     let breached = 0;
-    for (const id of seen) {
+    for (const id of queue) {
+      if (Date.now() > deadline) break;
+      visited++;
       const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id).maybeSingle();
-      if (!acct) continue;
+      if (!acct || acct.status !== "active") continue;
       const before = acct.status;
       await enforce(db, acct as Acct);
       if (before === "active") {
@@ -1214,7 +1393,7 @@ Deno.serve(async (req) => {
       }
     }
     if (!lease.error) await db.rpc("release_engine_sweep");
-    return new Response(JSON.stringify({ ok: true, swept: seen.size, breached }),
+    return new Response(JSON.stringify({ ok: true, swept: visited, unvisited: queue.length - visited, breached }),
       { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
@@ -1469,68 +1648,75 @@ Deno.serve(async (req) => {
 
   // ---- pending orders (limit / stop) ----
   if (action === "place_pending") {
-    if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
-    if (await orderBurstExceeded(db, (acct as Acct).id)) {
-      return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
+    if (!(await claimOrderLock(db, (acct as Acct).id))) {
+      return err("Another order on this account is still being processed — try again in a moment.", 429);
     }
-    if (state.unpriced > 0) {
-      return err("Pricing is unavailable for one of your open positions — new orders are paused until it returns.", 503);
+    try {
+      if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
+      if (await orderBurstExceeded(db, (acct as Acct).id)) {
+        return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
+      }
+      if (state.unpriced > 0) {
+        return err("Pricing is unavailable for one of your open positions — new orders are paused until it returns.", 503);
+      }
+      const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();
+      if (platCfg?.trading_halted) return err("Trading is temporarily paused: " + (platCfg.halted_reason || "platform maintenance"), 503);
+
+      const symbol = cleanSymbol(body.symbol);
+      if (!symbol) return err("Unknown instrument");
+      const side = body.side === "buy" || body.side === "sell" ? body.side : null;
+      if (!side) return err("Side must be buy or sell");
+      const orderType = body.order_type === "limit" || body.order_type === "stop" ? body.order_type : null;
+      if (!orderType) return err("Order type must be limit or stop");
+      const volume = Math.round(Number(body.volume) * 100) / 100;
+      if (!isFinite(volume) || volume < 0.01 || volume > 100) return err("Volume must be 0.01–100 lots");
+      const trigger = Number(body.trigger_price);
+      if (!isFinite(trigger) || trigger <= 0) return err("Enter a valid trigger price");
+
+      const { count: openPend } = await db.from("pending_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", (acct as Acct).id).eq("status", "pending");
+      if ((openPend ?? 0) >= MAX_OPEN_POSITIONS) return err(`Max ${MAX_OPEN_POSITIONS} resting orders`);
+
+      // Reject a trigger that is already through the market — that is a
+      // market order wearing a costume, and filling it at a stale trigger
+      // would hand the trader a price that never existed.
+      const q = await fetchQuote(symbol);
+      if (q === null) return err("No live price for " + symbol, 503);
+      if (!quoteStale(q)) {
+        const px = side === "buy" ? q.ask : q.bid;
+        const already = orderType === "limit"
+          ? (side === "buy" ? px <= trigger : px >= trigger)
+          : (side === "buy" ? px >= trigger : px <= trigger);
+        if (already) return err(`That ${orderType} would trigger immediately at the current price (${px}). Use a market order, or move the trigger.`);
+      }
+
+      const lvl = (v: unknown) => (v === undefined || v === null || v === "" ? null : Number(v));
+      const sl = lvl(body.sl), tp = lvl(body.tp);
+      if (sl !== null && (!isFinite(sl) || sl <= 0)) return err("Invalid stop loss");
+      if (tp !== null && (!isFinite(tp) || tp <= 0)) return err("Invalid take profit");
+      // Validate the levels against the TRIGGER, since that is the intended entry.
+      if (sl !== null && ((side === "buy" && sl >= trigger) || (side === "sell" && sl <= trigger)))
+        return err("Stop loss must be on the loss side of the trigger price");
+      if (tp !== null && ((side === "buy" && tp <= trigger) || (side === "sell" && tp >= trigger)))
+        return err("Take profit must be on the profit side of the trigger price");
+      if ((acct as Acct).require_stop_loss && sl === null)
+        return err("This challenge requires a stop-loss on every order.");
+
+      const { data: created, error: pErr } = await db.from("pending_orders").insert({
+        account_id: (acct as Acct).id, user_id: user.id, symbol, side,
+        order_type: orderType, volume, trigger_price: trigger, sl, tp,
+        expires_at: body.expires_at ? String(body.expires_at) : null,
+      }).select("*").single();
+      if (pErr) return err("Could not place the order", 500);
+      const orderId = await logAudit(db, {
+        pending_order_id: created.id, user_id: user.id, account_id: (acct as Acct).id, event: "place_pending",
+        symbol, side, requested_volume: volume, requested_price: trigger, quote: q, client_ip: clientIp,
+      });
+      return jsonOk({ pending: created, order_id: orderId });
+    } finally {
+      await releaseOrderLock(db, (acct as Acct).id);
     }
-    const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();
-    if (platCfg?.trading_halted) return err("Trading is temporarily paused: " + (platCfg.halted_reason || "platform maintenance"), 503);
-
-    const symbol = cleanSymbol(body.symbol);
-    if (!symbol) return err("Unknown instrument");
-    const side = body.side === "buy" || body.side === "sell" ? body.side : null;
-    if (!side) return err("Side must be buy or sell");
-    const orderType = body.order_type === "limit" || body.order_type === "stop" ? body.order_type : null;
-    if (!orderType) return err("Order type must be limit or stop");
-    const volume = Math.round(Number(body.volume) * 100) / 100;
-    if (!isFinite(volume) || volume < 0.01 || volume > 100) return err("Volume must be 0.01–100 lots");
-    const trigger = Number(body.trigger_price);
-    if (!isFinite(trigger) || trigger <= 0) return err("Enter a valid trigger price");
-
-    const { count: openPend } = await db.from("pending_orders")
-      .select("id", { count: "exact", head: true })
-      .eq("account_id", (acct as Acct).id).eq("status", "pending");
-    if ((openPend ?? 0) >= MAX_OPEN_POSITIONS) return err(`Max ${MAX_OPEN_POSITIONS} resting orders`);
-
-    // Reject a trigger that is already through the market — that is a
-    // market order wearing a costume, and filling it at a stale trigger
-    // would hand the trader a price that never existed.
-    const q = await fetchQuote(symbol);
-    if (q === null) return err("No live price for " + symbol, 503);
-    if (!quoteStale(q)) {
-      const px = side === "buy" ? q.ask : q.bid;
-      const already = orderType === "limit"
-        ? (side === "buy" ? px <= trigger : px >= trigger)
-        : (side === "buy" ? px >= trigger : px <= trigger);
-      if (already) return err(`That ${orderType} would trigger immediately at the current price (${px}). Use a market order, or move the trigger.`);
-    }
-
-    const lvl = (v: unknown) => (v === undefined || v === null || v === "" ? null : Number(v));
-    const sl = lvl(body.sl), tp = lvl(body.tp);
-    if (sl !== null && (!isFinite(sl) || sl <= 0)) return err("Invalid stop loss");
-    if (tp !== null && (!isFinite(tp) || tp <= 0)) return err("Invalid take profit");
-    // Validate the levels against the TRIGGER, since that is the intended entry.
-    if (sl !== null && ((side === "buy" && sl >= trigger) || (side === "sell" && sl <= trigger)))
-      return err("Stop loss must be on the loss side of the trigger price");
-    if (tp !== null && ((side === "buy" && tp <= trigger) || (side === "sell" && tp >= trigger)))
-      return err("Take profit must be on the profit side of the trigger price");
-    if ((acct as Acct).require_stop_loss && sl === null)
-      return err("This challenge requires a stop-loss on every order.");
-
-    const { data: created, error: pErr } = await db.from("pending_orders").insert({
-      account_id: (acct as Acct).id, user_id: user.id, symbol, side,
-      order_type: orderType, volume, trigger_price: trigger, sl, tp,
-      expires_at: body.expires_at ? String(body.expires_at) : null,
-    }).select("*").single();
-    if (pErr) return err("Could not place the order", 500);
-    const orderId = await logAudit(db, {
-      pending_order_id: created.id, user_id: user.id, account_id: (acct as Acct).id, event: "place_pending",
-      symbol, side, requested_volume: volume, requested_price: trigger, quote: q, client_ip: clientIp,
-    });
-    return jsonOk({ pending: created, order_id: orderId });
   }
 
   if (action === "cancel_pending") {
@@ -1551,111 +1737,157 @@ Deno.serve(async (req) => {
   if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
 
   if (action === "open") {
-    if (await orderBurstExceeded(db, (acct as Acct).id)) {
-      return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
+    if (!(await claimOrderLock(db, (acct as Acct).id))) {
+      return err("Another order on this account is still being processed — try again in a moment.", 429);
     }
-    if (state.unpriced > 0) {
-      return err("Pricing is unavailable for one of your open positions — new orders are paused until it returns.", 503);
-    }
-    // Platform kill switch: new orders only. Closing/flattening stays
-    // allowed during a halt so traders can protect existing positions.
-    const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();
-    if (platCfg?.trading_halted) return err("Trading is temporarily paused: " + (platCfg.halted_reason || "platform maintenance"), 503);
+    try {
+      if (await orderBurstExceeded(db, (acct as Acct).id)) {
+        return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
+      }
+      if (state.unpriced > 0) {
+        return err("Pricing is unavailable for one of your open positions — new orders are paused until it returns.", 503);
+      }
+      // Platform kill switch: new orders only. Closing/flattening stays
+      // allowed during a halt so traders can protect existing positions.
+      const { data: platCfg } = await db.from("platform_config").select("trading_halted,halted_reason").eq("id", true).maybeSingle();
+      if (platCfg?.trading_halted) return err("Trading is temporarily paused: " + (platCfg.halted_reason || "platform maintenance"), 503);
 
-    const symbol = cleanSymbol(body.symbol);
-    if (!symbol) return err("Unknown instrument");
-    const side = body.side === "buy" || body.side === "sell" ? body.side : null;
-    if (!side) return err("Side must be buy or sell");
-    const volume = Math.round(Number(body.volume) * 100) / 100;
-    if (!isFinite(volume) || volume < 0.01 || volume > 100) return err("Volume must be 0.01–100 lots");
-    if (state.open.length >= MAX_OPEN_POSITIONS) return err("Max " + MAX_OPEN_POSITIONS + " open positions");
+      const symbol = cleanSymbol(body.symbol);
+      if (!symbol) return err("Unknown instrument");
+      const side = body.side === "buy" || body.side === "sell" ? body.side : null;
+      if (!side) return err("Side must be buy or sell");
+      const volume = Math.round(Number(body.volume) * 100) / 100;
+      if (!isFinite(volume) || volume < 0.01 || volume > 100) return err("Volume must be 0.01–100 lots");
+      if (state.open.length >= MAX_OPEN_POSITIONS) return err("Max " + MAX_OPEN_POSITIONS + " open positions");
 
-    const reject = async (reason: string, q?: Quote | null) => {
+      const reject = async (reason: string, q?: Quote | null) => {
+        await logAudit(db, {
+          user_id: user.id, account_id: (acct as Acct).id, event: "reject", reject_reason: reason,
+          symbol, side, requested_volume: volume, quote: q ?? null, client_ip: clientIp,
+        });
+        return err(reason, 409);
+      };
+
+      // fail-closed gates, in order: market session -> symbol enabled -> quote -> stale -> spread
+      if (!marketOpen(symbol)) return reject("Market is closed for this instrument");
+      const spec = await symbolCheck(db, symbol);
+      if (!spec.ok) return reject(spec.reason || "Symbol disabled");
+
+      const inst = INSTRUMENTS[symbol];
+      const q = await fetchQuote(symbol);
+      if (q === null) { await logFeedEvent(db, "outage", symbol, "open rejected: no quote"); return reject("No live price for " + symbol + " — order rejected"); }
+      if (quoteStale(q)) { await logFeedEvent(db, "stale", symbol, "open rejected: stale quote"); return reject("Price feed is stale — order rejected"); }
+      const maxSpread = spec.maxSpread ?? inst.maxSpread;
+      if (q.spread > maxSpread) { await logFeedEvent(db, "spike", symbol, `spread ${q.spread} > max ${maxSpread}`); return reject("Spread too wide — order rejected", q); }
+
+      const fill = side === "buy" ? q.ask : q.bid;
+
+      // SL/TP sanity (must be on the correct side of the fill)
+      let sl: number | null = body.sl === undefined || body.sl === null || body.sl === "" ? null : Number(body.sl);
+      let tp: number | null = body.tp === undefined || body.tp === null || body.tp === "" ? null : Number(body.tp);
+      if (sl !== null && (!isFinite(sl) || sl <= 0)) sl = null;
+      if (tp !== null && (!isFinite(tp) || tp <= 0)) tp = null;
+      if (sl !== null && ((side === "buy" && sl >= fill) || (side === "sell" && sl <= fill))) return err("SL must be on the loss side of entry");
+      if (tp !== null && ((side === "buy" && tp <= fill) || (side === "sell" && tp >= fill))) return err("TP must be on the profit side of entry");
+
+      // margin check
+      const conv = await usdPerQuote(inst.quote);
+      if (conv === null) return reject("No conversion rate — order rejected", q);
+
+      // ---- challenge rule gates (see challenge-rules-engine.sql) ----
+      const A = acct as Acct;
+      const startBal = Number(A.starting_balance);
+
+      // Daily profit cap (Infinity: 3%). Hitting it blocks new orders for
+      // the rest of the UTC day — it is not a breach. Existing positions
+      // can still be managed and closed.
+      if (A.daily_profit_cap_pct != null) {
+        const gain = await todayGain(db, A, state.equity);
+        const cap = round2(startBal * Number(A.daily_profit_cap_pct) / 100);
+        if (gain >= cap) {
+          return reject(`Daily profit cap reached ($${cap.toFixed(2)}). New orders reopen at 00:00 UTC — you can still manage open positions.`, q);
+        }
+      }
+
+      // A risk cap is unverifiable without a stop, so the two travel together.
+      if (A.require_stop_loss && sl === null) {
+        return reject("This challenge requires a stop-loss on every order.", q);
+      }
+
+      // Max risk per trade (Infinity: 1% of starting balance).
+      if (A.max_risk_per_trade_pct != null && sl !== null) {
+        const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
+        const maxRisk = round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
+        if (riskUsd > maxRisk + 0.01) {
+          return reject(
+            `Risk on this order is $${riskUsd.toFixed(2)}, above the ${A.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)}). Reduce size or tighten the stop.`, q);
+        }
+      }
+      const needed = (inst.contract * volume * q.mid * conv) / LEVERAGE;
+      const used = await usedMarginUsd(state.open);
+      if (used + needed > state.equity) return reject("Insufficient margin ($" + Math.round(needed) + " needed)", q);
+
+      const v2 = rulesV2(A);
+      if (v2 && A.max_risk_per_trade_pct != null && sl !== null) {
+        const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
+        const openRisk = await openRiskUsd(state.open);
+        const cap = round2(startBal * Number(A.max_risk_per_trade_pct) / 100 * MAX_TOTAL_RISK_MULTIPLE);
+        if (openRisk + riskUsd > cap + 0.01) {
+          return reject(`Total open risk would be $${(openRisk + riskUsd).toFixed(2)}, above the ${Number(A.max_risk_per_trade_pct) * MAX_TOTAL_RISK_MULTIPLE}% limit ($${cap.toFixed(2)}). Close or tighten another position first.`, q);
+        }
+      }
+
+      await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);
+
+      let openPrice = fill;
+      let execInfo: Record<string, unknown> = {};
+      if (v2) {
+        const ex = await executeAtMarket(symbol, side === "buy", q, spec.slippageBps, true);
+        if (ex === null) return reject("Price feed dropped during execution — order not filled", q);
+        if (sl !== null && ((side === "buy" && sl >= ex.price) || (side === "sell" && sl <= ex.price))) {
+          return reject("Price moved through your stop-loss during execution — order not filled", ex.quote);
+        }
+        if (tp !== null && ((side === "buy" && tp <= ex.price) || (side === "sell" && tp >= ex.price))) {
+          return reject("Price moved through your take-profit during execution — order not filled", ex.quote);
+        }
+        if (A.max_risk_per_trade_pct != null && sl !== null) {
+          const riskAtFill = Math.abs(ex.price - sl) * inst.contract * volume * conv;
+          const maxRisk = round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
+          if (riskAtFill > maxRisk + 0.01) {
+            return reject(`Slippage took this order's risk to $${riskAtFill.toFixed(2)}, above the ${A.max_risk_per_trade_pct}% cap — order not filled`, ex.quote);
+          }
+        }
+        openPrice = ex.price;
+        execInfo = {
+          decision_price: ex.decision,
+          execution_shortfall: await shortfallUsd(symbol, side === "buy", ex.decision, ex.price, volume),
+          execution_latency_ms: ex.latencyMs,
+          pnl_basis: "NET_AFTER_COSTS",
+        };
+      }
+
+      const { data: inserted, error } = await db.from("trades").insert({
+        account_id: (acct as Acct).id, user_id: user.id, symbol, side, volume,
+        open_price: openPrice, sl, tp, ...execInfo,
+      }).select("id").single();
+      if (error) return reject("Order failed", q);
+
       await logAudit(db, {
-        user_id: user.id, account_id: (acct as Acct).id, event: "reject", reject_reason: reason,
-        symbol, side, requested_volume: volume, quote: q ?? null, client_ip: clientIp,
+        trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
+        symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPrice, quote: q, client_ip: clientIp,
       });
-      return err(reason, 409);
-    };
 
-    // fail-closed gates, in order: market session -> symbol enabled -> quote -> stale -> spread
-    if (!marketOpen(symbol)) return reject("Market is closed for this instrument");
-    const spec = await symbolCheck(db, symbol);
-    if (!spec.ok) return reject(spec.reason || "Symbol disabled");
-
-    const inst = INSTRUMENTS[symbol];
-    const q = await fetchQuote(symbol);
-    if (q === null) { await logFeedEvent(db, "outage", symbol, "open rejected: no quote"); return reject("No live price for " + symbol + " — order rejected"); }
-    if (quoteStale(q)) { await logFeedEvent(db, "stale", symbol, "open rejected: stale quote"); return reject("Price feed is stale — order rejected"); }
-    const maxSpread = spec.maxSpread ?? inst.maxSpread;
-    if (q.spread > maxSpread) { await logFeedEvent(db, "spike", symbol, `spread ${q.spread} > max ${maxSpread}`); return reject("Spread too wide — order rejected", q); }
-
-    const fill = side === "buy" ? q.ask : q.bid;
-
-    // SL/TP sanity (must be on the correct side of the fill)
-    let sl: number | null = body.sl === undefined || body.sl === null || body.sl === "" ? null : Number(body.sl);
-    let tp: number | null = body.tp === undefined || body.tp === null || body.tp === "" ? null : Number(body.tp);
-    if (sl !== null && (!isFinite(sl) || sl <= 0)) sl = null;
-    if (tp !== null && (!isFinite(tp) || tp <= 0)) tp = null;
-    if (sl !== null && ((side === "buy" && sl >= fill) || (side === "sell" && sl <= fill))) return err("SL must be on the loss side of entry");
-    if (tp !== null && ((side === "buy" && tp <= fill) || (side === "sell" && tp >= fill))) return err("TP must be on the profit side of entry");
-
-    // margin check
-    const conv = await usdPerQuote(inst.quote);
-    if (conv === null) return reject("No conversion rate — order rejected", q);
-
-    // ---- challenge rule gates (see challenge-rules-engine.sql) ----
-    const A = acct as Acct;
-    const startBal = Number(A.starting_balance);
-
-    // Daily profit cap (Infinity: 3%). Hitting it blocks new orders for
-    // the rest of the UTC day — it is not a breach. Existing positions
-    // can still be managed and closed.
-    if (A.daily_profit_cap_pct != null) {
-      const gain = await todayGain(db, A, state.equity);
-      const cap = round2(startBal * Number(A.daily_profit_cap_pct) / 100);
-      if (gain >= cap) {
-        return reject(`Daily profit cap reached ($${cap.toFixed(2)}). New orders reopen at 00:00 UTC — you can still manage open positions.`, q);
+      // mirror the open to the live account (fire-and-forget, if enabled)
+      if (inserted?.id) {
+        fireMirror(acct as Acct, { id: inserted.id, symbol, side, volume } as Tr, "open");
       }
+
+      await db.from("equity_snapshots").insert({
+        account_id: (acct as Acct).id, user_id: user.id, balance: (acct as Acct).balance, equity: state.equity,
+      });
+    } finally {
+      await releaseOrderLock(db, (acct as Acct).id);
     }
-
-    // A risk cap is unverifiable without a stop, so the two travel together.
-    if (A.require_stop_loss && sl === null) {
-      return reject("This challenge requires a stop-loss on every order.", q);
-    }
-
-    // Max risk per trade (Infinity: 1% of starting balance).
-    if (A.max_risk_per_trade_pct != null && sl !== null) {
-      const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
-      const maxRisk = round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
-      if (riskUsd > maxRisk + 0.01) {
-        return reject(
-          `Risk on this order is $${riskUsd.toFixed(2)}, above the ${A.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)}). Reduce size or tighten the stop.`, q);
-      }
-    }
-    const needed = (inst.contract * volume * q.mid * conv) / LEVERAGE;
-    const used = await usedMarginUsd(state.open);
-    if (used + needed > state.equity) return reject("Insufficient margin ($" + Math.round(needed) + " needed)", q);
-
-    const { data: inserted, error } = await db.from("trades").insert({
-      account_id: (acct as Acct).id, user_id: user.id, symbol, side, volume,
-      open_price: fill, sl, tp,
-    }).select("id").single();
-    if (error) return reject("Order failed", q);
-
-    await logAudit(db, {
-      trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
-      symbol, side, requested_volume: volume, requested_price: fill, fill_price: fill, quote: q, client_ip: clientIp,
-    });
-
-    // mirror the open to the live account (fire-and-forget, if enabled)
-    if (inserted?.id) {
-      fireMirror(acct as Acct, { id: inserted.id, symbol, side, volume } as Tr, "open");
-    }
-
-    await db.from("equity_snapshots").insert({
-      account_id: (acct as Acct).id, user_id: user.id, balance: (acct as Acct).balance, equity: state.equity,
-    });
   } else if (action === "close") {
     const id = typeof body.trade_id === "string" ? body.trade_id : null;
     const target = state.open.find((t) => t.id === id);
@@ -1663,16 +1895,46 @@ Deno.serve(async (req) => {
     const q = await fetchQuote(target.symbol);
     if (q === null) return err("No live price — try again", 503);
     if (quoteStale(q)) { await logFeedEvent(db, "stale", target.symbol, "close rejected: stale quote"); return err("Price feed is stale — try again", 503); }
-    const exit = target.side === "buy" ? q.bid : q.ask;
-    const done = await closeTrade(db, acct as Acct, target, exit, "manual", q, clientIp);
-    if (!done) return err("Close failed", 500);
+    let exit = target.side === "buy" ? q.bid : q.ask;
+    let execInfo: { shortfallUsd?: number } | undefined;
+    if (rulesV2(acct as Acct)) {
+      const spec = await symbolCheck(db, target.symbol);
+      const takingAsk = target.side === "sell";
+      const ex = await executeAtMarket(target.symbol, takingAsk, q, spec.slippageBps, false);
+      if (ex) {
+        exit = ex.price;
+        execInfo = { shortfallUsd: await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, Number(target.volume)) };
+      }
+    }
+    const done = await closeTrade(db, acct as Acct, target, exit, "manual", q, clientIp, execInfo);
+    if (!done) return err("This position was already closed (for example by its stop or take-profit)", 409);
   } else if (action === "close_all") {
+    const v2c = rulesV2(acct as Acct);
+    const arrivals = new Map<string, Quote>();
     for (const t of state.open) {
       const q = await fetchQuote(t.symbol);
-      if (q !== null && !quoteStale(q)) {
-        const exit = t.side === "buy" ? q.bid : q.ask;
-        await closeTrade(db, acct as Acct, t, exit, "manual", q, clientIp);
+      if (q !== null && !quoteStale(q)) arrivals.set(t.id, q);
+    }
+    // One shared execution delay for the whole batch rather than one per position.
+    if (v2c && arrivals.size) {
+      await new Promise((resolve) => setTimeout(resolve,
+        EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1))));
+    }
+    for (const t of state.open) {
+      const q = arrivals.get(t.id);
+      if (!q) continue;
+      let exit = t.side === "buy" ? q.bid : q.ask;
+      let execInfo: { shortfallUsd?: number } | undefined;
+      if (v2c) {
+        const spec = await symbolCheck(db, t.symbol);
+        const takingAsk = t.side === "sell";
+        const ex = await executeAtMarket(t.symbol, takingAsk, q, spec.slippageBps, false, true);
+        if (ex) {
+          exit = ex.price;
+          execInfo = { shortfallUsd: await shortfallUsd(t.symbol, takingAsk, ex.decision, ex.price, Number(t.volume)) };
+        }
       }
+      await closeTrade(db, acct as Acct, t, exit, "manual", q, clientIp, execInfo);
     }
 
   // ---- modify: move the stop-loss / take-profit on a live position ----
@@ -1704,7 +1966,8 @@ Deno.serve(async (req) => {
     if (A2.max_risk_per_trade_pct != null && nsl !== null) {
       const inst2 = INSTRUMENTS[target.symbol];
       const conv2 = await usdPerQuote(inst2.quote);
-      if (conv2 !== null) {
+      if (conv2 === null) return err("Could not check this stop against your risk limit — try again", 503);
+      {
         const riskUsd = Math.abs(Number(target.open_price) - nsl) * inst2.contract * Number(target.volume) * conv2;
         const maxRisk = round2(Number(A2.starting_balance) * Number(A2.max_risk_per_trade_pct) / 100);
         if (riskUsd > maxRisk + 0.01) {
@@ -1736,7 +1999,18 @@ Deno.serve(async (req) => {
     const q = await fetchQuote(target.symbol);
     if (q === null) return err("No live price — try again", 503);
     if (quoteStale(q)) return err("Price feed is stale — try again", 503);
-    const exit = target.side === "buy" ? q.bid : q.ask;
+    let exit = target.side === "buy" ? q.bid : q.ask;
+    const v2p = rulesV2(acct as Acct);
+    const specP = v2p ? await symbolCheck(db, target.symbol) : null;
+    let sliceShortfall = 0;
+    if (specP) {
+      const takingAsk = target.side === "sell";
+      const ex = await executeAtMarket(target.symbol, takingAsk, q, specP.slippageBps, false);
+      if (ex) {
+        exit = ex.price;
+        sliceShortfall = await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, vol);
+      }
+    }
 
     // Claim the volume FIRST, conditioned on the position still being open
     // AND still at the volume we read it at (optimistic check — nothing
@@ -1756,13 +2030,15 @@ Deno.serve(async (req) => {
     }
 
     const slice = { ...target, volume: vol } as Tr;
-    const pnl = await tradePnl(slice, exit);
-    if (pnl === null) {
+    const grossPnl = await tradePnl(slice, exit);
+    if (grossPnl === null) {
       // Roll back the claim — we cannot price the close, so give the
       // volume back rather than leaving the position stuck short.
       await db.from("trades").update({ volume: full }).eq("id", target.id);
       return err("Could not price the close", 503);
     }
+    const sliceCommission = specP ? round2(specP.commissionPerLot * vol) : 0;
+    const pnl = grossPnl - sliceCommission;
 
     const { data: closedSlice, error: insErr } = await db.from("trades").insert({
       account_id: (acct as Acct).id, user_id: user.id, symbol: target.symbol,
@@ -1770,6 +2046,7 @@ Deno.serve(async (req) => {
       sl: target.sl, tp: target.tp, status: "closed", close_price: exit,
       pnl: round2(pnl), close_reason: "partial", opened_at: target.opened_at,
       closed_at: new Date().toISOString(),
+      ...(v2p ? { commission: sliceCommission, execution_shortfall: sliceShortfall, pnl_basis: "NET_AFTER_COSTS" } : {}),
     }).select("id").single();
     if (insErr || !closedSlice) {
       await db.from("trades").update({ volume: full }).eq("id", target.id);

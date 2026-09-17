@@ -357,6 +357,13 @@
             line-height: 1.6;
         }
 
+        .consent-label {
+            display: flex; gap: 10px; align-items: flex-start; text-align: left;
+            font-size: 0.85rem; font-weight: 400; color: var(--muted); line-height: 1.5; cursor: pointer;
+        }
+        .consent-label input { width: 16px; height: 16px; margin-top: 3px; flex-shrink: 0; accent-color: var(--cobalt); }
+        .consent-label a { color: var(--cobalt); }
+
         .form-group {
             margin-bottom: 1.25rem;
             text-align: left;
@@ -811,6 +818,14 @@
                     <div class="promo-type-note" id="promoTypeNote">Select your account type above to continue</div>
                 </div>
 
+                <div class="form-group consent-group">
+                    <label class="consent-label" for="consent">
+                        <input type="checkbox" id="consent" required>
+                        <span>I confirm I am 18 or older and agree to the <a href="/terms.html" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                    </label>
+                    <div class="error-message" id="consentError">Please confirm you are 18 or older and accept the terms</div>
+                </div>
+
                 <button type="submit" class="btn-signup" id="submitBtn">Create Account</button>
             </form>
 
@@ -1177,8 +1192,10 @@
             const isPasswordMatchValid = validatePasswordMatch();
             const isCountryValid = validateCountry();
             const isReferralCodeValid = await validateReferralCode();
+            const isConsentGiven = document.getElementById('consent').checked;
+            document.getElementById('consentError').classList.toggle('show', !isConsentGiven);
 
-            if (!isNameValid || !isEmailValid || !isCountryValid || !isPasswordValid || !isPasswordMatchValid || !isReferralCodeValid) {
+            if (!isNameValid || !isEmailValid || !isCountryValid || !isPasswordValid || !isPasswordMatchValid || !isReferralCodeValid || !isConsentGiven) {
                 if (countryInput.value && RESTRICTED_COUNTRIES[countryInput.value]) {
                     showAlert('IPFX Capital is not available in your country.', 'error');
                 } else {
@@ -1202,6 +1219,9 @@
                         data: {
                             full_name: fullNameInput.value,
                             country_code: countryInput.value,
+                            age_confirmed: true,
+                            terms_version: '1.1',
+                            privacy_version: '1.0',
                             referral_code: referralCodeInput.value.trim().toUpperCase() || null,
                             promo_code: validatedPromo ? validatedPromo.code : null,
                             promo_account_type: validatedPromo ? (promoAccountType || 'traditional') : null
