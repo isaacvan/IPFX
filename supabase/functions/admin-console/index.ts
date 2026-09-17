@@ -28,6 +28,7 @@
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { allowRequest, readJsonObject, RequestError, requestId, safeErrorCode } from "../_shared/request-guards.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -522,11 +523,9 @@ function midChallengeSignal(
 }
 
 Deno.serve(async (req) => {
+  const traceId = requestId(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return err("POST only", 405);
-
-  let body: Record<string, unknown>;
-  try { body = await req.json(); } catch (_) { return err("bad json"); }
 
   // authenticate
   const authClient = createClient(
@@ -537,6 +536,17 @@ Deno.serve(async (req) => {
   if (!user) return err("Not signed in", 401);
 
   const db: Db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  let body: Record<string, unknown>;
+  try { body = await readJsonObject(req, 32_768); }
+  catch (error) { return err(error instanceof RequestError && error.status === 413 ? "request too large" : "bad json", error instanceof RequestError ? error.status : 400); }
+
+  try {
+    if (!await allowRequest(db, "admin:request", user.id, 120, 60)) return err("Too many admin requests — wait before retrying.", 429);
+  } catch (error) {
+    console.error(JSON.stringify({ event: "admin_rate_limit", request_id: traceId, code: safeErrorCode(error) }));
+    return err("Admin request protection unavailable", 503);
+  }
 
   // admin gate (fail-closed)
   const { data: adminRow } = await db.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
@@ -551,7 +561,7 @@ Deno.serve(async (req) => {
   async function logAdmin(actionName: string, opts: { targetUser?: string; targetAccount?: string; detail?: Record<string, unknown> } = {}) {
     try {
       await db.from("admin_audit_log").insert({
-        actor_id: user.id, action: actionName,
+        actor_id: user!.id, action: actionName,
         target_user_id: opts.targetUser ?? null, target_account_id: opts.targetAccount ?? null,
         detail: opts.detail ?? null,
       });
@@ -1167,7 +1177,7 @@ Deno.serve(async (req) => {
       }
 
       // -- surfaced opportunity: a genuinely strong mid-challenge signal, not just a problem --
-      if (sig.status === "scored" && !sig.vetoes.length && sig.risk_blind === false && (sig.signal_score ?? 0) >= 70 && a.phase !== "funded") {
+      if (sig.status === "scored" && !sig.vetoes.length && "risk_blind" in sig && sig.risk_blind === false && (sig.signal_score ?? 0) >= 70 && a.phase !== "funded") {
         flags.push({ severity: "low", category: "opportunity", label: `High-quality signal (score ${sig.signal_score}) — worth a closer look`, detail: sig.note });
       }
 
@@ -1201,17 +1211,23 @@ Deno.serve(async (req) => {
   // state change (mark reviewed/dismissed) -- it never touches an account.
   if (action === "trade_safety_review") {
     const status = ["open", "reviewed", "dismissed"].includes(String(body.status)) ? String(body.status) : "open";
-    const { data: flagRows, error: flagErr } = await db.from("trade_safety_flags")
+    const pageSize = Math.min(200, Math.max(20, Number(body.page_size) || 100));
+    const before = typeof body.before === "string" && !Number.isNaN(Date.parse(body.before)) ? body.before : null;
+    let flagQuery = db.from("trade_safety_flags")
       .select("id,trade_id,account_id,user_id,reason,evidence,status,created_at")
-      .eq("status", status).order("created_at", { ascending: false }).limit(200);
+      .eq("status", status).order("created_at", { ascending: false }).limit(pageSize + 1);
+    if (before) flagQuery = flagQuery.lt("created_at", before);
+    const { data: rawFlagRows, error: flagErr } = await flagQuery;
     if (flagErr) return err("Could not load trade safety flags", 500);
+    const hasMore = (rawFlagRows?.length ?? 0) > pageSize;
+    const flagRows = (rawFlagRows ?? []).slice(0, pageSize);
     const userIds = [...new Set((flagRows ?? []).map((f: Record<string, unknown>) => f.user_id as string))];
     const { data: profiles } = userIds.length
       ? await db.from("user_profiles").select("user_id,full_name").in("user_id", userIds)
       : { data: [] };
     const nameBy = new Map<string, string>((profiles ?? []).map((p: Record<string, unknown>) => [p.user_id as string, p.full_name as string]));
     const out = (flagRows ?? []).map((f: Record<string, unknown>) => ({ ...f, full_name: nameBy.get(f.user_id as string) || "—" }));
-    return json({ ok: true, status, flags: out });
+    return json({ ok: true, status, flags: out, has_more: hasMore, next_cursor: hasMore ? flagRows.at(-1)?.created_at ?? null : null });
   }
 
   if (action === "trade_safety_mark") {
@@ -1228,10 +1244,15 @@ Deno.serve(async (req) => {
   // this whole function already is) ----
   if (action === "audit_log") {
     const target_user = body.user_id ? String(body.user_id) : null;
-    let q = db.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(200);
+    const pageSize = Math.min(200, Math.max(20, Number(body.page_size) || 100));
+    const before = typeof body.before === "string" && !Number.isNaN(Date.parse(body.before)) ? body.before : null;
+    let q = db.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(pageSize + 1);
     if (target_user) q = q.eq("target_user_id", target_user);
-    const { data } = await q;
-    return json({ ok: true, entries: data ?? [] });
+    if (before) q = q.lt("created_at", before);
+    const { data: rows } = await q;
+    const hasMore = (rows?.length ?? 0) > pageSize;
+    const entries = (rows ?? []).slice(0, pageSize);
+    return json({ ok: true, entries, has_more: hasMore, next_cursor: hasMore ? entries.at(-1)?.created_at ?? null : null });
   }
 
   // ---- private trader intelligence: every trade a trader has taken,

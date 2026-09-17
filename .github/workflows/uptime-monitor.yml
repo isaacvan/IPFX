@@ -1,0 +1,36 @@
+name: IPFX Uptime Monitor
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ipfx-uptime-monitor
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public site and trading app
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_page() {
+            local url="$1"
+            local marker="$2"
+            local body
+            body="$(mktemp)"
+            status="$(curl --silent --show-error --location --retry 2 --retry-all-errors \
+              --connect-timeout 5 --max-time 15 --output "$body" --write-out '%{http_code}' "$url")"
+            test "$status" = "200"
+            grep --fixed-strings --quiet "$marker" "$body"
+          }
+          check_page 'https://ipfxcapital.com/' 'IPFX'
+          check_page 'https://ipfxcapital.com/trading.html' 'IPFX Markets'
+

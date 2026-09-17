@@ -29,7 +29,7 @@ for(const file of publicPages){
  }
 }
 const siteJs=read('assets/js/site-foundation.js');
-ok(siteJs.includes('CONSENT_KEY')&&siteJs.indexOf('saveConsent')<siteJs.indexOf('loadAnalytics();\n    panel.hidden'), 'analytics is not consent-gated');
+ok(siteJs.includes('CONSENT_KEY')&&/if \(value === ["']analytics["']\) loadAnalytics\(\)/.test(siteJs), 'analytics is not consent-gated');
 ok(siteJs.includes('navigator.share')&&siteJs.includes('navigator.clipboard'), 'share fallbacks incomplete');
 const robots=read('robots.txt');ok(robots.includes('Sitemap: https://ipfxcapital.com/sitemap.xml'),'robots.txt missing sitemap');ok(robots.includes('Disallow: /dashboard.html')&&robots.includes('Disallow: /trading.html'),'robots.txt exposes private application routes');
 const sitemap=read('sitemap.xml');for(const file of publicPages)ok(sitemap.includes(file==='index.html'?'https://ipfxcapital.com/':`https://ipfxcapital.com/${file}`),`sitemap missing ${file}`);

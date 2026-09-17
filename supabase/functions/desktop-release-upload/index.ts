@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { allowRequest, readJsonObject, RequestError, requestId, safeErrorCode } from "../_shared/request-guards.ts";
 
 const EXPECTED_ISSUER = "https://token.actions.githubusercontent.com";
 const EXPECTED_AUDIENCE = "ipfx-desktop-upload";
@@ -22,11 +23,11 @@ function json(body: JsonObject, status = 200): Response {
   });
 }
 
-function decodeBase64Url(value: string): Uint8Array {
+function decodeBase64Url(value: string): ArrayBuffer {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
   const binary = atob(padded);
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0)).buffer as ArrayBuffer;
 }
 
 function decodeJsonPart(value: string): JsonObject {
@@ -37,6 +38,7 @@ async function getJwks(): Promise<JsonObject[]> {
   if (jwks && Date.now() - jwks.fetchedAt < 60 * 60 * 1000) return jwks.keys;
   const response = await fetch(`${EXPECTED_ISSUER}/.well-known/jwks`, {
     headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error("GitHub signing keys unavailable");
   const body = await response.json() as { keys?: JsonObject[] };
@@ -93,14 +95,15 @@ async function verifyGitHubToken(token: string): Promise<JsonObject> {
 }
 
 Deno.serve(async (request) => {
+  const traceId = requestId(request);
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
     const authorization = request.headers.get("authorization") || "";
     if (!authorization.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-    await verifyGitHubToken(authorization.slice(7));
+    const claims = await verifyGitHubToken(authorization.slice(7));
 
-    const body = await request.json() as { path?: unknown };
+    const body = await readJsonObject(request, 4_096) as { path?: unknown };
     if (typeof body.path !== "string" || !ALLOWED_PATH.test(body.path)) {
       return json({ error: "Release path not allowed" }, 400);
     }
@@ -109,18 +112,24 @@ Deno.serve(async (request) => {
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRole) return json({ error: "Storage configuration unavailable" }, 500);
 
-    const storage = createClient(supabaseUrl, serviceRole, {
+    const client = createClient(supabaseUrl, serviceRole, {
       auth: { autoRefreshToken: false, persistSession: false },
-    }).storage;
+    });
+    const subject = `${claims.repository}:${claims.ref}`;
+    if (!await allowRequest(client, "desktop:release_upload", subject, 100, 600)) {
+      return json({ error: "Upload authorization rate exceeded" }, 429);
+    }
+    const storage = client.storage;
     const { data, error } = await storage.from(BUCKET).createSignedUploadUrl(body.path, { upsert: true });
     if (error || !data?.token) {
-      console.error("signed upload creation failed", error);
+      console.error(JSON.stringify({ event: "desktop_signed_upload", request_id: traceId, code: error?.name ?? "NO_TOKEN" }));
       return json({ error: "Signed upload could not be created" }, 500);
     }
 
     return json({ path: body.path, token: data.token });
   } catch (error) {
-    console.error("desktop release upload authorization failed", error);
+    console.error(JSON.stringify({ event: "desktop_release_authorization", request_id: traceId, code: safeErrorCode(error) }));
+    if (error instanceof RequestError) return json({ error: error.status === 413 ? "Request is too large" : error.message }, error.status);
     return json({ error: "Unauthorized" }, 401);
   }
 });
