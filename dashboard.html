@@ -1110,6 +1110,8 @@ async function initDashboard(){
   document.getElementById('uName').textContent=name;
   document.getElementById('uEmail').textContent=user.email;
 
+  await redeemSignupPromo(user).catch(()=>{});
+
   // load accounts, claims, profile + referrals in parallel
   const[{data:enrollments},{data:claims},{data:profile},{data:referralRows}]=await Promise.all([
     sb.from('challenge_enrollments').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
@@ -1322,20 +1324,38 @@ function selectDashType(type,btn){
   btn.classList.add('sel');
   document.getElementById('dashPromoClaimBtn').style.display='';
 }
+function promoRedeemError(error){
+  const m=String(error&&error.message||'');
+  if(m.includes('PROMO_ALREADY_CLAIMED'))return'You have already claimed this code.';
+  if(m.includes('PROMO_INVALID'))return'Invalid or expired challenge code.';
+  if(m.includes('EMAIL_NOT_VERIFIED'))return'Verify your email address, then claim your code.';
+  return'Error claiming code. Please try again.';
+}
+// A code entered at signup is saved on the account and redeemed here, once
+// the email is verified — the server decides whether it is still valid.
+async function redeemSignupPromo(user){
+  const code=String(user&&user.user_metadata&&user.user_metadata.promo_code||'').trim();
+  if(!code)return;
+  const key='ipfx-signup-promo:'+user.id+':'+code.toUpperCase();
+  try{if(localStorage.getItem(key))return;}catch(_){}
+  const type=user.user_metadata.promo_account_type==='futures'?'futures':'traditional';
+  const{error}=await sb.rpc('redeem_promo_code',{p_code:code,p_account_type:type});
+  const m=String(error&&error.message||'');
+  const settled=!error||m.includes('PROMO_ALREADY_CLAIMED')||m.includes('PROMO_INVALID');
+  if(settled){try{localStorage.setItem(key,'1');}catch(_){}}
+}
 async function claimDashPromo(){
   if(!dashValidCode||!dashSelectedType)return;
   const btn=document.getElementById('dashPromoClaimBtn');
   const s=document.getElementById('dashPromoStatus');
   btn.disabled=true;btn.textContent='Claiming…';
   try{
-    const{data:{user}}=await sb.auth.getUser();
-    const{data:existing}=await sb.from('challenge_claims').select('id').eq('user_id',user.id).eq('promo_code',dashValidCode).maybeSingle();
-    if(existing){
-      s.className='promo-redeem-status err';s.textContent='✕ You have already claimed this code.';
+    const{error}=await sb.rpc('redeem_promo_code',{p_code:dashValidCode,p_account_type:dashSelectedType});
+    if(error){
+      const msg=promoRedeemError(error);
+      s.className='promo-redeem-status err';s.textContent='✕ '+msg;
       btn.disabled=false;btn.textContent='Claim My Challenge →';return;
     }
-    const{error}=await sb.from('challenge_claims').insert({user_id:user.id,promo_code:dashValidCode,challenge_type:dashPromoData.challenge_type,challenge_name:dashPromoData.challenge_name,account_type:dashSelectedType});
-    if(error)throw error;
     s.className='promo-redeem-status ok';s.textContent='✓ Challenge claimed! Reloading your accounts…';
     document.getElementById('dashPromoTypePicker').style.display='none';
     btn.style.display='none';

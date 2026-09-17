@@ -1203,32 +1203,19 @@
                             full_name: fullNameInput.value,
                             country_code: countryInput.value,
                             referral_code: referralCodeInput.value.trim().toUpperCase() || null,
-                            promo_code: validatedPromo ? validatedPromo.code : null
+                            promo_code: validatedPromo ? validatedPromo.code : null,
+                            promo_account_type: validatedPromo ? (promoAccountType || 'traditional') : null
                         }
                     }
                 });
 
                 if (error) throw error;
 
-                // Claim free challenge if a valid promo code was entered
-                if (validatedPromo && data.user) {
-                    try {
-                        await supabaseClient.from('challenge_claims').insert({
-                            user_id: data.user.id,
-                            promo_code: validatedPromo.code,
-                            challenge_type: validatedPromo.challenge_type,
-                            challenge_name: validatedPromo.challenge_name,
-                            account_type: promoAccountType || 'traditional'
-                        });
-                    } catch(claimErr) {
-                        console.warn('Promo claim insert failed:', claimErr);
-                    }
-                }
-
-                const msg = validatedPromo
-                    ? `Account created! Your free <strong>${validatedPromo.challenge_name}</strong> has been reserved. Redirecting to login…`
+                // The promo is redeemed server-side on the dashboard after the
+                // email is verified (redeem_promo_code), never inserted from here.
+                alertBox.textContent = validatedPromo
+                    ? `Account created! Verify your email, then log in — your ${validatedPromo.challenge_name} will be added to your dashboard. Redirecting to login…`
                     : 'Account created! Redirecting to login…';
-                alertBox.innerHTML = msg;
                 alertBox.className = 'alert alert-success show';
                 setTimeout(() => {
                     alertBox.classList.remove('show');

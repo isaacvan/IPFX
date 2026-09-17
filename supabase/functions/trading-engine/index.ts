@@ -695,7 +695,8 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     .select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at");
   let open: Tr[] = openRows ?? [];
 
-  // SL/TP auto-close (fills at the exact SL/TP level once the live bid/ask crosses it)
+  // SL/TP auto-close. A stop fills at the worse of its level and the live price, so a gap
+  // through the stop costs what the market cost; a take-profit fills at its level.
   if (acct.status === "active") {
     const still: Tr[] = [];
     for (const t of open) {
@@ -706,10 +707,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const tp = t.tp === null ? null : Number(t.tp);
       let done = false;
       if (t.side === "buy") {
-        if (sl !== null && ex <= sl) done = await closeTrade(db, acct, t, sl, "sl", q);
+        if (sl !== null && ex <= sl) done = await closeTrade(db, acct, t, Math.min(sl, ex), "sl", q);
         else if (tp !== null && ex >= tp) done = await closeTrade(db, acct, t, tp, "tp", q);
       } else {
-        if (sl !== null && ex >= sl) done = await closeTrade(db, acct, t, sl, "sl", q);
+        if (sl !== null && ex >= sl) done = await closeTrade(db, acct, t, Math.max(sl, ex), "sl", q);
         else if (tp !== null && ex <= tp) done = await closeTrade(db, acct, t, tp, "tp", q);
       }
       if (!done) still.push(t);
