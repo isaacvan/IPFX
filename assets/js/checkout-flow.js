@@ -5,7 +5,7 @@
   const db = window.supabase?.createClient ? window.supabase.createClient(url, anon) : null;
   const $ = id => document.getElementById(id);
   let tier = null, quote = null, stripe = null, elements = null, element = null;
-  let checkout = null, generation = 0, busy = false, verifiedEmail = '';
+  let checkout = null, generation = 0, busy = false, verifiedEmail = '', existingKyc = false;
   const REQUEST_TIMEOUT_MS = 12000;
   function step(n) {
     document.querySelectorAll('.step-content').forEach(el => el.classList.toggle('active', el.id === 'step' + n));
@@ -24,6 +24,33 @@
     const card = document.querySelector('.tier-card.selected');
     return card?.dataset.sku || ('trad_' + tier + '_p1');
   }
+  const allowedDocumentTypes = new Set(['image/jpeg','image/png','image/webp','image/heic','application/pdf']);
+  function validateDocument(file, label) {
+    if (!file) throw new Error(label + ' is required.');
+    if (file.size > 10 * 1024 * 1024) throw new Error(label + ' must be 10 MB or smaller.');
+    if (!allowedDocumentTypes.has(file.type)) throw new Error(label + ' must be JPEG, PNG, WebP, HEIC or PDF.');
+  }
+  function extensionFor(file) {
+    const byMime = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/heic':'heic','application/pdf':'pdf'};
+    return byMime[file.type] || 'bin';
+  }
+  async function uploadVerificationDocuments(user) {
+    if (existingKyc) return;
+    const idFront = $('idFront').files[0], idBack = $('idBack').files[0], address = $('proofOfAddress').files[0];
+    validateDocument(idFront, 'Photo ID'); validateDocument(address, 'Proof of address');
+    if (idBack) validateDocument(idBack, 'ID back');
+    const docs = [['id_front',idFront],['proof_of_address',address],...(idBack?[['id_back',idBack]]:[])];
+    const uploaded = [];
+    for (const [docType,file] of docs) {
+      const path = user.id + '/' + crypto.randomUUID() + '-' + docType + '.' + extensionFor(file);
+      const {error} = await db.storage.from('kyc-documents').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+      if (error) throw new Error('Could not securely upload ' + docType.replaceAll('_',' ') + '. Please try again.');
+      uploaded.push({doc_type:docType,storage_path:path});
+    }
+    const {error} = await db.rpc('submit_kyc',{p_documents:uploaded});
+    if (error) throw new Error('Your documents uploaded, but verification could not be submitted. Please try again; duplicates are safely ignored.');
+    existingKyc = true;
+  }
   async function saveIdentity() {
     const { data:{user}, error: userError } = await db.auth.getUser();
     if (userError || !user) {
@@ -36,10 +63,10 @@
     if (!dob || new Date(dob + 'T12:00:00') > adultCutoff) throw new Error('You must be at least 18 years old.');
     const profile = {
       legal_first_name: $('firstName').value.trim(), legal_last_name: $('lastName').value.trim(),
-      legal_middle_names: '', date_of_birth: dob, phone_e164: $('phone').value.trim(),
+      legal_middle_names: $('middleNames').value.trim(), date_of_birth: dob, phone_e164: $('phone').value.trim(),
       address_line_1: $('addressLine1').value.trim(), address_line_2: $('addressLine2').value.trim(),
       city: $('city').value.trim(), region: $('region').value.trim(), postal_code: $('postalCode').value.trim(),
-      country_code: $('country').value, nationality_code: $('country').value === 'ZZ' ? null : $('country').value,
+      country_code: $('country').value, nationality_code: $('nationality').value,
     };
     const { error } = await db.rpc('submit_identity_profile', { p_profile: profile });
     if (error) {
@@ -51,17 +78,34 @@
   function challengeTypeForSku(sku) {
     if (sku.startsWith('fut_')) return 'futures';
     if (sku.startsWith('pac_')) return 'pac';
+    if (sku.startsWith('infinity_')) return 'infinity';
     return 'traditional';
   }
   async function submitChallengeReview() {
     const sku = selectedSku();
     const details = {
-      source: 'website_checkout',
+      source: 'unified_challenge_application',
       experience: $('experience').value,
       referral_source: $('referral').value || null,
+      employment_status: $('employmentStatus').value,
+      occupation: $('occupation').value.trim(),
+      source_of_funds: $('sourceOfFunds').value,
+      expected_activity: $('expectedActivity').value,
+      purpose: $('purpose').value,
+      pep_status: $('pepStatus').value,
+      id_document_type: $('idDocumentType').value,
+      id_issuing_country: $('idIssuingCountry').value,
+      id_expiry_date: $('idExpiry').value,
+      proof_of_address_date: $('proofAddressDate').value,
       age_confirmed: $('ageConfirm').checked,
       terms_accepted: $('terms').checked,
       cancellation_waiver: $('cancellationWaiver').checked,
+      own_behalf_confirmed: $('ownBehalf').checked,
+      information_accurate: $('accuracyConfirm').checked,
+      risk_disclosure_accepted: $('riskConfirm').checked,
+      screening_acknowledged: $('screeningConsent').checked,
+      privacy_notice_version: '2026-09-challenge-kyc-v1',
+      terms_version: '2026-09',
       newsletter: $('newsletter').checked,
     };
     const { data, error } = await db.rpc('submit_challenge_application', {
@@ -89,6 +133,16 @@
       el.classList.toggle('completed', i < 1);
     });
     $('progressFill').style.width = '33.333%';
+    window.scrollTo({top:0,behavior:'auto'});
+  }
+  function showApproved(application) {
+    const section = $('step2');
+    section.innerHTML = `<div class="form-section" style="text-align:center;padding:48px 30px">
+      <div style="width:54px;height:54px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:rgba(52,211,153,.12);color:#6ee7b7;font-size:24px">✓</div>
+      <h2 style="margin-bottom:12px">Approved for this challenge: Yes</h2>
+      <p style="max-width:560px;margin:0 auto;color:var(--muted);line-height:1.7">Your IPFX review is complete. ${application?.challenge_type === 'infinity' ? 'Your free Infinity challenge is ready in your account.' : 'Your personalised challenge has been approved; the team will confirm the next activation step.'}</p>
+      <a href="/dashboard.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:24px">Open your account</a>
+    </div>`;
     window.scrollTo({top:0,behavior:'auto'});
   }
   async function call(body, fn) {
@@ -190,26 +244,34 @@
   $('step1Next').addEventListener('click', () => step(2));
   $('step2Back').addEventListener('click', () => step(1));
   $('step2Next').addEventListener('click', async () => {
-    const fields = ['firstName','lastName','email','phone','dateOfBirth','addressLine1','city','postalCode','country','experience'];
+    $('applicationError').style.display='none';
+    const fields = ['firstName','lastName','email','phone','dateOfBirth','addressLine1','city','postalCode','country','nationality','experience','employmentStatus','occupation','sourceOfFunds','expectedActivity','purpose','pepStatus','idDocumentType','idIssuingCountry','idExpiry','proofAddressDate'];
     for (const id of fields) {
       if (!$(id).value.trim() || !$(id).checkValidity()) { $(id).reportValidity(); $(id).focus(); return; }
     }
-    for (const id of ['ageConfirm','terms','cancellationWaiver']) {
+    for (const id of ['ageConfirm','terms','cancellationWaiver','ownBehalf','accuracyConfirm','riskConfirm','screeningConsent']) {
       if (!$(id).checked) { $(id).focus(); $(id).reportValidity(); return; }
     }
     const btn = $('step2Next');
     btn.disabled = true; btn.textContent = 'Securing your details…';
     try {
       await saveIdentity();
+      const {data:{user}} = await db.auth.getUser();
+      await uploadVerificationDocuments(user);
       const application = await submitChallengeReview();
       if (application?.status === 'approved') {
-        step(3);
-        await mountPayment();
+        const type = challengeTypeForSku(selectedSku());
+        if (type === 'traditional' || type === 'futures') { step(3); await mountPayment(); }
+        else showApproved(application);
       } else {
         showReview(application);
       }
     }
-    catch (error) { message(error.message || 'Could not save your details.'); }
+    catch (error) {
+      $('applicationError').textContent=error.message || 'Could not save your details.';
+      $('applicationError').style.display='block';
+      $('applicationError').scrollIntoView({behavior:'smooth',block:'center'});
+    }
     finally { btn.disabled = false; btn.textContent = 'Continue'; }
   });
   $('step3Back').addEventListener('click', () => step(2));
@@ -279,12 +341,20 @@
     const { data:{user} } = await db.auth.getUser();
     if (!user) return;
     $('email').value = user.email || ''; $('email').readOnly = true;
-    const { data:p } = await db.rpc('get_my_identity_profile');
+    const [{data:p},{data:k}] = await Promise.all([
+      db.rpc('get_my_identity_profile'),
+      db.from('trader_kyc').select('status').eq('user_id',user.id).in('status',['pending','verified']).maybeSingle(),
+    ]);
+    if (k) {
+      existingKyc=true; $('kycExisting').style.display='block'; $('kycFiles').style.display='none';
+      $('kycFiles').querySelectorAll('[required]').forEach(el=>el.required=false);
+    }
     if (!p?.complete) return;
-    $('firstName').value=p.legal_first_name||''; $('lastName').value=p.legal_last_name||'';
+    $('firstName').value=p.legal_first_name||''; $('middleNames').value=p.legal_middle_names||''; $('lastName').value=p.legal_last_name||'';
     $('phone').value=p.phone_e164||''; $('dateOfBirth').value=p.date_of_birth||'';
     $('addressLine1').value=p.address_line_1||''; $('addressLine2').value=p.address_line_2||'';
     $('city').value=p.city||''; $('region').value=p.region||''; $('postalCode').value=p.postal_code||'';
     if ([...$('country').options].some(o=>o.value===p.country_code)) $('country').value=p.country_code;
+    if ([...$('nationality').options].some(o=>o.value===p.nationality_code)) $('nationality').value=p.nationality_code;
   })().catch(()=>{});
 })();

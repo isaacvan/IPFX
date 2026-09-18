@@ -1195,25 +1195,9 @@ async function initDashboard(){
   document.getElementById('uEmail').textContent=user.email;
 
   const requestedStart=new URLSearchParams(location.search).get('start');
-  if(requestedStart==='infinity'){
-    const ready=await ensureIdentityProfile();
-    if(ready){
-      const started=await engineCall({action:'claim_infinity',confirm_age:true});
-      if(started?.ok){
-        history.replaceState({},'',location.pathname);
-        if(started.pending_review) alert(started.message||'Your challenge request will be reviewed within the next 24 hours.');
-      }
-      else if(started?.error) alert(started.error);
-    }
-  }else if(requestedStart==='pac'){
-    const ready=await ensureIdentityProfile();
-    const application=ready?await collectPacApplication():null;
-    if(application){
-      history.replaceState({},'',location.pathname);
-      alert(application?.status==='approved'
-        ? 'Approved for this challenge: Yes. Your approved challenge is ready.'
-        : 'Your challenge application will be reviewed within the next 24 hours.');
-    }
+  if(requestedStart==='infinity'||requestedStart==='pac'){
+    location.replace('/start-challenge.html?type='+encodeURIComponent(requestedStart));
+    return;
   }
 
   await redeemSignupPromo(user).catch(()=>{});
@@ -1397,25 +1381,12 @@ async function loadInfinityPanel(){
   }
   panel.innerHTML=`<div style="display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap">
     <div style="min-width:220px;flex:1"><div style="font-weight:700;margin-bottom:.3rem">${esc(title)}</div><div style="font-size:.82rem;color:var(--muted)">${esc(sub)} <a href="infinity.html" target="_blank" style="color:var(--cobalt)">See the rules</a></div>
-    ${st.needs_age_confirmation?'<label style="display:flex;gap:.5rem;align-items:center;margin-top:.6rem;font-size:.8rem;color:var(--muted)"><input type="checkbox" id="infAge"> I confirm I am 18 or older and accept the <a href="terms.html" target="_blank" style="color:var(--cobalt)">Terms</a></label>':''}
     <div id="infMsg" style="font-size:.8rem;margin-top:.5rem;display:none"></div></div>
-    <button class="cbtn p" id="infBtn" onclick="claimInfinity()">${st.application_status==='approved'?'Open approved challenge':'Apply for review'}</button></div>`;
+    <button class="cbtn p" id="infBtn" onclick="claimInfinity()">${st.application_status==='approved'?'Open approved challenge':'Complete application'}</button></div>`;
   panel.style.display='';
 }
 async function claimInfinity(){
-  const btn=document.getElementById('infBtn'),msg=document.getElementById('infMsg'),age=document.getElementById('infAge');
-  if(age&&!age.checked){msg.style.display='';msg.style.color='#f59e0b';msg.textContent='Please confirm you are 18 or older.';return;}
-  if(!await ensureIdentityProfile())return;
-  btn.disabled=true;btn.textContent='Submitting…';
-  const r=await engineCall({action:'claim_infinity',confirm_age:age?age.checked:undefined});
-  if(!r||!r.ok){btn.disabled=false;btn.textContent='Try again';msg.style.display='';msg.style.color='#ef4444';msg.textContent=(r&&r.error)||'Could not start your challenge.';return;}
-  msg.style.display='';msg.style.color='#10b981';
-  if(r.pending_review){
-    msg.textContent=r.message||'Your challenge request will be reviewed within the next 24 hours.';
-    btn.style.display='none';return;
-  }
-  msg.textContent='Your approved $1,000 Infinity account is ready. Opening your accounts…';
-  setTimeout(()=>{acLoaded=false;initDashboard();},900);
+  window.location.href='/start-challenge.html?type=infinity';
 }
 
 async function signOut(){

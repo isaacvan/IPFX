@@ -614,6 +614,39 @@
             text-decoration: underline;
         }
 
+        .compliance-heading {
+            margin: 34px 0 8px;
+            padding-top: 28px;
+            border-top: 1px solid var(--line);
+            font-family: 'Space Grotesk', 'Inter', system-ui;
+            font-size: 1.15rem;
+            color: var(--fg);
+        }
+        .compliance-copy, .field-help {
+            color: var(--muted);
+            font-size: .82rem;
+            line-height: 1.55;
+        }
+        .compliance-copy { margin: 0 0 22px; }
+        .field-help { margin-top: 7px; }
+        .upload-card {
+            padding: 18px;
+            border: 1px dashed rgba(96,165,250,.45);
+            border-radius: 10px;
+            background: rgba(37,99,235,.045);
+        }
+        .upload-card input[type=file] { padding: 10px; }
+        .kyc-status {
+            display: none;
+            margin: 0 0 22px;
+            padding: 12px 15px;
+            border: 1px solid rgba(52,211,153,.25);
+            border-radius: 9px;
+            background: rgba(52,211,153,.07);
+            color: #6ee7b7;
+            font-size: .84rem;
+        }
+
         /* Payment Methods */
         .payment-methods {
             display: grid;
@@ -1136,7 +1169,7 @@
                 </div>
                 <div class="step" data-step="2">
                     <div class="step-circle">2</div>
-                    <div class="step-label">Your Details</div>
+                    <div class="step-label">Application</div>
                 </div>
                 <div class="step" data-step="3">
                     <div class="step-circle">3</div>
@@ -1243,6 +1276,10 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label for="middleNames">Middle Name(s)</label>
+                    <input type="text" id="middleNames" name="middle_names" autocomplete="additional-name" maxlength="120">
+                </div>
+                <div class="form-group">
                     <label for="dateOfBirth">Date of Birth <span class="required">*</span></label>
                     <input type="date" id="dateOfBirth" name="date_of_birth" autocomplete="bday" required>
                 </div>
@@ -1268,21 +1305,17 @@
                     <label for="postalCode">Postcode / Postal Code <span class="required">*</span></label>
                     <input type="text" id="postalCode" name="postal_code" autocomplete="postal-code" maxlength="24" required>
                 </div>
+                <div class="form-grid">
                 <div class="form-group">
-                    <label for="country">Country <span class="required">*</span></label>
+                    <label for="country">Country of Residence <span class="required">*</span></label>
                     <select id="country" name="country" autocomplete="country-name" required>
                         <option value="">Select your country</option>
-                        <option value="GB">United Kingdom</option>
-                        <option value="US" disabled>United States (not currently available)</option>
-                        <option value="CA">Canada</option>
-                        <option value="AU">Australia</option>
-                        <option value="DE">Germany</option>
-                        <option value="FR">France</option>
-                        <option value="ES">Spain</option>
-                        <option value="IT">Italy</option>
-                        <option value="NL">Netherlands</option>
-                        <option value="ZZ">Other</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="nationality">Nationality <span class="required">*</span></label>
+                    <select id="nationality" name="nationality" required><option value="">Select nationality</option></select>
+                </div>
                 </div>
                 <div class="form-group">
                     <label for="experience">Trading Experience <span class="required">*</span></label>
@@ -1305,23 +1338,55 @@
                         <option value="other">Other</option>
                     </select>
                 </div>
+                <h3 class="compliance-heading">Identity and suitability</h3>
+                <p class="compliance-copy">We use these details to verify identity, assess eligibility and protect the platform. Only the IPFX review team can access uploaded documents.</p>
+                <div class="form-grid">
+                    <div class="form-group"><label for="employmentStatus">Employment Status <span class="required">*</span></label><select id="employmentStatus" required><option value="">Select status</option><option value="employed">Employed</option><option value="self_employed">Self-employed</option><option value="student">Student</option><option value="retired">Retired</option><option value="unemployed">Not currently employed</option></select></div>
+                    <div class="form-group"><label for="occupation">Occupation <span class="required">*</span></label><input id="occupation" maxlength="120" placeholder="Your current occupation" required></div>
+                    <div class="form-group"><label for="sourceOfFunds">Source of Funds <span class="required">*</span></label><select id="sourceOfFunds" required><option value="">Select source</option><option value="employment_income">Employment income</option><option value="business_income">Business income</option><option value="savings">Savings</option><option value="investments">Investment income</option><option value="pension">Pension</option><option value="family_support">Family support / gift</option><option value="other">Other lawful source</option></select></div>
+                    <div class="form-group"><label for="expectedActivity">Expected Challenge Activity <span class="required">*</span></label><select id="expectedActivity" required><option value="">Select activity</option><option value="casual">Occasional</option><option value="part_time">Regular / part-time</option><option value="full_time">Frequent / full-time</option></select></div>
+                </div>
+                <div class="form-group"><label for="purpose">Purpose of the Account <span class="required">*</span></label><select id="purpose" required><option value="">Select purpose</option><option value="challenge_evaluation">Participate in IPFX simulated trading evaluations</option><option value="skill_development">Develop and demonstrate trading skill</option></select></div>
+                <div class="form-group"><label for="pepStatus">Are you, a close family member, or a close associate a politically exposed person (PEP)? <span class="required">*</span></label><select id="pepStatus" required><option value="">Select one</option><option value="no">No</option><option value="yes">Yes</option><option value="unsure">Unsure</option></select><div class="field-help">A Yes or Unsure answer does not automatically reject an application; it triggers additional review.</div></div>
+
+                <h3 class="compliance-heading">Verification documents</h3>
+                <p class="compliance-copy">Upload a clear government-issued photo ID and proof of your residential address dated within the last 3 months. JPEG, PNG, WebP, HEIC or PDF; maximum 10 MB each. Do not upload a selfie.</p>
+                <div id="kycExisting" class="kyc-status">Your existing verification documents are already on file. You can submit this application without uploading them again.</div>
+                <div id="kycUploads">
+                    <div class="form-grid" id="kycMetadata">
+                        <div class="form-group"><label for="idDocumentType">ID Type <span class="required">*</span></label><select id="idDocumentType" required><option value="">Select document</option><option value="passport">Passport</option><option value="driving_licence">Driving licence</option><option value="national_id">National identity card</option></select></div>
+                        <div class="form-group"><label for="idIssuingCountry">Issuing Country <span class="required">*</span></label><select id="idIssuingCountry" required><option value="">Select country</option></select></div>
+                        <div class="form-group"><label for="idExpiry">ID Expiry Date <span class="required">*</span></label><input type="date" id="idExpiry" required></div>
+                        <div class="form-group"><label for="proofAddressDate">Proof of Address Date <span class="required">*</span></label><input type="date" id="proofAddressDate" required></div>
+                    </div>
+                    <div class="form-grid" id="kycFiles">
+                        <div class="form-group upload-card"><label for="idFront">Photo ID <span class="required">*</span></label><input type="file" id="idFront" accept=".jpg,.jpeg,.png,.webp,.heic,.pdf,application/pdf,image/jpeg,image/png,image/webp,image/heic" required></div>
+                        <div class="form-group upload-card"><label for="idBack">ID Back (if applicable)</label><input type="file" id="idBack" accept=".jpg,.jpeg,.png,.webp,.heic,.pdf,application/pdf,image/jpeg,image/png,image/webp,image/heic"></div>
+                        <div class="form-group upload-card"><label for="proofOfAddress">Proof of Address <span class="required">*</span></label><input type="file" id="proofOfAddress" accept=".jpg,.jpeg,.png,.webp,.heic,.pdf,application/pdf,image/jpeg,image/png,image/webp,image/heic" required></div>
+                    </div>
+                </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="ageConfirm" required>
                     <label for="ageConfirm">I confirm I am 18 years of age or older <span class="required">*</span></label>
                 </div>
+                <div class="checkbox-group"><input type="checkbox" id="ownBehalf" required><label for="ownBehalf">I am applying on my own behalf and the information and documents provided belong to me. <span class="required">*</span></label></div>
+                <div class="checkbox-group"><input type="checkbox" id="accuracyConfirm" required><label for="accuracyConfirm">I confirm the information is complete and accurate and I will notify IPFX if it changes. <span class="required">*</span></label></div>
+                <div class="checkbox-group"><input type="checkbox" id="riskConfirm" required><label for="riskConfirm">I understand this is a simulated trading evaluation, not a deposit or investment account, and I have read the <a href="/risk-disclosure.html" target="_blank" rel="noopener">Risk Disclosure</a>. <span class="required">*</span></label></div>
+                <div class="checkbox-group"><input type="checkbox" id="screeningConsent" required><label for="screeningConsent">I acknowledge that IPFX may perform identity, sanctions and PEP screening and request additional evidence where necessary. <span class="required">*</span></label></div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" required>
                     <label for="terms">I agree to the <a href="/terms.html">Terms & Conditions</a> and <a href="/privacy.html">Privacy Policy</a> <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="cancellationWaiver" required>
-                    <label for="cancellationWaiver">I want my Challenge to start immediately once payment is confirmed, and I understand that I lose my 14-day right to a full refund as soon as I place my first trade (see Terms &amp; Conditions §6) <span class="required">*</span></label>
+                    <label for="cancellationWaiver" id="cancellationLabel">I want my Challenge to start immediately once payment is confirmed, and I understand that I lose my 14-day right to a full refund as soon as I place my first trade (see Terms &amp; Conditions §6) <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="newsletter">
                     <label for="newsletter">Send me trading tips and IPFX updates via email</label>
                 </div>
             </div>
+            <div id="applicationError" class="pay-error" role="alert" style="display:none;margin:0 0 18px"></div>
             <div class="button-group">
                 <button class="btn-secondary" id="step2Back">Back</button>
                 <button class="btn-primary" id="step2Next">Continue</button>
@@ -1456,29 +1521,45 @@
     <!-- Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
     <script>
-    // The same protected checkout provisions both evaluation families. The
-    // server still owns the SKU price and challenge rules.
+    // One protected application experience for every IPFX challenge family.
+    // The server still owns every preset, price and challenge rule.
     (() => {
-      if (new URLSearchParams(location.search).get('type') !== 'futures') return;
+      const type = new URLSearchParams(location.search).get('type') || 'traditional';
       const section = document.querySelector('#step1 .form-section');
-      section.querySelector('h2').textContent = 'Futures Challenge';
-      section.querySelector('p').textContent = 'Two phases with end-of-day trailing drawdown, disciplined trade-count requirements and an 85% funded profit split.';
-      document.querySelector('.os-tier-sub').textContent = 'Futures Challenge · 2 phases';
-      const tiers = [
-        ['25k','fut_25k_p1',129,'25K'],['50k','fut_50k_p1',179,'50K'],
-        ['100k','fut_100k_p1',329,'100K'],['150k','fut_150k_p1',479,'150K']
-      ];
-      section.querySelector('.tier-grid').innerHTML = tiers.map(([tier,sku,fee,label]) => `
+      const configs = {
+        futures: { title:'Futures Challenge', copy:'Two phases with end-of-day trailing drawdown, disciplined trade-count requirements and an 85% funded profit split.', sub:'Futures Challenge · 2 phases', tiers:[['25k','fut_25k_p1',129,'25K'],['50k','fut_50k_p1',179,'50K'],['100k','fut_100k_p1',329,'100K'],['150k','fut_150k_p1',479,'150K']] },
+        infinity: { title:'Infinity Challenge', copy:'A free simulated evaluation. Complete verification first; an IPFX team member decides whether the challenge can start.', sub:'Infinity Challenge · Free application', tiers:[['infinity','infinity_s1',0,'Infinity']] },
+        pac: { title:'Personalised Challenge', copy:'Choose your preferred capital level, then submit your identity and suitability details for a tailored analyst review.', sub:'Personalised Challenge · Application', tiers:[['25k','pac_25k',149,'25K'],['50k','pac_50k',249,'50K'],['100k','pac_100k',399,'100K'],['250k','pac_250k',699,'250K']] }
+      };
+      const config = configs[type];
+      if (!config) return;
+      section.querySelector('h2').textContent = config.title;
+      section.querySelector('p').textContent = config.copy;
+      document.querySelector('.os-tier-sub').textContent = config.sub;
+      section.querySelector('.tier-grid').innerHTML = config.tiers.map(([tier,sku,fee,label]) => `
         <div class="tier-card" data-tier="${tier}" data-sku="${sku}" data-price="${fee}" data-preset-price="${sku}" role="radio" aria-checked="false" tabindex="0">
-          <div class="checkmark">✓</div><h3>$${label}</h3>
-          <div class="tier-price" data-preset="${sku}" data-field="fee">$${fee}</div>
-          <div class="tier-refund">Refunds subject to terms</div>
+          <div class="checkmark">✓</div><h3>${label === 'Infinity' ? label : '$'+label}</h3>
+          <div class="tier-price" data-preset="${sku}" data-field="fee">${fee ? '$'+fee : 'Free'}</div>
+          <div class="tier-refund">${fee ? 'Payment only after approval' : 'No payment required'}</div>
           <div class="tier-features">
-            <div class="tier-feature" data-preset="${sku}" data-field="daily_amt" data-suffix=" daily loss limit">2% daily loss limit</div>
-            <div class="tier-feature" data-preset="${sku}" data-field="dd_amt" data-suffix=" trailing drawdown">4% trailing drawdown</div>
-            <div class="tier-feature" data-preset="${sku}" data-field="target_amt" data-suffix=" Phase 1 profit target">6% Phase 1 target</div>
+            <div class="tier-feature">Identity and address review</div>
+            <div class="tier-feature">Manual eligibility decision</div>
+            <div class="tier-feature">Response within 24 hours</div>
           </div>
         </div>`).join('');
+      if (type === 'infinity' || type === 'pac') {
+        document.querySelectorAll('.step').forEach((el, i) => { if (i > 1) el.style.display='none'; });
+        document.querySelector('.progress-line').style.width='50%';
+        document.querySelector('.progress-steps').style.justifyContent='space-around';
+        document.getElementById('cancellationLabel').innerHTML='I want the Challenge to start as soon as it is approved, and I understand that the service begins immediately once access is issued (see Terms &amp; Conditions §6) <span class="required">*</span>';
+      }
+
+      const countries = [['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],['AG','Antigua & Barbuda'],['AR','Argentina'],['AM','Armenia'],['AU','Australia'],['AT','Austria'],['AZ','Azerbaijan'],['BS','Bahamas'],['BH','Bahrain'],['BD','Bangladesh'],['BB','Barbados'],['BE','Belgium'],['BZ','Belize'],['BJ','Benin'],['BT','Bhutan'],['BO','Bolivia'],['BA','Bosnia & Herzegovina'],['BW','Botswana'],['BR','Brazil'],['BN','Brunei'],['BG','Bulgaria'],['BF','Burkina Faso'],['BI','Burundi'],['KH','Cambodia'],['CM','Cameroon'],['CA','Canada'],['CV','Cape Verde'],['CL','Chile'],['CN','China'],['CO','Colombia'],['KM','Comoros'],['CG','Congo'],['CR','Costa Rica'],['HR','Croatia'],['CY','Cyprus'],['CZ','Czechia'],['DK','Denmark'],['DJ','Djibouti'],['DM','Dominica'],['DO','Dominican Republic'],['EC','Ecuador'],['EG','Egypt'],['SV','El Salvador'],['EE','Estonia'],['SZ','Eswatini'],['ET','Ethiopia'],['FJ','Fiji'],['FI','Finland'],['FR','France'],['GA','Gabon'],['GM','Gambia'],['GE','Georgia'],['DE','Germany'],['GH','Ghana'],['GR','Greece'],['GD','Grenada'],['GT','Guatemala'],['GN','Guinea'],['GY','Guyana'],['HT','Haiti'],['HN','Honduras'],['HK','Hong Kong'],['HU','Hungary'],['IS','Iceland'],['IN','India'],['ID','Indonesia'],['IE','Ireland'],['IL','Israel'],['IT','Italy'],['JM','Jamaica'],['JP','Japan'],['JO','Jordan'],['KZ','Kazakhstan'],['KE','Kenya'],['KW','Kuwait'],['KG','Kyrgyzstan'],['LA','Laos'],['LV','Latvia'],['LB','Lebanon'],['LS','Lesotho'],['LR','Liberia'],['LI','Liechtenstein'],['LT','Lithuania'],['LU','Luxembourg'],['MO','Macau'],['MG','Madagascar'],['MW','Malawi'],['MY','Malaysia'],['MV','Maldives'],['ML','Mali'],['MT','Malta'],['MU','Mauritius'],['MX','Mexico'],['MD','Moldova'],['MC','Monaco'],['MN','Mongolia'],['ME','Montenegro'],['MA','Morocco'],['MZ','Mozambique'],['NA','Namibia'],['NP','Nepal'],['NL','Netherlands'],['NZ','New Zealand'],['NI','Nicaragua'],['NE','Niger'],['NG','Nigeria'],['MK','North Macedonia'],['NO','Norway'],['OM','Oman'],['PK','Pakistan'],['PA','Panama'],['PG','Papua New Guinea'],['PY','Paraguay'],['PE','Peru'],['PH','Philippines'],['PL','Poland'],['PT','Portugal'],['QA','Qatar'],['RO','Romania'],['RW','Rwanda'],['KN','Saint Kitts & Nevis'],['LC','Saint Lucia'],['WS','Samoa'],['SM','San Marino'],['SA','Saudi Arabia'],['SN','Senegal'],['RS','Serbia'],['SC','Seychelles'],['SL','Sierra Leone'],['SG','Singapore'],['SK','Slovakia'],['SI','Slovenia'],['ZA','South Africa'],['KR','South Korea'],['ES','Spain'],['LK','Sri Lanka'],['SR','Suriname'],['SE','Sweden'],['CH','Switzerland'],['TW','Taiwan'],['TZ','Tanzania'],['TH','Thailand'],['TG','Togo'],['TO','Tonga'],['TT','Trinidad & Tobago'],['TN','Tunisia'],['TR','Türkiye'],['UG','Uganda'],['UA','Ukraine'],['AE','United Arab Emirates'],['GB','United Kingdom'],['US','United States'],['UY','Uruguay'],['UZ','Uzbekistan'],['VU','Vanuatu'],['VE','Venezuela'],['VN','Vietnam'],['ZM','Zambia'],['ZW','Zimbabwe']];
+      const restricted = new Set(['CU','IR','KP','SY']);
+      for (const id of ['country','nationality','idIssuingCountry']) {
+        const select=document.getElementById(id);
+        countries.forEach(([code,name])=>{const option=document.createElement('option');option.value=code;option.textContent=name;if(id==='country'&&(restricted.has(code)||code==='US')){option.disabled=true;option.textContent+=' (not currently available)'}select.appendChild(option)});
+      }
     })();
     </script>
 

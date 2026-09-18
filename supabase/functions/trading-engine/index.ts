@@ -811,17 +811,19 @@ async function infinityStatus(db: Db, user: any) {
     a.preset_id === "infinity_s1" && a.created_at >= monthStart).length;
   const { data: preset } = await db.from("challenge_presets").select("*").eq("id", "infinity_s1").maybeSingle();
   const cap = Number(preset?.max_attempts_per_month ?? 3);
-  const [{ data: profile }, { data: identity }, { data: application }] = await Promise.all([
+  const [{ data: profile }, { data: identity }, { data: application }, { data: kyc }] = await Promise.all([
     db.from("user_profiles").select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle(),
     db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle(),
     db.from("challenge_enrolment_requests").select("id,status,decision_note,trading_account_id")
       .eq("user_id", user.id).eq("preset_id", "infinity_s1").maybeSingle(),
+    db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle(),
   ]);
   let reason: string | null = null;
   if (!preset) reason = "The Infinity Challenge is unavailable right now.";
   else if (!user.email_confirmed_at) reason = "Verify your email address first — check your inbox for the confirmation link.";
   else if (profile?.restricted_jurisdiction) reason = "Sorry — we can't offer challenges in your jurisdiction.";
   else if (!identity) reason = "Complete your identity and residential address before starting the challenge.";
+  else if (!["pending", "verified"].includes(String(kyc?.status ?? ""))) reason = "Complete the identity-document application before starting the challenge.";
   else if (hasActive) reason = "You already have an active challenge. Finish it before starting another.";
   else if (used >= cap) reason = `You've used all ${cap} Infinity attempts this month. They reset on the 1st.`;
   return {
@@ -846,6 +848,10 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
 
   const { data: identity } = await db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle();
   if (!identity) return { ok: false, status: 409, error: "Complete your identity and residential address before activating a challenge." };
+  const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle();
+  if (!["pending", "verified"].includes(String(kyc?.status ?? ""))) {
+    return { ok: false, status: 409, error: "Complete the challenge application and identity-document upload before activation." };
+  }
 
   const { data: profile } = await db.from("user_profiles").select("restricted_jurisdiction").eq("user_id", user.id).maybeSingle();
   if (profile?.restricted_jurisdiction) {
@@ -869,11 +875,7 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
     .select("id,status,decision_note,trading_account_id")
     .eq("user_id", user.id).eq("preset_id", presetId).maybeSingle();
   if (!application) {
-    await db.from("challenge_enrolment_requests").insert({
-      user_id: user.id, challenge_type: preset.challenge_type, preset_id: presetId,
-      status: "pending", application_details: { source: "promo_claim", promo_code: claim.promo_code },
-    });
-    return { ok: false, status: 403, error: "Your challenge request was submitted and will be reviewed within 24 hours." };
+    return { ok: false, status: 403, error: "Choose this challenge on the website and complete the identity-document application before review." };
   }
   if (application.status === "pending") {
     return { ok: false, status: 403, error: "Your challenge request is waiting for review. We aim to decide within 24 hours." };
@@ -1673,19 +1675,7 @@ Deno.serve(async (req) => {
         .select("id,status,decision_note,trading_account_id")
         .eq("user_id", user.id).eq("preset_id", "infinity_s1").maybeSingle();
       if (!application) {
-        const { data: pending, error: pendingError } = await db.from("challenge_enrolment_requests").insert({
-          user_id: user.id, challenge_type: "infinity", preset_id: "infinity_s1",
-          status: "pending",
-          application_details: {
-            source: "dashboard", age_confirmed: true,
-            submitted_at: new Date().toISOString(),
-          },
-        }).select("id,status").single();
-        if (pendingError || !pending) return err("Could not submit your review request — please try again.", 503);
-        return new Response(JSON.stringify({
-          ok: true, pending_review: true, application: pending,
-          message: "Your challenge request will be reviewed within the next 24 hours.",
-        }), { headers: { ...CORS, "Content-Type": "application/json" } });
+        return err("Complete the challenge application, declarations and identity-document upload on the website first. Once submitted, it will be reviewed within the next 24 hours.", 409);
       }
       if (application.status === "pending") {
         return new Response(JSON.stringify({

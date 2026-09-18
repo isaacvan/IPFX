@@ -1573,7 +1573,7 @@ Deno.serve(async (req) => {
     if (error) return err("Could not load applications", 503);
     const userIds = [...new Set((rows ?? []).map((row) => row.user_id))];
     const presetIds = [...new Set((rows ?? []).map((row) => row.preset_id))];
-    const [{ data: identities }, { data: presets }, { data: authUsers }] = await Promise.all([
+    const [{ data: identities }, { data: presets }, { data: authUsers }, { data: kycRows }, { data: documentRows }] = await Promise.all([
       userIds.length
         ? db.from("trader_identity_private").select("user_id,legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code").in("user_id", userIds)
         : Promise.resolve({ data: [] }),
@@ -1581,15 +1581,39 @@ Deno.serve(async (req) => {
         ? db.from("challenge_presets").select("id,label,starting_balance,fee_usd").in("id", presetIds)
         : Promise.resolve({ data: [] }),
       db.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      userIds.length
+        ? db.from("trader_kyc").select("user_id,status,note,updated_at").in("user_id", userIds)
+        : Promise.resolve({ data: [] }),
+      userIds.length
+        ? db.from("kyc_submissions").select("user_id,doc_type,storage_path,created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(3000)
+        : Promise.resolve({ data: [] }),
     ]);
     const identityByUser = new Map((identities ?? []).map((item) => [item.user_id, item]));
     const presetById = new Map((presets ?? []).map((item) => [item.id, item]));
     const emailByUser = new Map((authUsers?.users ?? []).map((item) => [item.id, item.email ?? null]));
+    const kycByUser = new Map((kycRows ?? []).map((item) => [item.user_id, item]));
+    const latestDocuments = new Map<string, Record<string, unknown>>();
+    for (const item of documentRows ?? []) {
+      const key = item.user_id + ':' + item.doc_type;
+      if (!latestDocuments.has(key)) latestDocuments.set(key, item);
+    }
+    const uniqueDocuments = [...latestDocuments.values()];
+    const paths = uniqueDocuments.map((item) => String(item.storage_path));
+    const signedByPath = new Map<string, string | null>();
+    if (paths.length) {
+      const { data: signed } = await db.storage.from("kyc-documents").createSignedUrls(paths, 300);
+      for (const item of signed ?? []) signedByPath.set(String(item.path), item.signedUrl ?? null);
+    }
     const out = (rows ?? []).map((row) => ({
       ...row,
       email: emailByUser.get(row.user_id) ?? null,
       identity: identityByUser.get(row.user_id) ?? null,
       preset: presetById.get(row.preset_id) ?? null,
+      kyc: kycByUser.get(row.user_id) ?? { status: 'unverified' },
+      documents: uniqueDocuments.filter((item) => item.user_id === row.user_id).map((item) => ({
+        doc_type: item.doc_type, uploaded_at: item.created_at,
+        url: signedByPath.get(String(item.storage_path)) ?? null,
+      })),
     }));
     const { error: auditError } = await db.from("admin_audit_log").insert({
       actor_id: user.id, action: "challenge_application_queue_view", detail: { trader_ids: out.map((r) => r.user_id) },
@@ -1608,11 +1632,30 @@ Deno.serve(async (req) => {
       .eq("id", applicationId).maybeSingle();
     if (!current) return err("Application not found", 404);
     const decidedAt = new Date().toISOString();
+    const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", current.user_id).maybeSingle();
+    if (status === "approved" && !["pending", "verified"].includes(String(kyc?.status ?? ""))) {
+      return err("This trader has no reviewable identity documents", 409);
+    }
+    let kycPromoted = false;
+    if (status === "approved" && kyc?.status !== "verified") {
+      const { error: kycError } = await db.from("trader_kyc").upsert({
+        user_id: current.user_id, status: "verified", note,
+        verified_by: user.id, verified_at: decidedAt, updated_at: decidedAt,
+      }, { onConflict: "user_id" });
+      if (kycError) return err("Could not verify identity documents; the challenge was not approved", 503);
+      kycPromoted = true;
+    }
     const { error } = await db.from("challenge_enrolment_requests").update({
       status, decision_note: note, reviewed_by: user.id,
       reviewed_at: decidedAt, updated_at: decidedAt,
     }).eq("id", applicationId);
-    if (error) return err("Could not update application", 503);
+    if (error) {
+      if (kycPromoted) await db.from("trader_kyc").update({
+        status: "pending", note: null, verified_by: null, verified_at: null,
+        updated_at: new Date().toISOString(),
+      }).eq("user_id", current.user_id);
+      return err("Could not update application", 503);
+    }
     let accountId = current.trading_account_id ?? null;
     // Infinity is free: a Yes decision can safely issue the account at once.
     // Paid programmes are only unlocked for checkout by approval; payment

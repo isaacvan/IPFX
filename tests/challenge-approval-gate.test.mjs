@@ -57,8 +57,6 @@ test('owner decision screen says Yes or No and refreshes every ten seconds', () 
 test('traders see the 24-hour review state and cannot pay before approval', () => {
   assert.match(checkout, /review whether you can start this challenge within the next 24 hours/i);
   assert.match(checkout, /No payment has been requested and no trading account has been created/i);
-  assert.match(engine, /pending_review: true/);
   assert.match(engine, /reviewed within the next 24 hours/i);
-  assert.match(dashboard, /reviewed within the next 24 hours/i);
+  assert.match(dashboard, /start-challenge\.html\?type=/i);
 });
-

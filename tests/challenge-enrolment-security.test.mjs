@@ -51,8 +51,8 @@ test('Infinity and Futures CTAs retain the selected product', () => {
   const infinity = read('infinity.html');
   const futures = read('futures.html');
   const pac = read('personalised-challenge.html');
-  assert.match(infinity, /dashboard\.html\?start=infinity/);
+  assert.match(infinity, /start-challenge\.html\?type=infinity/);
   assert.match(futures, /start-challenge\.html\?type=futures#25k/);
-  assert.match(pac, /dashboard\.html\?start=pac/);
+  assert.match(pac, /start-challenge\.html\?type=pac/);
   assert.match(read('start-challenge.html'), /data-sku="trad_10k_p1"/);
 });
