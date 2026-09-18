@@ -48,6 +48,49 @@
       throw new Error('We could not securely save your identity details. Check every required field and try again.');
     }
   }
+  function challengeTypeForSku(sku) {
+    if (sku.startsWith('fut_')) return 'futures';
+    if (sku.startsWith('pac_')) return 'pac';
+    return 'traditional';
+  }
+  async function submitChallengeReview() {
+    const sku = selectedSku();
+    const details = {
+      source: 'website_checkout',
+      experience: $('experience').value,
+      referral_source: $('referral').value || null,
+      age_confirmed: $('ageConfirm').checked,
+      terms_accepted: $('terms').checked,
+      cancellation_waiver: $('cancellationWaiver').checked,
+      newsletter: $('newsletter').checked,
+    };
+    const { data, error } = await db.rpc('submit_challenge_application', {
+      p_challenge_type: challengeTypeForSku(sku),
+      p_details: details,
+      p_preset_id: sku,
+    });
+    if (error) throw new Error('We could not submit your challenge application. Check your details and try again.');
+    return data;
+  }
+  function showReview(application) {
+    const denied = application?.status === 'denied';
+    const section = $('step2');
+    section.innerHTML = `<div class="form-section" style="text-align:center;padding:48px 30px">
+      <div style="width:54px;height:54px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:${denied?'rgba(239,68,68,.12)':'rgba(37,99,235,.12)'};color:${denied?'#ef4444':'#60a5fa'};font-size:24px">${denied?'×':'✓'}</div>
+      <h2 style="margin-bottom:12px">${denied?'Approved for this challenge: No':'Application received'}</h2>
+      <p style="max-width:560px;margin:0 auto;color:var(--muted);line-height:1.7">${denied
+        ? (application.decision_note || 'This challenge request was not approved.')
+        : 'Your identity, address and challenge details have been submitted securely. We will review whether you can start this challenge within the next 24 hours.'}</p>
+      ${denied?'':'<p style="margin-top:14px;color:#94a3b8;font-size:.84rem">No payment has been requested and no trading account has been created.</p>'}
+      <a href="/dashboard.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:24px">View application status</a>
+    </div>`;
+    document.querySelectorAll('.step').forEach((el, i) => {
+      el.classList.toggle('active', i === 1);
+      el.classList.toggle('completed', i < 1);
+    });
+    $('progressFill').style.width = '33.333%';
+    window.scrollTo({top:0,behavior:'auto'});
+  }
   async function call(body, fn) {
     const {data:{session}} = await db.auth.getSession();
     if (!session) throw new Error('Sign in or create and verify your account before checkout.');
@@ -156,7 +199,16 @@
     }
     const btn = $('step2Next');
     btn.disabled = true; btn.textContent = 'Securing your details…';
-    try { await saveIdentity(); step(3); await mountPayment(); }
+    try {
+      await saveIdentity();
+      const application = await submitChallengeReview();
+      if (application?.status === 'approved') {
+        step(3);
+        await mountPayment();
+      } else {
+        showReview(application);
+      }
+    }
     catch (error) { message(error.message || 'Could not save your details.'); }
     finally { btn.disabled = false; btn.textContent = 'Continue'; }
   });

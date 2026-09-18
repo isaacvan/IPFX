@@ -150,6 +150,11 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
     <div style="font-size:.85rem;color:#f98a8a"><strong>Trading halted:</strong> <span id="haltReasonTxt"></span></div>
     <button class="btn btn-o" onclick="setPlatformHalt(false)">Resume trading</button>
   </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 .75rem;gap:.5rem;flex-wrap:wrap">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Challenge approval queue <span style="font-weight:400;text-transform:none;letter-spacing:0">· refreshes every 10 seconds</span></h2>
+    <button class="chip" onclick="loadApplicationQueue()">Refresh approvals</button>
+  </div>
+  <div id="applicationQueue" style="margin-bottom:1.75rem"><div class="msg" style="padding:1.25rem">Loading challenge applications…</div></div>
   <!-- TRADER PERFORMANCE BOARD: every account at a glance, plus where the
        trader detector currently places it. Sits first because "how is every
        trader doing" is the question you open this page (or the phone app) to
@@ -218,12 +223,6 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
     <button class="chip" onclick="loadKycQueue()">Load review queue</button>
   </div>
   <div id="kycQueue"><div class="msg" style="padding:1.25rem">Not loaded — click <b>Load review queue</b>.</div></div>
-
-  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem">
-    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Personalised Challenge applications</h2>
-    <button class="chip" onclick="loadApplicationQueue()">Load applications</button>
-  </div>
-  <div id="applicationQueue"><div class="msg" style="padding:1.25rem">Not loaded — click <b>Load applications</b>.</div></div>
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem;gap:.5rem;flex-wrap:wrap">
     <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Promo codes</h2>
@@ -1127,20 +1126,25 @@ async function kycDecide(userId,status){
 }
 async function loadApplicationQueue(){
   const wrap=document.getElementById('applicationQueue');
-  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Loading…</div>';
+  if(!wrap.dataset.loaded)wrap.innerHTML='<div class="msg" style="padding:1.25rem">Loading…</div>';
   const r=await call({action:'application_queue'});
   if(!r){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Could not load applications. MFA is required.</div>';return}
-  if(!r.applications.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No applications are waiting.</div>';return}
-  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Identity</th><th>Strategy</th><th>Experience</th><th>Capital</th><th>Decision</th></tr></thead><tbody>${r.applications.map(a=>{const i=a.identity||{},d=a.application_details||{};return`<tr>
+  wrap.dataset.loaded='1';
+  if(!r.applications.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No challenge applications yet.</div>';return}
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Challenge</th><th>Identity &amp; address</th><th>Application details</th><th>Approved for this challenge?</th></tr></thead><tbody>${r.applications.map(a=>{const i=a.identity||{},d=a.application_details||{},yes=a.status==='approved',no=a.status==='denied';return`<tr>
     <td><div>${esc([i.legal_first_name,i.legal_last_name].filter(Boolean).join(' ')||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(a.email||'')}</div><div class="mono" style="font-size:.65rem;color:var(--muted2)">${esc(a.user_id)}</div></td>
-    <td><div>${esc(i.date_of_birth||'—')} · ${esc(i.phone_e164||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc([i.address_line_1,i.city,i.region,i.postal_code,i.country_code].filter(Boolean).join(', '))}</div></td>
-    <td style="max-width:300px;white-space:normal">${esc(d.strategy||'—')}</td><td style="max-width:220px;white-space:normal">${esc(d.experience||'—')}</td><td>${esc(d.preferred_capital||'—')}</td>
-    <td><button class="btn btn-o" onclick="applicationDecide('${esc(a.id)}','reviewing')">Review</button> <button class="btn btn-g" onclick="applicationDecide('${esc(a.id)}','approved')">Approve</button> <button class="btn btn-o" onclick="applicationDecide('${esc(a.id)}','rejected')">Reject</button></td></tr>`}).join('')}</tbody></table></div>`;
+    <td><div style="text-transform:capitalize;font-weight:700">${esc(a.challenge_type||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(a.preset?.label||a.preset_id||'—')}</div><div style="font-size:.68rem;color:var(--muted2)">${esc(new Date(a.created_at).toLocaleString())}</div></td>
+    <td><div>${esc(i.date_of_birth||'—')} · ${esc(i.phone_e164||'—')}</div><div style="font-size:.72rem;color:var(--muted);max-width:320px;white-space:normal">${esc([i.address_line_1,i.address_line_2,i.city,i.region,i.postal_code,i.country_code].filter(Boolean).join(', '))}</div><div style="font-size:.68rem;color:var(--muted2)">Nationality: ${esc(i.nationality_code||'—')}</div></td>
+    <td style="max-width:330px;white-space:normal"><div>${esc(d.strategy||d.source||'Website application')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(d.experience||d.preferred_capital||'All required identity details supplied')}</div></td>
+    <td><div style="margin-bottom:.55rem;font-weight:800;color:${yes?'var(--green)':no?'var(--red)':'var(--amber)'}">${yes?'YES':no?'NO':'AWAITING YOUR DECISION'}</div><button class="btn btn-g" onclick="applicationDecide('${esc(a.id)}','approved')">Yes</button> <button class="btn btn-o" onclick="applicationDecide('${esc(a.id)}','denied')">No</button>${a.decision_note?`<div style="font-size:.7rem;color:var(--muted);margin-top:.5rem;max-width:240px;white-space:normal">${esc(a.decision_note)}</div>`:''}</td></tr>`}).join('')}</tbody></table></div>`;
 }
 async function applicationDecide(id,status){
-  if(!confirm(`Set this application to ${status}? Approval records the decision; issue the agreed custom account separately after final checks.`))return;
-  const r=await call({action:'application_decide',application_id:id,status});
-  if(r){toast('Application updated',true);loadApplicationQueue()}
+  const yes=status==='approved';
+  let note=null;
+  if(!yes){note=prompt('Optional reason for denying this challenge application:','');if(note===null)return}
+  if(!confirm(yes?'Approve this trader for this exact challenge?':'Deny this trader for this exact challenge?'))return;
+  const r=await call({action:'application_decide',application_id:id,status,note});
+  if(r){toast(yes?'Challenge approved':'Challenge denied',true);loadApplicationQueue();load()}
 }
 async function loadPromos(){
   const wrap=document.getElementById('promoList');
@@ -1164,6 +1168,14 @@ async function togglePromo(code,active){
   const r=await call({action:'promo_set_active',code,active});
   if(r){toast(active?'Code turned on':'Code turned off',true);loadPromos();}
 }
+let adminRefreshBusy=false;
+async function refreshAdminView(){
+  if(adminRefreshBusy||document.visibilityState!=='visible')return;
+  adminRefreshBusy=true;
+  try{await Promise.all([load(),loadApplicationQueue()])}finally{adminRefreshBusy=false}
+}
+loadApplicationQueue();
+setInterval(refreshAdminView,10000);
 </script>
 </body>
 </html>

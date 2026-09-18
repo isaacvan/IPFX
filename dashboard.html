@@ -1166,9 +1166,16 @@ async function collectPacApplication(){
       e.preventDefault();const btn=document.getElementById('pacSave'),err=document.getElementById('pacError');
       btn.disabled=true;btn.textContent='Submitting…';err.textContent='';
       const details={strategy:document.getElementById('pacStrategy').value.trim(),experience:document.getElementById('pacExperience').value.trim(),preferred_capital:document.getElementById('pacCapital').value};
-      const {error}=await sb.rpc('submit_challenge_application',{p_challenge_type:'pac',p_details:details});
+      const capital=String(details.preferred_capital||'$25K').replace(/[^0-9K]/gi,'').toLowerCase();
+      const {data:application,error}=await sb.rpc('submit_challenge_application',{
+        p_challenge_type:'pac',p_details:details,p_preset_id:'pac_'+capital
+      });
       if(error){err.textContent='We could not submit the application. Check the detail provided and try again.';btn.disabled=false;btn.textContent='Submit for review';return}
-      done(true);
+      if(application?.status==='denied'){
+        err.textContent=application.decision_note||'This application was not approved.';
+        btn.disabled=false;btn.textContent='Submit for review';return;
+      }
+      done(application||true);
     };
   });
 }
@@ -1192,12 +1199,21 @@ async function initDashboard(){
     const ready=await ensureIdentityProfile();
     if(ready){
       const started=await engineCall({action:'claim_infinity',confirm_age:true});
-      if(started?.ok) history.replaceState({},'',location.pathname);
+      if(started?.ok){
+        history.replaceState({},'',location.pathname);
+        if(started.pending_review) alert(started.message||'Your challenge request will be reviewed within the next 24 hours.');
+      }
       else if(started?.error) alert(started.error);
     }
   }else if(requestedStart==='pac'){
     const ready=await ensureIdentityProfile();
-    if(ready&&await collectPacApplication()) history.replaceState({},'',location.pathname);
+    const application=ready?await collectPacApplication():null;
+    if(application){
+      history.replaceState({},'',location.pathname);
+      alert(application?.status==='approved'
+        ? 'Approved for this challenge: Yes. Your approved challenge is ready.'
+        : 'Your challenge application will be reviewed within the next 24 hours.');
+    }
   }
 
   await redeemSignupPromo(user).catch(()=>{});
@@ -1208,7 +1224,7 @@ async function initDashboard(){
     sb.from('challenge_claims').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
     sb.from('user_profiles').select('referral_code,referral_count').eq('user_id',user.id).maybeSingle(),
     sb.from('referrals').select('*,referred:referred_user_id(full_name)').eq('referrer_user_id',user.id).order('created_at',{ascending:false}),
-    sb.from('challenge_enrolment_requests').select('id,challenge_type,status,created_at,updated_at').eq('user_id',user.id).order('created_at',{ascending:false})
+    sb.from('challenge_enrolment_requests').select('id,challenge_type,preset_id,status,decision_note,trading_account_id,created_at,updated_at').eq('user_id',user.id).order('created_at',{ascending:false})
   ]);
 
   // populate referral section
@@ -1284,8 +1300,8 @@ function renderClaims(list){
         <div style="display:flex;align-items:flex-start;gap:.75rem;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:1rem 1.1rem">
           <svg style="flex-shrink:0;margin-top:2px;color:#f59e0b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <div>
-            <div style="font-size:.85rem;font-weight:600;color:#f59e0b;margin-bottom:.25rem">Ready to activate</div>
-            <div style="font-size:.8rem;color:var(--muted2);line-height:1.5">Your <strong style="color:var(--muted)">${acName}</strong> is reserved. Open <a href="trading.html" style="color:var(--cobalt)">IPFX Markets</a> and it will be created for you automatically.</div>
+            <div style="font-size:.85rem;font-weight:600;color:#f59e0b;margin-bottom:.25rem">Approval required</div>
+            <div style="font-size:.8rem;color:var(--muted2);line-height:1.5">Your <strong style="color:var(--muted)">${acName}</strong> claim is recorded, but it cannot create a trading account until the IPFX owner approves it.</div>
           </div>
         </div>
       </div>
@@ -1296,10 +1312,11 @@ function renderClaims(list){
 
 function renderApplications(list){
   const el=document.getElementById('acList');
-  const labels={pending:'Submitted',reviewing:'Under review',approved:'Approved',rejected:'Not approved',withdrawn:'Withdrawn'};
+  const labels={pending:'Awaiting decision',approved:'Approved: Yes',denied:'Approved: No',withdrawn:'Withdrawn'};
+  const names={infinity:'Infinity Challenge',traditional:'Traditional Challenge',futures:'Futures Challenge',pac:'Application Challenge'};
   el.innerHTML+=list.map(a=>`<div class="ac" data-type="application" data-status="${esc(a.status)}" style="border-color:rgba(139,92,246,.3)">
-    <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">Personalised Challenge</span><span class="badge" style="background:rgba(139,92,246,.12);color:#a78bfa;border:1px solid rgba(139,92,246,.3)"><span class="bdot" style="background:#8b5cf6"></span>${esc(labels[a.status]||a.status)}</span></div></div><div class="ac-id"><span>Application</span><span style="color:var(--line)">·</span><span>${esc(new Date(a.created_at).toLocaleDateString('en-GB'))}</span></div></div>
-    <div class="ac-body" style="display:block;padding:1.25rem 1.5rem"><div style="font-size:.82rem;color:var(--muted2);line-height:1.55">${a.status==='approved'?'Your application is approved. IPFX will issue the agreed custom account and rules after final checks.':'Your strategy and identity profile are recorded securely. An analyst must review and agree the custom capital and rules before a trading account is created.'}</div></div>
+    <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">${esc(names[a.challenge_type]||'Challenge application')}</span><span class="badge" style="background:rgba(139,92,246,.12);color:#a78bfa;border:1px solid rgba(139,92,246,.3)"><span class="bdot" style="background:#8b5cf6"></span>${esc(labels[a.status]||a.status)}</span></div></div><div class="ac-id"><span>${esc(a.preset_id||'Application')}</span><span style="color:var(--line)">·</span><span>${esc(new Date(a.created_at).toLocaleDateString('en-GB'))}</span></div></div>
+    <div class="ac-body" style="display:block;padding:1.25rem 1.5rem"><div style="font-size:.82rem;color:var(--muted2);line-height:1.55">${a.status==='approved'?'Approved. A free account is issued automatically; paid programmes are now unlocked for secure checkout.':a.status==='denied'?esc(a.decision_note||'This challenge request was not approved.'):'Your details are recorded securely. We will review whether you can start this challenge within the next 24 hours.'}</div></div>
   </div>`).join('');
 }
 
@@ -1366,6 +1383,14 @@ async function loadInfinityPanel(){
   const sub=st.is_restart
     ?`Begin again at Stage 1 with a $1,000 evaluation account. ${st.attempts_left} of ${st.attempts_cap} attempts left this month.`
     :'A free $1,000 evaluation account — pass four stages to reach funded trading. No payment needed.';
+  if(st.application_status==='pending'){
+    panel.innerHTML=`<div style="font-weight:700;margin-bottom:.3rem">Infinity Challenge request submitted</div><div style="font-size:.82rem;color:var(--muted)">Your details are secure. We will review whether you can start within the next 24 hours.</div>`;
+    panel.style.display='';return;
+  }
+  if(st.application_status==='denied'){
+    panel.innerHTML=`<div style="font-weight:700;margin-bottom:.3rem">Infinity Challenge · Approved: No</div><div style="font-size:.82rem;color:var(--muted)">${esc(st.application_note||'This request was not approved.')}</div>`;
+    panel.style.display='';return;
+  }
   if(!st.eligible){
     panel.innerHTML=`<div style="font-weight:700;margin-bottom:.3rem">${esc(title)}</div><div style="font-size:.82rem;color:var(--muted)">${esc(st.reason||'Not available right now.')}</div>`;
     panel.style.display='';return;
@@ -1374,17 +1399,22 @@ async function loadInfinityPanel(){
     <div style="min-width:220px;flex:1"><div style="font-weight:700;margin-bottom:.3rem">${esc(title)}</div><div style="font-size:.82rem;color:var(--muted)">${esc(sub)} <a href="infinity.html" target="_blank" style="color:var(--cobalt)">See the rules</a></div>
     ${st.needs_age_confirmation?'<label style="display:flex;gap:.5rem;align-items:center;margin-top:.6rem;font-size:.8rem;color:var(--muted)"><input type="checkbox" id="infAge"> I confirm I am 18 or older and accept the <a href="terms.html" target="_blank" style="color:var(--cobalt)">Terms</a></label>':''}
     <div id="infMsg" style="font-size:.8rem;margin-top:.5rem;display:none"></div></div>
-    <button class="cbtn p" id="infBtn" onclick="claimInfinity()">${st.is_restart?'Restart Stage 1':'Start free challenge'}</button></div>`;
+    <button class="cbtn p" id="infBtn" onclick="claimInfinity()">${st.application_status==='approved'?'Open approved challenge':'Apply for review'}</button></div>`;
   panel.style.display='';
 }
 async function claimInfinity(){
   const btn=document.getElementById('infBtn'),msg=document.getElementById('infMsg'),age=document.getElementById('infAge');
   if(age&&!age.checked){msg.style.display='';msg.style.color='#f59e0b';msg.textContent='Please confirm you are 18 or older.';return;}
   if(!await ensureIdentityProfile())return;
-  btn.disabled=true;btn.textContent='Starting…';
+  btn.disabled=true;btn.textContent='Submitting…';
   const r=await engineCall({action:'claim_infinity',confirm_age:age?age.checked:undefined});
   if(!r||!r.ok){btn.disabled=false;btn.textContent='Try again';msg.style.display='';msg.style.color='#ef4444';msg.textContent=(r&&r.error)||'Could not start your challenge.';return;}
-  msg.style.display='';msg.style.color='#10b981';msg.textContent='Your $1,000 Infinity account is ready. Opening your accounts…';
+  msg.style.display='';msg.style.color='#10b981';
+  if(r.pending_review){
+    msg.textContent=r.message||'Your challenge request will be reviewed within the next 24 hours.';
+    btn.style.display='none';return;
+  }
+  msg.textContent='Your approved $1,000 Infinity account is ready. Opening your accounts…';
   setTimeout(()=>{acLoaded=false;initDashboard();},900);
 }
 

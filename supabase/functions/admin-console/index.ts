@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
 
   const action = body.action;
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
-  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail"]);
+  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
   const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log"]);
   if (sensitiveActions.has(String(action)) && tokenAal(bearerToken) !== "aal2") {
@@ -1568,16 +1568,29 @@ Deno.serve(async (req) => {
 
   if (action === "application_queue") {
     const { data: rows, error } = await db.from("challenge_enrolment_requests").select("*")
-      .in("status", ["pending", "reviewing"]).order("created_at", { ascending: true }).limit(100);
+      .in("status", ["pending", "approved", "denied"])
+      .order("updated_at", { ascending: false }).limit(500);
     if (error) return err("Could not load applications", 503);
-    const out = [];
-    for (const row of rows ?? []) {
-      const [{ data: au }, { data: identity }] = await Promise.all([
-        db.auth.admin.getUserById(row.user_id),
-        db.from("trader_identity_private").select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code").eq("user_id", row.user_id).maybeSingle(),
-      ]);
-      out.push({ ...row, email: au?.user?.email ?? null, identity: identity ?? null });
-    }
+    const userIds = [...new Set((rows ?? []).map((row) => row.user_id))];
+    const presetIds = [...new Set((rows ?? []).map((row) => row.preset_id))];
+    const [{ data: identities }, { data: presets }, { data: authUsers }] = await Promise.all([
+      userIds.length
+        ? db.from("trader_identity_private").select("user_id,legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code").in("user_id", userIds)
+        : Promise.resolve({ data: [] }),
+      presetIds.length
+        ? db.from("challenge_presets").select("id,label,starting_balance,fee_usd").in("id", presetIds)
+        : Promise.resolve({ data: [] }),
+      db.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    ]);
+    const identityByUser = new Map((identities ?? []).map((item) => [item.user_id, item]));
+    const presetById = new Map((presets ?? []).map((item) => [item.id, item]));
+    const emailByUser = new Map((authUsers?.users ?? []).map((item) => [item.id, item.email ?? null]));
+    const out = (rows ?? []).map((row) => ({
+      ...row,
+      email: emailByUser.get(row.user_id) ?? null,
+      identity: identityByUser.get(row.user_id) ?? null,
+      preset: presetById.get(row.preset_id) ?? null,
+    }));
     const { error: auditError } = await db.from("admin_audit_log").insert({
       actor_id: user.id, action: "challenge_application_queue_view", detail: { trader_ids: out.map((r) => r.user_id) },
     });
@@ -1588,13 +1601,59 @@ Deno.serve(async (req) => {
   if (action === "application_decide") {
     const applicationId = String(body.application_id ?? "");
     const status = String(body.status ?? "");
-    if (!UUID.test(applicationId) || !["reviewing", "approved", "rejected"].includes(status)) return err("Invalid application decision");
-    const { data: current } = await db.from("challenge_enrolment_requests").select("user_id,status").eq("id", applicationId).maybeSingle();
+    const note = String(body.note ?? "").trim().slice(0, 1000) || null;
+    if (!UUID.test(applicationId) || !["approved", "denied"].includes(status)) return err("Choose Yes or No");
+    const { data: current } = await db.from("challenge_enrolment_requests")
+      .select("user_id,status,challenge_type,preset_id,trading_account_id")
+      .eq("id", applicationId).maybeSingle();
     if (!current) return err("Application not found", 404);
-    const { error } = await db.from("challenge_enrolment_requests").update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", applicationId);
+    const decidedAt = new Date().toISOString();
+    const { error } = await db.from("challenge_enrolment_requests").update({
+      status, decision_note: note, reviewed_by: user.id,
+      reviewed_at: decidedAt, updated_at: decidedAt,
+    }).eq("id", applicationId);
     if (error) return err("Could not update application", 503);
-    await logAdmin("challenge_application_decide", { targetUser: current.user_id, detail: { application_id: applicationId, before: current.status, after: status } });
-    return json({ ok: true });
+    let accountId = current.trading_account_id ?? null;
+    // Infinity is free: a Yes decision can safely issue the account at once.
+    // Paid programmes are only unlocked for checkout by approval; payment
+    // remains a separate server-verified step.
+    if (status === "approved" && current.challenge_type === "infinity" && !accountId) {
+      const { data: preset } = await db.from("challenge_presets").select("*").eq("id", current.preset_id).maybeSingle();
+      if (!preset) return err("Approved, but the Infinity preset is unavailable", 503);
+      const account = await insertAccountFromPreset(db, current.user_id, preset, 0);
+      if (!account) {
+        await db.from("challenge_enrolment_requests").update({
+          status: current.status, reviewed_by: null, reviewed_at: null,
+          decision_note: "Approval could not be completed; no account was issued.",
+          updated_at: new Date().toISOString(),
+        }).eq("id", applicationId);
+        return err("The decision was not saved because the Infinity account could not be issued", 503);
+      }
+      accountId = account.id;
+      await db.from("trading_accounts").update({ approval_request_id: applicationId }).eq("id", accountId);
+      await db.from("challenge_enrolment_requests").update({
+        trading_account_id: accountId, updated_at: new Date().toISOString(),
+      }).eq("id", applicationId);
+    }
+    if (accountId && status === "denied") {
+      await db.from("trading_accounts").update({
+        access_revoked_at: decidedAt, access_revoked_reason: "manual_challenge_approval_denied",
+        updated_at: decidedAt,
+      }).eq("id", accountId);
+    } else if (accountId && status === "approved") {
+      await db.from("trading_accounts").update({
+        access_revoked_at: null, access_revoked_reason: null, updated_at: decidedAt,
+      }).eq("id", accountId).eq("approval_request_id", applicationId);
+    }
+    await logAdmin("challenge_application_decide", {
+      targetUser: current.user_id,
+      targetAccount: accountId ?? undefined,
+      detail: {
+        application_id: applicationId, preset_id: current.preset_id,
+        before: current.status, after: status, decision_note: note,
+      },
+    });
+    return json({ ok: true, status, account_id: accountId });
   }
 
   if (action === "kyc_queue") {

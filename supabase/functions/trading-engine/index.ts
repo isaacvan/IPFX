@@ -801,7 +801,8 @@ async function insertAccountFromPreset(db: Db, userId: string, preset: any, feeU
 async function infinityStatus(db: Db, user: any) {
   const { data: accts } = await db.from("trading_accounts")
     .select("id,status,challenge_type,preset_id,created_at")
-    .eq("user_id", user.id).order("created_at", { ascending: false });
+    .eq("user_id", user.id).is("access_revoked_at", null)
+    .order("created_at", { ascending: false });
   const list = accts ?? [];
   const hasActive = list.some((a: { status: string }) => a.status === "active");
   const now = new Date();
@@ -810,9 +811,11 @@ async function infinityStatus(db: Db, user: any) {
     a.preset_id === "infinity_s1" && a.created_at >= monthStart).length;
   const { data: preset } = await db.from("challenge_presets").select("*").eq("id", "infinity_s1").maybeSingle();
   const cap = Number(preset?.max_attempts_per_month ?? 3);
-  const [{ data: profile }, { data: identity }] = await Promise.all([
+  const [{ data: profile }, { data: identity }, { data: application }] = await Promise.all([
     db.from("user_profiles").select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle(),
     db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle(),
+    db.from("challenge_enrolment_requests").select("id,status,decision_note,trading_account_id")
+      .eq("user_id", user.id).eq("preset_id", "infinity_s1").maybeSingle(),
   ]);
   let reason: string | null = null;
   if (!preset) reason = "The Infinity Challenge is unavailable right now.";
@@ -828,6 +831,9 @@ async function infinityStatus(db: Db, user: any) {
     identity_complete: !!identity,
     is_restart: list.some((a: { challenge_type: string }) => a.challenge_type === "infinity"),
     needs_age_confirmation: profile?.age_confirmed !== true,
+    application_status: application?.status ?? null,
+    application_note: application?.decision_note ?? null,
+    application_id: application?.id ?? null,
   };
 }
 // deno-lint-ignore no-explicit-any
@@ -859,8 +865,34 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
     return { ok: false, status: 409, error: "Your promo challenge could not be set up automatically. Contact support@ipfxcapital.com." };
   }
 
+  const { data: application } = await db.from("challenge_enrolment_requests")
+    .select("id,status,decision_note,trading_account_id")
+    .eq("user_id", user.id).eq("preset_id", presetId).maybeSingle();
+  if (!application) {
+    await db.from("challenge_enrolment_requests").insert({
+      user_id: user.id, challenge_type: preset.challenge_type, preset_id: presetId,
+      status: "pending", application_details: { source: "promo_claim", promo_code: claim.promo_code },
+    });
+    return { ok: false, status: 403, error: "Your challenge request was submitted and will be reviewed within 24 hours." };
+  }
+  if (application.status === "pending") {
+    return { ok: false, status: 403, error: "Your challenge request is waiting for review. We aim to decide within 24 hours." };
+  }
+  if (application.status === "denied") {
+    return { ok: false, status: 403, error: application.decision_note || "This challenge request was not approved." };
+  }
+  if (application.status !== "approved") return notProvisioned;
+  if (application.trading_account_id) {
+    const { data: existing } = await db.from("trading_accounts").select("*")
+      .eq("id", application.trading_account_id).is("access_revoked_at", null).maybeSingle();
+    if (existing) return { ok: true, account: existing as Acct };
+  }
   const account = await insertAccountFromPreset(db, user.id, preset, 0);
   if (!account) return { ok: false, status: 500, error: "Could not provision account" };
+  await db.from("trading_accounts").update({ approval_request_id: application.id }).eq("id", account.id);
+  await db.from("challenge_enrolment_requests").update({
+    trading_account_id: account.id, updated_at: new Date().toISOString(),
+  }).eq("id", application.id);
   return { ok: true, account };
 }
 
@@ -1542,7 +1574,8 @@ Deno.serve(async (req) => {
     for (const id of queue) {
       if (Date.now() > deadline) break;
       visited++;
-      const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id).maybeSingle();
+      const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id)
+        .is("access_revoked_at", null).maybeSingle();
       if (!acct || !["active", "breached"].includes(acct.status)) continue;
       const before = acct.status;
       await enforce(db, acct as Acct);
@@ -1636,8 +1669,46 @@ Deno.serve(async (req) => {
         if (body.confirm_age !== true) return err("Please confirm you are 18 or older.", 400);
         await db.from("user_profiles").update({ age_confirmed: true }).eq("user_id", user.id);
       }
+      const { data: application } = await db.from("challenge_enrolment_requests")
+        .select("id,status,decision_note,trading_account_id")
+        .eq("user_id", user.id).eq("preset_id", "infinity_s1").maybeSingle();
+      if (!application) {
+        const { data: pending, error: pendingError } = await db.from("challenge_enrolment_requests").insert({
+          user_id: user.id, challenge_type: "infinity", preset_id: "infinity_s1",
+          status: "pending",
+          application_details: {
+            source: "dashboard", age_confirmed: true,
+            submitted_at: new Date().toISOString(),
+          },
+        }).select("id,status").single();
+        if (pendingError || !pending) return err("Could not submit your review request — please try again.", 503);
+        return new Response(JSON.stringify({
+          ok: true, pending_review: true, application: pending,
+          message: "Your challenge request will be reviewed within the next 24 hours.",
+        }), { headers: { ...CORS, "Content-Type": "application/json" } });
+      }
+      if (application.status === "pending") {
+        return new Response(JSON.stringify({
+          ok: true, pending_review: true, application,
+          message: "Your challenge request is waiting for review. We aim to decide within 24 hours.",
+        }), { headers: { ...CORS, "Content-Type": "application/json" } });
+      }
+      if (application.status === "denied") {
+        return err(application.decision_note || "This Infinity Challenge request was not approved.", 403);
+      }
+      if (application.status !== "approved") return err("This challenge is not approved yet.", 403);
+      if (application.trading_account_id) {
+        const { data: existing } = await db.from("trading_accounts").select("id,label,starting_balance")
+          .eq("id", application.trading_account_id).is("access_revoked_at", null).maybeSingle();
+        if (existing) return new Response(JSON.stringify({ ok: true, account: existing }),
+          { headers: { ...CORS, "Content-Type": "application/json" } });
+      }
       const account = await insertAccountFromPreset(db, user.id, st.preset, 0);
       if (!account) return err("Could not start your challenge — please try again.", 500);
+      await db.from("trading_accounts").update({ approval_request_id: application.id }).eq("id", account.id);
+      await db.from("challenge_enrolment_requests").update({
+        trading_account_id: account.id, updated_at: new Date().toISOString(),
+      }).eq("id", application.id);
       return new Response(JSON.stringify({
         ok: true,
         account: { id: account.id, label: account.label, starting_balance: Number(account.starting_balance) },
@@ -1662,7 +1733,8 @@ Deno.serve(async (req) => {
     // if the chart's selected symbol is closed: another open symbol may not be.
     if (body.enforce_risk === true) {
       const { data: riskAcct } = await db.from("trading_accounts")
-        .select("*").eq("user_id", user.id).eq("status", "active").maybeSingle();
+        .select("*").eq("user_id", user.id).eq("status", "active")
+        .is("access_revoked_at", null).maybeSingle();
       if (riskAcct) {
         const { count } = await db.from("trades").select("id", { count: "exact", head: true })
           .eq("account_id", riskAcct.id).eq("status", "open");
@@ -1723,11 +1795,13 @@ Deno.serve(async (req) => {
 
   // load or provision the active account
   let { data: acct } = await db.from("trading_accounts")
-    .select("*").eq("user_id", user.id).eq("status", "active").maybeSingle();
+    .select("*").eq("user_id", user.id).eq("status", "active")
+    .is("access_revoked_at", null).maybeSingle();
   if (!acct) {
     // no active account: return most recent finished one for display, or provision
     const { data: last } = await db.from("trading_accounts")
-      .select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      .select("*").eq("user_id", user.id).is("access_revoked_at", null)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (last && last.status === "passed" && last.phase !== "funded") {
       // Defensive fallback: the funded account should already have been
@@ -1736,7 +1810,8 @@ Deno.serve(async (req) => {
       // race), provision it now rather than leaving the trader stuck.
       await provisionNextStage(db, last as Acct);
       const { data: nowActive } = await db.from("trading_accounts")
-        .select("*").eq("user_id", user.id).eq("status", "active").maybeSingle();
+        .select("*").eq("user_id", user.id).eq("status", "active")
+        .is("access_revoked_at", null).maybeSingle();
       acct = nowActive ?? last;
     } else if (last && body.action === "state") {
       acct = last;
@@ -1822,7 +1897,8 @@ Deno.serve(async (req) => {
 
   if (action === "payout_summary") {
     const { data: funded } = await db.from("trading_accounts")
-      .select("*").eq("user_id", user.id).eq("phase", "funded").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      .select("*").eq("user_id", user.id).eq("phase", "funded")
+      .is("access_revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (!funded) return jsonOk({ has_funded_account: false });
     const { data: summary } = await db.from("trader_payout_summary").select("*").eq("account_id", funded.id).maybeSingle();
     const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle();
@@ -1836,7 +1912,8 @@ Deno.serve(async (req) => {
   if (action === "request_payout") {
     if (await rateLimited("request_payout", 5, 60)) return err("Too many payout requests — try again later.", 429);
     const { data: funded } = await db.from("trading_accounts")
-      .select("*").eq("user_id", user.id).eq("phase", "funded").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      .select("*").eq("user_id", user.id).eq("phase", "funded")
+      .is("access_revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (!funded) return err("No funded account yet", 404);
     const payout_method_id = body.payout_method_id ? String(body.payout_method_id) : null;
     if (!payout_method_id) return err("Select a payout method first");
