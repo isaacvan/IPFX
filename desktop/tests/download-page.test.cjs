@@ -28,4 +28,10 @@ test('download page links resolve and installers stay behind owner auth', () => 
 
   const gate = fs.readFileSync(path.join(root, 'supabase/functions/desktop-release-upload/index.ts'), 'utf8');
   assert.match(gate, /manifest\\\.json\|part-/);
+
+  const version = require('../package.json').version;
+  const escapedVersion = version.replaceAll('.', '\\.');
+  assert.match(script, new RegExp(`v${escapedVersion}`));
+  assert.match(transfer, new RegExp(`v${escapedVersion}`));
+  assert.match(gate, new RegExp(version.replaceAll('.', '\\\\.')));
 });
