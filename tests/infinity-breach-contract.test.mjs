@@ -27,6 +27,7 @@ assert.equal(recovered.status, 'breached', 'a later recovery must not reverse a 
 assert.equal(recovered.triggerEquity, 8999, 'the first crossing must remain recorded');
 
 const engine = fs.readFileSync('supabase/functions/trading-engine/index.ts','utf8');
+const payment = fs.readFileSync('supabase/functions/create-payment-intent/index.ts','utf8');
 const migration = fs.readFileSync(
   'supabase/migrations/20260918092933_infinity_intratrade_freeze_and_resume.sql','utf8'
 );
@@ -38,11 +39,21 @@ assert.match(engine, /fn_claim_account_breach/);
 assert.match(engine, /body\.enforce_risk === true/);
 assert.match(migration, /BREACHED_ACCOUNT_IS_FROZEN/);
 assert.match(migration, /TRADING_ACCOUNT_FROZEN/);
-assert.match(migration, /'infinity_continue'.*1000,'gbp'/s);
+assert.match(migration, /'challenge_continue'.*1000,'gbp'/s);
+assert.match(migration, /challenge_type not in \('infinity','traditional','futures','pac'\)/);
+assert.match(payment, /\["infinity", "traditional", "futures", "pac"\]\.includes\(source\.challenge_type\)/);
 assert.match(migration, /source_account\.preset_id/);
 assert.match(migration, /resumed_from_account_id/);
 assert.match(trading, /Continue this stage — £10/);
 assert.match(trading, /Restart from Stage 1/);
+assert.match(trading, /\['infinity','traditional','futures','pac'\]\.includes\(a\.challenge_type\)/);
 assert.match(trading, /enforce_risk:true/);
 
-console.log('PASS: Infinity breach, freeze, recovery, and continuation contract checks');
+for (const challengeType of ['infinity','traditional','futures','pac']) {
+  const maxBreached = applyTick({...base, challengeType}, 8999);
+  assert.equal(maxBreached.status, 'breached', `${challengeType} must breach at max drawdown`);
+  const dailyBreached = applyTick({...base, maxFloor:8000, challengeType}, 9599);
+  assert.equal(dailyBreached.status, 'breached', `${challengeType} must breach at daily loss`);
+}
+
+console.log('PASS: all challenge breach, freeze, recovery, and continuation contract checks');

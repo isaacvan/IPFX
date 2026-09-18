@@ -127,7 +127,7 @@ insert into public.challenge_presets(
   max_attempts_per_month,require_stop_loss,profit_split_pct,next_preset_id
 )
 select
-  'infinity_continue',challenge_type,stage,'Infinity continuation add-on',
+  'challenge_continue',challenge_type,999,'Challenge continuation add-on',
   starting_balance,null,profit_target_pct,max_drawdown_pct,daily_loss_pct,
   drawdown_mode,min_trading_days,min_trades,max_risk_per_trade_pct,
   daily_profit_cap_pct,min_profitable_days_pct,null,require_stop_loss,
@@ -137,8 +137,8 @@ on conflict (id) do nothing;
 
 insert into public.commerce_catalog(sku,label,amount_minor,currency,terms_version,enabled,snapshot,updated_at)
 values (
-  'infinity_continue','Continue Infinity from your current stage',1000,'gbp','2026-09-review',true,
-  '{"kind":"infinity_continue","same_stage":true,"positions_reopen":false}'::jsonb,now()
+  'challenge_continue','Continue your challenge from the current stage',1000,'gbp','2026-09-review',true,
+  '{"kind":"challenge_continue","same_stage":true,"positions_reopen":false}'::jsonb,now()
 )
 on conflict (sku) do update set
   label=excluded.label,amount_minor=excluded.amount_minor,currency=excluded.currency,
@@ -158,12 +158,13 @@ begin
   if o.provisioned_account_id is not null then return o.provisioned_account_id; end if;
   if o.status<>'paid' then raise exception 'ORDER_NOT_PAID'; end if;
 
-  if o.sku = 'infinity_continue' then
+  if o.sku = 'challenge_continue' then
     if o.source_account_id is null then raise exception 'SOURCE_ACCOUNT_REQUIRED'; end if;
     select * into source_account from public.trading_accounts
       where id=o.source_account_id and user_id=o.user_id for update;
-    if not found or source_account.challenge_type<>'infinity' or source_account.status<>'breached' then
-      raise exception 'INFINITY_BREACH_REQUIRED';
+    if not found or source_account.challenge_type not in ('infinity','traditional','futures','pac')
+       or source_account.phase<>'evaluation' or source_account.status<>'breached' then
+      raise exception 'CHALLENGE_BREACH_REQUIRED';
     end if;
     if exists(select 1 from public.trading_accounts where user_id=o.user_id and status='active') then
       raise exception 'ACTIVE_ACCOUNT_EXISTS';
@@ -188,8 +189,8 @@ begin
     p.profit_target_pct,p.max_drawdown_pct,p.daily_loss_pct,p.drawdown_mode,start_bal,
     p.min_trading_days,p.min_trades,p.max_risk_per_trade_pct,p.daily_profit_cap_pct,
     p.min_profitable_days_pct,p.require_stop_loss,p.profit_split_pct,
-    case when o.sku='infinity_continue' then 0 else o.amount_minor/100.0 end,0,
-    case when o.sku='infinity_continue' then o.source_account_id else null end
+    case when o.sku='challenge_continue' then 0 else o.amount_minor/100.0 end,0,
+    case when o.sku='challenge_continue' then o.source_account_id else null end
   ) returning id into new_id;
 
   update public.commerce_orders set provisioned_account_id=new_id where id=o.id;
@@ -202,10 +203,10 @@ $$;
 revoke all on function public.commerce_provision_account(uuid) from public,anon,authenticated;
 grant execute on function public.commerce_provision_account(uuid) to service_role;
 
-create or replace function public.fn_provision_paid_infinity_continue()
+create or replace function public.fn_provision_paid_challenge_continue()
 returns trigger language plpgsql security definer set search_path='' as $$
 begin
-  if new.sku='infinity_continue' and new.status='paid'
+  if new.sku='challenge_continue' and new.status='paid'
      and old.status is distinct from new.status then
     begin
       perform public.commerce_provision_account(new.id);
@@ -218,11 +219,11 @@ begin
   return new;
 end;
 $$;
-revoke all on function public.fn_provision_paid_infinity_continue() from public,anon,authenticated;
-grant execute on function public.fn_provision_paid_infinity_continue() to service_role;
-drop trigger if exists trg_provision_paid_infinity_continue on public.commerce_orders;
-create trigger trg_provision_paid_infinity_continue
+revoke all on function public.fn_provision_paid_challenge_continue() from public,anon,authenticated;
+grant execute on function public.fn_provision_paid_challenge_continue() to service_role;
+drop trigger if exists trg_provision_paid_challenge_continue on public.commerce_orders;
+create trigger trg_provision_paid_challenge_continue
 after update of status on public.commerce_orders for each row
-execute function public.fn_provision_paid_infinity_continue();
+execute function public.fn_provision_paid_challenge_continue();
 
 commit;

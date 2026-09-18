@@ -1120,9 +1120,9 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
         emailLater(sendLifecycleEmail(db, "account_breached", acct.user_id, {
           challenge_name: acct.label,
           breach_reason: BREACH_TEXT[breach] ?? breach,
-          next_step: acct.challenge_type === "infinity"
-            ? "Your account is frozen. Continue from the same Infinity stage for £10, or restart from Stage 1."
-            : "You can start a new challenge from your dashboard whenever you are ready.",
+          next_step: acct.phase === "evaluation"
+            ? "Your account is frozen. Continue from the same challenge stage for £10, or restart the challenge."
+            : "Your funded account is frozen. Review your dashboard or contact support for the next available action.",
         }));
       }
       const { data: leftover } = await db.from("trades")

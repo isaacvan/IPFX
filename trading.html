@@ -1356,18 +1356,18 @@ body.light .op-exec-buy{background:#2f8064;}
 <div class="inf-freeze" id="infFreeze" role="dialog" aria-modal="true" aria-labelledby="infFreezeTitle">
   <div class="inf-freeze-card">
     <div class="inf-freeze-mark">!</div>
-    <h2 id="infFreezeTitle">Infinity account frozen</h2>
+    <h2 id="infFreezeTitle">Challenge account frozen</h2>
     <p>Your position was closed the moment your live equity reached the challenge limit. A later price recovery cannot reverse this breach.</p>
     <div class="inf-freeze-detail" id="infFreezeDetail">Drawdown limit reached.</div>
     <div class="inf-freeze-actions">
-      <button class="inf-freeze-btn primary" id="infContinueBtn" onclick="openInfinityContinue()">Continue this stage — £10</button>
-      <button class="inf-freeze-btn" id="infRestartBtn" onclick="restartInfinity()">Restart from Stage 1</button>
+      <button class="inf-freeze-btn primary" id="infContinueBtn" onclick="openChallengeContinue()">Continue this stage — £10</button>
+      <button class="inf-freeze-btn" id="infRestartBtn" onclick="restartChallenge()">Restart challenge</button>
     </div>
-    <p class="inf-freeze-note">Continuing creates a clean attempt at this same stage; closed positions are never reopened. Restarting returns you to Stage 1 and uses a monthly attempt.</p>
+    <p class="inf-freeze-note" id="infFreezeNote">Continuing creates a clean attempt at this same stage; closed positions are never reopened.</p>
     <div class="inf-pay" id="infPay">
       <div id="infPaymentElement"></div>
       <label class="inf-pay-consent"><input type="checkbox" id="infPayTerms"> <span>I agree to the current Terms and want this £10 digital continuation supplied immediately.</span></label>
-      <button class="inf-freeze-btn primary" id="infPayBtn" style="width:100%" onclick="confirmInfinityContinue()">Pay £10 and continue</button>
+      <button class="inf-freeze-btn primary" id="infPayBtn" style="width:100%" onclick="confirmChallengeContinue()">Pay £10 and continue</button>
       <div class="inf-pay-msg" id="infPayMsg" role="alert"></div>
     </div>
   </div>
@@ -3879,19 +3879,30 @@ function renderEngineAccount(){
     else if(a.status==='breached')engineMsg('Challenge breached: '+(a.breach_reason||'limit hit'));
     lastEngineStatus=a.status;
   }
-  renderInfinityFreeze(a);
+  renderAccountFreeze(a);
 }
 let infStripe=null,infElements=null,infPaymentElement=null,infCheckout=null,infCheckoutBusy=false;
-function renderInfinityFreeze(a){
+function renderAccountFreeze(a){
   const modal=document.getElementById('infFreeze');
   if(!modal)return;
-  const show=a&&a.challenge_type==='infinity'&&a.status==='breached';
+  const show=a&&a.status==='breached';
   modal.classList.toggle('open',!!show);
   if(!show)return;
+  const labels={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application'};
+  const label=labels[a.challenge_type]||'Challenge';
   const reason=a.breach_reason==='daily_loss'?'Daily loss limit reached':'Maximum drawdown reached';
   const stage=Number(a.stage||1);
+  const evaluation=a.phase==='evaluation'&&['infinity','traditional','futures','pac'].includes(a.challenge_type);
+  document.getElementById('infFreezeTitle').textContent=label+' account frozen';
   document.getElementById('infFreezeDetail').textContent=
     reason+` in Stage ${stage}. All positions are closed and this account cannot place another order.`;
+  const continueBtn=document.getElementById('infContinueBtn'),restartBtn=document.getElementById('infRestartBtn');
+  continueBtn.style.display=evaluation?'':'none';
+  restartBtn.textContent=a.challenge_type==='infinity'&&evaluation?'Restart from Stage 1':'Start a new '+label+' challenge';
+  document.getElementById('infFreezeNote').textContent=evaluation
+    ? 'Continuing creates a clean attempt at this same stage; closed positions are never reopened. '+
+      (a.challenge_type==='infinity'?'Restarting returns you to Stage 1 and uses a monthly attempt.':'Starting again opens the official challenge page; paid challenges are never granted for free.')
+    : 'Closed positions are never reopened. Start a new challenge or contact support if this funded account needs review.';
 }
 async function paymentCall(body){
   const tok=await freshToken();
@@ -3910,18 +3921,18 @@ async function paymentCall(body){
     throw e;
   }finally{clearTimeout(timer)}
 }
-async function openInfinityContinue(){
+async function openChallengeContinue(){
   if(infCheckoutBusy||infElements)return;
   const a=engineState&&engineState.account;
-  if(!a||a.challenge_type!=='infinity'||a.status!=='breached')return;
+  if(!a||a.phase!=='evaluation'||a.status!=='breached'||!['infinity','traditional','futures','pac'].includes(a.challenge_type))return;
   const msg=document.getElementById('infPayMsg'),btn=document.getElementById('infContinueBtn');
   msg.textContent='';btn.disabled=true;btn.textContent='Opening secure checkout…';infCheckoutBusy=true;
   try{
     if(typeof window.Stripe!=='function')throw new Error('Secure checkout did not load. Please reconnect and try again.');
-    const sku='infinity_continue',source_account_id=a.id;
+    const sku='challenge_continue',source_account_id=a.id;
     const quote=await paymentCall({action:'quote',sku,source_account_id});
     infStripe=window.Stripe(quote.publishable_key);
-    const keyName='ipfx-infinity-continue:'+a.id;
+    const keyName='ipfx-challenge-continue:'+a.id;
     let requestKey=localStorage.getItem(keyName);
     if(!/^[0-9a-f-]{36}$/i.test(requestKey||'')){requestKey=crypto.randomUUID();localStorage.setItem(keyName,requestKey)}
     infCheckout=await paymentCall({sku,source_account_id,request_key:requestKey,
@@ -3930,11 +3941,12 @@ async function openInfinityContinue(){
       variables:{colorPrimary:'#3267ef',colorBackground:'#0f0f11',colorText:'#fff',borderRadius:'10px'}}});
     infPaymentElement=infElements.create('payment');
     infPaymentElement.mount('#infPaymentElement');
+    if(infCheckout.test_mode===true)msg.textContent='Test checkout — no real money will be taken.';
     document.getElementById('infPay').classList.add('open');
   }catch(e){msg.textContent=(e&&e.message)||'Checkout is unavailable. No payment was taken.'}
   finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent='Continue this stage — £10'}
 }
-async function confirmInfinityContinue(){
+async function confirmChallengeContinue(){
   if(infCheckoutBusy||!infElements||!infCheckout)return;
   const msg=document.getElementById('infPayMsg'),btn=document.getElementById('infPayBtn');
   if(!document.getElementById('infPayTerms').checked){msg.textContent='Please accept the Terms to continue.';return}
@@ -3953,16 +3965,32 @@ async function confirmInfinityContinue(){
       await new Promise(r=>setTimeout(r,1500));
     }
     if(!ready)throw new Error('Payment is confirmed and activation is still processing. Do not pay again. Order: '+infCheckout.order_id);
-    localStorage.removeItem('ipfx-infinity-continue:'+engineState.account.id);
+    localStorage.removeItem('ipfx-challenge-continue:'+engineState.account.id);
     infPaymentElement.unmount();infPaymentElement=null;infElements=null;infCheckout=null;
     await engineCall({action:'state'});
   }catch(e){msg.textContent=(e&&e.message)||'Payment status is unavailable. Do not pay again.'}
   finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent='Pay £10 and continue'}
 }
-async function restartInfinity(){
+function challengeRestartUrl(a){
+  if(a&&a.challenge_type==='futures')return 'https://ipfxcapital.com/futures.html';
+  if(a&&a.challenge_type==='pac')return 'https://ipfxcapital.com/personalised-challenge.html';
+  if(a&&a.challenge_type==='infinity')return 'https://ipfxcapital.com/infinity.html';
+  return 'https://ipfxcapital.com/start-challenge.html';
+}
+async function restartChallenge(){
   if(infCheckoutBusy)return;
-  if(!confirm('Restart the Infinity Challenge from Stage 1? This uses one of your monthly attempts.'))return;
+  const a=engineState&&engineState.account;
+  if(!a||a.status!=='breached')return;
   const btn=document.getElementById('infRestartBtn');btn.disabled=true;btn.textContent='Restarting…';
+  if(a.challenge_type!=='infinity'||a.phase!=='evaluation'){
+    const opened=window.open(challengeRestartUrl(a),'_blank','noopener,noreferrer');
+    if(opened)opened.opener=null;
+    else engineMsg('Allow pop-ups to open the official challenge page.');
+    btn.disabled=false;renderAccountFreeze(a);return;
+  }
+  if(!confirm('Restart the Infinity Challenge from Stage 1? This uses one of your monthly attempts.')){
+    btn.disabled=false;renderAccountFreeze(a);return;
+  }
   try{
     const tok=await freshToken();
     if(!tok)throw new Error('Your session expired. Sign in again.');

@@ -59,17 +59,18 @@ Deno.serve(async req => {
   const sku = String(body.sku ?? "");
   if (!/^[a-z0-9_]{1,64}$/.test(sku)) return traced({ error: "Invalid product" }, 400);
   let sourceAccountId: string | null = null;
-  if (sku === "infinity_continue") {
+  if (sku === "challenge_continue") {
     sourceAccountId = String(body.source_account_id ?? "");
-    if (!uuid.test(sourceAccountId)) return traced({ error: "A breached Infinity account is required." }, 400);
+    if (!uuid.test(sourceAccountId)) return traced({ error: "A breached challenge account is required." }, 400);
     const [{ data: source }, { count: activeCount }] = await Promise.all([
-      db.from("trading_accounts").select("id,status,challenge_type,preset_id")
+      db.from("trading_accounts").select("id,status,phase,challenge_type,preset_id")
         .eq("id", sourceAccountId).eq("user_id", auth.user.id).maybeSingle(),
       db.from("trading_accounts").select("id", { count: "exact", head: true })
         .eq("user_id", auth.user.id).eq("status", "active"),
     ]);
-    if (!source || source.status !== "breached" || source.challenge_type !== "infinity") {
-      return traced({ error: "This account is not eligible for Infinity continuation." }, 409);
+    if (!source || source.status !== "breached" || source.phase !== "evaluation"
+      || !["infinity", "traditional", "futures", "pac"].includes(source.challenge_type)) {
+      return traced({ error: "This account is not eligible for challenge continuation." }, 409);
     }
     if ((activeCount ?? 0) > 0) return traced({ error: "You already have an active trading account." }, 409);
   }
@@ -132,8 +133,8 @@ Deno.serve(async req => {
         automatic_payment_methods: { enabled: true },
         receipt_email: order.billing_email,
         metadata: { ipfx_order_id: order.id, ipfx_user_id: auth.user.id },
-        description: sku === "infinity_continue"
-          ? "IPFX Infinity same-stage continuation"
+        description: sku === "challenge_continue"
+          ? "IPFX same-stage challenge continuation"
           : "IPFX Capital test challenge checkout",
       }, { idempotencyKey: "ipfx-commerce-" + order.id });
       const linked = await db.from("commerce_orders").update({
