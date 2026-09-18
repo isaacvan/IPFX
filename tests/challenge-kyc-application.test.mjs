@@ -9,6 +9,8 @@ const migration = read('supabase/migrations/20260918224500_challenge_application
 const admin = read('supabase/functions/admin-console/index.ts');
 const adminPage = read('admin.html');
 const engine = read('supabase/functions/trading-engine/index.ts');
+const retention = read('supabase/migrations/20260919001500_identity_retention_controls.sql');
+const privacy = read('privacy.html');
 
 test('all challenge families use one themed application page', () => {
   for (const type of ['futures','infinity','pac']) assert.match(page, new RegExp(type + ': \\{'));
@@ -48,4 +50,14 @@ test('owner reviews suitability and expiring private document links', () => {
   assert.match(adminPage, /Private links expire in 5 minutes/);
   assert.match(adminPage, /Purpose:/);
   assert.match(adminPage, /PEP:/);
+});
+
+test('retention is scheduled, indexed and protected from browser mutation', () => {
+  assert.match(retention, /retention_review_at timestamptz not null/);
+  assert.match(retention, /default \(now\(\) \+ interval '12 months'\)/);
+  assert.match(retention, /where legal_hold is false/);
+  assert.match(retention, /revoke update\(retention_review_at,legal_hold\)/);
+  assert.match(admin, /5 \* 365\.25/);
+  assert.match(privacy, /scheduled for retention review after 12 months/i);
+  assert.match(privacy, /They do not make the final Challenge approval decision/i);
 });

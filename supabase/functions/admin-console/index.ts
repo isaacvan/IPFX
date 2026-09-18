@@ -1632,6 +1632,7 @@ Deno.serve(async (req) => {
       .eq("id", applicationId).maybeSingle();
     if (!current) return err("Application not found", 404);
     const decidedAt = new Date().toISOString();
+    const retentionReviewAt = new Date(Date.now() + (status === "approved" ? 5 * 365.25 : 1 * 365.25) * 24 * 60 * 60 * 1000).toISOString();
     const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", current.user_id).maybeSingle();
     if (status === "approved" && !["pending", "verified"].includes(String(kyc?.status ?? ""))) {
       return err("This trader has no reviewable identity documents", 409);
@@ -1647,7 +1648,7 @@ Deno.serve(async (req) => {
     }
     const { error } = await db.from("challenge_enrolment_requests").update({
       status, decision_note: note, reviewed_by: user.id,
-      reviewed_at: decidedAt, updated_at: decidedAt,
+      reviewed_at: decidedAt, updated_at: decidedAt, retention_review_at: retentionReviewAt,
     }).eq("id", applicationId);
     if (error) {
       if (kycPromoted) await db.from("trader_kyc").update({
@@ -1655,6 +1656,19 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       }).eq("user_id", current.user_id);
       return err("Could not update application", 503);
+    }
+    if (status === "approved") {
+      const { error: retentionError } = await db.from("kyc_submissions")
+        .update({ retention_review_at: retentionReviewAt })
+        .eq("user_id", current.user_id).eq("legal_hold", false);
+      if (retentionError) {
+        await db.from("challenge_enrolment_requests").update({
+          status: current.status, reviewed_by: null, reviewed_at: null,
+          decision_note: "Approval could not be completed; document retention could not be recorded.",
+          updated_at: new Date().toISOString(),
+        }).eq("id", applicationId);
+        return err("The challenge was not approved because document retention could not be recorded", 503);
+      }
     }
     let accountId = current.trading_account_id ?? null;
     // Infinity is free: a Yes decision can safely issue the account at once.
