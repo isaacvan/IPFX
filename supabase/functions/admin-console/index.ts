@@ -569,6 +569,7 @@ Deno.serve(async (req) => {
   const isOwner = String(user.email || "").trim().toLowerCase() === ownerEmail;
 
   const action = body.action;
+  if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
   const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
   const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log"]);

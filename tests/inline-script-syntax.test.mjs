@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-for (const file of ['dashboard.html','start-challenge.html','admin.html','trader-analytics.html','login.html','signup.html','trading.html']) {
+for (const file of ['dashboard.html','start-challenge.html','admin.html','team-login.html','trader-analytics.html','login.html','signup.html','trading.html']) {
   test(`${file} inline scripts parse`, () => {
     const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
     const scripts=[...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)]

@@ -25,9 +25,10 @@ The copy policy controls only IPFX's own mirrored account:
 4. Store the same cron secret in Supabase Vault as
    `ipfx_macro_calendar_cron_secret`, then run `setup-macro-calendar-cron.sql`.
 5. Publish `trader-analytics.html` and the updated `admin.html`.
-6. Sign in as the configured owner with MFA, open `/trader-analytics.html`, and
-   leave policies in `observe` until the evidence for each trader has been
-   reviewed. Enable `adaptive` individually.
+6. Open `/team-login.html`, sign in as the configured owner and complete the
+   authenticator step. Team Login then opens the private analytics page. Leave
+   policies in `observe` until the evidence for each trader has been reviewed;
+   enable `adaptive` individually.
 
 The calendar API key and scheduler secret are server-side only. The browser
 receives normalized event evidence and decisions, never provider credentials.

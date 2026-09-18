@@ -1,9 +1,9 @@
 {
-  "name": "IPFX Owner Console",
-  "short_name": "IPFX Owner",
+  "name": "IPFX Team Console",
+  "short_name": "IPFX Team",
   "description": "Every IPFX trader's performance and detector state at a glance. Admin accounts only.",
-  "id": "/admin.html",
-  "start_url": "/admin.html",
+  "id": "/team-login.html",
+  "start_url": "/team-login.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -8,6 +8,7 @@ const mirror = read('supabase/functions/live-mirror/index.ts');
 const sync = read('supabase/functions/macro-calendar-sync/index.ts');
 const migration = read('supabase/migrations/20260918190000_adaptive_mirror_risk_and_trader_styles.sql');
 const page = read('trader-analytics.html');
+const teamLogin = read('team-login.html');
 
 test('risk analytics is restricted to the configured owner and MFA', () => {
   assert.match(admin, /IPFX_OWNER_EMAIL/);
@@ -15,6 +16,16 @@ test('risk analytics is restricted to the configured owner and MFA', () => {
   assert.match(admin, /sensitiveActions.*risk_analytics/);
   assert.match(admin, /tokenAal\(bearerToken\) !== "aal2"/);
   assert.match(page, /action:'risk_analytics'/);
+});
+
+test('Team Login checks owner access and completes password plus authenticator verification', () => {
+  assert.match(admin, /action === "team_access_check"/);
+  assert.match(teamLogin, /<h1>Team Login<\/h1>/);
+  assert.match(teamLogin, /signInWithPassword/);
+  assert.match(teamLogin, /team_access_check/);
+  assert.match(teamLogin, /mfa\.challengeAndVerify/);
+  assert.match(teamLogin, /mfa\.enroll\(\{factorType:'totp'/);
+  assert.doesNotMatch(teamLogin, /signup\.html|Sign up/);
 });
 
 test('adaptive controls affect only own-account mirror opens and never block closes', () => {
