@@ -42,7 +42,7 @@ window.__tvReady=new Promise(res=>{
   document.head.appendChild(s);
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -1233,8 +1233,6 @@ body.light .op-exec-buy{background:#2f8064;}
 
 /* Desktop client: a TradeLocker-scale workspace with no website chrome. */
 .desktop-app .topbar{height:40px;padding:0 10px;gap:8px;background:#111113}
-.desktop-app #dashboardBackBtn,.desktop-app .desktop-download-link{display:none!important}
-.desktop-app .topbar>.tb-div:first-of-type{display:none}
 .desktop-app .tb-logo img{width:22px;height:22px}
 .desktop-app .tb-logo span{font-size:13px;letter-spacing:-.01em}
 .desktop-app .tb-acct{font-size:13px}
@@ -1264,9 +1262,10 @@ body.light .op-exec-buy{background:#2f8064;}
 .desktop-app .postbl thead th{height:28px;padding:0 10px;font-size:10px}
 .desktop-app .postbl tbody td{height:32px;padding:0 10px;font-size:11px}
 .desktop-app .postbl-empty{padding:14px 12px;font-size:11px}
-.desktop-app .ipfx-launch-footer,.desktop-app #chatBtn,.desktop-app #chatWin,.desktop-app #welcomeCard{display:none!important}
-.desktop-app .desktop-auth{display:none;position:fixed;inset:0;z-index:4000;align-items:center;justify-content:center;background:rgba(0,0,0,.68);backdrop-filter:blur(12px)}
-.desktop-app .desktop-auth.open{display:flex}
+.desktop-auth{display:none;position:fixed;inset:0;z-index:4000;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.68);backdrop-filter:blur(12px)}
+.desktop-auth.open{display:flex}
+#chatBtn,#chatWin,#welcomeCard{display:none!important}
+.desktop-app .ipfx-cookie-panel,.desktop-app .ipfx-cookie-preferences{display:none!important}
 .desktop-auth-card{width:min(380px,calc(100vw - 32px));padding:22px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#171719;box-shadow:0 24px 80px rgba(0,0,0,.65)}
 .desktop-auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:16px;font-weight:700;letter-spacing:-.02em}
 .desktop-auth-brand img{width:30px;height:30px}
@@ -1285,11 +1284,6 @@ body.light .op-exec-buy{background:#2f8064;}
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <a href="dashboard.html" class="back-btn" id="dashboardBackBtn" onclick="return leaveFullscreenThen(this.href);">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    Dashboard
-  </a>
-  <div class="tb-div"></div>
   <div class="tb-logo">
     <img src="/assets/images/favicon.ico" alt="IPFX">
     <span>IPFX Markets</span>
@@ -1300,7 +1294,6 @@ body.light .op-exec-buy{background:#2f8064;}
   <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">IPFX Markets</strong></div>
   <!-- No real "Server" field exists — this is a simulated environment, not broker infrastructure. -->
   <div class="tb-right">
-    <a href="downloads.html" class="back-btn desktop-download-link" title="IPFX Markets desktop downloads">Desktop App</a>
     <div class="tb-tool-grp">
       <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -3197,12 +3190,10 @@ function announceAutoClosedTrades(state){
 // lazily on first use.
 const SB_URL='https://agulweemteoeagscmppy.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-let sbEngine=null,sbEngineInit=false;
+let sbEngine=null;
 function getSbEngine(){
-  if(!sbEngineInit){
-    sbEngineInit=true;
-    try{ if(window.supabase&&window.supabase.createClient){ sbEngine=window.supabase.createClient(SB_URL,SB_ANON); } }catch(_){}
-  }
+  if(sbEngine)return sbEngine;
+  try{ if(window.supabase&&window.supabase.createClient){ sbEngine=window.supabase.createClient(SB_URL,SB_ANON); } }catch(_){}
   return sbEngine;
 }
 // Fresh, non-expired token: prefer the client (it silently refreshes), else parse storage.
@@ -3217,14 +3208,13 @@ async function freshToken(){
 function hasSession(){return !!engineToken();}
 function desktopMode(){return document.documentElement.classList.contains('desktop-app');}
 function openDesktopAuth(){
-  if(!desktopMode()||hasSession())return;
+  if(hasSession())return;
   const modal=document.getElementById('desktopAuth');
   if(modal){modal.classList.add('open');setTimeout(()=>document.getElementById('desktopAuthEmail')?.focus(),0);}
 }
 function closeDesktopAuth(){document.getElementById('desktopAuth')?.classList.remove('open');}
 function applyDesktopSession(session){
-  if(!desktopMode())return;
-  if(!session){lastQuoteTs=0;setFeed('closed','CONNECT ACCOUNT');openDesktopAuth();return;}
+  if(!session){lastQuoteTs=0;setFeed('closed',desktopMode()?'CONNECT ACCOUNT':'SIGN IN');if(desktopMode())openDesktopAuth();return;}
   document.getElementById('tbAcct').textContent=session.user?.user_metadata?.name||session.user?.email||'My Account';
   closeDesktopAuth();setFeed('connecting','CONNECTING');
   // Keep the auth callback synchronous; defer follow-up Supabase work.
@@ -3238,20 +3228,31 @@ async function connectDesktopAccount(event){
   const submit=document.getElementById('desktopAuthSubmit');
   errorEl.textContent='';submit.disabled=true;submit.textContent='Connecting…';
   try{
-    const c=getSbEngine();
+    const c=await waitForSbEngine();
     if(!c)throw new Error('The secure connection library did not load. Use Markets → Reload Connection.');
-    const{data,error}=await c.auth.signInWithPassword({email,password});
+    const signIn=c.auth.signInWithPassword({email,password});
+    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('The connection timed out. Check your internet connection and try again.')),12000));
+    const{data,error}=await Promise.race([signIn,timeout]);
     if(error||!data?.session)throw error||new Error('Sign-in did not return a session.');
     applyDesktopSession(data.session);
   }catch(error){
-    errorEl.textContent=(error&&error.message)||'Could not connect this account.';
+    const message=(error&&error.message)||'Could not connect this account.';
+    errorEl.textContent=/invalid login credentials/i.test(message)?'The email or password is incorrect.':message;
   }finally{submit.disabled=false;submit.textContent='Connect account';}
 }
+async function waitForSbEngine(timeoutMs=8000){
+  const started=Date.now();
+  while(Date.now()-started<timeoutMs){
+    const c=getSbEngine();
+    if(c)return c;
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  return null;
+}
 function initialiseDesktopAccount(){
-  if(!desktopMode())return;
   document.getElementById('desktopAuthForm')?.addEventListener('submit',connectDesktopAccount);
   const c=getSbEngine();
-  if(!c){setFeed('closed','CONNECTION ERROR');return;}
+  if(!c){setFeed('closed',desktopMode()?'CONNECTION ERROR':'SIGN IN');if(desktopMode())openDesktopAuth();return;}
   c.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_OUT'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED')applyDesktopSession(session);
   });
@@ -4886,15 +4887,6 @@ window.__tvReady.then(buildChart);
     </div>
   </div>
 </div>
-
-
-  <div class="ipfx-launch-footer" aria-label="Legal and sharing">
-    <span>&copy; 2026 IPFX Capital Ltd</span>
-    <a href="/privacy.html">Privacy</a>
-    <a href="/terms.html">Terms</a>
-    <a href="/faq.html">FAQ</a>
-    <a href="/contact.html">Contact</a>
-  </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 </body>

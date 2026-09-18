@@ -19,6 +19,7 @@ if (testMode && process.env.IPFX_DESKTOP_TEST_URL) {
 const origin = new URL(entry).origin;
 const offline = path.join(__dirname,'offline.html');
 const offlineURL = pathToFileURL(offline).href;
+const appIcon = path.join(__dirname,process.platform==='win32'?'build/icon.ico':'build/icon.png');
 function readBounds() {
   try {
     const saved = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'),'window.json'),'utf8'));
@@ -65,7 +66,7 @@ function createWindow() {
   const state = readBounds();
   const bounds = windowBounds(state,screen.getPrimaryDisplay().workArea);
   win = new BrowserWindow({...bounds,minWidth:Math.min(800,bounds.width),minHeight:Math.min(600,bounds.height),
-    title:'IPFX Markets',backgroundColor:'#0a0a0c',show:false,icon:path.join(__dirname,'build/icon.png'),
+    title:'IPFX Markets',backgroundColor:'#0a0a0c',show:false,icon:appIcon,
     webPreferences:{partition:'persist:ipfx-markets',nodeIntegration:false,nodeIntegrationInWorker:false,
       nodeIntegrationInSubFrames:false,contextIsolation:true,sandbox:true,webSecurity:true,
       allowRunningInsecureContent:false,webviewTag:false,devTools:!app.isPackaged,
@@ -86,6 +87,11 @@ function createWindow() {
     if(isMainFrame) navigation(event,url);
   });
   win.webContents.on('did-finish-load',()=>clearTimeout(navigationTimer));
+  win.webContents.on('dom-ready',()=>{
+    if(win&&!win.isDestroyed()&&win.webContents.getURL()!==offlineURL){
+      win.webContents.executeJavaScript("document.documentElement.classList.add('desktop-app')",true).catch(()=>{});
+    }
+  });
   win.webContents.on('did-fail-load',(_event,code,_description,url,isMainFrame)=>{
     if(isMainFrame && code!==-3 && url!==offlineURL) showOffline();
   });

@@ -476,7 +476,7 @@
             }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 </head>
 <body style="visibility:hidden">
 <nav>
@@ -590,8 +590,9 @@
         // ============================================
         const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-        const { createClient } = window.supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase?.createClient
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+            : null;
 
         // ============================================
         // AUTO-REDIRECT IF ALREADY LOGGED IN
@@ -599,6 +600,7 @@
         // Check actual Supabase session — not stale localStorage keys
         (async function checkExistingSession() {
             try {
+                if (!supabaseClient) throw new Error('The secure sign-in service did not load. Check your internet connection and try again.');
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) { window.location.replace('dashboard.html'); return; }
             } catch(e) {}
@@ -608,6 +610,7 @@
         window.addEventListener('pageshow', function(e){
             if(e.persisted){
                 document.body.style.visibility = 'hidden';
+                if (!supabaseClient) { document.body.style.visibility = 'visible'; return; }
                 supabaseClient.auth.getSession().then(function(r){
                     if(r.data.session) window.location.replace('dashboard.html');
                     else document.body.style.visibility = 'visible';
@@ -630,10 +633,16 @@
             submitBtn.textContent = 'Logging in...';
 
             try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                if (!supabaseClient) throw new Error('The secure sign-in service did not load. Check your internet connection and try again.');
+                const signIn = supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
+                const timeout = new Promise((_, reject) => setTimeout(
+                    () => reject(new Error('Sign-in timed out. Check your internet connection and try again.')),
+                    12000
+                ));
+                const { data, error } = await Promise.race([signIn, timeout]);
 
                 if (error) throw error;
 
@@ -672,14 +681,15 @@
                 const isEmailNotConfirmed =
                     errorStr.includes('email not confirmed') ||
                     errorStr.includes('email_not_confirmed') ||
-                    errorStr.includes('email confirmation required') ||
-                    error.status === 400;
+                    errorStr.includes('email confirmation required');
 
                 if (isEmailNotConfirmed) {
                     errorText.textContent = 'Your email address has not been confirmed yet. Please check your inbox and click the confirmation link, or request a new one below.';
                     resendBtn.style.display = 'inline-block';
                 } else {
-                    errorText.textContent = 'Login failed: ' + error.message;
+                    errorText.textContent = /invalid login credentials/i.test(errorStr)
+                        ? 'The email or password is incorrect.'
+                        : 'Login failed: ' + (error.message || 'Please try again.');
                     resendBtn.style.display = 'none';
                 }
 

@@ -24,6 +24,7 @@ fs.writeFileSync(path.join(profile,'window.json'),'null');
     try {await page.waitForSelector('#external',{state:'attached'});}
     catch(error){throw new Error(`Fixture unavailable: url=${page.url()} requests=${fixtureRequests}; ${error.message}`);}
     assert.equal(page.url(),url);
+    await page.waitForFunction(()=>document.documentElement.classList.contains('desktop-app'));
     return page;
   }
   async function shutdown(){

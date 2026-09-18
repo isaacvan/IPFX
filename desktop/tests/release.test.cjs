@@ -17,7 +17,8 @@ test('preview artifact is visibly unsigned and never automatically published', (
 });
 
 test('packaging excludes application secrets and disables privileged Electron entrypoints', () => {
-  assert.deepEqual(release.files, ['main.cjs','policy.cjs','offline.html','build/icon.png','package.json']);
+  assert.deepEqual(release.files, ['main.cjs','policy.cjs','offline.html','build/icon.png','build/icon.ico','package.json']);
+  assert.equal(release.win.icon, 'build/icon.ico');
   assert.equal(release.electronFuses.runAsNode, false);
   assert.equal(release.electronFuses.enableNodeOptionsEnvironmentVariable, false);
   assert.equal(release.electronFuses.enableNodeCliInspectArguments, false);

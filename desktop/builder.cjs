@@ -2,7 +2,7 @@ module.exports = {
   appId: 'com.ipfxcapital.markets',
   productName: 'IPFX Markets',
   directories: {output:'dist',buildResources:'build'},
-  files: ['main.cjs','policy.cjs','offline.html','build/icon.png','package.json'],
+  files: ['main.cjs','policy.cjs','offline.html','build/icon.png','build/icon.ico','package.json'],
   asar: true,
   forceCodeSigning: true,
   npmRebuild: false,
@@ -11,7 +11,7 @@ module.exports = {
     enableNodeCliInspectArguments:false, enableEmbeddedAsarIntegrityValidation:true, onlyLoadAppFromAsar:true,
     grantFileProtocolExtraPrivileges:false
   },
-  win: {target:[{target:'nsis',arch:['x64']}],icon:'build/icon.png',verifyUpdateCodeSignature:true},
+  win: {target:[{target:'nsis',arch:['x64']}],icon:'build/icon.ico',verifyUpdateCodeSignature:true},
   nsis: {oneClick:false,perMachine:false,allowToChangeInstallationDirectory:true,
     createDesktopShortcut:true,createStartMenuShortcut:true,shortcutName:'IPFX Markets',deleteAppDataOnUninstall:false},
   mac: {target:[{target:'dmg',arch:['arm64','x64']}],icon:'build/icon.png',

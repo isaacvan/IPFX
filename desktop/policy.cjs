@@ -1,6 +1,6 @@
 'use strict';
 const ORIGIN = 'https://ipfxcapital.com';
-const ENTRY = ORIGIN + '/trading.html?desktop=1';
+const ENTRY = ORIGIN + '/trading.html?desktop=1&app=0.1.0-preview.3';
 function trustedNavigation(raw, origin = ORIGIN) {
   try {
     const u = new URL(raw);
