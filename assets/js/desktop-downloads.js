@@ -5,25 +5,25 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
   const AUTHORIZED_USER_ID = 'f77286ef-8b51-47f3-b6b7-a62f541a4239';
   const BUCKET = 'desktop-releases';
-  const RELEASE = 'v0.1.0-preview.2';
+  const RELEASE = 'v0.1.0-preview.3';
   const MAX_PARTS = 16;
   const MAX_PART_BYTES = 42 * 1024 * 1024;
   const RELEASES = {
     windows: {
-      sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-win-x64.exe',
-      filename: 'IPFX-Markets-0.1.0-preview.2-Windows-x64.exe',
+      sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-win-x64.exe',
+      filename: 'IPFX-Markets-0.1.0-preview.3-Windows-x64.exe',
       contentType: 'application/vnd.microsoft.portable-executable',
       label: 'Download Windows preview'
     },
     'mac-arm64': {
-      sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-mac-arm64.dmg',
-      filename: 'IPFX-Markets-0.1.0-preview.2-Apple-Silicon.dmg',
+      sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-mac-arm64.dmg',
+      filename: 'IPFX-Markets-0.1.0-preview.3-Apple-Silicon.dmg',
       contentType: 'application/x-apple-diskimage',
       label: 'Download Apple Silicon preview'
     },
     'mac-x64': {
-      sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-mac-x64.dmg',
-      filename: 'IPFX-Markets-0.1.0-preview.2-Intel-Mac.dmg',
+      sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-mac-x64.dmg',
+      filename: 'IPFX-Markets-0.1.0-preview.3-Intel-Mac.dmg',
       contentType: 'application/x-apple-diskimage',
       label: 'Download Intel Mac preview'
     }

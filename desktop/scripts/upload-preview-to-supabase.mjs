@@ -8,12 +8,12 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/desktop-release-upload`;
 const AUDIENCE = 'ipfx-desktop-upload';
 const BUCKET = 'desktop-releases';
-const RELEASE = 'v0.1.0-preview.2';
+const RELEASE = 'v0.1.0-preview.3';
 const CHUNK_BYTES = 40 * 1024 * 1024;
 const ALLOWED_FILES = new Map([
-  ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-win-x64.exe', 'application/vnd.microsoft.portable-executable'],
-  ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-mac-arm64.dmg', 'application/x-apple-diskimage'],
-  ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-mac-x64.dmg', 'application/x-apple-diskimage'],
+  ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-win-x64.exe', 'application/vnd.microsoft.portable-executable'],
+  ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-mac-arm64.dmg', 'application/x-apple-diskimage'],
+  ['IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-mac-x64.dmg', 'application/x-apple-diskimage'],
 ]);
 
 async function getGitHubOidcToken() {
