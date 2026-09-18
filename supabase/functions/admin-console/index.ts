@@ -31,6 +31,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, readJsonObject, RequestError, requestId, safeErrorCode } from "../_shared/request-guards.ts";
 import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
 import { insertAccountFromPreset, rootPresetId } from "../_shared/provisioning.ts";
+import { classifyTrader } from "../_shared/trader-risk.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "https://ipfxcapital.com",
@@ -564,9 +565,13 @@ Deno.serve(async (req) => {
   const { data: adminRow } = await db.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
   const isAdmin = !!adminRow;
   if (!isAdmin) return json({ ok: true, is_admin: false, traders: [] });
+  const ownerEmail = String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
+  const isOwner = String(user.email || "").trim().toLowerCase() === ownerEmail;
 
   const action = body.action;
-  const sensitiveActions = new Set(["trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log"]);
+  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail"]);
+  if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
+  const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log"]);
   if (sensitiveActions.has(String(action)) && tokenAal(bearerToken) !== "aal2") {
     return err("Multi-factor authentication is required to access personal information.", 403);
   }
@@ -1492,6 +1497,72 @@ Deno.serve(async (req) => {
     if (error) return err("Could not update the code", 500);
     await logAdmin("promo_set_active", { detail: { code, active: body.active === true } });
     return json({ ok: true });
+  }
+
+  if (action === "risk_analytics") {
+    const since = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000).toISOString();
+    const until = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const [{ data: accounts }, { data: profiles }, { data: trades }, { data: macroEvents }, { data: policies }, { data: decisions }, { data: flags }] = await Promise.all([
+      db.from("trading_accounts").select("*").order("created_at", { ascending: false }),
+      db.from("user_profiles").select("user_id,full_name"),
+      db.from("trades").select("id,account_id,user_id,symbol,side,volume,open_price,close_price,sl,tp,status,close_reason,pnl,opened_at,closed_at").gte("opened_at", since).order("opened_at", { ascending: false }).limit(20000),
+      db.from("macro_calendar_events").select("provider_event_id,event_at,country,currency,importance,event_name").gte("event_at", since).lte("event_at", until),
+      db.from("mirror_risk_policies").select("*"),
+      db.from("mirror_risk_decisions").select("*").order("created_at", { ascending: false }).limit(5000),
+      db.from("trade_safety_flags").select("account_id,user_id,reason,status,created_at").eq("status", "open").order("created_at", { ascending: false }).limit(5000),
+    ]);
+    const names = new Map((profiles ?? []).map((p: Record<string, unknown>) => [p.user_id, p.full_name || "—"]));
+    const policyByUser = new Map((policies ?? []).map((p: Record<string, unknown>) => [p.user_id, p]));
+    const emailByUser = new Map<string, string>();
+    try {
+      for (let page = 1; page <= 10; page++) {
+        const { data: users } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+        for (const u of users?.users ?? []) emailByUser.set(u.id, u.email ?? "");
+        if ((users?.users?.length ?? 0) < 1000) break;
+      }
+    } catch (_) { /* email is optional */ }
+    const rows = [];
+    const styleUpserts = [];
+    for (const account of accounts ?? []) {
+      const accountTrades = (trades ?? []).filter((t: Record<string, unknown>) => t.account_id === account.id);
+      const style = classifyTrader(accountTrades, macroEvents ?? []);
+      const profile = buildStrategyProfile(accountTrades);
+      const accountDecisions = (decisions ?? []).filter((d: Record<string, unknown>) => d.account_id === account.id);
+      const accountFlags = (flags ?? []).filter((f: Record<string, unknown>) => f.account_id === account.id);
+      const policy = policyByUser.get(account.user_id) ?? { mode: "observe", min_multiplier: 0.1, unusual_size_multiple: 3, news_multiplier: 0.25 };
+      styleUpserts.push({ account_id: account.id, user_id: account.user_id, category: style.category, confidence: style.confidence, evidence: style.evidence, classifier_version: "simple-v1", calculated_at: new Date().toISOString() });
+      rows.push({
+        user_id: account.user_id, account_id: account.id, full_name: names.get(account.user_id) || "—",
+        email: emailByUser.get(account.user_id) || "", label: account.label, status: account.status,
+        phase: account.phase, challenge_type: account.challenge_type, balance: Number(account.balance),
+        starting_balance: Number(account.starting_balance), category: style.category,
+        category_confidence: style.confidence, category_evidence: style.evidence,
+        profile, policy, open_flags: accountFlags,
+        last_decision: accountDecisions[0] ?? null,
+        risk_decisions: accountDecisions.slice(0, 30),
+      });
+    }
+    if (styleUpserts.length) await db.from("trader_style_profiles").upsert(styleUpserts, { onConflict: "account_id" });
+    const categoryCounts = Object.fromEntries(["scalper", "news_event_trader", "swing_trader", "high_frequency_trader", "unclassified"].map((category) => [category, rows.filter((r) => r.category === category).length]));
+    return json({ ok: true, is_admin: true, owner: true, rows, category_counts: categoryCounts, macro_provider: "Trading Economics", calculated_at: new Date().toISOString() });
+  }
+
+  if (action === "risk_policy_update") {
+    const targetUser = String(body.user_id ?? "");
+    const mode = String(body.mode ?? "");
+    if (!UUID.test(targetUser) || !["observe", "adaptive", "blocked"].includes(mode)) return err("Valid user_id and mode are required");
+    const values = {
+      user_id: targetUser, mode,
+      min_multiplier: Math.max(0.01, Math.min(1, Number(body.min_multiplier ?? 0.1))),
+      unusual_size_multiple: Math.max(1.5, Math.min(20, Number(body.unusual_size_multiple ?? 3))),
+      news_multiplier: Math.max(0, Math.min(1, Number(body.news_multiplier ?? 0.25))),
+      note: String(body.note ?? "").slice(0, 500) || null,
+      updated_by: user.id, updated_at: new Date().toISOString(),
+    };
+    const { error: policyError } = await db.from("mirror_risk_policies").upsert(values, { onConflict: "user_id" });
+    if (policyError) return err("Could not update mirror-risk policy", 500);
+    await logAdmin("risk_policy_update", { targetUser, detail: { mode, min_multiplier: values.min_multiplier, unusual_size_multiple: values.unusual_size_multiple, news_multiplier: values.news_multiplier } });
+    return json({ ok: true, policy: values });
   }
 
   if (action === "application_queue") {
