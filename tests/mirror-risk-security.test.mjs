@@ -9,6 +9,7 @@ const sync = read('supabase/functions/macro-calendar-sync/index.ts');
 const migration = read('supabase/migrations/20260918190000_adaptive_mirror_risk_and_trader_styles.sql');
 const page = read('trader-analytics.html');
 const teamLogin = read('team-login.html');
+const teamAccess = read('supabase/functions/team-access/index.ts');
 
 test('risk analytics is restricted to the configured owner and MFA', () => {
   assert.match(admin, /IPFX_OWNER_EMAIL/);
@@ -19,12 +20,15 @@ test('risk analytics is restricted to the configured owner and MFA', () => {
 });
 
 test('Team Login checks owner access and completes password plus authenticator verification', () => {
-  assert.match(admin, /action === "team_access_check"/);
+  assert.match(teamAccess, /IPFX_OWNER_EMAIL/);
+  assert.match(teamAccess, /client\.auth\.getUser\(\)/);
+  assert.match(teamAccess, /from\("admins"\)/);
   assert.match(teamLogin, /<h1>Team Login<\/h1>/);
   assert.match(teamLogin, /signInWithPassword/);
-  assert.match(teamLogin, /team_access_check/);
+  assert.match(teamLogin, /functions\/v1\/team-access/);
   assert.match(teamLogin, /mfa\.challengeAndVerify/);
   assert.match(teamLogin, /mfa\.enroll\(\{factorType:'totp'/);
+  assert.match(teamLogin, /location\.replace\('\/admin\.html'\)/);
   assert.doesNotMatch(teamLogin, /signup\.html|Sign up/);
 });
 
