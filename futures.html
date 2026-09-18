@@ -671,21 +671,21 @@ footer a:hover{color:var(--fg);}
       <p class="section-sub" style="max-width:520px;margin-left:auto;margin-right:auto;">Pay once to access your evaluation. Pass, get funded, earn 85%. No monthly billing, ever.</p>
       <div style="display:flex;align-items:center;justify-content:center;gap:.75rem;margin-top:1.25rem;padding:.85rem 1.5rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;max-width:520px;margin-left:auto;margin-right:auto;">
         <svg viewBox="0 0 24 24" fill="#f59e0b" style="width:18px;height:18px;flex-shrink:0"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        <span style="font-size:.875rem;color:var(--muted);">Leave a <strong style="color:var(--fg);">Trustpilot review</strong> after passing and receive <strong style="color:#f59e0b;">15% of your challenge fee back</strong> — applied as account credit.</span>
+        <span style="font-size:.875rem;color:var(--muted);">Passed a challenge? Leave an honest <strong style="color:var(--fg);">Trustpilot review</strong> — we never pay or reward anyone for reviews.</span>
       </div>
     </div>
     <div class="pricing-grid">
       <div class="price-card">
         <div class="pc-size">$25K</div>
-        <div class="pc-fee">$129 one-time</div>
-        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-fee" data-preset="fut_25k_p1" data-field="fee" data-suffix=" one-time">$129 one-time</div>
+        <div class="pc-ref">Fee credited on first payout</div>
         <div class="pc-specs">
-          <div class="pc-row"><span>Phase 1 Target</span><span>$1,500 (6%)</span></div>
-          <div class="pc-row"><span>Phase 2 Target</span><span>$1,000 (4%)</span></div>
-          <div class="pc-row"><span>Trailing Drawdown</span><span>$1,000 (4%)</span></div>
-          <div class="pc-row"><span>Daily Loss Limit</span><span>$500 (2%)</span></div>
-          <div class="pc-row"><span>Min Trading Days</span><span>6 per phase</span></div>
-          <div class="pc-row"><span>Min Trades</span><span>30 per phase</span></div>
+          <div class="pc-row"><span>Phase 1 Target</span><span data-preset="fut_25k_p1" data-field="target">$1,500 (6%)</span></div>
+          <div class="pc-row"><span>Phase 2 Target</span><span data-preset="fut_25k_p2" data-field="target">$1,000 (4%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span data-preset="fut_25k_p1" data-field="dd">$1,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span data-preset="fut_25k_p1" data-field="daily">$500 (2%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span data-preset="fut_25k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></div>
+          <div class="pc-row"><span>Min Trades</span><span data-preset="fut_25k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></div>
           <div class="pc-row"><span>Time Limit</span><span>None</span></div>
           <div class="pc-row"><span>Consistency Rule (evaluation)</span><span class="good">None</span></div>
           <div class="pc-row"><span>Profit Split</span><span class="good">85%</span></div>
@@ -695,15 +695,15 @@ footer a:hover{color:var(--fg);}
       </div>
       <div class="price-card">
         <div class="pc-size">$50K</div>
-        <div class="pc-fee">$179 one-time</div>
-        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-fee" data-preset="fut_50k_p1" data-field="fee" data-suffix=" one-time">$179 one-time</div>
+        <div class="pc-ref">Fee credited on first payout</div>
         <div class="pc-specs">
-          <div class="pc-row"><span>Phase 1 Target</span><span>$3,000 (6%)</span></div>
-          <div class="pc-row"><span>Phase 2 Target</span><span>$2,000 (4%)</span></div>
-          <div class="pc-row"><span>Trailing Drawdown</span><span>$2,000 (4%)</span></div>
-          <div class="pc-row"><span>Daily Loss Limit</span><span>$1,000 (2%)</span></div>
-          <div class="pc-row"><span>Min Trading Days</span><span>6 per phase</span></div>
-          <div class="pc-row"><span>Min Trades</span><span>30 per phase</span></div>
+          <div class="pc-row"><span>Phase 1 Target</span><span data-preset="fut_50k_p1" data-field="target">$3,000 (6%)</span></div>
+          <div class="pc-row"><span>Phase 2 Target</span><span data-preset="fut_50k_p2" data-field="target">$2,000 (4%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span data-preset="fut_50k_p1" data-field="dd">$2,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span data-preset="fut_50k_p1" data-field="daily">$1,000 (2%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span data-preset="fut_25k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></div>
+          <div class="pc-row"><span>Min Trades</span><span data-preset="fut_25k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></div>
           <div class="pc-row"><span>Time Limit</span><span>None</span></div>
           <div class="pc-row"><span>Consistency Rule (evaluation)</span><span class="good">None</span></div>
           <div class="pc-row"><span>Profit Split</span><span class="good">85%</span></div>
@@ -713,15 +713,15 @@ footer a:hover{color:var(--fg);}
       </div>
       <div class="price-card featured">
         <div class="pc-size">$100K</div>
-        <div class="pc-fee">$329 one-time</div>
-        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-fee" data-preset="fut_100k_p1" data-field="fee" data-suffix=" one-time">$329 one-time</div>
+        <div class="pc-ref">Fee credited on first payout</div>
         <div class="pc-specs">
-          <div class="pc-row"><span>Phase 1 Target</span><span>$6,000 (6%)</span></div>
-          <div class="pc-row"><span>Phase 2 Target</span><span>$4,000 (4%)</span></div>
-          <div class="pc-row"><span>Trailing Drawdown</span><span>$4,000 (4%)</span></div>
-          <div class="pc-row"><span>Daily Loss Limit</span><span>$2,000 (2%)</span></div>
-          <div class="pc-row"><span>Min Trading Days</span><span>6 per phase</span></div>
-          <div class="pc-row"><span>Min Trades</span><span>30 per phase</span></div>
+          <div class="pc-row"><span>Phase 1 Target</span><span data-preset="fut_100k_p1" data-field="target">$6,000 (6%)</span></div>
+          <div class="pc-row"><span>Phase 2 Target</span><span data-preset="fut_100k_p2" data-field="target">$4,000 (4%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span data-preset="fut_100k_p1" data-field="dd">$4,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span data-preset="fut_100k_p1" data-field="daily">$2,000 (2%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span data-preset="fut_25k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></div>
+          <div class="pc-row"><span>Min Trades</span><span data-preset="fut_25k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></div>
           <div class="pc-row"><span>Time Limit</span><span>None</span></div>
           <div class="pc-row"><span>Consistency Rule (evaluation)</span><span class="good">None</span></div>
           <div class="pc-row"><span>Profit Split</span><span class="good">85%</span></div>
@@ -731,15 +731,15 @@ footer a:hover{color:var(--fg);}
       </div>
       <div class="price-card">
         <div class="pc-size">$150K</div>
-        <div class="pc-fee">$479 one-time</div>
-        <div class="pc-ref">Fee refunded on first payout</div>
+        <div class="pc-fee" data-preset="fut_150k_p1" data-field="fee" data-suffix=" one-time">$479 one-time</div>
+        <div class="pc-ref">Fee credited on first payout</div>
         <div class="pc-specs">
-          <div class="pc-row"><span>Phase 1 Target</span><span>$9,000 (6%)</span></div>
-          <div class="pc-row"><span>Phase 2 Target</span><span>$6,000 (4%)</span></div>
-          <div class="pc-row"><span>Trailing Drawdown</span><span>$6,000 (4%)</span></div>
-          <div class="pc-row"><span>Daily Loss Limit</span><span>$3,000 (2%)</span></div>
-          <div class="pc-row"><span>Min Trading Days</span><span>6 per phase</span></div>
-          <div class="pc-row"><span>Min Trades</span><span>30 per phase</span></div>
+          <div class="pc-row"><span>Phase 1 Target</span><span data-preset="fut_150k_p1" data-field="target">$9,000 (6%)</span></div>
+          <div class="pc-row"><span>Phase 2 Target</span><span data-preset="fut_150k_p2" data-field="target">$6,000 (4%)</span></div>
+          <div class="pc-row"><span>Trailing Drawdown</span><span data-preset="fut_150k_p1" data-field="dd">$6,000 (4%)</span></div>
+          <div class="pc-row"><span>Daily Loss Limit</span><span data-preset="fut_150k_p1" data-field="daily">$3,000 (2%)</span></div>
+          <div class="pc-row"><span>Min Trading Days</span><span data-preset="fut_25k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></div>
+          <div class="pc-row"><span>Min Trades</span><span data-preset="fut_25k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></div>
           <div class="pc-row"><span>Time Limit</span><span>None</span></div>
           <div class="pc-row"><span>Consistency Rule (evaluation)</span><span class="good">None</span></div>
           <div class="pc-row"><span>Profit Split</span><span class="good">85%</span></div>
@@ -911,5 +911,6 @@ function toggleFaq(btn) {
 
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
+<script defer src="/assets/js/live-pricing.js"></script>
 </body>
 </html>

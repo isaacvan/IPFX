@@ -1,6 +1,14 @@
 (function () {
   "use strict";
 
+  // A password-reset link can land on any page (Supabase falls back to the
+  // site URL when the reset page isn't on its redirect allow-list). Send it
+  // to the page that can actually finish the reset.
+  if (/(^|[#&])type=recovery(&|$)/.test(location.hash.slice(1)) && !/\/reset-password\.html$/.test(location.pathname)) {
+    location.replace("/reset-password.html" + location.hash);
+    return;
+  }
+
   var CONSENT_KEY = "ipfx_cookie_consent_v1";
   var main = document.querySelector("main, [role='main']");
   function resolveMain() {

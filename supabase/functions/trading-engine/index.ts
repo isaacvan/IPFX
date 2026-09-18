@@ -50,6 +50,8 @@
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
+import { insertAccountFromPreset as insertFromPresetShared } from "../_shared/provisioning.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -396,6 +398,16 @@ async function tradePnl(t: Tr, exit: number): Promise<number | null> {
 // EdgeRuntime.waitUntil keeps the worker alive until the call completes.
 // deno-lint-ignore no-explicit-any
 declare const EdgeRuntime: any;
+// Lifecycle emails never delay or fail the request that triggered them.
+function emailLater(p: Promise<unknown>) {
+  try { EdgeRuntime.waitUntil(p); } catch (_) { p.catch(() => {}); }
+}
+
+const BREACH_TEXT: Record<string, string> = {
+  max_drawdown: "the maximum drawdown limit was reached",
+  daily_loss: "the daily loss limit was reached",
+};
+
 function fireMirror(acct: Acct, t: Tr, event: "open" | "close") {
   // deno-lint-ignore no-explicit-any
   if (!(acct as any).mirror_enabled) return;
@@ -767,11 +779,58 @@ async function lastKnownQuote(symKey: string): Promise<Quote | null> {
 // and the fee is recorded as $0 so no fee credit or referral commission is
 // ever paid on a free challenge.
 type ProvisionResult = { ok: true; account: Acct } | { ok: false; error: string; status: number };
+
+// Creates a fresh evaluation account from a preset (shared module) and sends
+// the activation email without delaying the request.
+// deno-lint-ignore no-explicit-any
+async function insertAccountFromPreset(db: Db, userId: string, preset: any, feeUsd: number): Promise<Acct | null> {
+  const account = await insertFromPresetShared(db, userId, preset, feeUsd);
+  if (!account) return null;
+  emailLater(sendLifecycleEmail(db, "challenge_activated", userId, {
+    challenge_name: String(preset.label),
+    account_size: "$" + Number(preset.starting_balance).toLocaleString("en-US"),
+    trading_platform: "IPFX Markets",
+  }));
+  return account as Acct;
+}
+
+// Eligibility for the free Infinity Challenge (Terms 4.6): verified email,
+// permitted jurisdiction, no active challenge, and at most the preset's
+// monthly attempt cap of Stage 1 starts (a restart after failing counts).
+// deno-lint-ignore no-explicit-any
+async function infinityStatus(db: Db, user: any) {
+  const { data: accts } = await db.from("trading_accounts")
+    .select("id,status,challenge_type,preset_id,created_at")
+    .eq("user_id", user.id).order("created_at", { ascending: false });
+  const list = accts ?? [];
+  const hasActive = list.some((a: { status: string }) => a.status === "active");
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const used = list.filter((a: { preset_id: string | null; created_at: string }) =>
+    a.preset_id === "infinity_s1" && a.created_at >= monthStart).length;
+  const { data: preset } = await db.from("challenge_presets").select("*").eq("id", "infinity_s1").maybeSingle();
+  const cap = Number(preset?.max_attempts_per_month ?? 3);
+  const { data: profile } = await db.from("user_profiles")
+    .select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle();
+  let reason: string | null = null;
+  if (!preset) reason = "The Infinity Challenge is unavailable right now.";
+  else if (!user.email_confirmed_at) reason = "Verify your email address first — check your inbox for the confirmation link.";
+  else if (profile?.restricted_jurisdiction) reason = "Sorry — we can't offer challenges in your jurisdiction.";
+  else if (hasActive) reason = "You already have an active challenge. Finish it before starting another.";
+  else if (used >= cap) reason = `You've used all ${cap} Infinity attempts this month. They reset on the 1st.`;
+  return {
+    eligible: reason === null, reason, preset,
+    attempts_used: used, attempts_cap: cap, attempts_left: Math.max(0, cap - used),
+    has_active: hasActive,
+    is_restart: list.some((a: { challenge_type: string }) => a.challenge_type === "infinity"),
+    needs_age_confirmation: profile?.age_confirmed !== true,
+  };
+}
 // deno-lint-ignore no-explicit-any
 async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResult> {
   const notProvisioned: ProvisionResult = {
     ok: false, status: 403,
-    error: "Your challenge account has not been provisioned. Contact support before making another payment.",
+    error: "You don't have an active challenge yet. Start the free Infinity Challenge from your dashboard, or choose a challenge on the website.",
   };
   if (!user?.email_confirmed_at) return notProvisioned;
 
@@ -793,37 +852,9 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
     return { ok: false, status: 409, error: "Your promo challenge could not be set up automatically. Contact support@ipfxcapital.com." };
   }
 
-  const startBal = Number(preset.starting_balance);
-  const { data: account, error } = await db.from("trading_accounts").insert({
-    user_id: user.id,
-    label: String(preset.label),
-    preset_id: preset.id,
-    challenge_type: preset.challenge_type,
-    stage: Number(preset.stage ?? 1),
-    phase: "evaluation",
-    status: "active",
-    starting_balance: startBal, balance: startBal, day_start_equity: startBal,
-    day_start_date: new Date().toISOString().slice(0, 10),
-    profit_target_pct: Number(preset.profit_target_pct),
-    max_drawdown_pct: Number(preset.max_drawdown_pct),
-    daily_loss_pct: Number(preset.daily_loss_pct),
-    drawdown_mode: preset.drawdown_mode,
-    trailing_peak: startBal,
-    min_trading_days: Number(preset.min_trading_days ?? 0),
-    min_trades: Number(preset.min_trades ?? 0),
-    max_risk_per_trade_pct: preset.max_risk_per_trade_pct ?? null,
-    daily_profit_cap_pct: preset.daily_profit_cap_pct ?? null,
-    min_profitable_days_pct: preset.min_profitable_days_pct ?? null,
-    require_stop_loss: !!preset.require_stop_loss,
-    profit_split_pct: Number(preset.profit_split_pct ?? 85),
-    challenge_fee_usd: 0,
-    total_paid_out: 0,
-  }).select("*").single();
-  if (error || !account) return { ok: false, status: 500, error: "Could not provision account" };
-
-  try { await db.rpc("accept_qualification_v2", { p_account_id: account.id }); }
-  catch (_) { /* never block provisioning on this */ }
-  return { ok: true, account: account as Acct };
+  const account = await insertAccountFromPreset(db, user.id, preset, 0);
+  if (!account) return { ok: false, status: 500, error: "Could not provision account" };
+  return { ok: true, account };
 }
 
 // The requirements that must ALL hold, alongside the profit target,
@@ -1054,6 +1085,13 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       equity = round2(Number(acct.balance));
       acct.status = "breached";
       acct.breach_reason = breach;
+      emailLater(sendLifecycleEmail(db, "account_breached", acct.user_id, {
+        challenge_name: acct.label,
+        breach_reason: BREACH_TEXT[breach] ?? breach,
+        next_step: acct.challenge_type === "infinity"
+          ? "You can restart the Infinity Challenge from Stage 1 in your dashboard (up to 3 attempts per calendar month)."
+          : "You can start a new challenge from your dashboard whenever you are ready.",
+      }));
     } else if (
       acct.phase !== "funded" &&
       Number(acct.profit_target_pct) > 0 &&
@@ -1069,6 +1107,13 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       if (gate.ok) {
         acct.status = "passed";
         await provisionNextStage(db, acct);
+        const { data: nextAcct } = await db.from("trading_accounts")
+          .select("label,phase").eq("funded_from_account_id", acct.id).maybeSingle();
+        if (nextAcct?.phase === "funded") {
+          emailLater(sendLifecycleEmail(db, "account_funded", acct.user_id, { challenge_name: acct.label }));
+        } else if (nextAcct) {
+          emailLater(sendLifecycleEmail(db, "stage_passed", acct.user_id, { challenge_name: acct.label, next_name: nextAcct.label }));
+        }
       }
       // Not passing yet is not a breach — the trader simply keeps trading
       // until the remaining requirements are met.
@@ -1512,6 +1557,34 @@ Deno.serve(async (req) => {
   ]);
   if (authMethod === "bot" && !BOT_ALLOWED_ACTIONS.has(body.action)) {
     return err("This API key is trade-only — it cannot access payouts, KYC, or account settings", 403);
+  }
+
+  // Free Infinity Challenge: status for the dashboard, and the claim itself
+  // (first start or restart after failing). Bot tokens cannot reach these.
+  if (body.action === "infinity_status") {
+    const st = await infinityStatus(db, user);
+    const { preset: _p, ...pub } = st;
+    return new Response(JSON.stringify({ ok: true, infinity: pub }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+  if (body.action === "claim_infinity") {
+    if (!(await claimOrderLock(db, user.id))) return err("Already processing — try again in a moment.", 429);
+    try {
+      const st = await infinityStatus(db, user);
+      if (!st.eligible) return err(st.reason ?? "Not eligible", 409);
+      if (st.needs_age_confirmation) {
+        if (body.confirm_age !== true) return err("Please confirm you are 18 or older.", 400);
+        await db.from("user_profiles").update({ age_confirmed: true }).eq("user_id", user.id);
+      }
+      const account = await insertAccountFromPreset(db, user.id, st.preset, 0);
+      if (!account) return err("Could not start your challenge — please try again.", 500);
+      return new Response(JSON.stringify({
+        ok: true,
+        account: { id: account.id, label: account.label, starting_balance: Number(account.starting_balance) },
+        attempts_left: Math.max(0, st.attempts_left - 1),
+      }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    } finally {
+      await releaseOrderLock(db, user.id);
+    }
   }
 
   // Live quote for the order ticket — no trading account needed. Reports

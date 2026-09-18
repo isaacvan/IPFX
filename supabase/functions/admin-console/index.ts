@@ -29,6 +29,8 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, readJsonObject, RequestError, requestId, safeErrorCode } from "../_shared/request-guards.ts";
+import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
+import { insertAccountFromPreset, rootPresetId } from "../_shared/provisioning.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -804,6 +806,7 @@ Deno.serve(async (req) => {
     const { data, error } = await db.rpc("fn_approve_payout", { p_payout_id: payout_id, p_admin_id: user.id });
     if (error) return err(cleanRpc(error.message), 409);
     await logAdmin("payout_approve", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share } });
+    if (data?.user_id) await sendLifecycleEmail(db, "payout_approved", data.user_id, { amount: Number(data.trader_share ?? 0).toFixed(2), currency: data.currency ?? "USD" });
     return json({ ok: true, payout: data });
   }
 
@@ -813,6 +816,7 @@ Deno.serve(async (req) => {
     const { data, error } = await db.rpc("fn_mark_paid", { p_payout_id: payout_id, p_admin_id: user.id });
     if (error) return err(cleanRpc(error.message), 409);
     await logAdmin("payout_mark_paid", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share } });
+    if (data?.user_id) await sendLifecycleEmail(db, "payout_paid", data.user_id, { amount: Number(data.trader_share ?? 0).toFixed(2), currency: data.currency ?? "USD", payout_method: "your registered payout method" });
     // Referral commission (if any) fires only once a payout is actually
     // paid, per "10% ... within 30 days of their first payout" — never
     // on merely requested/approved.
@@ -844,6 +848,8 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     });
     if (error) return err("could not update KYC status", 500);
+    if (status === "verified") await sendLifecycleEmail(db, "kyc_approved", target_user, {});
+    if (status === "rejected") await sendLifecycleEmail(db, "kyc_rejected", target_user, { note: note ?? "The documents could not be read or did not match your profile." });
     return json({ ok: true });
   }
 
@@ -1315,6 +1321,175 @@ Deno.serve(async (req) => {
       per_account_profile: perAccount,
       combined_profile: combinedProfile,
     });
+  }
+
+  // ---------------- accounts, users, promos, KYC (owner tools) ----------------
+
+  // Voids any open positions at their entry price (zero P&L) so a closed or
+  // reset account never leaves orphaned "open" trades behind.
+  async function voidOpenTrades(accountId: string) {
+    const { data: openTrades } = await db.from("trades").select("id,open_price").eq("account_id", accountId).eq("status", "open");
+    for (const t of openTrades ?? []) {
+      await db.from("trades").update({
+        status: "closed", close_price: t.open_price, pnl: 0, close_reason: "admin_closed",
+        closed_at: new Date().toISOString(),
+      }).eq("id", t.id).eq("status", "open");
+    }
+    await db.from("pending_orders").update({ status: "cancelled", resolved_at: new Date().toISOString() })
+      .eq("account_id", accountId).eq("status", "pending");
+    return (openTrades ?? []).length;
+  }
+
+  if (action === "user_search") {
+    const q = String(body.q ?? "").trim().toLowerCase();
+    const onlyWithoutAccount = body.without_account === true;
+    const users: Array<{ id: string; email: string; created_at: string; email_confirmed_at: string | null; name: string }> = [];
+    for (let page = 1; page <= 10; page++) {
+      const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error || !data?.users?.length) break;
+      for (const u of data.users) {
+        users.push({ id: u.id, email: u.email ?? "", created_at: u.created_at, email_confirmed_at: u.email_confirmed_at ?? null,
+          name: String(u.user_metadata?.full_name ?? "") });
+      }
+      if (data.users.length < 1000) break;
+    }
+    let matches = q ? users.filter((u) => u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q) || u.id === q) : users;
+    const ids = matches.map((u) => u.id);
+    const accountsByUser = new Map<string, Array<Record<string, unknown>>>();
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data: accts } = await db.from("trading_accounts")
+        .select("id,user_id,label,status,phase,challenge_type,preset_id,starting_balance,balance,breach_reason,created_at")
+        .in("user_id", ids.slice(i, i + 200)).order("created_at", { ascending: false });
+      for (const a of accts ?? []) {
+        const list = accountsByUser.get(a.user_id) ?? [];
+        list.push(a);
+        accountsByUser.set(a.user_id, list);
+      }
+    }
+    if (onlyWithoutAccount) matches = matches.filter((u) => !accountsByUser.has(u.id));
+    const page = matches.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 50);
+    const { data: kycRows } = await db.from("trader_kyc").select("user_id,status").in("user_id", page.map((u) => u.id));
+    const kyc = new Map((kycRows ?? []).map((k: { user_id: string; status: string }) => [k.user_id, k.status]));
+    return json({
+      ok: true, total: matches.length,
+      users: page.map((u) => ({ ...u, kyc_status: kyc.get(u.id) ?? "unverified", accounts: accountsByUser.get(u.id) ?? [] })),
+    });
+  }
+
+  if (action === "presets") {
+    const { data } = await db.from("challenge_presets").select("id,label,challenge_type,stage,starting_balance,fee_usd")
+      .eq("stage", 1).order("challenge_type").order("starting_balance");
+    return json({ ok: true, presets: data ?? [] });
+  }
+
+  if (action === "grant_challenge") {
+    const target_user = String(body.user_id ?? "");
+    const preset_id = String(body.preset_id ?? "");
+    if (!target_user || !preset_id) return err("user_id and preset_id required");
+    const { data: preset } = await db.from("challenge_presets").select("*").eq("id", preset_id).eq("stage", 1).maybeSingle();
+    if (!preset) return err("Unknown or non-starting preset");
+    const { data: active } = await db.from("trading_accounts").select("id").eq("user_id", target_user).eq("status", "active").limit(1);
+    if (active && active.length) return err("This trader already has an active account — close or reset it first", 409);
+    const fee = body.fee_usd === undefined || body.fee_usd === null ? 0 : Number(body.fee_usd);
+    if (!Number.isFinite(fee) || fee < 0) return err("Invalid fee");
+    const account = await insertAccountFromPreset(db, target_user, preset, fee);
+    if (!account) return err("Could not create the account", 500);
+    await logAdmin("grant_challenge", { targetUser: target_user, targetAccount: account.id, detail: { preset_id, fee_usd: fee } });
+    await sendLifecycleEmail(db, "challenge_activated", target_user, {
+      challenge_name: preset.label, account_size: "$" + Number(preset.starting_balance).toLocaleString("en-US"),
+      trading_platform: "IPFX Markets",
+    });
+    return json({ ok: true, account });
+  }
+
+  if (action === "reset_account" || action === "close_account") {
+    const account_id = String(body.account_id ?? "");
+    if (!account_id) return err("account_id required");
+    const reason = String(body.reason ?? "").trim().slice(0, 200);
+    const { data: acctRow } = await db.from("trading_accounts").select("*").eq("id", account_id).maybeSingle();
+    if (!acctRow) return err("Account not found", 404);
+    if (action === "reset_account") {
+      const root = rootPresetId(acctRow.preset_id);
+      if (!root) return err("This account has no challenge preset (created by the old free sign-up) — use Grant challenge instead", 409);
+      const { data: preset } = await db.from("challenge_presets").select("*").eq("id", root).maybeSingle();
+      if (!preset) return err("Starting preset not found", 500);
+      const { data: otherActive } = await db.from("trading_accounts").select("id")
+        .eq("user_id", acctRow.user_id).eq("status", "active").neq("id", account_id).limit(1);
+      if (otherActive && otherActive.length) return err("The trader has another active account — close it before resetting", 409);
+      const voided = await voidOpenTrades(account_id);
+      if (acctRow.status === "active") {
+        await db.from("trading_accounts").update({ status: "breached", breach_reason: "reset_by_admin" + (reason ? ": " + reason : ""), updated_at: new Date().toISOString() }).eq("id", account_id);
+      }
+      const fresh = await insertAccountFromPreset(db, acctRow.user_id, preset, acctRow.challenge_fee_usd ?? null);
+      if (!fresh) return err("Old account closed but the new one could not be created — use Grant challenge", 500);
+      await logAdmin("reset_account", { targetUser: acctRow.user_id, targetAccount: account_id, detail: { new_account: fresh.id, root_preset: root, voided_positions: voided, reason } });
+      await sendLifecycleEmail(db, "challenge_activated", acctRow.user_id, {
+        challenge_name: preset.label, account_size: "$" + Number(preset.starting_balance).toLocaleString("en-US"),
+        trading_platform: "IPFX Markets",
+      });
+      return json({ ok: true, account: fresh, voided_positions: voided });
+    }
+    if (acctRow.status !== "active") return err("Only an active account can be closed", 409);
+    const voided = await voidOpenTrades(account_id);
+    await db.from("trading_accounts").update({
+      status: "breached", breach_reason: "closed_by_admin" + (reason ? ": " + reason : ""), updated_at: new Date().toISOString(),
+    }).eq("id", account_id);
+    await logAdmin("close_account", { targetUser: acctRow.user_id, targetAccount: account_id, detail: { voided_positions: voided, reason } });
+    return json({ ok: true, voided_positions: voided });
+  }
+
+  if (action === "promo_list") {
+    const { data: codes } = await db.from("promo_codes").select("*").order("created_at", { ascending: false });
+    return json({ ok: true, promos: codes ?? [] });
+  }
+
+  if (action === "promo_create") {
+    const code = String(body.code ?? "").trim().toUpperCase();
+    const size = String(body.size ?? "").trim().toLowerCase();
+    const maxUses = body.max_uses === null || body.max_uses === undefined || body.max_uses === "" ? null : Number(body.max_uses);
+    if (!/^[A-Z0-9]{4,24}$/.test(code)) return err("Code must be 4-24 letters or digits");
+    if (!/^\d{2,3}k$/.test(size)) return err("Size must look like 25k");
+    if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) return err("Max uses must be a whole number, or blank for unlimited");
+    const { data: preset } = await db.from("challenge_presets").select("label").eq("id", `trad_${size}_p1`).maybeSingle();
+    if (!preset) return err("No Traditional challenge exists at that size");
+    const challengeName = String(body.challenge_name ?? "").trim() || `Traditional ${size.toUpperCase()} Challenge`;
+    const { error } = await db.from("promo_codes").insert({
+      code, challenge_type: size, challenge_name: challengeName, max_uses: maxUses, use_count: 0, is_active: true,
+    });
+    if (error) return err(error.code === "23505" ? "That code already exists" : "Could not create the code", 409);
+    await logAdmin("promo_create", { detail: { code, size, max_uses: maxUses } });
+    return json({ ok: true });
+  }
+
+  if (action === "promo_set_active") {
+    const code = String(body.code ?? "").trim().toUpperCase();
+    if (!code) return err("code required");
+    const { error } = await db.from("promo_codes").update({ is_active: body.active === true }).eq("code", code);
+    if (error) return err("Could not update the code", 500);
+    await logAdmin("promo_set_active", { detail: { code, active: body.active === true } });
+    return json({ ok: true });
+  }
+
+  if (action === "kyc_queue") {
+    const { data: pending } = await db.from("trader_kyc").select("user_id,status,updated_at").eq("status", "pending").order("updated_at");
+    const out = [];
+    for (const row of pending ?? []) {
+      const { data: au } = await db.auth.admin.getUserById(row.user_id);
+      const { data: docs } = await db.from("kyc_submissions").select("doc_type,storage_path,created_at")
+        .eq("user_id", row.user_id).order("created_at", { ascending: false }).limit(8);
+      const files = [];
+      for (const d of docs ?? []) {
+        const { data: signed } = await db.storage.from("kyc-documents").createSignedUrl(d.storage_path, 3600);
+        files.push({ doc_type: d.doc_type, uploaded_at: d.created_at, url: signed?.signedUrl ?? null });
+      }
+      const { data: profile } = await db.from("user_profiles").select("full_name,country_code").eq("user_id", row.user_id).maybeSingle();
+      out.push({
+        user_id: row.user_id, submitted_at: row.updated_at, email: au?.user?.email ?? null,
+        full_name: profile?.full_name ?? au?.user?.user_metadata?.full_name ?? null, country: profile?.country_code ?? null,
+        documents: files,
+      });
+    }
+    return json({ ok: true, queue: out });
   }
 
   return err("unknown action");

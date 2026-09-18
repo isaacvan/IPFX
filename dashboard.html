@@ -812,6 +812,17 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val" id="pout-next">—</div><div class="sc-sub">After first funded week</div></div>
       </div>
       <div id="poutKycNotice" style="display:none;padding:.9rem 1.1rem;border-radius:var(--r);margin-bottom:1rem;font-size:.85rem"></div>
+      <div id="kycUpload" style="display:none;padding:1rem 1.1rem;border:1px solid var(--line);border-radius:var(--r);margin-bottom:1rem">
+        <div style="font-weight:700;margin-bottom:.35rem">Verify your identity</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">Upload a government-issued photo ID and a proof of address dated within the last 3 months (bank statement or utility bill). JPG, PNG, WEBP or PDF, up to 10 MB each. Documents are stored privately and only reviewed by IPFX compliance.</div>
+        <div style="display:grid;gap:.6rem;font-size:.8rem">
+          <label>Photo ID — front <span style="color:#ef4444">*</span><br><input type="file" id="kycIdFront" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"></label>
+          <label>Photo ID — back (if it has one)<br><input type="file" id="kycIdBack" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"></label>
+          <label>Proof of address <span style="color:#ef4444">*</span><br><input type="file" id="kycAddress" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"></label>
+        </div>
+        <button class="cbtn p" id="kycSubmitBtn" style="margin-top:.8rem" onclick="submitKyc()">Submit for verification</button>
+        <div id="kycMsg" style="font-size:.8rem;margin-top:.5rem;display:none"></div>
+      </div>
       <div class="pout-req">
         <div class="pout-req-title">Request Payout</div>
         <div class="pout-amt" id="poutAmtDisplay" style="font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700">$0.00</div>
@@ -1001,7 +1012,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <!-- COMMUNITY -->
     <div class="page" id="pg-community">
       <div class="promo-banner">
-        <div class="promo-left"><div class="promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div class="promo-title">Join the IPFX Capital Community</div><div class="promo-sub">Connect with <b>1,400+ funded traders</b>. Share ideas, discuss strategies and get real-time support from the IPFX team.</div></div></div>
+        <div class="promo-left"><div class="promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div class="promo-title">Join the IPFX Capital Community</div><div class="promo-sub">Connect with other IPFX traders. Share ideas, discuss strategies and get real-time support from the IPFX team.</div></div></div>
         <a href="https://discord.gg/ipfxcapital" target="_blank" class="promo-btn">Join Discord →</a>
       </div>
       <div class="sec-hd"><div><div class="sec-title">Find Us On Social Media</div><div class="sec-sub">Follow IPFX Capital for market insights, trader spotlights and firm updates</div></div></div>
@@ -1019,7 +1030,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="page" id="pg-help">
       <div class="help-grid">
         <a href="mailto:enquiries@ipfxcapital.com" class="hc-card"><div class="hc-icon" style="background:var(--cobalt-d)"><svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="hc-title">Email Support</div><div class="hc-sub">Response within 24 hours from the IPFX team.</div><div class="hc-act">enquiries@ipfxcapital.com <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
-        <a href="https://discord.gg/ipfxcapital" target="_blank" class="hc-card"><div class="hc-icon" style="background:rgba(88,101,242,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="hc-title">Discord Community</div><div class="hc-sub">Usually under 10 minutes. 1,400+ traders online.</div><div class="hc-act">Join Discord <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
+        <a href="https://discord.gg/ipfxcapital" target="_blank" class="hc-card"><div class="hc-icon" style="background:rgba(88,101,242,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="hc-title">Discord Community</div><div class="hc-sub">Chat with the IPFX team and other traders.</div><div class="hc-act">Join Discord <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
       </div>
       <div class="sec-hd"><div><div class="sec-title">Frequently Asked Questions</div></div></div>
       <div class="faq-list">
@@ -1114,7 +1125,7 @@ async function initDashboard(){
 
   // load accounts, claims, profile + referrals in parallel
   const[{data:enrollments},{data:claims},{data:profile},{data:referralRows}]=await Promise.all([
-    sb.from('challenge_enrollments').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
+    sb.from('trading_accounts').select('id,label,challenge_type,stage,phase,status,breach_reason,starting_balance,balance,profit_target_pct,max_drawdown_pct,drawdown_mode,trailing_peak,total_paid_out,created_at').eq('user_id',user.id).order('created_at',{ascending:false}),
     sb.from('challenge_claims').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
     sb.from('user_profiles').select('referral_code,referral_count').eq('user_id',user.id).maybeSingle(),
     sb.from('referrals').select('*,referred:referred_user_id(full_name)').eq('referrer_user_id',user.id).order('created_at',{ascending:false})
@@ -1139,10 +1150,13 @@ async function initDashboard(){
   const hasClaims=claims&&claims.length>0;
 
   document.getElementById('acList').innerHTML='';
-  if(hasClaims) renderClaims(claims);
+  // A promo claim becomes a real account the first time the trader opens
+  // IPFX Markets, so only show claims while no account exists yet.
+  if(hasClaims&&!hasEnrollments) renderClaims(claims);
   if(hasEnrollments) renderAccounts(enrollments);
   acLoaded=true;
   applyFilter();
+  loadInfinityPanel();
 
   loadBotKeyBanner();
 }
@@ -1182,15 +1196,15 @@ function renderClaims(list){
     const acName=c.challenge_name||acType+' Challenge';
     return`<div class="ac" data-type="${c.account_type||'traditional'}" data-status="pending" style="border-color:rgba(245,158,11,.25)">
       <div class="ac-head">
-        <div><div class="ac-nr"><span class="ac-name">${acName}</span><span class="badge" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)"><span class="bdot" style="background:#f59e0b"></span>Pending Launch</span></div></div>
+        <div><div class="ac-nr"><span class="ac-name">${acName}</span><span class="badge" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)"><span class="bdot" style="background:#f59e0b"></span>Reserved</span></div></div>
         <div class="ac-id"><span>${acType}</span><span style="color:var(--line)">·</span><span>Free Claim</span></div>
       </div>
       <div class="ac-body" style="display:block;padding:1.25rem 1.5rem">
         <div style="display:flex;align-items:flex-start;gap:.75rem;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:1rem 1.1rem">
           <svg style="flex-shrink:0;margin-top:2px;color:#f59e0b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <div>
-            <div style="font-size:.85rem;font-weight:600;color:#f59e0b;margin-bottom:.25rem">Platform launches October 2026</div>
-            <div style="font-size:.8rem;color:var(--muted2);line-height:1.5">Your <strong style="color:var(--muted)">${acName}</strong> is reserved and will be activated when the platform goes live. No action needed.</div>
+            <div style="font-size:.85rem;font-weight:600;color:#f59e0b;margin-bottom:.25rem">Ready to activate</div>
+            <div style="font-size:.8rem;color:var(--muted2);line-height:1.5">Your <strong style="color:var(--muted)">${acName}</strong> is reserved. Open <a href="trading.html" style="color:var(--cobalt)">IPFX Markets</a> and it will be created for you automatically.</div>
           </div>
         </div>
       </div>
@@ -1199,64 +1213,88 @@ function renderClaims(list){
   el.innerHTML=(el.innerHTML||'')+html;
 }
 
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmt(pence){return'$'+Math.abs(pence/100).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtN(pence){return(pence>=0?'+':'-')+'$'+Math.abs(pence/100).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0});}
 
 function renderAccounts(list){
   const el=document.getElementById('acList');
-  el.innerHTML+=list.map((e,idx)=>{
-    const size=e.account_size||0; // pence
-    const bal=e.current_balance??size;
-    const profit=bal-size;
-    const pTarget=e.profit_target||1;
-    const progress=Math.min(Math.max(profit/pTarget,0),1);
+  const usd=n=>'$'+Math.abs(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const signed=n=>(n>=0?'+':'-')+'$'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:0});
+  const typeKey={traditional:'traditional',futures:'futures',infinity:'infinity',pac:'application'};
+  const typeName={traditional:'Traditional',futures:'Futures',infinity:'Infinity',pac:'Application'};
+  const breachText={max_drawdown:'Maximum drawdown reached',daily_loss:'Daily loss limit reached'};
+  el.innerHTML+=list.map(a=>{
+    const start=Number(a.starting_balance)||0, bal=Number(a.balance)||0, paid=Number(a.total_paid_out)||0;
+    const profit=bal-start;
+    const funded=a.phase==='funded';
+    const target=Number(a.profit_target_pct)>0?start*Number(a.profit_target_pct)/100:0;
+    const progress=target>0?Math.min(Math.max(profit/target,0),1):0;
     const pct=Math.round(progress*100);
+    const dd=start*Number(a.max_drawdown_pct||0)/100;
+    const peak=a.drawdown_mode&&a.drawdown_mode!=='static'?Number(a.trailing_peak||start):start;
+    const floor=peak-dd-paid;
+    const status=a.status==='breached'?'failed':a.status==='passed'?'passed':funded?'funded':'active';
+    const badges={active:'<span class="badge ba"><span class="bdot"></span>Active</span>',funded:'<span class="badge bf"><span class="bdot"></span>Funded</span>',failed:'<span class="badge bx"><span class="bdot"></span>Ended</span>',passed:'<span class="badge bf"><span class="bdot"></span>Passed</span>'};
+    const kind=typeKey[a.challenge_type]||'traditional';
+    const name=a.label||((typeName[a.challenge_type]||'Challenge')+' $'+(start/1000).toFixed(0)+'K');
+    const reason=a.status==='breached'?(breachText[a.breach_reason]||(String(a.breach_reason||'').startsWith('reset_by_admin')?'Reset by IPFX':String(a.breach_reason||'').startsWith('closed_by_admin')?'Closed by IPFX':'Rule breached')):'';
+    let actions='';
+    if(a.status==='active') actions='<a class="cbtn p" href="trading.html" style="text-decoration:none">Go to Markets</a>';
+    else if(a.status==='breached'&&a.challenge_type==='infinity') actions='<button class="cbtn p" onclick="document.getElementById(\'infPanel\').scrollIntoView({behavior:\'smooth\'})">Restart Stage 1</button>';
+    else if(a.status==='breached') actions='<a class="cbtn p" href="start-challenge.html" style="text-decoration:none">Start a new challenge</a>';
+    const ring=status==='failed'?'b':pct>=70?'g':'w';
     const dashoffset=Math.round(100.5*(1-progress));
-    const drawdownFloor=size-(e.total_loss_limit||0);
-    const drawdownBreached=bal<=drawdownFloor;
-    const profitPct=size>0?((profit/size)*100).toFixed(2):0;
-    const isFailed=e.status==='failed'||drawdownBreached;
-    const type=e.challenge_tier?.includes('pac')||e.challenge_tier?.includes('application')?'application':e.challenge_tier?.includes('traditional')?'traditional':'infinity';
-
-    // ring colour
-    const ringCol=isFailed?'b':pct>=70?'g':'w';
-    // badge
-    const badges={active:'<span class="badge ba"><span class="bdot"></span>Active</span>',funded:'<span class="badge bf"><span class="bdot"></span>Funded</span>',failed:'<span class="badge bx"><span class="bdot"></span>Failed</span>',passed:'<span class="badge bf"><span class="bdot"></span>Passed</span>',pending:'<span class="badge" style="background:rgba(255,255,255,.06);color:var(--muted)"><span class="bdot" style="background:var(--muted)"></span>Pending</span>'};
-    const badge=badges[e.status]||badges.pending;
-    const acName=(type==='application'?'Application':type==='traditional'?'Traditional':'Infinity')+' $'+(size/100/1000).toFixed(0)+'K';
-    const acId=e.trading_account_id||'—';
-    // IPFX Markets is our own in-house simulated venue — never claim
-    // MT4/MT5/cTrader integration that doesn't exist.
-    const platform='IPFX Markets';
-    const loginCode=e.trading_account_id||('IPFX-'+(e.id||'').replace(/-/g,'').substring(0,8).toUpperCase());
-    const tradePw=e.trading_password||'';
-    const pwElId='pwel'+idx;
-    const drawdownLabel=drawdownBreached?'<span class="sv neg">Breached</span>':'<span class="sv">'+fmt(drawdownFloor)+'</span>';
-    const drawdownSub=drawdownBreached?'Limit hit':'Floor · '+(((e.total_loss_limit||0)/size)*100).toFixed(0)+'%';
-    const profitLabel=profit>=0?`<div class="sv pos" style="font-size:.9rem">${fmtN(profit)}</div>`:`<div class="sv neg" style="font-size:.9rem">${fmtN(profit)}</div>`;
-    const balLabel=profit>=0?`<div class="sv pos">${fmt(bal)}</div>`:`<div class="sv neg">${fmt(bal)}</div>`;
-    const balSub=`${fmtN(profit)} (${profit>=0?'+':''}${profitPct}%)`;
-    const actions=isFailed
-      ?`<button class="cbtn p" onclick="location.href='personalised-challenge.html'">Reapply</button>`
-      :`<button class="cbtn">Reset</button><button class="cbtn p">View Details</button>`;
-
-    return`<div class="ac" data-type="${type}" data-status="${e.status}">
-      <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">${acName}</span>${badge}<span class="ac-last">${e.status==='active'?'Active account':'Last active'}</span></div></div><div class="ac-id"><span>${acId}</span><span style="color:var(--line)">·</span><span>${platform}</span></div></div>
+    const targetCell=target>0
+      ?`<div class="pw"><div class="ring"><svg viewBox="0 0 38 38" width="38" height="38"><circle class="rb" cx="19" cy="19" r="16"/><circle class="rf ${ring}" cx="19" cy="19" r="16" stroke-dasharray="100.5" stroke-dashoffset="${dashoffset}"/></svg><div class="rl">${pct}%</div></div><div><div class="sv ${profit>=0?'pos':'neg'}" style="font-size:.9rem">${signed(profit)}</div><div class="ss">/ ${usd(target)}</div></div></div>`
+      :`<div class="sv">—</div><div class="ss">${funded?'Funded — no target':'No target'}</div>`;
+    return `<div class="ac" data-type="${kind}" data-status="${status}">
+      <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">${esc(name)}</span>${badges[status]}<span class="ac-last">${reason?esc(reason):(status==='active'||status==='funded'?'Active account':'')}</span></div></div><div class="ac-id"><span>IPFX-${String(a.id).replace(/-/g,'').slice(0,8).toUpperCase()}</span><span style="color:var(--line)">·</span><span>IPFX Markets</span></div></div>
       <div class="ac-body">
-        <div class="acs"><div class="sl">Balance</div>${balLabel}<div class="ss">${balSub}</div></div>
-        <div class="acs"><div class="sl">Max Drawdown</div>${drawdownLabel}<div class="ss">${drawdownSub}</div></div>
-        <div class="acs"><div class="sl">Profit Target</div><div class="pw"><div class="ring"><svg viewBox="0 0 38 38" width="38" height="38"><circle class="rb" cx="19" cy="19" r="16"/><circle class="rf ${ringCol}" cx="19" cy="19" r="16" stroke-dasharray="100.5" stroke-dashoffset="${dashoffset}"/></svg><div class="rl">${pct}%</div></div><div>${profitLabel}<div class="ss">/ ${fmt(pTarget)}</div></div></div></div>
-        <div class="acs"><div class="sl">Win Rate</div><div class="sv ${(e.win_rate||0)>=50?'pos':''}">${e.win_rate?e.win_rate.toFixed(1)+'%':'—'}</div><div class="ss">${e.trades_count||0} trades</div></div>
+        <div class="acs"><div class="sl">Balance</div><div class="sv ${profit>=0?'pos':'neg'}">${usd(bal)}</div><div class="ss">${signed(profit)} (${start?((profit/start)*100).toFixed(2):'0.00'}%)</div></div>
+        <div class="acs"><div class="sl">Drawdown floor</div><div class="sv">${usd(floor)}</div><div class="ss">${Number(a.max_drawdown_pct||0)}% · ${a.drawdown_mode&&a.drawdown_mode!=='static'?'trailing':'static'}</div></div>
+        <div class="acs"><div class="sl">Profit Target</div>${targetCell}</div>
+        <div class="acs"><div class="sl">Started</div><div class="sv" style="font-size:.9rem">${new Date(a.created_at).toLocaleDateString('en-GB')}</div><div class="ss">${esc(typeName[a.challenge_type]||'Challenge')}${a.stage?' · stage '+a.stage:''}</div></div>
         <div class="ac-acts">${actions}</div>
-      </div>
-      <div class="ac-creds">
-        <a href="trading.html?login=${encodeURIComponent(loginCode)}&name=${encodeURIComponent(acName)}&platform=${encodeURIComponent(platform)}&bal=${bal}&daily=${e.total_loss_limit||0}&floor=${drawdownFloor}&target=${pTarget}" class="trade-btn" target="_blank">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Go to Markets
-        </a>
       </div>
     </div>`;
   }).join('');
+}
+
+// ── Free Infinity Challenge: start / restart ──
+async function loadInfinityPanel(){
+  let panel=document.getElementById('infPanel');
+  if(!panel){
+    panel=document.createElement('div');panel.id='infPanel';
+    panel.style.cssText='display:none;margin-bottom:1rem;padding:1.1rem 1.25rem;border-radius:12px;border:1px solid rgba(37,99,235,.35);background:rgba(37,99,235,.07)';
+    const list=document.getElementById('acList');list.parentNode.insertBefore(panel,list);
+  }
+  const r=await engineCall({action:'infinity_status'});
+  const st=r&&r.ok?r.infinity:null;
+  if(!st||st.has_active){panel.style.display='none';return;}
+  const title=st.is_restart?'Restart the Infinity Challenge':'Start your free Infinity Challenge';
+  const sub=st.is_restart
+    ?`Begin again at Stage 1 with a $1,000 evaluation account. ${st.attempts_left} of ${st.attempts_cap} attempts left this month.`
+    :'A free $1,000 evaluation account — pass four stages to reach funded trading. No payment needed.';
+  if(!st.eligible){
+    panel.innerHTML=`<div style="font-weight:700;margin-bottom:.3rem">${esc(title)}</div><div style="font-size:.82rem;color:var(--muted)">${esc(st.reason||'Not available right now.')}</div>`;
+    panel.style.display='';return;
+  }
+  panel.innerHTML=`<div style="display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <div style="min-width:220px;flex:1"><div style="font-weight:700;margin-bottom:.3rem">${esc(title)}</div><div style="font-size:.82rem;color:var(--muted)">${esc(sub)} <a href="infinity.html" target="_blank" style="color:var(--cobalt)">See the rules</a></div>
+    ${st.needs_age_confirmation?'<label style="display:flex;gap:.5rem;align-items:center;margin-top:.6rem;font-size:.8rem;color:var(--muted)"><input type="checkbox" id="infAge"> I confirm I am 18 or older and accept the <a href="terms.html" target="_blank" style="color:var(--cobalt)">Terms</a></label>':''}
+    <div id="infMsg" style="font-size:.8rem;margin-top:.5rem;display:none"></div></div>
+    <button class="cbtn p" id="infBtn" onclick="claimInfinity()">${st.is_restart?'Restart Stage 1':'Start free challenge'}</button></div>`;
+  panel.style.display='';
+}
+async function claimInfinity(){
+  const btn=document.getElementById('infBtn'),msg=document.getElementById('infMsg'),age=document.getElementById('infAge');
+  if(age&&!age.checked){msg.style.display='';msg.style.color='#f59e0b';msg.textContent='Please confirm you are 18 or older.';return;}
+  btn.disabled=true;btn.textContent='Starting…';
+  const r=await engineCall({action:'claim_infinity',confirm_age:age?age.checked:undefined});
+  if(!r||!r.ok){btn.disabled=false;btn.textContent='Try again';msg.style.display='';msg.style.color='#ef4444';msg.textContent=(r&&r.error)||'Could not start your challenge.';return;}
+  msg.style.display='';msg.style.color='#10b981';msg.textContent='Your $1,000 Infinity account is ready. Opening your accounts…';
+  setTimeout(()=>{acLoaded=false;initDashboard();},900);
 }
 
 async function signOut(){
@@ -1916,7 +1954,7 @@ async function loadJournalPageData(){
 let af='all';
 let acLoaded=false;
 const FILTER_LINKS={
-  all:{href:'start-challenge.html',label:'Start your first challenge'},
+  all:{href:'infinity.html',label:'Start the free Infinity Challenge'},
   infinity:{href:'infinity.html',label:'Start an Infinity challenge'},
   traditional:{href:'start-challenge.html',label:'Start a Traditional challenge'},
   application:{href:'personalised-challenge.html',label:'Apply for an Application Challenge'},
@@ -2000,6 +2038,31 @@ async function loadPayoutsPage(){
   renderPayoutHistory((history&&history.payouts)||[]);
 }
 
+async function submitKyc(){
+  const btn=document.getElementById('kycSubmitBtn'),msg=document.getElementById('kycMsg');
+  const show=(t,c)=>{msg.style.display='';msg.style.color=c;msg.textContent=t;};
+  const pick={id_front:document.getElementById('kycIdFront').files[0],id_back:document.getElementById('kycIdBack').files[0],proof_of_address:document.getElementById('kycAddress').files[0]};
+  if(!pick.id_front||!pick.proof_of_address){show('Please add your photo ID (front) and a proof of address.','#f59e0b');return;}
+  for(const f of Object.values(pick)){if(f&&f.size>10*1024*1024){show('Each file must be 10 MB or smaller.','#f59e0b');return;}}
+  btn.disabled=true;btn.textContent='Uploading…';
+  const{data:{user}}=await sb.auth.getUser();
+  const docs=[];
+  try{
+    for(const[type,f]of Object.entries(pick)){
+      if(!f)continue;
+      const ext=(f.name.split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'bin';
+      const path=`${user.id}/${type}-${Date.now()}.${ext}`;
+      const{error}=await sb.storage.from('kyc-documents').upload(path,f,{upsert:false,contentType:f.type||undefined});
+      if(error)throw new Error('Upload failed: '+error.message);
+      docs.push({doc_type:type,path});
+    }
+    const{error}=await sb.rpc('submit_kyc',{p_documents:docs});
+    if(error)throw new Error(error.message.includes('KYC_')?'Some documents were missing — please try again.':error.message);
+    show('Thank you — your documents are submitted. We usually review within 1–2 business days.','#10b981');
+    document.getElementById('kycUpload').style.display='none';
+    renderPayoutStats({status:'pending'});
+  }catch(e){show(e.message||'Something went wrong — please try again.','#ef4444');btn.disabled=false;btn.textContent='Submit for verification';}
+}
 function renderPayoutStats(kyc){
   const notice=document.getElementById('poutKycNotice');
   const kycStatus=(kyc&&kyc.status)||'unverified';
@@ -2007,13 +2070,14 @@ function renderPayoutStats(kyc){
     notice.style.display='block';
     notice.style.background='rgba(245,158,11,.1)';notice.style.border='1px solid rgba(245,158,11,.3)';notice.style.color='#f5c473';
     notice.textContent=kycStatus==='rejected'
-      ?'Identity verification was rejected. Contact support to resolve this before you can request a payout.'
+      ?'Identity verification was rejected — please upload new documents below.'
       :kycStatus==='pending'
       ?'Identity verification is in progress. Payouts are unavailable until this clears.'
-      :'Identity verification (KYC) is required before you can request a payout. Contact support to get verified.';
+      :'Identity verification (KYC) is required before you can request a payout. Upload your documents below.';
   } else {
     notice.style.display='none';
   }
+  document.getElementById('kycUpload').style.display=(kycStatus==='unverified'||kycStatus==='rejected')?'':'none';
 
   const s=PAYOUT_SUMMARY;
   if(!s||!s.has_funded_account){

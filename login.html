@@ -572,7 +572,8 @@
                 </div>
 
                 <div class="forgot-password">
-                    <a href="#forgot">Forgot password?</a>
+                    <a href="#" id="forgotLink">Forgot password?</a>
+                    <div id="forgotMsg" role="status" style="display:none;margin-top:10px;font-size:13px;line-height:1.5;text-align:left"></div>
                 </div>
 
                 <button type="submit" class="btn-login">Login</button>
@@ -795,6 +796,30 @@
     <a href="/contact.html">Contact</a>
   </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
+<script>
+// Password reset: emails a link that opens reset-password.html. The message
+// is the same whether or not the address has an account, so the form can't
+// be used to discover who is registered.
+(function(){
+  const link=document.getElementById('forgotLink'), msg=document.getElementById('forgotMsg');
+  if(!link||!msg) return;
+  const show=(t,c)=>{msg.style.display='block';msg.style.color=c;msg.textContent=t;};
+  link.addEventListener('click', async (e)=>{
+    e.preventDefault();
+    const email=(document.getElementById('email').value||'').trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      show('Enter your email address above, then click "Forgot password?" again.','#f59e0b');
+      document.getElementById('email').focus(); return;
+    }
+    if(typeof supabaseClient==='undefined'||!supabaseClient){show('Password reset is unavailable right now — please refresh and try again.','#ef4444');return;}
+    link.style.pointerEvents='none'; show('Sending reset link…','#a0a0a0');
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/reset-password.html'});
+    link.style.pointerEvents='';
+    if(error&&/rate|seconds/i.test(error.message)) show('Please wait a minute before requesting another reset link.','#f59e0b');
+    else show('If an account exists for '+email+', a password reset link is on its way. Check your inbox and spam folder.','#10b981');
+  });
+})();
+</script>
 <script defer src="/assets/js/site-foundation.js"></script>
 </body>
 </html>

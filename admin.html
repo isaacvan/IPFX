@@ -201,6 +201,37 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
   </div>
   <div id="watchlistWrap"><div class="msg" style="padding:1.25rem">Not scored yet — click <b>Score live accounts</b>.</div></div>
 
+  <!-- owner tools: traders & accounts, KYC review, promo codes -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem;gap:.5rem;flex-wrap:wrap">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Traders &amp; accounts</h2>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <input id="ownerQ" placeholder="Search email or name" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:999px;padding:.35rem .85rem;font-size:.78rem;min-width:200px" onkeydown="if(event.key==='Enter')ownerSearch(false)">
+      <button class="chip" onclick="ownerSearch(false)">Search</button>
+      <button class="chip" onclick="ownerSearch(true)">Signed up, no account</button>
+    </div>
+  </div>
+  <div id="ownerUsers"><div class="msg" style="padding:1.25rem">Search for a trader, or list everyone who signed up but never got an account.</div></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Identity verification (KYC)</h2>
+    <button class="chip" onclick="loadKycQueue()">Load review queue</button>
+  </div>
+  <div id="kycQueue"><div class="msg" style="padding:1.25rem">Not loaded — click <b>Load review queue</b>.</div></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem;gap:.5rem;flex-wrap:wrap">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Promo codes</h2>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+      <input id="promoCode" placeholder="CODE" maxlength="24" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:999px;padding:.35rem .85rem;font-size:.78rem;width:120px;text-transform:uppercase">
+      <select id="promoSize" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:999px;padding:.35rem .6rem;font-size:.78rem">
+        <option value="10k">$10K</option><option value="25k" selected>$25K</option><option value="50k">$50K</option><option value="100k">$100K</option><option value="200k">$200K</option>
+      </select>
+      <input id="promoMax" type="number" min="1" placeholder="Max uses (blank = unlimited)" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:999px;padding:.35rem .85rem;font-size:.78rem;width:210px">
+      <button class="chip" onclick="createPromo()">Create code</button>
+      <button class="chip" onclick="loadPromos()">Refresh</button>
+    </div>
+  </div>
+  <div id="promoList"><div class="msg" style="padding:1.25rem">Click <b>Refresh</b> to list promo codes.</div></div>
+
   <!-- concentration risk: the firm loses when many traders win the same trade -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem">
     <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">
@@ -1002,5 +1033,99 @@ load();
   </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
+<script>
+// ── Owner tools ────────────────────────────────────────────────────────────
+let OWNER_PRESETS=null;
+async function ownerPresets(){
+  if(OWNER_PRESETS) return OWNER_PRESETS;
+  const r=await call({action:'presets'});
+  OWNER_PRESETS=(r&&r.presets)||[];
+  return OWNER_PRESETS;
+}
+function presetOptions(list){
+  return list.map(p=>`<option value="${esc(p.id)}">${esc(p.label)} ($${Number(p.starting_balance).toLocaleString('en-US')})</option>`).join('');
+}
+async function ownerSearch(withoutAccount){
+  const wrap=document.getElementById('ownerUsers');
+  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Loading…</div>';
+  const q=document.getElementById('ownerQ').value.trim();
+  const [r,presets]=await Promise.all([call({action:'user_search',q,without_account:!!withoutAccount}),ownerPresets()]);
+  if(!r){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Could not load traders.</div>';return;}
+  if(!r.users.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No traders found.</div>';return;}
+  const opts=presetOptions(presets);
+  wrap.innerHTML=`<div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">${r.total} match${r.total===1?'':'es'}${r.total>r.users.length?' — showing the newest '+r.users.length:''}</div>
+  <div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Joined</th><th>Email</th><th>KYC</th><th>Accounts</th><th>Grant a challenge</th></tr></thead><tbody>${r.users.map(u=>{
+    const accts=(u.accounts||[]).slice(0,4).map(a=>`<div style="margin-bottom:.3rem"><b>${esc(a.label||'Account')}</b> · ${esc(a.status)}${a.phase==='funded'?' · funded':''} · $${Number(a.balance||0).toLocaleString('en-US',{maximumFractionDigits:0})}
+      ${a.status==='active'?`<button class="btn btn-o" onclick="closeAccount('${esc(a.id)}')">Close</button>`:''}
+      ${a.preset_id?`<button class="btn btn-o" onclick="resetAccount('${esc(a.id)}')">Reset</button>`:''}</div>`).join('')||'<span style="color:var(--muted)">None</span>';
+    const hasActive=(u.accounts||[]).some(a=>a.status==='active');
+    return `<tr><td><div>${esc(u.name||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(u.email)}</div></td>
+      <td>${esc(new Date(u.created_at).toLocaleDateString('en-GB'))}</td>
+      <td>${u.email_confirmed_at?'Verified':'<span style="color:#f59e0b">Unverified</span>'}</td>
+      <td>${esc(u.kyc_status)}</td><td>${accts}</td>
+      <td>${hasActive?'<span style="color:var(--muted);font-size:.75rem">Has an active account</span>':`<select id="g_${esc(u.id)}" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:7px;padding:.3rem;font-size:.74rem;max-width:200px">${opts}</select> <button class="btn btn-b" onclick="grantChallenge('${esc(u.id)}')">Grant</button>`}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+async function grantChallenge(userId){
+  const sel=document.getElementById('g_'+userId); if(!sel) return;
+  const label=sel.options[sel.selectedIndex].text;
+  if(!confirm('Grant "'+label+'" free of charge to this trader? They will get an activation email.')) return;
+  const r=await call({action:'grant_challenge',user_id:userId,preset_id:sel.value,fee_usd:0});
+  if(r){toast('Challenge granted',true);ownerSearch(false);}
+}
+async function resetAccount(accountId){
+  const reason=prompt('Reset this account to a fresh start of the same challenge? Any open positions are voided at entry price (zero P&L). Reason (optional):');
+  if(reason===null) return;
+  const r=await call({action:'reset_account',account_id:accountId,reason});
+  if(r){toast('Account reset'+(r.voided_positions?' — '+r.voided_positions+' position(s) voided':''),true);ownerSearch(false);}
+}
+async function closeAccount(accountId){
+  const reason=prompt('Close this account? Any open positions are voided at entry price (zero P&L). Reason:');
+  if(reason===null) return;
+  const r=await call({action:'close_account',account_id:accountId,reason});
+  if(r){toast('Account closed',true);ownerSearch(false);}
+}
+async function loadKycQueue(){
+  const wrap=document.getElementById('kycQueue');
+  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Loading…</div>';
+  const r=await call({action:'kyc_queue'});
+  if(!r){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Could not load the queue.</div>';return;}
+  if(!r.queue.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Nobody is waiting for verification.</div>';return;}
+  const names={id_front:'ID front',id_back:'ID back',proof_of_address:'Proof of address',selfie:'Selfie'};
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Country</th><th>Submitted</th><th>Documents (links expire in 1 hour)</th><th>Decision</th></tr></thead><tbody>${r.queue.map(k=>`<tr>
+    <td><div>${esc(k.full_name||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(k.email||'')}</div></td>
+    <td>${esc(k.country||'—')}</td><td>${esc(new Date(k.submitted_at).toLocaleString('en-GB'))}</td>
+    <td>${k.documents.map(d=>d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener" style="color:var(--cobalt);margin-right:.6rem">${esc(names[d.doc_type]||d.doc_type)}</a>`:esc(names[d.doc_type]||d.doc_type)).join('')||'—'}</td>
+    <td><button class="btn btn-g" onclick="kycDecide('${esc(k.user_id)}','verified')">Approve</button> <button class="btn btn-o" onclick="kycDecide('${esc(k.user_id)}','rejected')">Reject</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+async function kycDecide(userId,status){
+  let note=null;
+  if(status==='rejected'){note=prompt('Reason shown to the trader (e.g. "Document is blurry" or "Address proof is older than 3 months"):');if(note===null)return;}
+  const r=await call({action:'set_kyc_status',user_id:userId,status,note});
+  if(r){toast(status==='verified'?'Trader verified':'Rejected — trader has been emailed',true);loadKycQueue();}
+}
+async function loadPromos(){
+  const wrap=document.getElementById('promoList');
+  const r=await call({action:'promo_list'});
+  if(!r){return;}
+  if(!r.promos.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No promo codes yet.</div>';return;}
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Code</th><th>Challenge</th><th>Used</th><th>Status</th><th></th></tr></thead><tbody>${r.promos.map(p=>`<tr>
+    <td><b>${esc(p.code)}</b></td><td>${esc(p.challenge_name)}</td>
+    <td>${Number(p.use_count||0)}${p.max_uses?' / '+Number(p.max_uses):' (unlimited)'}</td>
+    <td>${p.is_active?'<span style="color:var(--green)">Active</span>':'<span style="color:var(--muted)">Off</span>'}</td>
+    <td><button class="btn btn-o" onclick="togglePromo('${esc(p.code)}',${p.is_active?'false':'true'})">${p.is_active?'Turn off':'Turn on'}</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+async function createPromo(){
+  const code=document.getElementById('promoCode').value.trim().toUpperCase();
+  const size=document.getElementById('promoSize').value;
+  const max=document.getElementById('promoMax').value.trim();
+  const r=await call({action:'promo_create',code,size,max_uses:max===''?null:Number(max)});
+  if(r){toast('Promo code '+code+' created',true);document.getElementById('promoCode').value='';document.getElementById('promoMax').value='';loadPromos();}
+}
+async function togglePromo(code,active){
+  const r=await call({action:'promo_set_active',code,active});
+  if(r){toast(active?'Code turned on':'Code turned off',true);loadPromos();}
+}
+</script>
 </body>
 </html>

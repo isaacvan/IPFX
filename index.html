@@ -3509,7 +3509,7 @@
         </p>
 
         <div class="cta-group">
-            <a href="/start-challenge.html" class="btn btn-primary">Start Your Challenge</a>
+            <a href="/signup.html" class="btn btn-primary">Start Free Challenge</a>
             <a href="/about.html" class="btn btn-secondary">Learn More</a>
         </div>
 
@@ -3524,7 +3524,7 @@
             </div>
             <div class="stat">
                 <div class="stat-value" style="font-size:2rem">Bi-Weekly</div>
-                <div class="stat-label">Payouts Issued</div>
+                <div class="stat-label">Payout Schedule</div>
             </div>
         </div>
     </div>
@@ -3539,7 +3539,7 @@
     </div>
     <div class="trust-item">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-        <span>Five-Figure+ <strong>Payouts Issued</strong></span>
+        <span><strong>Free</strong> Infinity Challenge</span>
     </div>
     <div class="trust-item">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
@@ -3825,11 +3825,11 @@
     </div>
 </section>
 
-<!-- Referral 40% Off Promo Bar -->
+<!-- Referral promo bar: matches the referral commission actually paid (fn_maybe_award_referral) -->
 <div class="ref-promo-bar">
     <div class="ref-promo-inner">
-        <span class="ref-promo-badge">40% Off</span>
-        <span class="ref-promo-text">Refer a friend — when you <strong>both</strong> purchase any challenge using your referral link, you <strong>both get 40% off</strong> automatically.</span>
+        <span class="ref-promo-badge">10%</span>
+        <span class="ref-promo-text">Refer a friend — earn <strong>10% of their challenge fee</strong> when they get funded and receive their first payout.</span>
         <a href="/signup.html" class="ref-promo-link">Get Your Link →</a>
     </div>
 </div>
@@ -3854,14 +3854,15 @@
             <div class="cards-horizontal reveal-stagger">
                 <div class="pricing-card">
                     <div class="card-size">$25K</div>
-                    <div class="card-fee">$199 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
-                    <div class="card-diff">85% split · No consistency rule</div>
+                    <div class="card-fee"><span data-preset="trad_25k_p1" data-field="fee">$199</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">credited on payout</span></div>
+                    <div class="card-diff">3 phases · 85% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>$2,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>$1,250 (5%)</span></li>
-                        <li><span>Max Daily Loss</span><span>$750 (3%)</span></li>
-                        <li><span>Max Overall Loss</span><span>$1,500 (6%)</span></li>
-                        <li><span>Min Trading Days</span><span>5 per phase</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="trad_25k_p1" data-field="target">$2,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="trad_25k_p2" data-field="target">$1,250 (5%)</span></li>
+                        <li><span>Phase 3 Target</span><span data-preset="trad_25k_p3" data-field="target">$1,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span data-preset="trad_25k_p1" data-field="daily">$750 (3%)</span></li>
+                        <li><span>Max Overall Loss</span><span data-preset="trad_25k_p1" data-field="dd">$1,500 (6%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="trad_25k_p1" data-field="min_days" data-suffix=" per phase">5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
@@ -3869,14 +3870,15 @@
                 </div>
                 <div class="pricing-card featured">
                     <div class="card-size">$50K</div>
-                    <div class="card-fee">$299 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
-                    <div class="card-diff">85% split · No consistency rule</div>
+                    <div class="card-fee"><span data-preset="trad_50k_p1" data-field="fee">$299</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">credited on payout</span></div>
+                    <div class="card-diff">3 phases · 85% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>$4,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>$2,500 (5%)</span></li>
-                        <li><span>Max Daily Loss</span><span>$1,500 (3%)</span></li>
-                        <li><span>Max Overall Loss</span><span>$3,000 (6%)</span></li>
-                        <li><span>Min Trading Days</span><span>5 per phase</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="trad_50k_p1" data-field="target">$4,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="trad_50k_p2" data-field="target">$2,500 (5%)</span></li>
+                        <li><span>Phase 3 Target</span><span data-preset="trad_50k_p3" data-field="target">$2,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span data-preset="trad_50k_p1" data-field="daily">$1,500 (3%)</span></li>
+                        <li><span>Max Overall Loss</span><span data-preset="trad_50k_p1" data-field="dd">$3,000 (6%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="trad_50k_p1" data-field="min_days" data-suffix=" per phase">5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
@@ -3884,14 +3886,15 @@
                 </div>
                 <div class="pricing-card">
                     <div class="card-size">$100K</div>
-                    <div class="card-fee">$449 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
-                    <div class="card-diff">85% split · No consistency rule</div>
+                    <div class="card-fee"><span data-preset="trad_100k_p1" data-field="fee">$449</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">credited on payout</span></div>
+                    <div class="card-diff">3 phases · 85% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>$8,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>$5,000 (5%)</span></li>
-                        <li><span>Max Daily Loss</span><span>$3,000 (3%)</span></li>
-                        <li><span>Max Overall Loss</span><span>$6,000 (6%)</span></li>
-                        <li><span>Min Trading Days</span><span>5 per phase</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="trad_100k_p1" data-field="target">$8,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="trad_100k_p2" data-field="target">$5,000 (5%)</span></li>
+                        <li><span>Phase 3 Target</span><span data-preset="trad_100k_p3" data-field="target">$4,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span data-preset="trad_100k_p1" data-field="daily">$3,000 (3%)</span></li>
+                        <li><span>Max Overall Loss</span><span data-preset="trad_100k_p1" data-field="dd">$6,000 (6%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="trad_100k_p1" data-field="min_days" data-suffix=" per phase">5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
@@ -3899,14 +3902,15 @@
                 </div>
                 <div class="pricing-card">
                     <div class="card-size">$200K</div>
-                    <div class="card-fee">$799 <span style="font-size:.8rem;color:#10b981;font-weight:600;">refundable</span></div>
-                    <div class="card-diff">85% split · No consistency rule</div>
+                    <div class="card-fee"><span data-preset="trad_200k_p1" data-field="fee">$799</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">credited on payout</span></div>
+                    <div class="card-diff">3 phases · 85% split · No consistency rule</div>
                     <ul class="card-specs">
-                        <li><span>Phase 1 Target</span><span>$16,000 (8%)</span></li>
-                        <li><span>Phase 2 Target</span><span>$10,000 (5%)</span></li>
-                        <li><span>Max Daily Loss</span><span>$6,000 (3%)</span></li>
-                        <li><span>Max Overall Loss</span><span>$12,000 (6%)</span></li>
-                        <li><span>Min Trading Days</span><span>5 per phase</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="trad_200k_p1" data-field="target">$16,000 (8%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="trad_200k_p2" data-field="target">$10,000 (5%)</span></li>
+                        <li><span>Phase 3 Target</span><span data-preset="trad_200k_p3" data-field="target">$8,000 (4%)</span></li>
+                        <li><span>Max Daily Loss</span><span data-preset="trad_200k_p1" data-field="daily">$6,000 (3%)</span></li>
+                        <li><span>Max Overall Loss</span><span data-preset="trad_200k_p1" data-field="dd">$12,000 (6%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="trad_200k_p1" data-field="min_days" data-suffix=" per phase">5 per phase</span></li>
                         <li><span>Time Limit</span><span>None</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
@@ -3922,17 +3926,18 @@
                 <div class="pricing-card">
                     <div class="futures-tag">CME Futures</div>
                     <div class="card-size">$25K</div>
-                    <div class="card-fee">$79 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-fee"><span data-preset="fut_25k_p1" data-field="fee">$129</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>$1,500 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>$1,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>$500 (2%)</span></li>
-                        <li><span>Min Trading Days</span><span>3 days</span></li>
-                        <li><span>Time Limit</span><span>None</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="fut_25k_p1" data-field="target">$1,500 (6%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="fut_25k_p2" data-field="target">$1,000 (4%)</span></li>
+                        <li><span>Trailing Drawdown</span><span data-preset="fut_25k_p1" data-field="dd">$1,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span data-preset="fut_25k_p1" data-field="daily">$500 (2%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="fut_25k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></li>
+                        <li><span>Min Trades</span><span data-preset="fut_25k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
                     <a href="/futures.html" class="card-button" style="display:block;text-align:center;text-decoration:none;line-height:2.5;">Get Started</a>
@@ -3940,17 +3945,18 @@
                 <div class="pricing-card">
                     <div class="futures-tag">CME Futures</div>
                     <div class="card-size">$50K</div>
-                    <div class="card-fee">$109 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-fee"><span data-preset="fut_50k_p1" data-field="fee">$179</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>$3,000 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>$2,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>$1,000 (2%)</span></li>
-                        <li><span>Min Trading Days</span><span>3 days</span></li>
-                        <li><span>Time Limit</span><span>None</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="fut_50k_p1" data-field="target">$3,000 (6%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="fut_50k_p2" data-field="target">$2,000 (4%)</span></li>
+                        <li><span>Trailing Drawdown</span><span data-preset="fut_50k_p1" data-field="dd">$2,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span data-preset="fut_50k_p1" data-field="daily">$1,000 (2%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="fut_50k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></li>
+                        <li><span>Min Trades</span><span data-preset="fut_50k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
                     <a href="/futures.html" class="card-button" style="display:block;text-align:center;text-decoration:none;line-height:2.5;">Get Started</a>
@@ -3958,17 +3964,18 @@
                 <div class="pricing-card featured">
                     <div class="futures-tag">CME Futures</div>
                     <div class="card-size">$100K</div>
-                    <div class="card-fee">$199 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-fee"><span data-preset="fut_100k_p1" data-field="fee">$329</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span><span class="mkt-tag">NG</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>$6,000 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>$4,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>$2,500 (2.5%)</span></li>
-                        <li><span>Min Trading Days</span><span>3 days</span></li>
-                        <li><span>Time Limit</span><span>None</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="fut_100k_p1" data-field="target">$6,000 (6%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="fut_100k_p2" data-field="target">$4,000 (4%)</span></li>
+                        <li><span>Trailing Drawdown</span><span data-preset="fut_100k_p1" data-field="dd">$4,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span data-preset="fut_100k_p1" data-field="daily">$2,000 (2%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="fut_100k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></li>
+                        <li><span>Min Trades</span><span data-preset="fut_100k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
                     <a href="/futures.html" class="card-button" style="display:block;text-align:center;text-decoration:none;line-height:2.5;">Get Started</a>
@@ -3976,17 +3983,18 @@
                 <div class="pricing-card">
                     <div class="futures-tag">CME Futures</div>
                     <div class="card-size">$150K</div>
-                    <div class="card-fee">$299 <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
+                    <div class="card-fee"><span data-preset="fut_150k_p1" data-field="fee">$479</span> <span style="font-size:.8rem;color:#10b981;font-weight:600;">one-time</span></div>
                     <div class="card-diff">No consistency rule · EOD trailing drawdown</div>
                     <div class="card-markets">
                         <span class="mkt-tag">ES / MES</span><span class="mkt-tag">NQ / MNQ</span><span class="mkt-tag">YM / MYM</span><span class="mkt-tag">CL / MCL</span><span class="mkt-tag">GC / MGC</span><span class="mkt-tag">NG</span>
                     </div>
                     <ul class="card-specs">
-                        <li><span>Profit Target</span><span>$9,000 (6%)</span></li>
-                        <li><span>Trailing Drawdown</span><span>$6,000 (4%)</span></li>
-                        <li><span>Daily Loss Limit</span><span>$3,750 (2.5%)</span></li>
-                        <li><span>Min Trading Days</span><span>3 days</span></li>
-                        <li><span>Time Limit</span><span>None</span></li>
+                        <li><span>Phase 1 Target</span><span data-preset="fut_150k_p1" data-field="target">$9,000 (6%)</span></li>
+                        <li><span>Phase 2 Target</span><span data-preset="fut_150k_p2" data-field="target">$6,000 (4%)</span></li>
+                        <li><span>Trailing Drawdown</span><span data-preset="fut_150k_p1" data-field="dd">$6,000 (4%)</span></li>
+                        <li><span>Daily Loss Limit</span><span data-preset="fut_150k_p1" data-field="daily">$3,000 (2%)</span></li>
+                        <li><span>Min Trading Days</span><span data-preset="fut_150k_p1" data-field="min_days" data-suffix=" per phase">6 per phase</span></li>
+                        <li><span>Min Trades</span><span data-preset="fut_150k_p1" data-field="min_trades" data-suffix=" per phase">30 per phase</span></li>
                         <li><span>Profit Split</span><span style="color:#10b981;font-weight:700;">85%</span></li>
                     </ul>
                     <a href="/futures.html" class="card-button" style="display:block;text-align:center;text-decoration:none;line-height:2.5;">Get Started</a>
@@ -4005,8 +4013,8 @@
     <div class="modal-content">
         <button class="modal-close" onclick="closePricingModal()" aria-label="Close">×</button>
         <div class="modal-header">
-            <h2 id="modalTitle">$50K — 2-Phase Challenge</h2>
-            <p id="modalSubtitle">Pass two evaluation phases and trade funded capital with a 85% profit split</p>
+            <h2 id="modalTitle">$50K — 3-Phase Challenge</h2>
+            <p id="modalSubtitle">Pass three evaluation phases · 85% profit split · Fee credited with your first payout</p>
         </div>
         <div class="modal-table-wrapper">
             <table class="comparison-table">
@@ -4015,34 +4023,35 @@
                         <th></th>
                         <th><span class="stage-label">Phase 1</span></th>
                         <th><span class="stage-label">Phase 2</span></th>
+                        <th><span class="stage-label">Phase 3</span></th>
                         <th><span class="stage-label funded">Funded</span></th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td class="row-label">Trading Period</td><td id="step1-period">Unlimited</td><td id="step2-period">Unlimited</td><td id="funded-period">Indefinite</td></tr>
-                    <tr><td class="row-label">Min Trading Days</td><td id="step1-mindays">5 Days</td><td id="step2-mindays">5 Days</td><td>—</td></tr>
-                    <tr><td class="row-label">Max Daily Loss</td><td id="step1-daily">$2,500 (5%)</td><td id="step2-daily">$2,500 (5%)</td><td id="funded-daily">$2,500 (5%)</td></tr>
-                    <tr><td class="row-label">Max Overall Loss</td><td id="step1-overall">$5,000 (10%)</td><td id="step2-overall">$5,000 (10%)</td><td id="funded-overall">$5,000 (10%)</td></tr>
-                    <tr><td class="row-label">Profit Target</td><td id="step1-target">$4,000 (8%)</td><td id="step2-target">$2,000 (4%)</td><td>—</td></tr>
-                    <tr><td class="row-label">Fee (refundable)</td><td id="step1-fee">$249</td><td>Free</td><td>Free</td></tr>
-                    <tr><td class="row-label">Profit Split</td><td>—</td><td>—</td><td id="funded-split" style="color:#10b981;font-weight:700;">85%</td></tr>
+                    <tr><td class="row-label">Trading Period</td><td id="step1-period">Unlimited</td><td id="step2-period">Unlimited</td><td id="step3-period">—</td><td id="funded-period">Indefinite</td></tr>
+                    <tr><td class="row-label">Min Trading Days</td><td id="step1-mindays">5 Days</td><td id="step2-mindays">5 Days</td><td id="step3-mindays">—</td><td>—</td></tr>
+                    <tr><td class="row-label">Max Daily Loss</td><td id="step1-daily">$2,500 (5%)</td><td id="step2-daily">$2,500 (5%)</td><td id="step3-daily">—</td><td id="funded-daily">$2,500 (5%)</td></tr>
+                    <tr><td class="row-label">Max Overall Loss</td><td id="step1-overall">$5,000 (10%)</td><td id="step2-overall">$5,000 (10%)</td><td id="step3-overall">—</td><td id="funded-overall">$5,000 (10%)</td></tr>
+                    <tr><td class="row-label">Profit Target</td><td id="step1-target">$4,000 (8%)</td><td id="step2-target">$2,000 (4%)</td><td id="step3-target">—</td><td>—</td></tr>
+                    <tr><td class="row-label">Fee (refundable)</td><td id="step1-fee">$299</td><td>Free</td><td>Free</td><td>Free</td></tr>
+                    <tr><td class="row-label">Profit Split</td><td>—</td><td>—</td><td>—</td><td id="funded-split" style="color:#10b981;font-weight:700;">85%</td></tr>
                 </tbody>
             </table>
         </div>
         <div class="modal-features">
-            <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>No Consistency Rules</span></div>
+            <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>No Consistency Rule to Pass</span></div>
             <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>News Trading Allowed</span></div>
             <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>EAs &amp; Bots Allowed</span></div>
                     <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>IPFX Markets</span></div>
             <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>Weekly Payouts</span></div>
-            <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>Fee Refunded on First Payout</span></div>
+            <div class="feature-badge"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg><span>Fee Credited on First Payout</span></div>
         </div>
         <div class="modal-footer">
             <div class="modal-price-section">
-                <div class="modal-challenge-name" id="modalChallengeName">$50,000 — 2-Phase Challenge</div>
+                <div class="modal-challenge-name" id="modalChallengeName">$50,000 — 3-Phase Challenge</div>
                 <div class="modal-price-container">
                     <span class="modal-price-label">Fee</span>
-                    <span class="modal-price" id="modalPrice">$249</span>
+                    <span class="modal-price" id="modalPrice">$299</span>
                 </div>
             </div>
             <a href="/start-challenge.html" class="modal-cta-button" id="modalCTAButton">Get Funded →</a>
@@ -4050,79 +4059,21 @@
     </div>
 </div>
 
-<!-- Payout Showcase Section -->
+<!-- How payouts work. No payout figures are shown until real, verified payouts exist. -->
 <section class="payouts-section">
     <div class="payouts-container">
         <div class="payouts-header reveal-section">
-            <h2>Private Beta. Real Results.</h2>
-            <p>IPFX Capital is currently in private beta with a select group of traders testing the platform before public launch. These are their real payouts from the beta programme.</p>
-            <div style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;padding:.45rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.82rem;color:#60a5fa;font-weight:600;">
-                <div style="width:7px;height:7px;border-radius:50%;background:#60a5fa;animation:pdot 2s ease infinite;"></div>
-                Beta programme active · Results update hourly
-            </div>
+            <h2>How payouts work</h2>
+            <p>IPFX Capital is new, so there are no payout figures to show yet. When verified payouts begin, we will publish them here. Until then, this is exactly how you get paid.</p>
         </div>
-        <div class="payouts-grid reveal-stagger" id="payoutsGrid"></div>
+        <div class="payouts-grid reveal-stagger">
+            <div class="payout-card"><div class="payout-amount">1</div><div style="font-weight:700;margin:.4rem 0">Get funded</div><div style="color:var(--muted);font-size:.9rem;line-height:1.6">Pass your evaluation and your funded account opens automatically in IPFX Markets.</div></div>
+            <div class="payout-card"><div class="payout-amount">2</div><div style="font-weight:700;margin:.4rem 0">Verify your identity</div><div style="color:var(--muted);font-size:.9rem;line-height:1.6">Upload a photo ID and proof of address from your dashboard. We review within 1–2 business days.</div></div>
+            <div class="payout-card"><div class="payout-amount">3</div><div style="font-weight:700;margin:.4rem 0">Request a payout</div><div style="color:var(--muted);font-size:.9rem;line-height:1.6">Request from the Payouts page once you're eligible. Every request is reviewed by our team.</div></div>
+            <div class="payout-card"><div class="payout-amount">85%</div><div style="font-weight:700;margin:.4rem 0">Keep your share</div><div style="color:var(--muted);font-size:.9rem;line-height:1.6">You keep 85% of the profit you make. Your challenge fee is credited with your first payout.</div></div>
+        </div>
     </div>
 </section>
-<script>
-(function(){
-  var NAMES=[
-    {n:'James T.',loc:'London, UK'},{n:'Amir K.',loc:'Dubai, UAE'},{n:'Sofia R.',loc:'Lagos, Nigeria'},
-    {n:'Marcus V.',loc:'Toronto, CA'},{n:'Priya S.',loc:'Manchester, UK'},{n:'Daniel O.',loc:'Johannesburg, SA'},
-    {n:'Luca M.',loc:'Milan, Italy'},{n:'Yusuf A.',loc:'Accra, Ghana'},{n:'Elena B.',loc:'Madrid, Spain'},
-    {n:'Kwame D.',loc:'Nairobi, Kenya'},{n:'Hannah W.',loc:'Sydney, AU'},{n:'Ravi P.',loc:'Mumbai, India'},
-    {n:'Chloe F.',loc:'Paris, France'},{n:'Emeka N.',loc:'Abuja, Nigeria'},{n:'Tariq H.',loc:'Riyadh, KSA'},
-    {n:'Nina S.',loc:'Stockholm, SE'},{n:'Omar J.',loc:'Amsterdam, NL'},{n:'Isabel C.',loc:'Lisbon, Portugal'},
-    {n:'Andre M.',loc:'Cape Town, SA'},{n:'Fatima Z.',loc:'Casablanca, MA'},{n:'James O.',loc:'Lagos, Nigeria'},
-    {n:'Wei L.',loc:'Singapore'},{n:'Carlos R.',loc:'Mexico City, MX'},{n:'Amara D.',loc:'Dakar, Senegal'}
-  ];
-  var TYPES=['Traditional Challenge','Infinity Challenge','Traditional Challenge','Infinity Challenge'];
-  var SIZES=['$10K account','$25K account','$50K account','$10K account','$25K account'];
-  var COUNTS=['1st payout','2nd payout','1st payout','3rd payout','2nd payout','1st payout'];
-
-  function lcg(s){s=(s*1664525+1013904223)&0xFFFFFFFF;return(s>>>0)/4294967295;}
-
-  function buildCards(){
-    var seed=Math.floor(Date.now()/3600000); // changes every hour
-    var s=seed;
-    var used=[];
-    var html='';
-    for(var i=0;i<6;i++){
-      s=(s*1664525+1013904223)&0xFFFFFFFF;var r0=(s>>>0)/4294967295;
-      s=(s*1664525+1013904223)&0xFFFFFFFF;var r1=(s>>>0)/4294967295;
-      s=(s*1664525+1013904223)&0xFFFFFFFF;var r2=(s>>>0)/4294967295;
-      s=(s*1664525+1013904223)&0xFFFFFFFF;var r3=(s>>>0)/4294967295;
-      s=(s*1664525+1013904223)&0xFFFFFFFF;var r4=(s>>>0)/4294967295;
-      s=(s*1664525+1013904223)&0xFFFFFFFF;var r5=(s>>>0)/4294967295;
-      var ni=Math.floor(r0*NAMES.length);
-      while(used.indexOf(ni)>-1){ni=(ni+1)%NAMES.length;}
-      used.push(ni);
-      var person=NAMES[ni];
-      var type=TYPES[Math.floor(r1*TYPES.length)];
-      var size=SIZES[Math.floor(r2*SIZES.length)];
-      var count=COUNTS[Math.floor(r3*COUNTS.length)];
-      // Amount $1,000–$9,800 in round numbers
-      var bases=[1200,1850,2400,3100,3750,4200,5500,6800,7400,8200,9100];
-      var amt=bases[Math.floor(r4*bases.length)];
-      var jitter=Math.round((r5*400-200)/10)*10;
-      amt=Math.max(1000,Math.min(9999,amt+jitter));
-      var fmtAmt='$'+amt.toLocaleString();
-      html+='<div class="payout-card"><div class="payout-amount">'+fmtAmt+'</div>';
-      html+='<div class="payout-trader">'+person.n+' — '+person.loc+'</div>';
-      html+='<div class="payout-detail">'+type+' · '+size+' · '+count+'</div>';
-      html+='<span class="payout-badge">Beta Payout</span></div>';
-    }
-    var grid=document.getElementById('payoutsGrid');
-    if(grid)grid.innerHTML=html;
-  }
-
-  buildCards();
-  // refresh at the top of the next hour
-  var now=Date.now();
-  var msToNextHour=3600000-(now%3600000);
-  setTimeout(function(){buildCards();setInterval(buildCards,3600000);},msToNextHour);
-})();
-</script>
 
 <!-- Program Specifications Section -->
 <section class="program-specs-section">
@@ -4657,17 +4608,6 @@
                 <li><a href="/privacy.html">Privacy Policy</a></li>
                 <li><a href="/risk-disclosure.html">Risk Disclosure</a></li>
             </ul>
-        </div>
-    </div>
-
-    <!-- Payment Methods Section -->
-    <div class="footer-payment reveal-section">
-        <h4>We Accept</h4>
-        <div class="payment-methods">
-            <div class="payment-icon" title="Visa">Visa</div>
-            <div class="payment-icon" title="Mastercard">Mastercard</div>
-            <div class="payment-icon" title="Apple Pay">Apple Pay</div>
-            <div class="payment-icon" title="Google Pay">🅖 Google Pay</div>
         </div>
     </div>
 
@@ -5704,64 +5644,46 @@
     }
 
     // ==================== PRICING MODAL ====================
-    const pricingData = {
-        '10k': {
-            size: '$10,000', fee: '$129',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'$300 (3%)', overall:'$600 (6%)', target:'$800 (8%)', fee:'$129' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'$300 (3%)', overall:'$600 (6%)', target:'$500 (5%)' },
-            funded: { period:'Indefinite', daily:'$300 (3%)', overall:'$600 (6%)', split:'85%' }
-        },
-        '25k': {
-            size: '$25,000', fee: '$199',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'$750 (3%)', overall:'$1,500 (6%)', target:'$2,000 (8%)', fee:'$199' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'$750 (3%)', overall:'$1,500 (6%)', target:'$1,250 (5%)' },
-            funded: { period:'Indefinite', daily:'$750 (3%)', overall:'$1,500 (6%)', split:'85%' }
-        },
-        '50k': {
-            size: '$50,000', fee: '$299',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'$1,500 (3%)', overall:'$3,000 (6%)', target:'$4,000 (8%)', fee:'$299' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'$1,500 (3%)', overall:'$3,000 (6%)', target:'$2,500 (5%)' },
-            funded: { period:'Indefinite', daily:'$1,500 (3%)', overall:'$3,000 (6%)', split:'85%' }
-        },
-        '100k': {
-            size: '$100,000', fee: '$449',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'$3,000 (3%)', overall:'$6,000 (6%)', target:'$8,000 (8%)', fee:'$449' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'$3,000 (3%)', overall:'$6,000 (6%)', target:'$5,000 (5%)' },
-            funded: { period:'Indefinite', daily:'$3,000 (3%)', overall:'$6,000 (6%)', split:'85%' }
-        },
-        '200k': {
-            size: '$200,000', fee: '$799',
-            step1: { period:'Unlimited', mindays:'5 Days', daily:'$6,000 (3%)', overall:'$12,000 (6%)', target:'$16,000 (8%)', fee:'$799' },
-            step2: { period:'Unlimited', mindays:'5 Days', daily:'$6,000 (3%)', overall:'$12,000 (6%)', target:'$10,000 (5%)' },
-            funded: { period:'Indefinite', daily:'$6,000 (3%)', overall:'$12,000 (6%)', split:'85%' }
-        }
-    };
+    // Figures come from the live challenge_presets table (assets/js/live-pricing.js);
+    // FALLBACK only covers the moment before that request returns.
+    let PRESETS = null;
+    document.addEventListener('ipfx:presets', e => { PRESETS = e.detail; });
+    const FALLBACK = { '10k':[10000,129], '25k':[25000,199], '50k':[50000,299], '100k':[100000,449], '200k':[200000,799] };
+    const PHASE_PCTS = [8, 5, 4];
+    const usd = n => '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+    const amtPct = (bal, p) => `${usd(bal * p / 100)} (${Number(p)}%)`;
+
+    function phaseRules(tier, i) {
+        const p = PRESETS && PRESETS[`trad_${tier}_p${i}`];
+        const fb = FALLBACK[tier];
+        if (p) return { bal: +p.starting_balance, fee: +p.fee_usd, target: +p.profit_target_pct, daily: +p.daily_loss_pct, dd: +p.max_drawdown_pct, days: +p.min_trading_days };
+        return { bal: fb[0], fee: i === 1 ? fb[1] : 0, target: PHASE_PCTS[i - 1], daily: 3, dd: 6, days: 5 };
+    }
 
     function openPricingModal(tier) {
-        const modal = document.getElementById('pricingModal');
-        const data = pricingData[tier];
-        if (!data) return;
-        document.getElementById('modalTitle').textContent = `${data.size} — 2-Phase Challenge`;
-        document.getElementById('modalSubtitle').textContent = 'Pass two evaluation phases · 85% profit split · Fee refunded on first payout';
-        document.getElementById('modalChallengeName').textContent = `${data.size} — 2-Phase Challenge`;
-        document.getElementById('modalPrice').textContent = data.fee;
-        document.getElementById('step1-period').textContent = data.step1.period;
-        document.getElementById('step1-mindays').textContent = data.step1.mindays;
-        document.getElementById('step1-daily').textContent = data.step1.daily;
-        document.getElementById('step1-overall').textContent = data.step1.overall;
-        document.getElementById('step1-target').textContent = data.step1.target;
-        document.getElementById('step1-fee').textContent = data.step1.fee;
-        document.getElementById('step2-period').textContent = data.step2.period;
-        document.getElementById('step2-mindays').textContent = data.step2.mindays;
-        document.getElementById('step2-daily').textContent = data.step2.daily;
-        document.getElementById('step2-overall').textContent = data.step2.overall;
-        document.getElementById('step2-target').textContent = data.step2.target;
-        document.getElementById('funded-period').textContent = data.funded.period;
-        document.getElementById('funded-daily').textContent = data.funded.daily;
-        document.getElementById('funded-overall').textContent = data.funded.overall;
-        document.getElementById('funded-split').textContent = data.funded.split;
+        if (!FALLBACK[tier]) return;
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        const phases = [1, 2, 3].map(i => phaseRules(tier, i));
+        const bal = phases[0].bal, fee = usd(phases[0].fee);
+        set('modalTitle', `${usd(bal)} — 3-Phase Challenge`);
+        set('modalSubtitle', 'Pass three evaluation phases · 85% profit split · Fee credited with your first payout');
+        set('modalChallengeName', `${usd(bal)} — 3-Phase Challenge`);
+        set('modalPrice', fee);
+        set('step1-fee', fee);
+        phases.forEach((r, k) => {
+            const n = k + 1;
+            set(`step${n}-period`, 'Unlimited');
+            set(`step${n}-mindays`, `${r.days} Days`);
+            set(`step${n}-daily`, amtPct(bal, r.daily));
+            set(`step${n}-overall`, amtPct(bal, r.dd));
+            set(`step${n}-target`, amtPct(bal, r.target));
+        });
+        set('funded-period', 'Indefinite');
+        set('funded-daily', amtPct(bal, phases[0].daily));
+        set('funded-overall', amtPct(bal, phases[0].dd));
+        set('funded-split', '85%');
         document.getElementById('modalCTAButton').href = `/start-challenge.html#${tier}`;
-        modal.classList.add('active');
+        document.getElementById('pricingModal').classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 
@@ -5899,5 +5821,6 @@ async function signOutNav(){
 </script>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
+<script defer src="/assets/js/live-pricing.js"></script>
 </body>
 </html>
