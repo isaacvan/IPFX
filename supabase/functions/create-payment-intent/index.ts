@@ -45,7 +45,7 @@ Deno.serve(async req => {
   if (body.action === "status") {
     if (!uuid.test(String(body.order_id))) return traced({ error: "Invalid order" }, 400);
     const { data, error } = await db.from("commerce_orders")
-      .select("id,status,amount_minor,currency,paid_at,test_mode")
+      .select("id,status,amount_minor,currency,paid_at,test_mode,provisioned_account_id")
       .eq("id", body.order_id).eq("user_id", auth.user.id).maybeSingle();
     return error ? traced({ error: "Order status unavailable" }, 503)
       : data ? traced({ order: data }) : traced({ error: "Order not found" }, 404);
@@ -58,6 +58,21 @@ Deno.serve(async req => {
   }
   const sku = String(body.sku ?? "");
   if (!/^[a-z0-9_]{1,64}$/.test(sku)) return traced({ error: "Invalid product" }, 400);
+  let sourceAccountId: string | null = null;
+  if (sku === "infinity_continue") {
+    sourceAccountId = String(body.source_account_id ?? "");
+    if (!uuid.test(sourceAccountId)) return traced({ error: "A breached Infinity account is required." }, 400);
+    const [{ data: source }, { count: activeCount }] = await Promise.all([
+      db.from("trading_accounts").select("id,status,challenge_type,preset_id")
+        .eq("id", sourceAccountId).eq("user_id", auth.user.id).maybeSingle(),
+      db.from("trading_accounts").select("id", { count: "exact", head: true })
+        .eq("user_id", auth.user.id).eq("status", "active"),
+    ]);
+    if (!source || source.status !== "breached" || source.challenge_type !== "infinity") {
+      return traced({ error: "This account is not eligible for Infinity continuation." }, 409);
+    }
+    if ((activeCount ?? 0) > 0) return traced({ error: "You already have an active trading account." }, 409);
+  }
   if (body.action === "quote") {
     const cached = quoteCache.get(sku);
     if (cached && cached.expiresAt > Date.now()) {
@@ -81,6 +96,20 @@ Deno.serve(async req => {
       console.error(JSON.stringify({ event: "checkout_order", request_id: traceId, code: error?.code ?? "UNKNOWN" }));
       return traced({ error: "Checkout is unavailable for this account or product. Check your verified profile and terms." }, 409);
     }
+    if (sourceAccountId) {
+      const linkedSource = await db.from("commerce_orders").update({ source_account_id: sourceAccountId })
+        .eq("id", order.id).eq("user_id", auth.user.id).is("source_account_id", null).select("id,source_account_id");
+      if (linkedSource.error) {
+        console.error(JSON.stringify({ event: "checkout_source_link", request_id: traceId, code: linkedSource.error.code ?? "UNKNOWN" }));
+        return traced({ error: "A continuation checkout already exists for this account. Retry the original checkout; do not pay again." }, 409);
+      }
+      if (!linkedSource.data?.length) {
+        const existing = await db.from("commerce_orders").select("source_account_id").eq("id", order.id).single();
+        if (existing.error || existing.data?.source_account_id !== sourceAccountId) {
+          return traced({ error: "Continuation checkout conflict. No payment was taken." }, 409);
+        }
+      }
+    }
     if (!["created", "pending"].includes(order.status)) return traced({ order_id: order.id, status: order.status }, 409);
     const stripe = new Stripe(key, { httpClient: Stripe.createFetchHttpClient(), maxNetworkRetries: 1, timeout: 10_000 });
     let intent;
@@ -103,7 +132,9 @@ Deno.serve(async req => {
         automatic_payment_methods: { enabled: true },
         receipt_email: order.billing_email,
         metadata: { ipfx_order_id: order.id, ipfx_user_id: auth.user.id },
-        description: "IPFX Capital test challenge checkout",
+        description: sku === "infinity_continue"
+          ? "IPFX Infinity same-stage continuation"
+          : "IPFX Capital test challenge checkout",
       }, { idempotencyKey: "ipfx-commerce-" + order.id });
       const linked = await db.from("commerce_orders").update({
         provider_intent_id: intent.id, status: "pending",

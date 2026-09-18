@@ -949,6 +949,28 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     .select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at");
   let open: Tr[] = openRows ?? [];
 
+  // Recovery path: if a worker stopped after the DB freeze but before every
+  // close completed, the next state call/offline sweep finishes flattening.
+  // The account is already immutable and the per-account lease keeps this
+  // single-writer.
+  if (acct.status === "breached" && open.length && await claimOrderLock(db, acct.id)) {
+    try {
+      for (const t of open) {
+        let q = await fetchQuote(t.symbol);
+        if (q === null) q = await lastKnownQuote(t.symbol);
+        if (q !== null) {
+          const exit = t.side === "buy" ? q.bid : q.ask;
+          await closeTrade(db, acct, t, exit, "breach", q);
+        }
+      }
+      const { data: remaining } = await db.from("trades")
+        .select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at");
+      open = remaining ?? [];
+    } finally {
+      await releaseOrderLock(db, acct.id);
+    }
+  }
+
   // SL/TP auto-close. A stop fills at the worse of its level and the live price, so a gap
   // through the stop costs what the market cost; a take-profit fills at its level.
   if (acct.status === "active") {
@@ -1071,12 +1093,37 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     else if (equity <= dailyFloor) breach = "daily_loss";
 
     if (breach) {
-      for (const t of open) {
-        const q = await fetchQuote(t.symbol);
-        if (q !== null) {
-          const exit = t.side === "buy" ? q.bid : q.ask;
-          await closeTrade(db, acct, t, exit, "breach", q);
+      const breachFloor = breach === "max_drawdown" ? ddFloor : dailyFloor;
+      const claim = await db.rpc("fn_claim_account_breach", {
+        p_account_id: acct.id,
+        p_reason: breach,
+        p_trigger_equity: equity,
+        p_breach_floor: breachFloor,
+      });
+      if (claim.error) {
+        console.error("[breach] freeze claim failed", { account_id: acct.id, code: claim.error.code });
+        throw new Error("BREACH_FREEZE_FAILED");
+      }
+
+      // Only the request that won the active -> breached transition performs
+      // the flatten. The DB insert guards make the freeze immediate, so no new
+      // trade or pending order can race in after this point.
+      if (claim.data === true) {
+        for (const t of open) {
+          let q = await fetchQuote(t.symbol);
+          if (q === null) q = await lastKnownQuote(t.symbol);
+          if (q !== null) {
+            const exit = t.side === "buy" ? q.bid : q.ask;
+            await closeTrade(db, acct, t, exit, "breach", q);
+          }
         }
+        emailLater(sendLifecycleEmail(db, "account_breached", acct.user_id, {
+          challenge_name: acct.label,
+          breach_reason: BREACH_TEXT[breach] ?? breach,
+          next_step: acct.challenge_type === "infinity"
+            ? "Your account is frozen. Continue from the same Infinity stage for £10, or restart from Stage 1."
+            : "You can start a new challenge from your dashboard whenever you are ready.",
+        }));
       }
       const { data: leftover } = await db.from("trades")
         .select("*").eq("account_id", acct.id).eq("status", "open");
@@ -1085,13 +1132,6 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       equity = round2(Number(acct.balance));
       acct.status = "breached";
       acct.breach_reason = breach;
-      emailLater(sendLifecycleEmail(db, "account_breached", acct.user_id, {
-        challenge_name: acct.label,
-        breach_reason: BREACH_TEXT[breach] ?? breach,
-        next_step: acct.challenge_type === "infinity"
-          ? "You can restart the Infinity Challenge from Stage 1 in your dashboard (up to 3 attempts per calendar month)."
-          : "You can start a new challenge from your dashboard whenever you are ready.",
-      }));
     } else if (
       acct.phase !== "funded" &&
       Number(acct.profit_target_pct) > 0 &&
@@ -1120,14 +1160,28 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     }
   }
 
-  await db.from("trading_accounts").update({
+  const expectedStatus = acct.status;
+  const saved = await db.from("trading_accounts").update({
     balance: acct.balance, day_start_equity: acct.day_start_equity,
     day_start_date: acct.day_start_date, status: acct.status,
     breach_reason: acct.breach_reason,
     trailing_peak: acct.trailing_peak ?? null,
     trailing_peak_date: acct.trailing_peak_date ?? null,
     updated_at: new Date().toISOString(),
-  }).eq("id", acct.id);
+  }).eq("id", acct.id).eq("status", expectedStatus).select("status,breach_reason,balance");
+  if (!saved.data?.length) {
+    const { data: fresh } = await db.from("trading_accounts")
+      .select("status,breach_reason,balance").eq("id", acct.id).maybeSingle();
+    if (fresh) {
+      acct.status = fresh.status;
+      acct.breach_reason = fresh.breach_reason;
+      acct.balance = Number(fresh.balance);
+      if (fresh.status === "breached") {
+        floating = 0;
+        equity = round2(Number(acct.balance));
+      }
+    }
+  }
 
   return { open, equity, floating: round2(floating), unpriced };
 }
@@ -1482,7 +1536,7 @@ Deno.serve(async (req) => {
       if (Date.now() > deadline) break;
       visited++;
       const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id).maybeSingle();
-      if (!acct || acct.status !== "active") continue;
+      if (!acct || !["active", "breached"].includes(acct.status)) continue;
       const before = acct.status;
       await enforce(db, acct as Acct);
       if (before === "active") {
@@ -1594,14 +1648,31 @@ Deno.serve(async (req) => {
     const symbol = cleanSymbol(body.symbol);
     if (!symbol) return err("Unknown instrument");
     const inst = INSTRUMENTS[symbol];
+    let risk_status: { status: string; breach_reason: string | null } | null = null;
+    // The connected terminal asks for a quote every 750ms. Use that same
+    // request to mark every open position and enforce drawdown, instead of
+    // waiting for the slower state poll (or 10s offline sweep). This runs even
+    // if the chart's selected symbol is closed: another open symbol may not be.
+    if (body.enforce_risk === true) {
+      const { data: riskAcct } = await db.from("trading_accounts")
+        .select("*").eq("user_id", user.id).eq("status", "active").maybeSingle();
+      if (riskAcct) {
+        const { count } = await db.from("trades").select("id", { count: "exact", head: true })
+          .eq("account_id", riskAcct.id).eq("status", "open");
+        if ((count ?? 0) > 0) {
+          await enforce(db, riskAcct as Acct);
+          risk_status = { status: riskAcct.status, breach_reason: riskAcct.breach_reason };
+        }
+      }
+    }
     if (!marketOpen(symbol)) {
-      return new Response(JSON.stringify({ ok: true, symbol, status: "closed", digits: inst.digits }),
+      return new Response(JSON.stringify({ ok: true, symbol, status: "closed", digits: inst.digits, risk_status }),
         { headers: { ...CORS, "Content-Type": "application/json" } });
     }
     const q = await fetchQuote(symbol);
     if (q === null) {
       await logFeedEvent(db, "outage", symbol, "fetchQuote returned null");
-      return new Response(JSON.stringify({ ok: true, symbol, status: "no_feed", digits: inst.digits }),
+      return new Response(JSON.stringify({ ok: true, symbol, status: "no_feed", digits: inst.digits, risk_status }),
         { headers: { ...CORS, "Content-Type": "application/json" } });
     }
     const stale = quoteStale(q);
@@ -1610,7 +1681,7 @@ Deno.serve(async (req) => {
       ok: true, symbol, status: stale ? "stale" : (q.source === "fxcm-basic" ? "live" : "demo"),
       mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
       quote_ts: q.providerTs, received_ts: q.receivedTs,
-      digits: inst.digits, source: q.source,
+      digits: inst.digits, source: q.source, risk_status,
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 

@@ -43,6 +43,7 @@ window.__tvReady=new Promise(res=>{
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -476,6 +477,24 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .brw-act{background:rgba(255,255,255,.1);border:1px solid currentColor;color:inherit;border-radius:5px;padding:.2rem .55rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .brw-act:hover{background:rgba(255,255,255,.18);}
 @media (prefers-reduced-motion:reduce){.brw.crit .brw-dot{animation:none}}
+.inf-freeze{display:none;position:fixed;inset:0;z-index:5000;align-items:center;justify-content:center;padding:20px;background:rgba(4,4,6,.84);backdrop-filter:blur(18px)}
+.inf-freeze.open{display:flex}
+.inf-freeze-card{width:min(500px,calc(100vw - 32px));border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:26px;background:#151517;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+.inf-freeze-mark{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;margin-bottom:18px;background:rgba(239,68,68,.13);color:#ff7079;font-size:23px;font-weight:800}
+.inf-freeze h2{font-size:24px;letter-spacing:-.03em;margin-bottom:8px}
+.inf-freeze p{color:#a1a1a8;font-size:14px;line-height:1.55}
+.inf-freeze-detail{margin:16px 0;padding:12px 14px;border:1px solid rgba(239,68,68,.22);border-radius:11px;background:rgba(239,68,68,.07);color:#ff9ca2;font-size:13px}
+.inf-freeze-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.inf-freeze-btn{min-height:46px;border-radius:10px;border:1px solid #36363b;background:#202024;color:#fff;font:700 13px var(--font-ui);cursor:pointer}
+.inf-freeze-btn.primary{border-color:#3267ef;background:#3267ef}
+.inf-freeze-btn:disabled{opacity:.55;cursor:wait}
+.inf-freeze-note{margin-top:12px!important;font-size:11px!important;color:#77777e!important}
+.inf-pay{display:none;margin-top:16px;padding-top:16px;border-top:1px solid #2b2b2f}
+.inf-pay.open{display:block}
+.inf-pay-consent{display:flex;gap:9px;align-items:flex-start;margin:12px 0;color:#a1a1a8;font-size:11px;line-height:1.45}
+.inf-pay-consent input{margin-top:2px}
+.inf-pay-msg{min-height:18px;color:#ff8b93;font-size:11px;margin-top:9px}
+@media(max-width:540px){.inf-freeze-actions{grid-template-columns:1fr}}
 
 /* challenge panel */
 .ch-wrap{padding:.9rem 1.1rem;overflow-y:auto;height:100%;}
@@ -1332,6 +1351,26 @@ body.light .op-exec-buy{background:#2f8064;}
     <button class="desktop-auth-submit" id="desktopAuthSubmit" type="submit">Connect account</button>
     <div class="desktop-auth-note">This window only connects the trading workspace. It does not open the IPFX website or dashboard.</div>
   </form>
+</div>
+
+<div class="inf-freeze" id="infFreeze" role="dialog" aria-modal="true" aria-labelledby="infFreezeTitle">
+  <div class="inf-freeze-card">
+    <div class="inf-freeze-mark">!</div>
+    <h2 id="infFreezeTitle">Infinity account frozen</h2>
+    <p>Your position was closed the moment your live equity reached the challenge limit. A later price recovery cannot reverse this breach.</p>
+    <div class="inf-freeze-detail" id="infFreezeDetail">Drawdown limit reached.</div>
+    <div class="inf-freeze-actions">
+      <button class="inf-freeze-btn primary" id="infContinueBtn" onclick="openInfinityContinue()">Continue this stage — £10</button>
+      <button class="inf-freeze-btn" id="infRestartBtn" onclick="restartInfinity()">Restart from Stage 1</button>
+    </div>
+    <p class="inf-freeze-note">Continuing creates a clean attempt at this same stage; closed positions are never reopened. Restarting returns you to Stage 1 and uses a monthly attempt.</p>
+    <div class="inf-pay" id="infPay">
+      <div id="infPaymentElement"></div>
+      <label class="inf-pay-consent"><input type="checkbox" id="infPayTerms"> <span>I agree to the current Terms and want this £10 digital continuation supplied immediately.</span></label>
+      <button class="inf-freeze-btn primary" id="infPayBtn" style="width:100%" onclick="confirmInfinityContinue()">Pay £10 and continue</button>
+      <div class="inf-pay-msg" id="infPayMsg" role="alert"></div>
+    </div>
+  </div>
 </div>
 
 <!-- LAYOUT -->
@@ -3840,6 +3879,101 @@ function renderEngineAccount(){
     else if(a.status==='breached')engineMsg('Challenge breached: '+(a.breach_reason||'limit hit'));
     lastEngineStatus=a.status;
   }
+  renderInfinityFreeze(a);
+}
+let infStripe=null,infElements=null,infPaymentElement=null,infCheckout=null,infCheckoutBusy=false;
+function renderInfinityFreeze(a){
+  const modal=document.getElementById('infFreeze');
+  if(!modal)return;
+  const show=a&&a.challenge_type==='infinity'&&a.status==='breached';
+  modal.classList.toggle('open',!!show);
+  if(!show)return;
+  const reason=a.breach_reason==='daily_loss'?'Daily loss limit reached':'Maximum drawdown reached';
+  const stage=Number(a.stage||1);
+  document.getElementById('infFreezeDetail').textContent=
+    reason+` in Stage ${stage}. All positions are closed and this account cannot place another order.`;
+}
+async function paymentCall(body){
+  const tok=await freshToken();
+  if(!tok)throw new Error('Your session expired. Sign in again.');
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
+  try{
+    const r=await fetch(SB_URL+'/functions/v1/create-payment-intent',{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON,'Authorization':'Bearer '+tok},
+      body:JSON.stringify(body),signal:ctrl.signal
+    });
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||'Checkout is unavailable. No payment was taken.');
+    return j;
+  }catch(e){
+    if(e&&e.name==='AbortError')throw new Error('Checkout timed out. No new payment was requested.');
+    throw e;
+  }finally{clearTimeout(timer)}
+}
+async function openInfinityContinue(){
+  if(infCheckoutBusy||infElements)return;
+  const a=engineState&&engineState.account;
+  if(!a||a.challenge_type!=='infinity'||a.status!=='breached')return;
+  const msg=document.getElementById('infPayMsg'),btn=document.getElementById('infContinueBtn');
+  msg.textContent='';btn.disabled=true;btn.textContent='Opening secure checkout…';infCheckoutBusy=true;
+  try{
+    if(typeof window.Stripe!=='function')throw new Error('Secure checkout did not load. Please reconnect and try again.');
+    const sku='infinity_continue',source_account_id=a.id;
+    const quote=await paymentCall({action:'quote',sku,source_account_id});
+    infStripe=window.Stripe(quote.publishable_key);
+    const keyName='ipfx-infinity-continue:'+a.id;
+    let requestKey=localStorage.getItem(keyName);
+    if(!/^[0-9a-f-]{36}$/i.test(requestKey||'')){requestKey=crypto.randomUUID();localStorage.setItem(keyName,requestKey)}
+    infCheckout=await paymentCall({sku,source_account_id,request_key:requestKey,
+      terms_version:quote.product.terms_version,terms_accepted:true});
+    infElements=infStripe.elements({clientSecret:infCheckout.client_secret,appearance:{theme:'night',
+      variables:{colorPrimary:'#3267ef',colorBackground:'#0f0f11',colorText:'#fff',borderRadius:'10px'}}});
+    infPaymentElement=infElements.create('payment');
+    infPaymentElement.mount('#infPaymentElement');
+    document.getElementById('infPay').classList.add('open');
+  }catch(e){msg.textContent=(e&&e.message)||'Checkout is unavailable. No payment was taken.'}
+  finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent='Continue this stage — £10'}
+}
+async function confirmInfinityContinue(){
+  if(infCheckoutBusy||!infElements||!infCheckout)return;
+  const msg=document.getElementById('infPayMsg'),btn=document.getElementById('infPayBtn');
+  if(!document.getElementById('infPayTerms').checked){msg.textContent='Please accept the Terms to continue.';return}
+  infCheckoutBusy=true;btn.disabled=true;btn.textContent='Confirming…';msg.textContent='';
+  try{
+    const submitted=await infElements.submit();
+    if(submitted.error)throw new Error(submitted.error.message);
+    const result=await infStripe.confirmPayment({elements:infElements,redirect:'if_required',
+      confirmParams:{return_url:location.origin+location.pathname}});
+    if(result.error)throw new Error(result.error.message);
+    let ready=false;
+    for(let i=0;i<20;i++){
+      const status=await paymentCall({action:'status',order_id:infCheckout.order_id});
+      if(status.order&&status.order.provisioned_account_id){ready=true;break}
+      if(status.order&&status.order.status==='review')throw new Error('Payment needs review. Do not pay again; contact support with order '+infCheckout.order_id+'.');
+      await new Promise(r=>setTimeout(r,1500));
+    }
+    if(!ready)throw new Error('Payment is confirmed and activation is still processing. Do not pay again. Order: '+infCheckout.order_id);
+    localStorage.removeItem('ipfx-infinity-continue:'+engineState.account.id);
+    infPaymentElement.unmount();infPaymentElement=null;infElements=null;infCheckout=null;
+    await engineCall({action:'state'});
+  }catch(e){msg.textContent=(e&&e.message)||'Payment status is unavailable. Do not pay again.'}
+  finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent='Pay £10 and continue'}
+}
+async function restartInfinity(){
+  if(infCheckoutBusy)return;
+  if(!confirm('Restart the Infinity Challenge from Stage 1? This uses one of your monthly attempts.'))return;
+  const btn=document.getElementById('infRestartBtn');btn.disabled=true;btn.textContent='Restarting…';
+  try{
+    const tok=await freshToken();
+    if(!tok)throw new Error('Your session expired. Sign in again.');
+    const response=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+      body:JSON.stringify({action:'claim_infinity',confirm_age:true})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(result.error||'Could not restart the challenge.');
+    engineMsg('Infinity restarted from Stage 1',true);
+    await engineCall({action:'state'});
+  }catch(e){engineMsg((e&&e.message)||'Could not restart the challenge.')}
+  btn.disabled=false;btn.textContent='Restart from Stage 1';
 }
 let lastEngineStatus=null;
 if(hasSession()){
@@ -3922,8 +4056,11 @@ async function pollTicketPrice(){
   const tok=await freshToken();
   if(tok){
     try{
-      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym})});
+      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym,enforce_risk:true})});
       const j=await r.json().catch(()=>null);
+      if(j&&j.risk_status&&j.risk_status.status==='breached'&&!engineBusy){
+        engineCall({action:'state'});
+      }
       if(j&&j.ok&&j.status==='closed'){
         domDigits=j.digits;
         setFeed('closed','MARKET CLOSED');
