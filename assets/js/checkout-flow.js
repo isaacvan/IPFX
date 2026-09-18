@@ -20,6 +20,34 @@
     $('payDemoNotice').textContent = text;
     $('payDemoNotice').style.display = 'block';
   }
+  function selectedSku() {
+    const card = document.querySelector('.tier-card.selected');
+    return card?.dataset.sku || ('trad_' + tier + '_p1');
+  }
+  async function saveIdentity() {
+    const { data:{user}, error: userError } = await db.auth.getUser();
+    if (userError || !user) {
+      const next = location.pathname + location.search + location.hash;
+      location.href = '/login.html?next=' + encodeURIComponent(next);
+      throw new Error('Sign in or create and verify your account before checkout.');
+    }
+    const dob = $('dateOfBirth').value;
+    const adultCutoff = new Date(); adultCutoff.setFullYear(adultCutoff.getFullYear() - 18);
+    if (!dob || new Date(dob + 'T12:00:00') > adultCutoff) throw new Error('You must be at least 18 years old.');
+    const profile = {
+      legal_first_name: $('firstName').value.trim(), legal_last_name: $('lastName').value.trim(),
+      legal_middle_names: '', date_of_birth: dob, phone_e164: $('phone').value.trim(),
+      address_line_1: $('addressLine1').value.trim(), address_line_2: $('addressLine2').value.trim(),
+      city: $('city').value.trim(), region: $('region').value.trim(), postal_code: $('postalCode').value.trim(),
+      country_code: $('country').value, nationality_code: $('country').value === 'ZZ' ? null : $('country').value,
+    };
+    const { error } = await db.rpc('submit_identity_profile', { p_profile: profile });
+    if (error) {
+      const code = String(error.message || '');
+      if (code.includes('MUST_BE_18')) throw new Error('You must be at least 18 years old.');
+      throw new Error('We could not securely save your identity details. Check every required field and try again.');
+    }
+  }
   async function call(body, fn) {
     const {data:{session}} = await db.auth.getSession();
     if (!session) throw new Error('Sign in or create and verify your account before checkout.');
@@ -81,7 +109,7 @@
       if (error || !user?.email) throw new Error('Sign in or create and verify your account before checkout.');
       verifiedEmail = user.email;
       $('email').value = user.email; $('email').readOnly = true;
-      const sku = 'trad_' + tier + '_p1';
+      const sku = selectedSku();
       $('payDivider').style.display = 'flex';
       $('payCrypto').style.display = 'block';
       $('payCrypto').disabled = false;
@@ -118,15 +146,19 @@
   $('payForm').addEventListener('submit', e => e.preventDefault());
   $('step1Next').addEventListener('click', () => step(2));
   $('step2Back').addEventListener('click', () => step(1));
-  $('step2Next').addEventListener('click', () => {
-    const fields = ['firstName','lastName','email','country','experience'];
+  $('step2Next').addEventListener('click', async () => {
+    const fields = ['firstName','lastName','email','phone','dateOfBirth','addressLine1','city','postalCode','country','experience'];
     for (const id of fields) {
       if (!$(id).value.trim() || !$(id).checkValidity()) { $(id).reportValidity(); $(id).focus(); return; }
     }
     for (const id of ['ageConfirm','terms','cancellationWaiver']) {
       if (!$(id).checked) { $(id).focus(); $(id).reportValidity(); return; }
     }
-    step(3); mountPayment();
+    const btn = $('step2Next');
+    btn.disabled = true; btn.textContent = 'Securing your details…';
+    try { await saveIdentity(); step(3); await mountPayment(); }
+    catch (error) { message(error.message || 'Could not save your details.'); }
+    finally { btn.disabled = false; btn.textContent = 'Continue'; }
   });
   $('step3Back').addEventListener('click', () => step(2));
   $('step3Next').addEventListener('click', async () => {
@@ -171,7 +203,7 @@
     try {
       const {data:{user},error} = await db.auth.getUser();
       if (error || !user?.email) throw new Error('Sign in or create and verify your account before checkout.');
-      const sku = 'trad_' + tier + '_p1';
+      const sku = selectedSku();
       const cryptoQuote = await call({action:'quote',sku}, 'nowpayments-checkout');
       const storageKey = 'ipfx-checkout-crypto-v1:' + user.id + ':' + sku;
       let key;
@@ -190,4 +222,17 @@
   });
   const initial = location.hash.slice(1);
   document.querySelectorAll('.tier-card').forEach(card => { if (card.dataset.tier === initial) card.click(); });
+  (async () => {
+    if (!db) return;
+    const { data:{user} } = await db.auth.getUser();
+    if (!user) return;
+    $('email').value = user.email || ''; $('email').readOnly = true;
+    const { data:p } = await db.rpc('get_my_identity_profile');
+    if (!p?.complete) return;
+    $('firstName').value=p.legal_first_name||''; $('lastName').value=p.legal_last_name||'';
+    $('phone').value=p.phone_e164||''; $('dateOfBirth').value=p.date_of_birth||'';
+    $('addressLine1').value=p.address_line_1||''; $('addressLine2').value=p.address_line_2||'';
+    $('city').value=p.city||''; $('region').value=p.region||''; $('postalCode').value=p.postal_code||'';
+    if ([...$('country').options].some(o=>o.value===p.country_code)) $('country').value=p.country_code;
+  })().catch(()=>{});
 })();

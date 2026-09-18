@@ -218,6 +218,12 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
   </div>
   <div id="kycQueue"><div class="msg" style="padding:1.25rem">Not loaded — click <b>Load review queue</b>.</div></div>
 
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Personalised Challenge applications</h2>
+    <button class="chip" onclick="loadApplicationQueue()">Load applications</button>
+  </div>
+  <div id="applicationQueue"><div class="msg" style="padding:1.25rem">Not loaded — click <b>Load applications</b>.</div></div>
+
   <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem;gap:.5rem;flex-wrap:wrap">
     <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Promo codes</h2>
     <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
@@ -971,6 +977,19 @@ function readinessCard(r,label){
 
 function renderTraderDetail(j){
   const p=j.combined_profile;
+  const i=j.identity;
+  let age='—';
+  if(i?.date_of_birth){const d=new Date(i.date_of_birth+'T12:00:00'),n=new Date();age=n.getFullYear()-d.getFullYear()-((n.getMonth()<d.getMonth()||(n.getMonth()===d.getMonth()&&n.getDate()<d.getDate()))?1:0)}
+  const identityHtml=i?`<div style="background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem;margin-bottom:1.25rem">
+    <div style="font-size:.85rem;font-weight:700;margin-bottom:.75rem">Protected identity <span class="st active">MFA access</span></div>
+    <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div><div class="lbl">Trader ID</div><div class="mono">${esc(j.user_id)}</div></div>
+      <div><div class="lbl">Legal name</div><div>${esc([i.legal_first_name,i.legal_middle_names,i.legal_last_name].filter(Boolean).join(' '))}</div></div>
+      <div><div class="lbl">DOB / age</div><div>${esc(i.date_of_birth)} · ${age}</div></div>
+      <div><div class="lbl">Phone</div><div>${esc(i.phone_e164)}</div></div>
+      <div><div class="lbl">Country / nationality</div><div>${esc(i.country_code||'—')} / ${esc(i.nationality_code||'—')}</div></div>
+      <div><div class="lbl">Residential address</div><div>${esc([i.address_line_1,i.address_line_2,i.city,i.region,i.postal_code].filter(Boolean).join(', '))}</div></div>
+    </div></div>`:`<div class="warn">No completed protected identity profile. This trader cannot start or activate another challenge.</div>`;
   const perAcc=j.per_account_profile||[];
   const primary=perAcc.find(a=>a.status==='active')||perAcc[0]||null;
   const readinessHtml=primary?readinessCard(primary.readiness,perAcc.length>1?primary.label:null):'';
@@ -1003,6 +1022,7 @@ function renderTraderDetail(j){
     <td style="color:var(--red)">${esc(r.reject_reason||'—')}</td>
   </tr>`).join('');
   return `
+    ${identityHtml}
     ${readinessHtml}
     ${profileCard(p)}
     ${chartHtml}
@@ -1092,9 +1112,9 @@ async function loadKycQueue(){
   if(!r){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Could not load the queue.</div>';return;}
   if(!r.queue.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Nobody is waiting for verification.</div>';return;}
   const names={id_front:'ID front',id_back:'ID back',proof_of_address:'Proof of address',selfie:'Selfie'};
-  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Country</th><th>Submitted</th><th>Documents (links expire in 1 hour)</th><th>Decision</th></tr></thead><tbody>${r.queue.map(k=>`<tr>
-    <td><div>${esc(k.full_name||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(k.email||'')}</div></td>
-    <td>${esc(k.country||'—')}</td><td>${esc(new Date(k.submitted_at).toLocaleString('en-GB'))}</td>
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Identity &amp; address</th><th>Submitted</th><th>Documents (links expire in 5 minutes)</th><th>Decision</th></tr></thead><tbody>${r.queue.map(k=>`<tr>
+    <td><div>${esc(k.full_name||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(k.email||'')}</div><div class="mono" style="font-size:.65rem;color:var(--muted2)">${esc(k.user_id)}</div></td>
+    <td>${k.identity?`<div>${esc(k.identity.date_of_birth)} · ${esc(k.identity.phone_e164)}</div><div style="font-size:.72rem;color:var(--muted)">${esc([k.identity.address_line_1,k.identity.address_line_2,k.identity.city,k.identity.region,k.identity.postal_code,k.identity.country_code].filter(Boolean).join(', '))}</div>`:'<span style="color:var(--red)">Profile incomplete</span>'}</td><td>${esc(new Date(k.submitted_at).toLocaleString('en-GB'))}</td>
     <td>${k.documents.map(d=>d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener" style="color:var(--cobalt);margin-right:.6rem">${esc(names[d.doc_type]||d.doc_type)}</a>`:esc(names[d.doc_type]||d.doc_type)).join('')||'—'}</td>
     <td><button class="btn btn-g" onclick="kycDecide('${esc(k.user_id)}','verified')">Approve</button> <button class="btn btn-o" onclick="kycDecide('${esc(k.user_id)}','rejected')">Reject</button></td></tr>`).join('')}</tbody></table></div>`;
 }
@@ -1103,6 +1123,23 @@ async function kycDecide(userId,status){
   if(status==='rejected'){note=prompt('Reason shown to the trader (e.g. "Document is blurry" or "Address proof is older than 3 months"):');if(note===null)return;}
   const r=await call({action:'set_kyc_status',user_id:userId,status,note});
   if(r){toast(status==='verified'?'Trader verified':'Rejected — trader has been emailed',true);loadKycQueue();}
+}
+async function loadApplicationQueue(){
+  const wrap=document.getElementById('applicationQueue');
+  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Loading…</div>';
+  const r=await call({action:'application_queue'});
+  if(!r){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Could not load applications. MFA is required.</div>';return}
+  if(!r.applications.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No applications are waiting.</div>';return}
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Identity</th><th>Strategy</th><th>Experience</th><th>Capital</th><th>Decision</th></tr></thead><tbody>${r.applications.map(a=>{const i=a.identity||{},d=a.application_details||{};return`<tr>
+    <td><div>${esc([i.legal_first_name,i.legal_last_name].filter(Boolean).join(' ')||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(a.email||'')}</div><div class="mono" style="font-size:.65rem;color:var(--muted2)">${esc(a.user_id)}</div></td>
+    <td><div>${esc(i.date_of_birth||'—')} · ${esc(i.phone_e164||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc([i.address_line_1,i.city,i.region,i.postal_code,i.country_code].filter(Boolean).join(', '))}</div></td>
+    <td style="max-width:300px;white-space:normal">${esc(d.strategy||'—')}</td><td style="max-width:220px;white-space:normal">${esc(d.experience||'—')}</td><td>${esc(d.preferred_capital||'—')}</td>
+    <td><button class="btn btn-o" onclick="applicationDecide('${esc(a.id)}','reviewing')">Review</button> <button class="btn btn-g" onclick="applicationDecide('${esc(a.id)}','approved')">Approve</button> <button class="btn btn-o" onclick="applicationDecide('${esc(a.id)}','rejected')">Reject</button></td></tr>`}).join('')}</tbody></table></div>`;
+}
+async function applicationDecide(id,status){
+  if(!confirm(`Set this application to ${status}? Approval records the decision; issue the agreed custom account separately after final checks.`))return;
+  const r=await call({action:'application_decide',application_id:id,status});
+  if(r){toast('Application updated',true);loadApplicationQueue()}
 }
 async function loadPromos(){
   const wrap=document.getElementById('promoList');

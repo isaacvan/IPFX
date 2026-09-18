@@ -889,6 +889,9 @@
         // ============================================
         const urlParams = new URLSearchParams(window.location.search);
         const urlReferralCode = urlParams.get('ref');
+        const requestedNext = urlParams.get('next') || '/dashboard.html';
+        const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+            ? requestedNext : '/dashboard.html';
         if (urlReferralCode) {
             referralCodeInput.value = urlReferralCode.toUpperCase();
             referralCodeInput.readOnly = true;
@@ -1243,7 +1246,7 @@
 
                 // Redirect to login after 2 seconds
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = 'login.html?next=' + encodeURIComponent(safeNext);
                 }, 2000);
 
             } catch (error) {

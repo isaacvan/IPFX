@@ -31,6 +31,9 @@ const payment = fs.readFileSync('supabase/functions/create-payment-intent/index.
 const migration = fs.readFileSync(
   'supabase/migrations/20260918092933_infinity_intratrade_freeze_and_resume.sql','utf8'
 );
+const offerMigration = fs.readFileSync(
+  'supabase/migrations/20260918143000_identity_enrolment_and_continuation_offers.sql','utf8'
+);
 const trading = fs.readFileSync('trading.html','utf8');
 
 assert.match(engine, /if \(equity <= ddFloor\) breach = "max_drawdown"/);
@@ -40,11 +43,13 @@ assert.match(engine, /body\.enforce_risk === true/);
 assert.match(migration, /BREACHED_ACCOUNT_IS_FROZEN/);
 assert.match(migration, /TRADING_ACCOUNT_FROZEN/);
 assert.match(migration, /'challenge_continue'.*1000,'gbp'/s);
+assert.match(offerMigration, /challenge_continuation_offers/);
 assert.match(migration, /challenge_type not in \('infinity','traditional','futures','pac'\)/);
 assert.match(payment, /\["infinity", "traditional", "futures", "pac"\]\.includes\(source\.challenge_type\)/);
 assert.match(migration, /source_account\.preset_id/);
 assert.match(migration, /resumed_from_account_id/);
-assert.match(trading, /Continue this stage — £10/);
+assert.match(trading, /See continuation price/);
+assert.match(payment, /continuationOffer\.amount_minor/);
 assert.match(trading, /Restart from Stage 1/);
 assert.match(trading, /\['infinity','traditional','futures','pac'\]\.includes\(a\.challenge_type\)/);
 assert.match(trading, /enforce_risk:true/);

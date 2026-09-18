@@ -594,6 +594,12 @@
         const supabaseClient = window.supabase?.createClient
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
             : null;
+        const requestedNext = new URLSearchParams(location.search).get('next') || '/dashboard.html';
+        const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+            ? requestedNext : '/dashboard.html';
+        document.querySelectorAll('a[href="signup.html"]').forEach(a => {
+            a.href = 'signup.html?next=' + encodeURIComponent(safeNext);
+        });
 
         // ============================================
         // AUTO-REDIRECT IF ALREADY LOGGED IN
@@ -603,7 +609,7 @@
             try {
                 if (!supabaseClient) throw new Error('The secure sign-in service did not load. Check your internet connection and try again.');
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) { window.location.replace('dashboard.html'); return; }
+                if (session) { window.location.replace(safeNext); return; }
             } catch(e) {}
             document.body.style.visibility = 'visible';
         })();
@@ -613,7 +619,7 @@
                 document.body.style.visibility = 'hidden';
                 if (!supabaseClient) { document.body.style.visibility = 'visible'; return; }
                 supabaseClient.auth.getSession().then(function(r){
-                    if(r.data.session) window.location.replace('dashboard.html');
+                    if(r.data.session) window.location.replace(safeNext);
                     else document.body.style.visibility = 'visible';
                 }).catch(function(){ document.body.style.visibility = 'visible'; });
             }
@@ -664,7 +670,7 @@
                 localStorage.setItem('ipfx_user_data', JSON.stringify(userData));
 
                 // Login successful - redirect to dashboard
-                window.location.href = 'dashboard.html';
+                window.location.href = safeNext;
 
             } catch (error) {
                 console.error('Login error:', error);

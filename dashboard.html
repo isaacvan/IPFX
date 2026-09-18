@@ -1107,9 +1107,75 @@ async function engineCall(body){
   return j;
 }
 
+function identityModal(){
+  let modal=document.getElementById('identityOnboarding');
+  if(modal)return modal;
+  const style=document.createElement('style');
+  style.textContent=`.identity-modal{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:1rem}.identity-modal.open{display:flex}.identity-card{width:min(720px,100%);max-height:92vh;overflow:auto;background:var(--bgcard);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 24px 80px rgba(0,0,0,.6)}.identity-card h2{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;margin-bottom:.35rem}.identity-card>p{color:var(--muted2);font-size:.82rem;line-height:1.5;margin-bottom:1rem}.identity-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}.identity-field{display:flex;flex-direction:column;gap:.32rem;margin-bottom:.75rem}.identity-field.full{grid-column:1/-1}.identity-field label{font-size:.72rem;color:var(--muted2);font-weight:600}.identity-field input,.identity-field select{background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.72rem;font:inherit}.identity-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:.35rem}.identity-error{min-height:1.1rem;color:var(--red);font-size:.76rem;margin-top:.4rem}@media(max-width:640px){.identity-grid{grid-template-columns:1fr}.identity-field.full{grid-column:auto}}`;
+  document.head.appendChild(style);
+  modal=document.createElement('div');modal.className='identity-modal';modal.id='identityOnboarding';
+  modal.innerHTML=`<form class="identity-card" id="identityForm"><h2>Complete your trader profile</h2><p>We use these details for age, identity, fraud-prevention and payout checks. They are not shown on your public profile and are only available to authorised staff.</p><div class="identity-grid">
+    <div class="identity-field"><label>Legal first name</label><input id="idFirst" autocomplete="given-name" maxlength="80" required></div>
+    <div class="identity-field"><label>Legal last name</label><input id="idLast" autocomplete="family-name" maxlength="80" required></div>
+    <div class="identity-field"><label>Date of birth</label><input id="idDob" type="date" autocomplete="bday" required></div>
+    <div class="identity-field"><label>Mobile number</label><input id="idPhone" type="tel" autocomplete="tel" placeholder="+447123456789" required></div>
+    <div class="identity-field full"><label>Residential address</label><input id="idLine1" autocomplete="address-line1" maxlength="160" required></div>
+    <div class="identity-field full"><label>Address line 2 (optional)</label><input id="idLine2" autocomplete="address-line2" maxlength="160"></div>
+    <div class="identity-field"><label>Town / city</label><input id="idCity" autocomplete="address-level2" maxlength="100" required></div>
+    <div class="identity-field"><label>County / region (optional)</label><input id="idRegion" autocomplete="address-level1" maxlength="100"></div>
+    <div class="identity-field"><label>Postcode / postal code</label><input id="idPostal" autocomplete="postal-code" maxlength="24" required></div>
+    <div class="identity-field"><label>Country of residence</label><select id="idCountry" autocomplete="country" required><option value="">Select</option><option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="DE">Germany</option><option value="FR">France</option><option value="ES">Spain</option><option value="IT">Italy</option><option value="NL">Netherlands</option><option value="ZZ">Other</option></select></div>
+  </div><div class="identity-error" id="identityError" role="alert"></div><div class="identity-actions"><button type="button" class="cbtn" id="identityCancel">Not now</button><button class="cbtn p" id="identitySave">Save securely & continue</button></div></form>`;
+  document.body.appendChild(modal);return modal;
+}
+async function ensureIdentityProfile(){
+  const {data:profile}=await sb.rpc('get_my_identity_profile');
+  if(profile?.complete)return true;
+  const modal=identityModal();modal.classList.add('open');
+  return await new Promise(resolve=>{
+    const done=value=>{modal.classList.remove('open');resolve(value)};
+    document.getElementById('identityCancel').onclick=()=>done(false);
+    document.getElementById('identityForm').onsubmit=async e=>{
+      e.preventDefault();const btn=document.getElementById('identitySave'),err=document.getElementById('identityError');
+      btn.disabled=true;btn.textContent='Saving securely…';err.textContent='';
+      const val=id=>document.getElementById(id).value.trim();
+      const country=val('idCountry');
+      const p={legal_first_name:val('idFirst'),legal_last_name:val('idLast'),legal_middle_names:'',date_of_birth:val('idDob'),phone_e164:val('idPhone'),address_line_1:val('idLine1'),address_line_2:val('idLine2'),city:val('idCity'),region:val('idRegion'),postal_code:val('idPostal'),country_code:country,nationality_code:country==='ZZ'?null:country};
+      const {error}=await sb.rpc('submit_identity_profile',{p_profile:p});
+      if(error){err.textContent=String(error.message||'').includes('MUST_BE_18')?'You must be at least 18 years old.':'Check every field and use an international phone number beginning with +.';btn.disabled=false;btn.textContent='Save securely & continue';return}
+      done(true);
+    };
+  });
+}
+async function collectPacApplication(){
+  let modal=document.getElementById('pacApplication');
+  if(!modal){
+    modal=document.createElement('div');modal.className='identity-modal';modal.id='pacApplication';
+    modal.innerHTML=`<form class="identity-card" id="pacForm"><h2>Personalised Challenge application</h2><p>Tell our analysts how you trade. Approval creates custom rules first; it never silently grants a generic account.</p>
+      <div class="identity-field"><label>Your strategy and edge</label><textarea id="pacStrategy" rows="6" minlength="20" maxlength="4000" required style="resize:vertical;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.72rem;font:inherit" placeholder="Markets, timeframes, entries, exits and risk controls"></textarea></div>
+      <div class="identity-field"><label>Trading experience</label><textarea id="pacExperience" rows="3" minlength="5" maxlength="1000" required style="resize:vertical;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.72rem;font:inherit" placeholder="Years active, instruments and track record"></textarea></div>
+      <div class="identity-field"><label>Preferred starting capital</label><select id="pacCapital"><option>$25K</option><option>$50K</option><option>$100K</option><option>$250K</option></select></div>
+      <div class="identity-error" id="pacError" role="alert"></div><div class="identity-actions"><button type="button" class="cbtn" id="pacCancel">Not now</button><button class="cbtn p" id="pacSave">Submit for review</button></div></form>`;
+    document.body.appendChild(modal);
+  }
+  modal.classList.add('open');
+  return await new Promise(resolve=>{
+    const done=value=>{modal.classList.remove('open');resolve(value)};
+    document.getElementById('pacCancel').onclick=()=>done(false);
+    document.getElementById('pacForm').onsubmit=async e=>{
+      e.preventDefault();const btn=document.getElementById('pacSave'),err=document.getElementById('pacError');
+      btn.disabled=true;btn.textContent='Submitting…';err.textContent='';
+      const details={strategy:document.getElementById('pacStrategy').value.trim(),experience:document.getElementById('pacExperience').value.trim(),preferred_capital:document.getElementById('pacCapital').value};
+      const {error}=await sb.rpc('submit_challenge_application',{p_challenge_type:'pac',p_details:details});
+      if(error){err.textContent='We could not submit the application. Check the detail provided and try again.';btn.disabled=false;btn.textContent='Submit for review';return}
+      done(true);
+    };
+  });
+}
+
 async function initDashboard(){
   const{data:{session},error}=await sb.auth.getSession();
-  if(!session){window.location.href='login.html';return;}
+  if(!session){window.location.href='login.html?next='+encodeURIComponent(location.pathname+location.search);return;}
   const user=session.user;
 
   loadPayoutsPage();
@@ -1121,14 +1187,28 @@ async function initDashboard(){
   document.getElementById('uName').textContent=name;
   document.getElementById('uEmail').textContent=user.email;
 
+  const requestedStart=new URLSearchParams(location.search).get('start');
+  if(requestedStart==='infinity'){
+    const ready=await ensureIdentityProfile();
+    if(ready){
+      const started=await engineCall({action:'claim_infinity',confirm_age:true});
+      if(started?.ok) history.replaceState({},'',location.pathname);
+      else if(started?.error) alert(started.error);
+    }
+  }else if(requestedStart==='pac'){
+    const ready=await ensureIdentityProfile();
+    if(ready&&await collectPacApplication()) history.replaceState({},'',location.pathname);
+  }
+
   await redeemSignupPromo(user).catch(()=>{});
 
   // load accounts, claims, profile + referrals in parallel
-  const[{data:enrollments},{data:claims},{data:profile},{data:referralRows}]=await Promise.all([
+  const[{data:enrollments},{data:claims},{data:profile},{data:referralRows},{data:applications}]=await Promise.all([
     sb.from('trading_accounts').select('id,label,challenge_type,stage,phase,status,breach_reason,starting_balance,balance,profit_target_pct,max_drawdown_pct,drawdown_mode,trailing_peak,total_paid_out,created_at').eq('user_id',user.id).order('created_at',{ascending:false}),
     sb.from('challenge_claims').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
     sb.from('user_profiles').select('referral_code,referral_count').eq('user_id',user.id).maybeSingle(),
-    sb.from('referrals').select('*,referred:referred_user_id(full_name)').eq('referrer_user_id',user.id).order('created_at',{ascending:false})
+    sb.from('referrals').select('*,referred:referred_user_id(full_name)').eq('referrer_user_id',user.id).order('created_at',{ascending:false}),
+    sb.from('challenge_enrolment_requests').select('id,challenge_type,status,created_at,updated_at').eq('user_id',user.id).order('created_at',{ascending:false})
   ]);
 
   // populate referral section
@@ -1154,6 +1234,7 @@ async function initDashboard(){
   // IPFX Markets, so only show claims while no account exists yet.
   if(hasClaims&&!hasEnrollments) renderClaims(claims);
   if(hasEnrollments) renderAccounts(enrollments);
+  if(applications?.length) renderApplications(applications);
   acLoaded=true;
   applyFilter();
   loadInfinityPanel();
@@ -1211,6 +1292,15 @@ function renderClaims(list){
     </div>`;
   }).join('');
   el.innerHTML=(el.innerHTML||'')+html;
+}
+
+function renderApplications(list){
+  const el=document.getElementById('acList');
+  const labels={pending:'Submitted',reviewing:'Under review',approved:'Approved',rejected:'Not approved',withdrawn:'Withdrawn'};
+  el.innerHTML+=list.map(a=>`<div class="ac" data-type="application" data-status="${esc(a.status)}" style="border-color:rgba(139,92,246,.3)">
+    <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">Personalised Challenge</span><span class="badge" style="background:rgba(139,92,246,.12);color:#a78bfa;border:1px solid rgba(139,92,246,.3)"><span class="bdot" style="background:#8b5cf6"></span>${esc(labels[a.status]||a.status)}</span></div></div><div class="ac-id"><span>Application</span><span style="color:var(--line)">·</span><span>${esc(new Date(a.created_at).toLocaleDateString('en-GB'))}</span></div></div>
+    <div class="ac-body" style="display:block;padding:1.25rem 1.5rem"><div style="font-size:.82rem;color:var(--muted2);line-height:1.55">${a.status==='approved'?'Your application is approved. IPFX will issue the agreed custom account and rules after final checks.':'Your strategy and identity profile are recorded securely. An analyst must review and agree the custom capital and rules before a trading account is created.'}</div></div>
+  </div>`).join('');
 }
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -1290,6 +1380,7 @@ async function loadInfinityPanel(){
 async function claimInfinity(){
   const btn=document.getElementById('infBtn'),msg=document.getElementById('infMsg'),age=document.getElementById('infAge');
   if(age&&!age.checked){msg.style.display='';msg.style.color='#f59e0b';msg.textContent='Please confirm you are 18 or older.';return;}
+  if(!await ensureIdentityProfile())return;
   btn.disabled=true;btn.textContent='Starting…';
   const r=await engineCall({action:'claim_infinity',confirm_age:age?age.checked:undefined});
   if(!r||!r.ok){btn.disabled=false;btn.textContent='Try again';msg.style.display='';msg.style.color='#ef4444';msg.textContent=(r&&r.error)||'Could not start your challenge.';return;}
@@ -1384,6 +1475,7 @@ async function redeemSignupPromo(user){
 }
 async function claimDashPromo(){
   if(!dashValidCode||!dashSelectedType)return;
+  if(!await ensureIdentityProfile())return;
   const btn=document.getElementById('dashPromoClaimBtn');
   const s=document.getElementById('dashPromoStatus');
   btn.disabled=true;btn.textContent='Claiming…';

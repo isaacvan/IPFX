@@ -33,18 +33,27 @@ import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
 import { insertAccountFromPreset, rootPresetId } from "../_shared/provisioning.ts";
 
 const CORS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://ipfxcapital.com",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const err = (m: string, s = 400) => json({ ok: false, error: m }, s);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
 // deno-lint-ignore no-explicit-any
 type Trade = any;
+
+function tokenAal(token: string): string | null {
+  try {
+    const raw = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = raw + '='.repeat((4 - raw.length % 4) % 4);
+    return String(JSON.parse(atob(padded)).aal ?? '');
+  } catch (_) { return null; }
+}
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const mean = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
@@ -530,6 +539,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return err("POST only", 405);
 
   // authenticate
+  const bearerToken = (req.headers.get("Authorization") ?? "").replace(/^Bearer /, "");
   const authClient = createClient(
     Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
@@ -556,6 +566,10 @@ Deno.serve(async (req) => {
   if (!isAdmin) return json({ ok: true, is_admin: false, traders: [] });
 
   const action = body.action;
+  const sensitiveActions = new Set(["trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log"]);
+  if (sensitiveActions.has(String(action)) && tokenAal(bearerToken) !== "aal2") {
+    return err("Multi-factor authentication is required to access personal information.", 403);
+  }
 
   // Every state-changing action below logs here: who, what, on whom,
   // when, plus arbitrary detail. Never surfaced to traders — only
@@ -1268,9 +1282,10 @@ Deno.serve(async (req) => {
     const target_user = String(body.user_id ?? "");
     if (!target_user) return err("user_id required");
 
-    const [{ data: accountsFor }, { data: profile }] = await Promise.all([
+    const [{ data: accountsFor }, { data: profile }, { data: identity }] = await Promise.all([
       db.from("trading_accounts").select("*").eq("user_id", target_user).order("created_at", { ascending: false }),
       db.from("user_profiles").select("full_name,referral_code").eq("user_id", target_user).maybeSingle(),
+      db.from("trader_identity_private").select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code,updated_at").eq("user_id", target_user).maybeSingle(),
     ]);
     if (!accountsFor || !accountsFor.length) return err("No accounts for this trader", 404);
 
@@ -1310,11 +1325,20 @@ Deno.serve(async (req) => {
     const combinedProfile = buildStrategyProfile(allTrades ?? []);
     const rejects = (auditEvents ?? []).filter((e: Record<string, unknown>) => e.event === "reject");
 
+    // Personal-data reads are denied if the audit trail is unavailable. This
+    // is intentionally stricter than ordinary operational admin actions.
+    const { error: piiAuditError } = await db.from("admin_audit_log").insert({
+      actor_id: user.id, action: "trader_identity_view", target_user_id: target_user,
+      detail: { fields: identity ? Object.keys(identity) : [], reason: "trader_detail" },
+    });
+    if (piiAuditError) return err("Personal information is unavailable because the audit trail could not be written.", 503);
+
     return json({
       ok: true,
       user_id: target_user,
       full_name: profile?.full_name || "—",
       email,
+      identity: identity ?? null,
       accounts: accountsFor,
       trades: tradesWithAudit,
       reject_events: rejects,
@@ -1470,6 +1494,37 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   }
 
+  if (action === "application_queue") {
+    const { data: rows, error } = await db.from("challenge_enrolment_requests").select("*")
+      .in("status", ["pending", "reviewing"]).order("created_at", { ascending: true }).limit(100);
+    if (error) return err("Could not load applications", 503);
+    const out = [];
+    for (const row of rows ?? []) {
+      const [{ data: au }, { data: identity }] = await Promise.all([
+        db.auth.admin.getUserById(row.user_id),
+        db.from("trader_identity_private").select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code").eq("user_id", row.user_id).maybeSingle(),
+      ]);
+      out.push({ ...row, email: au?.user?.email ?? null, identity: identity ?? null });
+    }
+    const { error: auditError } = await db.from("admin_audit_log").insert({
+      actor_id: user.id, action: "challenge_application_queue_view", detail: { trader_ids: out.map((r) => r.user_id) },
+    });
+    if (auditError) return err("Applications are unavailable because the audit trail could not be written.", 503);
+    return json({ ok: true, applications: out });
+  }
+
+  if (action === "application_decide") {
+    const applicationId = String(body.application_id ?? "");
+    const status = String(body.status ?? "");
+    if (!UUID.test(applicationId) || !["reviewing", "approved", "rejected"].includes(status)) return err("Invalid application decision");
+    const { data: current } = await db.from("challenge_enrolment_requests").select("user_id,status").eq("id", applicationId).maybeSingle();
+    if (!current) return err("Application not found", 404);
+    const { error } = await db.from("challenge_enrolment_requests").update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", applicationId);
+    if (error) return err("Could not update application", 503);
+    await logAdmin("challenge_application_decide", { targetUser: current.user_id, detail: { application_id: applicationId, before: current.status, after: status } });
+    return json({ ok: true });
+  }
+
   if (action === "kyc_queue") {
     const { data: pending } = await db.from("trader_kyc").select("user_id,status,updated_at").eq("status", "pending").order("updated_at");
     const out = [];
@@ -1479,16 +1534,24 @@ Deno.serve(async (req) => {
         .eq("user_id", row.user_id).order("created_at", { ascending: false }).limit(8);
       const files = [];
       for (const d of docs ?? []) {
-        const { data: signed } = await db.storage.from("kyc-documents").createSignedUrl(d.storage_path, 3600);
+        const { data: signed } = await db.storage.from("kyc-documents").createSignedUrl(d.storage_path, 300);
         files.push({ doc_type: d.doc_type, uploaded_at: d.created_at, url: signed?.signedUrl ?? null });
       }
       const { data: profile } = await db.from("user_profiles").select("full_name,country_code").eq("user_id", row.user_id).maybeSingle();
+      const { data: identity } = await db.from("trader_identity_private")
+        .select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code")
+        .eq("user_id", row.user_id).maybeSingle();
       out.push({
         user_id: row.user_id, submitted_at: row.updated_at, email: au?.user?.email ?? null,
         full_name: profile?.full_name ?? au?.user?.user_metadata?.full_name ?? null, country: profile?.country_code ?? null,
-        documents: files,
+        identity: identity ?? null, documents: files,
       });
     }
+    const { error: queueAuditError } = await db.from("admin_audit_log").insert({
+      actor_id: user.id, action: "kyc_queue_identity_view",
+      detail: { trader_ids: out.map((r) => r.user_id), signed_url_seconds: 300 },
+    });
+    if (queueAuditError) return err("KYC records are unavailable because the audit trail could not be written.", 503);
     return json({ ok: true, queue: out });
   }
 

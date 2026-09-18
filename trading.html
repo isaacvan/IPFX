@@ -1360,14 +1360,14 @@ body.light .op-exec-buy{background:#2f8064;}
     <p>Your position was closed the moment your live equity reached the challenge limit. A later price recovery cannot reverse this breach.</p>
     <div class="inf-freeze-detail" id="infFreezeDetail">Drawdown limit reached.</div>
     <div class="inf-freeze-actions">
-      <button class="inf-freeze-btn primary" id="infContinueBtn" onclick="openChallengeContinue()">Continue this stage — £10</button>
+      <button class="inf-freeze-btn primary" id="infContinueBtn" onclick="openChallengeContinue()">See continuation price</button>
       <button class="inf-freeze-btn" id="infRestartBtn" onclick="restartChallenge()">Restart challenge</button>
     </div>
     <p class="inf-freeze-note" id="infFreezeNote">Continuing creates a clean attempt at this same stage; closed positions are never reopened.</p>
     <div class="inf-pay" id="infPay">
       <div id="infPaymentElement"></div>
-      <label class="inf-pay-consent"><input type="checkbox" id="infPayTerms"> <span>I agree to the current Terms and want this £10 digital continuation supplied immediately.</span></label>
-      <button class="inf-freeze-btn primary" id="infPayBtn" style="width:100%" onclick="confirmChallengeContinue()">Pay £10 and continue</button>
+      <label class="inf-pay-consent"><input type="checkbox" id="infPayTerms"> <span id="infPayTermsText">I agree to the current Terms and want this digital continuation supplied immediately.</span></label>
+      <button class="inf-freeze-btn primary" id="infPayBtn" style="width:100%" onclick="confirmChallengeContinue()">Confirm and continue</button>
       <div class="inf-pay-msg" id="infPayMsg" role="alert"></div>
     </div>
   </div>
@@ -3881,7 +3881,7 @@ function renderEngineAccount(){
   }
   renderAccountFreeze(a);
 }
-let infStripe=null,infElements=null,infPaymentElement=null,infCheckout=null,infCheckoutBusy=false;
+let infStripe=null,infElements=null,infPaymentElement=null,infCheckout=null,infCheckoutBusy=false,infContinuePrice='';
 function renderAccountFreeze(a){
   const modal=document.getElementById('infFreeze');
   if(!modal)return;
@@ -3931,6 +3931,9 @@ async function openChallengeContinue(){
     if(typeof window.Stripe!=='function')throw new Error('Secure checkout did not load. Please reconnect and try again.');
     const sku='challenge_continue',source_account_id=a.id;
     const quote=await paymentCall({action:'quote',sku,source_account_id});
+    infContinuePrice=new Intl.NumberFormat('en-GB',{style:'currency',currency:String(quote.product.currency||'GBP').toUpperCase()}).format(Number(quote.product.amount_minor)/100);
+    document.getElementById('infPayTermsText').textContent=`I agree to the current Terms and want this ${infContinuePrice} digital continuation supplied immediately.`;
+    document.getElementById('infPayBtn').textContent=`Pay ${infContinuePrice} and continue`;
     infStripe=window.Stripe(quote.publishable_key);
     const keyName='ipfx-challenge-continue:'+a.id;
     let requestKey=localStorage.getItem(keyName);
@@ -3944,7 +3947,7 @@ async function openChallengeContinue(){
     if(infCheckout.test_mode===true)msg.textContent='Test checkout — no real money will be taken.';
     document.getElementById('infPay').classList.add('open');
   }catch(e){msg.textContent=(e&&e.message)||'Checkout is unavailable. No payment was taken.'}
-  finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent='Continue this stage — £10'}
+  finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent=infContinuePrice?`Continue this stage — ${infContinuePrice}`:'See continuation price'}
 }
 async function confirmChallengeContinue(){
   if(infCheckoutBusy||!infElements||!infCheckout)return;
@@ -3969,7 +3972,7 @@ async function confirmChallengeContinue(){
     infPaymentElement.unmount();infPaymentElement=null;infElements=null;infCheckout=null;
     await engineCall({action:'state'});
   }catch(e){msg.textContent=(e&&e.message)||'Payment status is unavailable. Do not pay again.'}
-  finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent='Pay £10 and continue'}
+  finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent=infContinuePrice?`Pay ${infContinuePrice} and continue`:'Confirm and continue'}
 }
 function challengeRestartUrl(a){
   if(a&&a.challenge_type==='futures')return 'https://ipfxcapital.com/futures.html';

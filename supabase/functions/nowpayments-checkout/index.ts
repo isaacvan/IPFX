@@ -53,6 +53,16 @@ Deno.serve(async req => {
 
   const sku = String(body.sku ?? "");
   if (!/^[a-z0-9_]{1,64}$/.test(sku)) return json({ error: "Invalid product" }, 400);
+  const { data: identity, error: identityError } = await db.from("trader_identity_private")
+    .select("user_id").eq("user_id", auth.user.id).maybeSingle();
+  if (identityError || !identity) {
+    return json({ error: "Complete your identity and address details before starting a challenge." }, 409);
+  }
+  // Continuation pricing is account-specific and immutable. Keep it on the
+  // Stripe path until this provider accepts the same server-owned offer ID.
+  if (sku === "challenge_continue") {
+    return json({ error: "Use the secure continuation checkout shown inside IPFX Markets." }, 409);
+  }
   if (body.action === "quote") {
     const { data, error } = await db.from("commerce_catalog").select("sku,label,amount_minor,currency,terms_version")
       .eq("sku", sku).eq("enabled", true).maybeSingle();

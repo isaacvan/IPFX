@@ -810,18 +810,22 @@ async function infinityStatus(db: Db, user: any) {
     a.preset_id === "infinity_s1" && a.created_at >= monthStart).length;
   const { data: preset } = await db.from("challenge_presets").select("*").eq("id", "infinity_s1").maybeSingle();
   const cap = Number(preset?.max_attempts_per_month ?? 3);
-  const { data: profile } = await db.from("user_profiles")
-    .select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle();
+  const [{ data: profile }, { data: identity }] = await Promise.all([
+    db.from("user_profiles").select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle(),
+    db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle(),
+  ]);
   let reason: string | null = null;
   if (!preset) reason = "The Infinity Challenge is unavailable right now.";
   else if (!user.email_confirmed_at) reason = "Verify your email address first — check your inbox for the confirmation link.";
   else if (profile?.restricted_jurisdiction) reason = "Sorry — we can't offer challenges in your jurisdiction.";
+  else if (!identity) reason = "Complete your identity and residential address before starting the challenge.";
   else if (hasActive) reason = "You already have an active challenge. Finish it before starting another.";
   else if (used >= cap) reason = `You've used all ${cap} Infinity attempts this month. They reset on the 1st.`;
   return {
     eligible: reason === null, reason, preset,
     attempts_used: used, attempts_cap: cap, attempts_left: Math.max(0, cap - used),
     has_active: hasActive,
+    identity_complete: !!identity,
     is_restart: list.some((a: { challenge_type: string }) => a.challenge_type === "infinity"),
     needs_age_confirmation: profile?.age_confirmed !== true,
   };
@@ -833,6 +837,9 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
     error: "You don't have an active challenge yet. Start the free Infinity Challenge from your dashboard, or choose a challenge on the website.",
   };
   if (!user?.email_confirmed_at) return notProvisioned;
+
+  const { data: identity } = await db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle();
+  if (!identity) return { ok: false, status: 409, error: "Complete your identity and residential address before activating a challenge." };
 
   const { data: profile } = await db.from("user_profiles").select("restricted_jurisdiction").eq("user_id", user.id).maybeSingle();
   if (profile?.restricted_jurisdiction) {
