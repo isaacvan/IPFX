@@ -71,11 +71,19 @@ type Inst = {
   maxSpread: number;   // reject fills if effective spread exceeds this
   contract: number;    // units per 1.00 lot (per point for indices)
   quote: string;       // quote currency for PnL conversion
-  cls: "forex" | "metal" | "index" | "crypto";
+  cls: "forex" | "metal" | "index" | "crypto" | "future";
+  maxContracts?: number; // futures only: most contracts per order
 };
 
 const I = (code: string, digits: number, spread: number, contract: number, cls: Inst["cls"], quote = "USD", alt?: string, maxSpread?: number): Inst =>
   ({ code, digits, spread, maxSpread: maxSpread ?? spread * 4, contract, quote, alt, cls });
+
+// CME futures. `contract` is dollars per 1.00 of price (the contract multiplier),
+// so profit = contract x contracts x price change. Spreads are 1-2 ticks
+// (indicative: the feed has no real bid/ask). Micro contracts quote the same
+// price as the full-size contract. Trade in whole contracts only.
+const F = (code: string, digits: number, spread: number, contract: number, maxContracts: number): Inst =>
+  ({ code, digits, spread, maxSpread: spread * 4, contract, quote: "USD", cls: "future", maxContracts });
 
 const INSTRUMENTS: Record<string, Inst> = {
   // forex — 100,000 units per lot
@@ -115,7 +123,41 @@ const INSTRUMENTS: Record<string, Inst> = {
   ADAUSD: I("ADA-USD", 4, 0.003,1, "crypto"),
   SOLUSD: I("SOL-USD", 2, 0.15, 1, "crypto"),
   DOTUSD: I("DOT-USD", 3, 0.02, 1, "crypto"),
+  // CME futures (Futures Challenge accounts only)
+  ES:  F("ES=F",  2, 0.25,     50, 20),  MES: F("MES=F", 2, 0.25,      5, 100),
+  NQ:  F("NQ=F",  2, 0.50,     20, 20),  MNQ: F("MNQ=F", 2, 0.50,      2, 100),
+  YM:  F("YM=F",  0, 2,         5, 20),  MYM: F("MYM=F", 0, 2,       0.5, 100),
+  RTY: F("RTY=F", 1, 0.2,      50, 20),  M2K: F("M2K=F", 1, 0.2,       5, 100),
+  CL:  F("CL=F",  2, 0.02,   1000, 20),  MCL: F("MCL=F", 2, 0.02,    100, 100),
+  GC:  F("GC=F",  1, 0.2,     100, 20),  MGC: F("MGC=F", 1, 0.2,      10, 100),
+  NG:  F("NG=F",  3, 0.004, 10000, 20),
+  ZB:  F("ZB=F",  3, 0.03125, 1000, 20),
+  ZN:  F("ZN=F",  3, 0.015625, 1000, 20),
 };
+
+// Futures rules: futures trade only on Futures Challenge accounts (and those
+// accounts trade futures only); ZB/ZN are limited to $100K+ accounts, as advertised.
+const FUTURES_MIN_BALANCE: Record<string, number> = { ZB: 100_000, ZN: 100_000 };
+function instrumentGate(acct: { challenge_type?: string; starting_balance?: number }, symKey: string): string | null {
+  const isFuture = INSTRUMENTS[symKey]?.cls === "future";
+  const futuresAccount = (acct.challenge_type ?? "") === "futures";
+  if (isFuture && !futuresAccount) return "CME futures can only be traded on a Futures Challenge account.";
+  if (!isFuture && futuresAccount) return "Futures Challenge accounts trade CME futures only.";
+  const min = FUTURES_MIN_BALANCE[symKey];
+  if (min && Number(acct.starting_balance) < min) return `${symKey} is available on $100K and larger Futures accounts.`;
+  return null;
+}
+// Futures trade in whole contracts; everything else in 0.01-100 lots.
+function volumeError(symKey: string, volume: number): string | null {
+  const inst = INSTRUMENTS[symKey];
+  if (inst?.cls === "future") {
+    const max = inst.maxContracts ?? 20;
+    if (!isFinite(volume) || !Number.isInteger(volume) || volume < 1 || volume > max) return `Volume must be a whole number of contracts, 1-${max}`;
+    return null;
+  }
+  if (!isFinite(volume) || volume < 0.01 || volume > 100) return "Volume must be 0.01–100 lots";
+  return null;
+}
 
 // FXCM's public XML feed uses broker-facing names for the index CFDs.
 const FXCM_SYMBOLS: Record<string, string> = {
@@ -154,13 +196,14 @@ const DEFAULT_COSTS: Record<string, { commissionPerLot: number; slippageBps: num
   metal: { commissionPerLot: 6, slippageBps: 0.5 },
   index: { commissionPerLot: 0, slippageBps: 0.5 },
   crypto: { commissionPerLot: 0, slippageBps: 5 },
+  future: { commissionPerLot: 4, slippageBps: 0.5 },
 };
 // Terms 7.7: total open risk (entry to stop, all positions) may not exceed this
 // multiple of the per-trade risk cap.
 const MAX_TOTAL_RISK_MULTIPLE = 3;
 // Off-market tick filter: a quote that moves further than this fraction from
 // the last accepted price within BAD_TICK_WINDOW_MS is dropped.
-const BAD_TICK_MAX_MOVE: Record<string, number> = { forex: 0.01, metal: 0.03, index: 0.03, crypto: 0.08 };
+const BAD_TICK_MAX_MOVE: Record<string, number> = { forex: 0.01, metal: 0.03, index: 0.03, crypto: 0.08, future: 0.03 };
 const BAD_TICK_WINDOW_MS = 60_000;
 // Terms 8.1: no more than ORDER_BURST_LIMIT new orders per account per window.
 const ORDER_BURST_LIMIT = 5;
@@ -198,6 +241,8 @@ function futuresSessionEnforced(acct: Acct): boolean {
 // was never actually shut.
 function marketOpen(symbol?: string): boolean {
   if (symbol && INSTRUMENTS[symbol]?.cls === "crypto") return true;
+  // CME Globex: Sun 17:00 CT to Fri 16:00 CT with a daily 16:00-17:00 CT break.
+  if (symbol && INSTRUMENTS[symbol]?.cls === "future") return futuresSessionOpen();
   const now = new Date();
   const day = now.getUTCDay(); // 0=Sun 6=Sat
   const hour = now.getUTCHours();
@@ -226,6 +271,9 @@ const CACHE_TTL_MS = 750;
 // The previous 30s allowance let traders act on prices up to half a minute old.
 const STALE_MS = 8_000;
 const STALE_MS_CRYPTO = 20_000;
+// CME futures come from the free Yahoo feed (no broker bid/ask). Use a tight limit and
+// replace this feed with a CME-grade one before paying out real money.
+const STALE_MS_FUTURES = 15_000;
 
 function fxcmTimestamp(last: string, receivedTs: number): number | null {
   const m = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(last.trim());
@@ -360,7 +408,8 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
 function round6(n: number) { return Math.round(n * 1e6) / 1e6; }
 function quoteStale(q: Quote): boolean {
   const refTs = q.providerTs ?? q.receivedTs;
-  const limit = INSTRUMENTS[q.symbol]?.cls === "crypto" ? STALE_MS_CRYPTO : STALE_MS;
+  const cls = INSTRUMENTS[q.symbol]?.cls;
+  const limit = cls === "crypto" ? STALE_MS_CRYPTO : cls === "future" ? STALE_MS_FUTURES : STALE_MS;
   return Date.now() - refTs > limit;
 }
 
@@ -1944,12 +1993,15 @@ Deno.serve(async (req) => {
 
       const symbol = cleanSymbol(body.symbol);
       if (!symbol) return err("Unknown instrument");
+      const gate = instrumentGate(acct as Acct, symbol);
+      if (gate) return err(gate, 409);
       const side = body.side === "buy" || body.side === "sell" ? body.side : null;
       if (!side) return err("Side must be buy or sell");
       const orderType = body.order_type === "limit" || body.order_type === "stop" ? body.order_type : null;
       if (!orderType) return err("Order type must be limit or stop");
       const volume = Math.round(Number(body.volume) * 100) / 100;
-      if (!isFinite(volume) || volume < 0.01 || volume > 100) return err("Volume must be 0.01–100 lots");
+      const volumeProblem = volumeError(symbol, volume);
+      if (volumeProblem) return err(volumeProblem);
       const trigger = Number(body.trigger_price);
       if (!isFinite(trigger) || trigger <= 0) return err("Enter a valid trigger price");
 
@@ -2034,10 +2086,13 @@ Deno.serve(async (req) => {
 
       const symbol = cleanSymbol(body.symbol);
       if (!symbol) return err("Unknown instrument");
+      const gate = instrumentGate(acct as Acct, symbol);
+      if (gate) return err(gate, 409);
       const side = body.side === "buy" || body.side === "sell" ? body.side : null;
       if (!side) return err("Side must be buy or sell");
       const volume = Math.round(Number(body.volume) * 100) / 100;
-      if (!isFinite(volume) || volume < 0.01 || volume > 100) return err("Volume must be 0.01–100 lots");
+      const volumeProblem = volumeError(symbol, volume);
+      if (volumeProblem) return err(volumeProblem);
       if (state.open.length >= MAX_OPEN_POSITIONS) return err("Max " + MAX_OPEN_POSITIONS + " open positions");
 
       const reject = async (reason: string, q?: Quote | null) => {
@@ -2276,6 +2331,7 @@ Deno.serve(async (req) => {
     const vol = Math.round(Number(body.volume) * 100) / 100;
     const full = Number(target.volume);
     if (!isFinite(vol) || vol < 0.01) return err("Volume must be at least 0.01 lots");
+    if (INSTRUMENTS[target.symbol]?.cls === "future" && !Number.isInteger(vol)) return err("Futures positions close in whole contracts");
     if (vol >= full) return err("To close the whole position use Close, not partial close");
     if (round2(full - vol) < 0.01) return err("Remaining position would be below the 0.01 lot minimum");
 

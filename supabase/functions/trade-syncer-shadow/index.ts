@@ -78,6 +78,15 @@ const INSTRUMENTS: Record<string, { digits: number; contract: number; spread: nu
   FRA40: { digits: 1, contract: 10, spread: 1.5 },
   JPN225: { digits: 0, contract: 10, spread: 8.0 },
   US2000: { digits: 1, contract: 10, spread: 0.8 },
+  // CME futures (contract = dollars per 1.00 of price)
+  ES: { digits: 2, contract: 50, spread: 0.25 }, MES: { digits: 2, contract: 5, spread: 0.25 },
+  NQ: { digits: 2, contract: 20, spread: 0.5 }, MNQ: { digits: 2, contract: 2, spread: 0.5 },
+  YM: { digits: 0, contract: 5, spread: 2 }, MYM: { digits: 0, contract: 0.5, spread: 2 },
+  RTY: { digits: 1, contract: 50, spread: 0.2 }, M2K: { digits: 1, contract: 5, spread: 0.2 },
+  CL: { digits: 2, contract: 1000, spread: 0.02 }, MCL: { digits: 2, contract: 100, spread: 0.02 },
+  GC: { digits: 1, contract: 100, spread: 0.2 }, MGC: { digits: 1, contract: 10, spread: 0.2 },
+  NG: { digits: 3, contract: 10000, spread: 0.004 },
+  ZB: { digits: 3, contract: 1000, spread: 0.03125 }, ZN: { digits: 3, contract: 1000, spread: 0.015625 },
 };
 
 const STALE_MS = 5 * 60_000; // events older than this by processing time are rejected, not acted on

@@ -911,6 +911,8 @@ Deno.serve(async (req) => {
     const CONTRACT: Record<string, number> = {
       XAUUSD: 100, XPTUSD: 100, XPDUSD: 100, XAGUSD: 5000,
       SPXUSD: 10, NSXUSD: 10, DJI: 10, UK100: 10, GER40: 10, FRA40: 10, JPN225: 10, US2000: 10,
+      // CME futures: dollars per 1.00 of price (must match trading-engine INSTRUMENTS)
+      ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5, RTY: 50, M2K: 5, CL: 1000, MCL: 100, GC: 100, MGC: 10, NG: 10000, ZB: 1000, ZN: 1000,
     };
     const contractFor = (s: string) => CONTRACT[s] ?? 100000; // forex default
 
@@ -1099,6 +1101,8 @@ Deno.serve(async (req) => {
     const CONTRACT: Record<string, number> = {
       XAUUSD: 100, XPTUSD: 100, XPDUSD: 100, XAGUSD: 5000,
       SPXUSD: 10, NSXUSD: 10, DJI: 10, UK100: 10, GER40: 10, FRA40: 10, JPN225: 10, US2000: 10,
+      // CME futures: dollars per 1.00 of price (must match trading-engine INSTRUMENTS)
+      ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5, RTY: 50, M2K: 5, CL: 1000, MCL: 100, GC: 100, MGC: 10, NG: 10000, ZB: 1000, ZN: 1000,
     };
     const contractFor = (s: string) => CONTRACT[s] ?? 100000;
     const symAgg = new Map<string, { longLots: number; shortLots: number }>();

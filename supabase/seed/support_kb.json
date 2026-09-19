@@ -886,7 +886,7 @@
     "futures trading",
     "futures account"
    ],
-   "answer": "The **[Futures Challenge](/futures.html)** is a paid two-phase evaluation ($25K–$150K) with an **end-of-day trailing drawdown**:\n\n{{rules:futures}}\n\n**Fees (Phase 1):** {{fees:futures}}. There's no consistency rule to pass the evaluation, and payouts have standard consistency checks.\n\n⚠️ Before you buy, ask me \"Which instruments can I trade?\" — the markets enabled in IPFX Markets matter for this programme.",
+   "answer": "The **[Futures Challenge](/futures.html)** is a paid two-phase evaluation ($25K–$150K) with an **end-of-day trailing drawdown**:\n\n{{rules:futures}}\n\n**Fees (Phase 1):** {{fees:futures}}. There's no consistency rule to pass the evaluation, and payouts have standard consistency checks.\n\nFutures accounts trade CME futures only, in whole contracts, and must be flat by 16:00 CT each trading day (no weekend positions).",
    "follow_ups": [
     "Which instruments can I trade?",
     "Is the fee refundable?"
@@ -916,7 +916,7 @@
     "s&p futures",
     "nasdaq futures"
    ],
-   "answer": "The [Futures Challenge page](/futures.html) lists CME markets such as ES/MES, NQ/MNQ, YM/MYM, CL/MCL and GC/MGC. The instruments currently **enabled in IPFX Markets** are:\n\n{{instruments}}\n\n{{futures_status}} If trading specific CME contracts matters to you, please email {{c:contact_email}} to confirm availability **before** you apply or pay.",
+   "answer": "The [Futures Challenge page](/futures.html) lists CME markets such as ES/MES, NQ/MNQ, YM/MYM, CL/MCL and GC/MGC. The instruments currently **enabled in IPFX Markets** are:\n\n{{instruments}}\n\n{{futures_status}} Futures instruments trade only on Futures Challenge accounts (and Futures accounts trade futures only), in whole contracts. The 30-year and 10-year Treasuries (ZB, ZN) need a $100K or larger account. Prices come from a free data feed that is for simulated evaluation only.",
    "follow_ups": [
     "Which instruments can I trade?"
    ]
@@ -1263,7 +1263,7 @@
     "nfp",
     "fomc"
    ],
-   "answer": "Unless your programme says otherwise you can hold positions overnight and over weekends (you carry the gap risk), and news trading is allowed. Where a programme specifies news windows, trades opened inside them may be cancelled and won't count. IPFX may restrict overnight or weekend holding in specific market conditions with reasonable notice. Also remember the daily loss limit includes floating losses carried past midnight.",
+   "answer": "Unless your programme says otherwise you can hold positions overnight and over weekends (except on Futures accounts, which must be flat by 16:00 CT each trading day and over weekends) (you carry the gap risk), and news trading is allowed. Where a programme specifies news windows, trades opened inside them may be cancelled and won't count. IPFX may restrict overnight or weekend holding in specific market conditions with reasonable notice. Also remember the daily loss limit includes floating losses carried past midnight.",
    "follow_ups": []
   },
   {
@@ -1331,7 +1331,7 @@
     "stop not guaranteed",
     "gap"
    ],
-   "answer": "The platform is a simulation designed to behave like real markets. For evaluation accounts opened on or after **{{c:rules_v2_date}}** (and funded accounts arising from them):\n- **Execution delay:** market orders and closes you initiate execute after up to one second, at the less favourable of the price when received and when executed.\n- **Slippage:** applies to market orders, closes, stop-loss fills and triggered stops — currently up to about 0.3 basis points on forex, 0.5 on metals/indices and 5 on crypto. Take-profit and limit orders fill at their price or better.\n- **Commission:** US$6 per standard lot round-turn on forex and metals; none on indices and crypto.\n- **Stops aren't guaranteed** across gaps, and abnormal off-market prices may be disregarded.\n\nCosts are shown on every trade in your history. Rates can change under the Terms (section 18).",
+   "answer": "The platform is a simulation designed to behave like real markets. For evaluation accounts opened on or after **{{c:rules_v2_date}}** (and funded accounts arising from them):\n- **Execution delay:** market orders and closes you initiate execute after up to one second, at the less favourable of the price when received and when executed.\n- **Slippage:** applies to market orders, closes, stop-loss fills and triggered stops — currently up to about 0.3 basis points on forex, 0.3–0.5 on CME futures, 0.5 on metals/indices and 5 on crypto. Take-profit and limit orders fill at their price or better.\n- **Commission:** US$6 per standard lot round-turn on forex and metals; US$4 per full-size and US$1 per micro futures contract round-turn; none on indices and crypto.\n- **Stops aren't guaranteed** across gaps, and abnormal off-market prices may be disregarded.\n\nCosts are shown on every trade in your history. Rates can change under the Terms (section 18).",
    "follow_ups": []
   },
   {

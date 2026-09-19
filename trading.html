@@ -1708,6 +1708,7 @@ body.light .op-exec-buy{background:#2f8064;}
           <div class="wl-cat" data-cat="forex" onclick="setWlCat('forex',this)">Forex</div>
           <div class="wl-cat" data-cat="metals" onclick="setWlCat('metals',this)">Metals</div>
           <div class="wl-cat" data-cat="indices" onclick="setWlCat('indices',this)">Indices</div>
+          <div class="wl-cat" data-cat="futures" onclick="setWlCat('futures',this)" style="display:none">Futures</div>
         </div>
         <div class="wl-cols"><span>Instrument</span><span>Bid</span><span>Ask</span></div>
         <div class="wl-list" id="wlList"></div>
@@ -2240,8 +2241,13 @@ function applyIndicators(){
 // Mirrors the engine's own check (risk = |entry - stop| * contract * lots)
 // so the trader sees the number BEFORE the engine rejects the order.
 // Contract sizes match INSTRUMENTS in trading-engine/index.ts.
+// CME futures: dollars per 1.00 of price, max contracts per order, price decimals (match INSTRUMENTS in the engine).
+var FUT_SPECS={ES:[50,20,2],MES:[5,100,2],NQ:[20,20,2],MNQ:[2,100,2],YM:[5,20,0],MYM:[0.5,100,0],RTY:[50,20,1],M2K:[5,100,1],
+  CL:[1000,20,2],MCL:[100,100,2],GC:[100,20,1],MGC:[10,100,1],NG:[10000,20,3],ZB:[1000,20,3],ZN:[1000,20,3]};
+function futSym(sym){const s=String(sym||'').replace(/^[^:]+:/,'').toUpperCase();return FUT_SPECS[s]?s:null;}
 function contractSizeFor(sym){
   const s=String(sym||'').replace(/^[^:]+:/,'').toUpperCase();
+  if(FUT_SPECS[s]) return FUT_SPECS[s][0];
   if(/^(XAU|XAG|XPT|XPD)/.test(s)) return s.startsWith('XAG')?5000:100;
   if(/^(SPX|NSX|DJI|UK100|GER40|FRA40|JPN225|US2000|US500|NAS100|US30)/.test(s)) return 10;
   if(/^(BTC|ETH|LTC|ADA|SOL|DOT)USD/.test(s)) return 1; // crypto: 1 coin per lot
@@ -2452,7 +2458,7 @@ function buildChart(){
   tvWidget=new TradingView.widget({
     container_id:'tv_chart_container',
     autosize:true,
-    symbol:activeSym,
+    symbol:tvSymbolFor(activeSym),
     interval:currentTf,
     timezone:'Europe/London',
     theme:dark?'dark':'light',
@@ -2503,6 +2509,10 @@ function buildChart(){
   });
 }
 
+// Chart symbol: CME futures use TradingView's continuous contracts (micros chart their full-size twin).
+var TV_FUT={ES:'CME_MINI:ES1!',MES:'CME_MINI:ES1!',NQ:'CME_MINI:NQ1!',MNQ:'CME_MINI:NQ1!',YM:'CBOT_MINI:YM1!',MYM:'CBOT_MINI:YM1!',
+  RTY:'CME_MINI:RTY1!',M2K:'CME_MINI:RTY1!',CL:'NYMEX:CL1!',MCL:'NYMEX:CL1!',GC:'COMEX:GC1!',MGC:'COMEX:GC1!',NG:'NYMEX:NG1!',ZB:'CBOT:ZB1!',ZN:'CBOT:ZN1!'};
+function tvSymbolFor(sym){const f=futSym(sym);return f?TV_FUT[f]:sym;}
 function rebuildChart(){
   if(typeof TradingView!=='undefined'){buildChart();}
 }
@@ -3338,7 +3348,13 @@ async function engineCall(body){
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
     if(!r.ok||!j||j.ok===false){engineMsg((j&&j.error)||'Order rejected');return null;}
     announceAutoClosedTrades(j);
+    const prevType=engineState&&engineState.account&&engineState.account.challenge_type;
     engineState=j;
+    if(prevType!==(j.account&&j.account.challenge_type)&&typeof renderWatchlist==='function'){
+      renderWatchlist();
+      const isFut=j.account&&j.account.challenge_type==='futures';
+      if(isFut&&!futSym(activeSym))changeInstrument('CME:ES');else if(!isFut&&futSym(activeSym))changeInstrument('OANDA:EURUSD');
+    }
     if(typeof refreshClientMarks==='function'&&liveQuotesBySymbol.size)refreshClientMarks();else renderPositions();
     renderEngineAccount();if(typeof renderJournal==='function')renderJournal();return j;
   }catch(e){
@@ -3349,6 +3365,13 @@ async function engineCall(body){
   }
 }
 function adjLots(d){
+  if(futSym(activeSym)){
+    ordLots=Math.min(FUT_SPECS[futSym(activeSym)][1],Math.max(1,Math.round(ordLots)+(d>0?1:-1)));
+    document.getElementById('ord-lots').value=String(ordLots);
+    updatePnlPreview();
+    if(typeof updateRiskPreview==='function')updateRiskPreview();
+    return;
+  }
   const step=ordLots<0.1?0.01:ordLots<1?0.1:1;
   ordLots=Math.round(Math.max(0.01,ordLots+(d>0?step:-step))*100)/100;
   document.getElementById('ord-lots').value=ordLots.toFixed(2);
@@ -3357,6 +3380,7 @@ function adjLots(d){
   if(typeof updateRiskPreview==='function')updateRiskPreview();
 }
 function setLots(n,btn){
+  if(futSym(activeSym)){n=Math.min(FUT_SPECS[futSym(activeSym)][1],Math.max(1,Math.round(n)));ordLots=n;document.getElementById('ord-lots').value=String(n);updatePnlPreview();if(typeof updateRiskPreview==='function')updateRiskPreview();return;}
   ordLots=n;
   document.getElementById('ord-lots').value=(+n).toFixed(2);
   document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>p.classList.remove('active'));
@@ -3373,6 +3397,14 @@ function lotsInputTyping(el){
   el.value=el.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');
 }
 function lotsInputCommit(el){
+  if(futSym(activeSym)){
+    let c=Math.round(parseFloat(el.value));
+    if(!isFinite(c)||c<1)c=1;
+    c=Math.min(FUT_SPECS[futSym(activeSym)][1],c);
+    ordLots=c;el.value=String(c);updatePnlPreview();
+    if(typeof updateRiskPreview==='function')updateRiskPreview();
+    return;
+  }
   const MIN_LOT=0.01, MAX_LOT=100, STEP=0.01;
   let n=parseFloat(el.value);
   if(!isFinite(n)||n<=0)n=MIN_LOT;
@@ -3620,7 +3652,7 @@ function fmtPx(v,symbol){
   if(!isFinite(n))return '—';
   const clean=typeof execSymbol==='function'?execSymbol(symbol||activeSym):String(symbol||activeSym||'').replace(/^[^:]+:/,'');
   const digitsBySymbol={DJI:0,JPN225:0,SPXUSD:1,NSXUSD:1,UK100:1,GER40:1,FRA40:1,US2000:1,XAUUSD:2,XPTUSD:2,XPDUSD:2,XAGUSD:3,USDJPY:3,GBPJPY:3,EURJPY:3};
-  const digits=digitsBySymbol[clean]??5;
+  const digits=FUT_SPECS[clean]?FUT_SPECS[clean][2]:(digitsBySymbol[clean]??5);
   return n.toFixed(digits);
 }
 // Counts a PnL display from its last shown value up to the new one, one
@@ -3750,7 +3782,7 @@ function symMeta(symbol){
   const clean=execSymbol(symbol);
   const inst=Object.values(WL_DATA).flat().find(i=>execSymbol(i.sym)===clean);
   const cat=Object.keys(WL_DATA).find(k=>WL_DATA[k].some(i=>execSymbol(i.sym)===clean));
-  const contractSize=cat==='forex'?100000:clean==='XAGUSD'?5000:cat==='metals'?100:cat==='indices'?10:1;
+  const contractSize=FUT_SPECS[clean]?FUT_SPECS[clean][0]:cat==='forex'?100000:clean==='XAGUSD'?5000:cat==='metals'?100:cat==='indices'?10:1;
   const marginRate=1/100;
   const quoteCurrency=clean.endsWith('JPY')?'JPY':clean.endsWith('CAD')?'CAD':clean.endsWith('CHF')?'CHF':clean.endsWith('GBP')?'GBP':(['GER40','FRA40'].includes(clean)?'EUR':clean==='UK100'?'GBP':'USD');
   return{name:inst?inst.name:clean,contractSize,marginRate,quoteCurrency};
@@ -4425,6 +4457,23 @@ const WL_DATA={
     {sym:'FOREXCOM:JPN225',name:'Nikkei 225',base:39800,d:0,sp:8.0},
     {sym:'FOREXCOM:US2000',name:'Russell 2000',base:2040,d:1,sp:0.8},
   ],
+  futures:[
+    {sym:'CME:ES',name:'E-mini S&P 500',base:7712.5,d:2,sp:0.25},
+    {sym:'CME:MES',name:'Micro E-mini S&P 500',base:7712.5,d:2,sp:0.25},
+    {sym:'CME:NQ',name:'E-mini Nasdaq-100',base:29917,d:2,sp:0.5},
+    {sym:'CME:MNQ',name:'Micro E-mini Nasdaq-100',base:29917,d:2,sp:0.5},
+    {sym:'CME:YM',name:'E-mini Dow',base:52079,d:0,sp:2},
+    {sym:'CME:MYM',name:'Micro E-mini Dow',base:52079,d:0,sp:2},
+    {sym:'CME:RTY',name:'E-mini Russell 2000',base:2881.5,d:1,sp:0.2},
+    {sym:'CME:M2K',name:'Micro E-mini Russell 2000',base:2881.5,d:1,sp:0.2},
+    {sym:'CME:CL',name:'Crude Oil WTI',base:96.08,d:2,sp:0.02},
+    {sym:'CME:MCL',name:'Micro Crude Oil',base:96.08,d:2,sp:0.02},
+    {sym:'CME:GC',name:'Gold Futures',base:4424.9,d:1,sp:0.2},
+    {sym:'CME:MGC',name:'Micro Gold',base:4424.9,d:1,sp:0.2},
+    {sym:'CME:NG',name:'Natural Gas',base:2.912,d:3,sp:0.004},
+    {sym:'CME:ZB',name:'US Treasury Bond (30Y)',base:107.031,d:3,sp:0.03125},
+    {sym:'CME:ZN',name:'US Treasury Note (10Y)',base:105.828,d:3,sp:0.015625},
+  ],
   crypto:[
     {sym:'OANDA:BTCUSD',name:'Bitcoin',base:77300,d:2,sp:25},
     {sym:'OANDA:ETHUSD',name:'Ethereum',base:2455,d:2,sp:2.5},
@@ -4437,6 +4486,10 @@ const WL_DATA={
 
 function changeInstrument(sym){
   activeSym=sym;
+  if(futSym(sym)){ // futures trade in whole contracts
+    ordLots=Math.min(FUT_SPECS[futSym(sym)][1],Math.max(1,Math.round(ordLots)));
+    const lotEl=document.getElementById('ord-lots');if(lotEl)lotEl.value=String(ordLots);
+  }
   rebuildChart();
   refreshDom();
   updatePnlPreview();
@@ -4471,8 +4524,23 @@ function filterWatchlist(q){
   wlQuery=q.trim().toLowerCase();
   renderWatchlist();
 }
+// Futures instruments trade only on Futures Challenge accounts, and those accounts trade futures only.
+function wlAllowedCats(){
+  const a=engineState&&engineState.account;
+  const all=Object.keys(WL_DATA);
+  return a&&a.challenge_type==='futures'?['futures']:all.filter(c=>c!=='futures');
+}
+function wlSyncTabs(){
+  const allowed=wlAllowedCats();
+  document.querySelectorAll('.wl-cat[data-cat]').forEach(t=>{
+    const c=t.dataset.cat;
+    t.style.display=(c==='all'||allowed.includes(c))?'':'none';
+  });
+  if(wlCat!=='all'&&!allowed.includes(wlCat)){wlCat='all';document.querySelectorAll('.wl-cat').forEach(c=>c.classList.toggle('active',c.dataset.cat==='all'));}
+}
 function wlEntries(){
-  const cats=wlCat==='all'?Object.keys(WL_DATA):[wlCat];
+  wlSyncTabs();
+  const cats=wlCat==='all'?wlAllowedCats():[wlCat];
   let entries=cats.flatMap(c=>WL_DATA[c].map(i=>({...i,cat:c})));
   if(wlQuery)entries=entries.filter(i=>i.name.toLowerCase().includes(wlQuery)||i.sym.toLowerCase().includes(wlQuery));
   return entries;
@@ -4624,6 +4692,7 @@ function setOrdType(type,btn){
 // ── P&L PREVIEW ──
 function getPipValue(){
   const sym=(activeSym||'').replace(/[^A-Z0-9]/g,'');
+  if(futSym(activeSym))return FUT_SPECS[futSym(activeSym)][0]; // futures: $ per point per contract
   if(['USDJPY','GBPJPY','EURJPY','AUDJPY','CADJPY'].some(s=>sym.includes(s.replace('/','')))){return 9.09;}
   if(sym.includes('XAUUSD'))return 100;
   if(sym.includes('XAGUSD'))return 50;
