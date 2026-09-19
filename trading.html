@@ -8,9 +8,9 @@
     <meta name="description" content="Secure IPFX Capital account and operations page.">
     <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="canonical" href="https://ipfxcapital.com/trading.html">
-    <link rel="icon" href="/assets/images/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
+    <link rel="icon" href="/desktop/build/icon.png" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/desktop/build/icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/desktop/build/icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="IPFX Capital">
@@ -1304,7 +1304,7 @@ body.light .op-exec-buy{background:#2f8064;}
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="tb-logo">
-    <img src="/assets/images/favicon.ico" alt="IPFX">
+    <img src="/desktop/build/icon.png" alt="IPFX">
     <span>IPFX Markets</span>
   </div>
   <div class="tb-div"></div>
@@ -1342,7 +1342,7 @@ body.light .op-exec-buy{background:#2f8064;}
 
 <div class="desktop-auth" id="desktopAuth" role="dialog" aria-modal="true" aria-labelledby="desktopAuthTitle">
   <form class="desktop-auth-card" id="desktopAuthForm">
-    <div class="desktop-auth-brand"><img src="/assets/images/favicon.ico" alt=""><span>IPFX Markets</span></div>
+    <div class="desktop-auth-brand"><img src="/desktop/build/icon.png" alt=""><span>IPFX Markets</span></div>
     <div class="desktop-auth-title" id="desktopAuthTitle">Connect your trading account</div>
     <div class="desktop-auth-copy">Sign in here once. Your session stays inside the encrypted IPFX Markets desktop profile.</div>
     <label class="desktop-auth-field">Email<input id="desktopAuthEmail" type="email" autocomplete="username" required></label>
@@ -2098,11 +2098,33 @@ let selectedStudies=new Set();
     if(Array.isArray(saved)&&saved.length)selectedStudies=new Set(saved);
   }catch(_){}
 })();
-function saveChartLayout(){
+async function persistChartEvidence(source='ipfx_markets'){
+  try{
+    const sb=typeof getSbEngine==='function'?getSbEngine():null;
+    const acctId=engineState&&engineState.account&&engineState.account.id;
+    if(!sb||!acctId)return;
+    const{data:{user}}=await sb.auth.getUser();
+    if(!user)return;
+    const studies=[...(selectedStudies instanceof Set?selectedStudies:new Set(selectedStudies||[]))];
+    const snapshot={user_id:user.id,studies,timeframe:String(currentTf||'60'),chart_style:Number(currentStyle||1),updated_at:new Date().toISOString()};
+    const{error:layoutError}=await sb.from('user_chart_layouts').upsert(snapshot,{onConflict:'user_id'});
+    if(layoutError)return;
+    const fingerprint=JSON.stringify([acctId,studies.slice().sort(),snapshot.timeframe,snapshot.chart_style]);
+    const cacheKey='ipfx_chart_evidence_'+acctId;
+    if(localStorage.getItem(cacheKey)===fingerprint)return;
+    const{error:eventError}=await sb.from('chart_indicator_events').insert({
+      user_id:user.id,account_id:acctId,studies,timeframe:snapshot.timeframe,
+      chart_style:snapshot.chart_style,source:source==='setup_import'?'setup_import':'ipfx_markets'
+    });
+    if(!eventError)localStorage.setItem(cacheKey,fingerprint);
+  }catch(_){/* Evidence capture must never interrupt the chart. */}
+}
+function saveChartLayout(source='ipfx_markets'){
   try{
     const key='ipfx_chart_layout_'+(P.get('login')||P.get('name')||'guest');
     localStorage.setItem(key,JSON.stringify([...selectedStudies]));
   }catch(_){}
+  void persistChartEvidence(source);
 }
 
 let indFilterQuery='';
@@ -2494,6 +2516,7 @@ function setTf(tf,btn){
   btn.classList.add('active');
   if(tf===currentTf)return;
   currentTf=tf;
+  saveChartLayout();
   rebuildChart();
 }
 
@@ -2502,6 +2525,7 @@ function setStyle(style,btn){
   btn.classList.add('active');
   if(style===currentStyle)return;
   currentStyle=style;
+  saveChartLayout();
   rebuildChart();
 }
 
@@ -4754,7 +4778,7 @@ function renderSetupChips(){
 function applySetupConfig(){
   const {inds,tf,style}=setupDetected;
   if(inds.length){
-    selectedStudies=inds;
+    selectedStudies=new Set(inds);
     buildIndList();
   }
   if(tf){
@@ -4766,6 +4790,7 @@ function applySetupConfig(){
     document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('active'));
   }
   closeSetupModal();
+  saveChartLayout('setup_import');
   rebuildChart();
 }
 

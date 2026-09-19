@@ -7,9 +7,9 @@
     <meta name="description" content="Read how IPFX Capital collects, uses, stores and protects personal information, including your privacy rights and cookie choices.">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://ipfxcapital.com/privacy.html">
-    <link rel="icon" href="/assets/images/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
+    <link rel="icon" href="/desktop/build/icon.png" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/desktop/build/icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/desktop/build/icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="IPFX Capital">
@@ -81,7 +81,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
 
 <div class="topbar">
   <a href="/" class="logo">
-    <img src="/assets/images/favicon.ico" alt="IPFX">
+    <img src="/desktop/build/icon.png" alt="IPFX">
     <span>IPFX Capital</span>
   </a>
   <a href="/" class="back">← Back to site</a>
@@ -95,7 +95,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <div class="hero-meta">
       <span>IPFX Capital Ltd</span>
       <span>Governed by UK GDPR / Data Protection Act 2018</span>
-      <span>Last updated: September 2026</span>
+      <span>Last updated: 19 September 2026</span>
       <span>Version 1.0</span>
     </div>
   </div>
@@ -138,6 +138,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
       <tr><td>Challenge application and identity data</td><td>Legal name, date of birth, phone number, residential address, nationality, occupation and employment status, source of funds, intended activity, PEP declaration, government-issued photo ID, ID metadata and recent proof of address. This is collected when you apply to start a Challenge and may be refreshed later.</td></tr>
       <tr><td>Payment data</td><td>We never receive or store your full card number, expiry date, or CVV. Card details are entered directly into forms hosted by our payment processor (Stripe) and go straight to them — we only receive a payment confirmation and a reference ID.</td></tr>
       <tr><td>Trading data</td><td>Every order you place, modify, or close on the Platform: instrument, size, entry/exit price, stop loss, take profit, timestamps, and account balance history. See Section 4.</td></tr>
+      <tr><td>Chart and derived strategy data</td><td>Indicator identifiers, timeframe and chart style saved in IPFX Markets; behavioural metrics derived from trading data; explainable strategy hypotheses; and demo-only paper-plan comparison scores. We do not need to store chart screenshots for this purpose.</td></tr>
       <tr><td>Technical data</td><td>IP address, device and browser type, and general usage/log data, collected automatically for security, fraud prevention, and diagnosing issues.</td></tr>
       <tr><td>Communications</td><td>Support messages, live-chat transcripts, and anything you send us via email or the contact form.</td></tr>
     </table>
@@ -150,6 +151,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
       <li>To process payments and refunds, and to pay out Profit Splits to Qualified Traders;</li>
       <li>To assess whether to approve a Challenge application, verify identity and eligibility, carry out proportionate financial-crime controls, and comply with legal obligations where they apply;</li>
       <li>To detect rule violations, prohibited trading patterns, and fraud (including cross-account correlation detection described in our Terms);</li>
+      <li>To form and validate explainable trading-style and strategy hypotheses for internal risk research, using later activity to test rather than assume that a hypothesis is correct;</li>
       <li>To provide customer support and respond to enquiries;</li>
       <li>To send service communications (account, security, payment status) and, only if you opt in, marketing emails;</li>
       <li>To improve the Platform and understand how it's used, generally in aggregated/anonymised form.</li>
@@ -159,13 +161,14 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
   <section id="trading-data">
     <h2><span class="sec-num">4.</span>Trading data specifically</h2>
     <p>We record Trading Data to operate your account, calculate results, enforce programme rules, investigate fraud and improve the Platform. We may create aggregated or anonymised statistics, such as instrument usage or platform-wide performance patterns, where individuals are not identifiable.</p>
+    <p>We may analyse order history together with a saved IPFX Markets chart setup to estimate possible strategy families such as trend following, mean reversion, breakout, VWAP scalping, swing trading or news-event trading. Each output is labelled as a hypothesis with a confidence level, supporting evidence and contradictory evidence. We create demo-only paper plans from information available at a fixed cutoff and compare them with later trading activity. The system does not place live orders and an inferred strategy is not treated as proof of intent, ownership, future profitability or wrongdoing.</p>
     <div class="danger-box"><p><strong>No individual trade mirroring under these terms:</strong> IPFX does not use your identifiable Trading Data to place, mirror, replicate or derive trades on a live account. Any future programme that did so would require a separate, clearly described opt-in agreement and compensation terms.</p></div>
     <p>This wording matches Section 11 of the <a href="/terms.html" style="color:var(--cobalt);">Terms and Conditions</a>.</p>
   </section>
 
   <section id="legal-basis">
     <h2><span class="sec-num">5.</span>Our legal basis for processing</h2>
-    <p>Where UK/EU GDPR applies, we rely on the following legal bases, depending on the activity: taking steps at your request before entering a contract and performance of our contract with you (reviewing an application, running your account and processing payments); compliance with a legal obligation where a specific KYC, sanctions, tax or record-keeping obligation applies; and our legitimate interests in identity assurance, platform security, fraud prevention and enforcing programme rules, balanced against your rights. Marketing emails and optional analytics rely on consent, which you can withdraw through cookie settings or by contacting us.</p>
+    <p>Where UK/EU GDPR applies, we rely on the following legal bases, depending on the activity: taking steps at your request before entering a contract and performance of our contract with you (reviewing an application, running your account and processing payments); compliance with a legal obligation where a specific KYC, sanctions, tax or record-keeping obligation applies; and our legitimate interests in identity assurance, platform security, fraud prevention, enforcing programme rules, internal risk research and improving evaluation design, balanced against your rights. Strategy profiling is not used for direct marketing and is not used as a solely automated significant decision. Marketing emails and optional website analytics rely on consent, which you can withdraw through cookie settings or by contacting us.</p>
     <p>Providing the mandatory application information is necessary for us to review and administer a Challenge. If it is not provided, we cannot approve the application. Marketing consent is optional and does not affect eligibility.</p>
   </section>
 
@@ -192,19 +195,19 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
 
   <section id="retention">
     <h2><span class="sec-num">9.</span>How long we keep data</h2>
-    <p>We keep account and trading data while your account is active and afterwards only for as long as reasonably needed for legal, tax, security, fraud-prevention or dispute-resolution purposes. Identity documents for an application that is denied, withdrawn or never activated are scheduled for retention review after 12 months. Where a Challenge is approved, identity documents and associated application records are scheduled for review five years after the decision or, if later, the end of our relationship. A legal hold, active dispute, fraud investigation or applicable statutory duty may require longer retention. Records are deleted or irreversibly anonymised when there is no continuing purpose or legal basis. Trading Data may be retained in anonymised or aggregated form indefinitely.</p>
+    <p>We keep account and trading data while your account is active and afterwards only for as long as reasonably needed for legal, tax, security, fraud-prevention or dispute-resolution purposes. Identity documents for an application that is denied, withdrawn or never activated are scheduled for retention review after 12 months. Where a Challenge is approved, identity documents and associated application records are scheduled for review five years after the decision or, if later, the end of our relationship. Identifiable chart-configuration events, strategy hypotheses and paper-plan comparisons are reviewed for deletion or irreversible anonymisation 24 months after the last relevant account activity unless they are still needed for an active review, dispute, security investigation or legal duty. Records are deleted or irreversibly anonymised when there is no continuing purpose or legal basis. Trading Data may be retained in anonymised or aggregated form indefinitely.</p>
   </section>
 
   <section id="security">
     <h2><span class="sec-num">10.</span>Security</h2>
     <p>We use encryption in transit, hashed passwords, private object storage, database row-level security, role-based access controls, short-lived document links, multi-factor authentication for identity reviewers, access logging, rate limits and security monitoring. Identity documents are not stored in public website folders. No system is completely secure, and we cannot guarantee absolute security of information transmitted over the internet.</p>
     <h3>Manual review and automated tools</h3>
-    <p>Automated controls may flag identity inconsistencies, prohibited activity, unusual risk or sanctions-related indicators for review. They do not make the final Challenge approval decision. An authorised IPFX team member reviews the application and decides Yes or No. You may ask us to explain or reconsider a decision by contacting us below.</p>
+    <p>Automated controls may flag identity inconsistencies, prohibited activity, unusual risk or sanctions-related indicators and may produce a trading-style classification or strategy hypothesis for review. They do not make the final Challenge approval decision. They also do not make a final pass/fail, payout, suspension, termination or disciplinary decision. An authorised IPFX team member considers relevant evidence and remains responsible for any adverse decision. You may ask us to explain the principal factors, correct inaccurate input data, provide your view or request human reconsideration by contacting us below.</p>
   </section>
 
   <section id="your-rights">
     <h2><span class="sec-num">11.</span>Your rights</h2>
-    <p>Subject to applicable law, you have the right to: access the personal data we hold about you; request correction of inaccurate data; request erasure of your data; object to or restrict certain processing; request a portable copy of your data; and withdraw consent where processing is based on consent (including trade mirroring). To exercise any of these rights, contact us using the details below. As noted in our Terms, Trading Data retained in anonymised/aggregated form is not personal data and is not subject to erasure requests. You also have the right to complain to the UK Information Commissioner's Office (ico.org.uk) if you believe we have mishandled your data.</p>
+    <p>Subject to applicable law, you have the right to: access the personal data we hold about you, including relevant inputs and outputs used to build a behavioural profile; request correction of inaccurate data; request erasure; object to or restrict certain processing; request a portable copy; and withdraw consent where processing is based on consent. You may also ask for an explanation and human review of an adverse decision. To exercise a right, contact us using the details below. Trading Data retained only in genuinely anonymised or aggregated form is not personal data. You also have the right to complain to the UK Information Commissioner's Office (ico.org.uk) if you believe we have mishandled your data.</p>
   </section>
 
   <section id="children">

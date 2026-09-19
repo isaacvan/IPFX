@@ -1302,9 +1302,12 @@ Deno.serve(async (req) => {
     } catch (_) { /* optional */ }
 
     const accountIds = accountsFor.map((a: Record<string, unknown>) => a.id);
-    const [{ data: allTrades }, { data: auditEvents }] = await Promise.all([
+    const [{ data: allTrades }, { data: auditEvents }, { data: chartLayout }, { data: strategyHypotheses }, { data: paperPlans }] = await Promise.all([
       db.from("trades").select("*").in("account_id", accountIds).order("opened_at", { ascending: false }).limit(2000),
       db.from("order_audit_events").select("*").eq("user_id", target_user).order("server_ts", { ascending: false }).limit(2000),
+      db.from("user_chart_layouts").select("studies,timeframe,chart_style,updated_at").eq("user_id", target_user).maybeSingle(),
+      db.from("trader_strategy_hypotheses").select("account_id,cutoff_date,family,confidence,evidence,contradictions,model_version,created_at").in("account_id", accountIds).order("cutoff_date", { ascending: false }).order("confidence", { ascending: false }).limit(60),
+      db.from("trader_strategy_paper_plans").select("account_id,prediction_day,family,predicted_symbol,predicted_side,predicted_session,predicted_trade_count,predicted_sl_distance_pct,predicted_tp_distance_pct,status,actual_summary,comparison_score,model_version,created_at,compared_at").in("account_id", accountIds).order("prediction_day", { ascending: false }).limit(60),
     ]);
 
     const auditByTrade = new Map<string, Record<string, unknown>[]>();
@@ -1350,6 +1353,9 @@ Deno.serve(async (req) => {
       reject_events: rejects,
       per_account_profile: perAccount,
       combined_profile: combinedProfile,
+      chart_layout: chartLayout ?? null,
+      strategy_hypotheses: strategyHypotheses ?? [],
+      paper_plans: paperPlans ?? [],
     });
   }
 
