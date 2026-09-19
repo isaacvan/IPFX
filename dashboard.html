@@ -1174,7 +1174,7 @@ async function initDashboard(){
 
   // load accounts, claims, profile + referrals in parallel
   const[{data:enrollments},{data:claims},{data:profile},{data:referralRows},{data:applications}]=await Promise.all([
-    sb.from('trading_accounts').select('id,label,challenge_type,stage,phase,status,breach_reason,starting_balance,balance,profit_target_pct,max_drawdown_pct,drawdown_mode,trailing_peak,total_paid_out,created_at').eq('user_id',user.id).order('created_at',{ascending:false}),
+    sb.from('trading_accounts').select('id,label,challenge_type,stage,phase,status,breach_reason,starting_balance,balance,profit_target_pct,max_drawdown_pct,drawdown_mode,trailing_peak,total_paid_out,created_at').eq('user_id',user.id).neq('phase','demo').order('created_at',{ascending:false}),
     sb.from('challenge_claims').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
     sb.from('user_profiles').select('referral_code,referral_count').eq('user_id',user.id).maybeSingle(),
     sb.from('referrals').select('*,referred:referred_user_id(full_name)').eq('referrer_user_id',user.id).order('created_at',{ascending:false}),
@@ -1554,7 +1554,7 @@ async function loadOverview(){
   const [tradesRes,acctRes,payoutRes]=await Promise.all([
     sb.from('trades').select('symbol,side,volume,open_price,close_price,sl,tp,pnl,opened_at,closed_at,close_reason')
       .eq('status','closed').not('closed_at','is',null).order('closed_at',{ascending:true}).limit(5000),
-    sb.from('trading_accounts').select('status,phase'),
+    sb.from('trading_accounts').select('status,phase').neq('phase','demo'),
     engineCall({action:'list_payouts'}),
   ]);
   OV_TRADES=(tradesRes&&tradesRes.data)||[];
@@ -1774,7 +1774,7 @@ async function loadAnalytics(){
   const[tr,ac]=await Promise.all([
     sb.from('trades').select('account_id,symbol,side,volume,open_price,close_price,sl,tp,pnl,opened_at,closed_at,close_reason')
       .eq('status','closed').not('closed_at','is',null).order('closed_at',{ascending:true}).limit(5000),
-    sb.from('trading_accounts').select('id,label,challenge_type,stage,phase,starting_balance,status').order('created_at',{ascending:false}),
+    sb.from('trading_accounts').select('id,label,challenge_type,stage,phase,starting_balance,status').neq('phase','demo').order('created_at',{ascending:false}),
   ]);
   AN_TRADES=(tr&&tr.data)||[];
   AN_ACCTS=(ac&&ac.data)||[];

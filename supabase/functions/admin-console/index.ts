@@ -593,7 +593,7 @@ Deno.serve(async (req) => {
   if (action === "overview") {
     const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }, { data: claims }, { data: kycRows }, { data: platCfg }, { data: sharedIps }] =
       await Promise.all([
-        db.from("trading_accounts").select("*").order("created_at", { ascending: false }),
+        db.from("trading_accounts").select("*").neq("phase", "demo").order("created_at", { ascending: false }),
         db.from("user_profiles").select("user_id,full_name,referral_code,restricted_jurisdiction"),
         db.from("mirror_targets").select("*"),
         db.from("trader_payout_summary").select("*"),
@@ -1061,7 +1061,7 @@ Deno.serve(async (req) => {
 
     const [{ data: accounts }, { data: profiles }, { data: kycRows }, { data: sharedIps }, { data: openTrades }] =
       await Promise.all([
-        db.from("trading_accounts").select("*").neq("status", "void"),
+        db.from("trading_accounts").select("*").neq("phase", "demo").neq("status", "void"),
         db.from("user_profiles").select("user_id,full_name,restricted_jurisdiction"),
         db.from("trader_kyc").select("user_id,status,note,updated_at"),
         db.from("shared_ip_accounts").select("*"),
@@ -1293,7 +1293,7 @@ Deno.serve(async (req) => {
     if (!target_user) return err("user_id required");
 
     const [{ data: accountsFor }, { data: profile }, { data: identity }] = await Promise.all([
-      db.from("trading_accounts").select("*").eq("user_id", target_user).order("created_at", { ascending: false }),
+      db.from("trading_accounts").select("*").eq("user_id", target_user).neq("phase", "demo").order("created_at", { ascending: false }),
       db.from("user_profiles").select("full_name,referral_code").eq("user_id", target_user).maybeSingle(),
       db.from("trader_identity_private").select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code,updated_at").eq("user_id", target_user).maybeSingle(),
     ]);
@@ -1514,7 +1514,7 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000).toISOString();
     const until = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const [{ data: accounts }, { data: profiles }, { data: trades }, { data: macroEvents }, { data: policies }, { data: decisions }, { data: flags }] = await Promise.all([
-      db.from("trading_accounts").select("*").order("created_at", { ascending: false }),
+      db.from("trading_accounts").select("*").neq("phase", "demo").order("created_at", { ascending: false }),
       db.from("user_profiles").select("user_id,full_name"),
       db.from("trades").select("id,account_id,user_id,symbol,side,volume,open_price,close_price,sl,tp,status,close_reason,pnl,opened_at,closed_at").gte("opened_at", since).order("opened_at", { ascending: false }).limit(20000),
       db.from("macro_calendar_events").select("provider_event_id,event_at,country,currency,importance,event_name").gte("event_at", since).lte("event_at", until),

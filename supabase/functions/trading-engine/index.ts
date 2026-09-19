@@ -494,7 +494,41 @@ type Acct = {
   trailing_peak?: number | null; trailing_peak_date?: string | null;
   created_at?: string;
   require_stop_loss?: boolean;
+  breached_at?: string | null; breach_equity?: number | null; breach_floor?: number | null;
+  access_revoked_at?: string | null; access_revoked_reason?: string | null;
 };
+
+const isDemoAccount = (acct: Acct) => acct.phase === "demo" && acct.status === "demo";
+const isTradableAccount = (acct: Acct) => acct.status === "active" || isDemoAccount(acct);
+
+async function ensureDemoAccount(db: Db, userId: string): Promise<Acct> {
+  const ensured = await db.rpc("fn_ensure_demo_account", { p_user_id: userId });
+  if (ensured.error || !ensured.data) throw new Error("DEMO_ACCOUNT_UNAVAILABLE");
+  const { data, error } = await db.from("trading_accounts").select("*")
+    .eq("id", ensured.data).eq("user_id", userId).eq("phase", "demo")
+    .eq("status", "demo").is("access_revoked_at", null).single();
+  if (error || !data) throw new Error("DEMO_ACCOUNT_UNAVAILABLE");
+  return data as Acct;
+}
+
+async function breachNotice(db: Db, acct: Acct) {
+  const { data: event } = await db.from("account_breach_events")
+    .select("reason,trigger_equity,breach_floor,triggered_at")
+    .eq("account_id", acct.id).maybeSingle();
+  const reason = String(event?.reason ?? acct.breach_reason ?? "rule_breach");
+  return {
+    source_account_id: acct.id,
+    label: acct.label,
+    challenge_type: acct.challenge_type ?? "traditional",
+    stage: Number(acct.stage ?? 1),
+    phase: acct.phase ?? "evaluation",
+    reason,
+    reason_label: BREACH_TEXT[reason] ?? reason.replaceAll("_", " "),
+    trigger_equity: Number(event?.trigger_equity ?? acct.breach_equity ?? acct.balance),
+    breach_floor: Number(event?.breach_floor ?? acct.breach_floor ?? 0),
+    breached_at: event?.triggered_at ?? acct.breached_at ?? null,
+  };
+}
 
 // Derived progress counters from public.account_progress.
 type Progress = { trading_days: number; trades_closed: number; profitable_days: number; profitable_days_pct: number | null };
@@ -665,7 +699,7 @@ function ruleGate(
 async function processPendingOrders(
   db: Db, acct: Acct, open: Tr[], equityNow: number,
 ): Promise<Tr[]> {
-  if (acct.status !== "active") return open;
+  if (!isTradableAccount(acct)) return open;
   const { data: pendings } = await db.from("pending_orders")
     .select("*").eq("account_id", acct.id).eq("status", "pending").order("created_at");
   if (!pendings || !pendings.length) return open;
@@ -1063,7 +1097,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   // SL/TP auto-close. A stop fills at the worse of its level and the live price, so a gap
   // through the stop costs what the market cost; a take-profit fills at its level.
-  if (acct.status === "active") {
+  if (isTradableAccount(acct)) {
     const still: Tr[] = [];
     for (const t of open) {
       const q = await fetchQuote(t.symbol);
@@ -1087,7 +1121,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   // Futures positions must be flat outside the CME session. Closing here
   // rather than breaching the account: an open position at the bell is a
   // session rule, not a drawdown failure.
-  if (acct.status === "active" && open.length && futuresSessionEnforced(acct) && !futuresSessionOpen()) {
+  if (isTradableAccount(acct) && open.length && futuresSessionEnforced(acct) && !futuresSessionOpen()) {
     const remaining: Tr[] = [];
     for (const t of open) {
       const q = await fetchQuote(t.symbol);
@@ -1133,7 +1167,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   const start = Number(acct.starting_balance);
   const todayUtc = new Date().toISOString().slice(0, 10);
 
-  if (acct.status === "active") {
+  if (acct.status === "active" && !isDemoAccount(acct)) {
     // daily rollover (UTC). For trailing_eod accounts this is also the
     // ONLY moment the drawdown high-water mark is allowed to move —
     // that is exactly what "your drawdown locks in at end-of-day highs,
@@ -1211,8 +1245,8 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
           challenge_name: acct.label,
           breach_reason: BREACH_TEXT[breach] ?? breach,
           next_step: acct.phase === "evaluation"
-            ? "Your account is frozen. Continue from the same challenge stage for £10, or restart the challenge."
-            : "Your funded account is frozen. Review your dashboard or contact support for the next available action.",
+            ? "Your challenge account is frozen and IPFX Markets has switched you to demo. You can view the current continuation price, restart, or apply for a new challenge."
+            : "Your funded account is frozen and IPFX Markets has switched you to demo. Review your dashboard or contact support for the next available action.",
         }));
       }
       const { data: leftover } = await db.from("trades")
@@ -1329,6 +1363,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     ok: true,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
+      is_demo: isDemoAccount(acct),
       starting_balance: start, balance: Number(acct.balance), equity, floating,
       day_start_equity: Number(acct.day_start_equity),
       challenge_type: acct.challenge_type ?? "traditional",
@@ -1840,46 +1875,76 @@ Deno.serve(async (req) => {
       { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
-  // load or provision the active account
-  let { data: acct } = await db.from("trading_accounts")
-    .select("*").eq("user_id", user.id).eq("status", "active")
-    .is("access_revoked_at", null).maybeSingle();
+  // Account mode is a server-resolved choice, never a client-supplied account
+  // id. That prevents a trader from selecting another user's row. Challenge
+  // mode only considers approved evaluation/funded rows; demo mode resolves to
+  // the one permanent practice account created by fn_ensure_demo_account.
+  const requestedDemo = body.account_mode === "demo";
+  let breachSource: Acct | null = null;
+  let acct: Acct | null = null;
+
+  if (requestedDemo) {
+    acct = await ensureDemoAccount(db, user.id);
+  } else {
+    const activeResult = await db.from("trading_accounts")
+      .select("*").eq("user_id", user.id).eq("status", "active")
+      .neq("phase", "demo").is("access_revoked_at", null)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    acct = (activeResult.data as Acct | null) ?? null;
+  }
+
   if (!acct) {
-    // no active account: return most recent finished one for display, or provision
+    // Revoked breached rows remain server-visible for an immutable reason and
+    // continuation source, but never become the selected trading account.
     const { data: last } = await db.from("trading_accounts")
-      .select("*").eq("user_id", user.id).is("access_revoked_at", null)
+      .select("*").eq("user_id", user.id).neq("phase", "demo")
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (last && last.status === "passed" && last.phase !== "funded") {
-      // Defensive fallback: the funded account should already have been
-      // provisioned by enforce() at the moment this row passed. If it
-      // somehow wasn't (a row from before this existed, or a missed
-      // race), provision it now rather than leaving the trader stuck.
       await provisionNextStage(db, last as Acct);
       const { data: nowActive } = await db.from("trading_accounts")
         .select("*").eq("user_id", user.id).eq("status", "active")
-        .is("access_revoked_at", null).maybeSingle();
-      acct = nowActive ?? last;
-    } else if (last && body.action === "state") {
-      acct = last;
-    } else if (!last) {
-      if (!challengePreviewAllowed) return err("Challenges launch 1 October 2026.", 403);
-      // Account creation belongs to verified server-side enrollment, never
-      // user-editable signup metadata. Until paid checkout provisioning is
-      // live, the one exception is a verified promo winner.
+        .neq("phase", "demo").is("access_revoked_at", null)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      acct = (nowActive as Acct | null) ?? null;
+    } else if (last && last.status === "breached") {
+      breachSource = last as Acct;
+      acct = await ensureDemoAccount(db, user.id);
+    } else if (!last && challengePreviewAllowed) {
+      // Preserve the verified promo-winner provisioning path. Everyone else
+      // still receives a demo account rather than an unusable terminal.
       const provisioned = await provisionFromPromoClaim(db, user);
-      if (!provisioned.ok) return err(provisioned.error, provisioned.status);
-      acct = provisioned.account;
+      acct = provisioned.ok ? provisioned.account as Acct : await ensureDemoAccount(db, user.id);
     } else {
-      return err("No active account — your challenge is " + last.status, 409);
+      acct = await ensureDemoAccount(db, user.id);
     }
   }
 
   const state = await enforce(db, acct as Acct);
   const action = body.action;
 
+  // A live tick can breach the selected challenge during this very request.
+  // Switch before any requested mutation is processed, so an order submitted
+  // on the failed account is blocked rather than silently replayed on demo.
+  if (!isDemoAccount(acct as Acct) && (acct as Acct).status === "breached") {
+    breachSource = acct as Acct;
+    const demo = await ensureDemoAccount(db, user.id);
+    const demoState = await enforce(db, demo);
+    const payload = await statePayload(db, demo, demoState.open, demoState.equity, demoState.floating);
+    return new Response(JSON.stringify({
+      ...payload,
+      breach_notice: await breachNotice(db, breachSource),
+      switched_to_demo: true,
+      order_blocked: action !== "state",
+    }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+
   if (action === "state") {
-    return new Response(JSON.stringify(await statePayload(db, acct as Acct, state.open, state.equity, state.floating)),
+    const payload = await statePayload(db, acct as Acct, state.open, state.equity, state.floating);
+    return new Response(JSON.stringify({
+      ...payload,
+      ...(breachSource ? { breach_notice: await breachNotice(db, breachSource), switched_to_demo: true } : {}),
+    }),
       { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
@@ -1981,7 +2046,7 @@ Deno.serve(async (req) => {
       return err("Another order on this account is still being processed — try again in a moment.", 429);
     }
     try {
-      if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
+      if (!isTradableAccount(acct as Acct)) return err("Account is " + (acct as Acct).status, 409);
       if (await orderBurstExceeded(db, (acct as Acct).id)) {
         return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
       }
@@ -2066,7 +2131,7 @@ Deno.serve(async (req) => {
     return jsonOk({});
   }
 
-  if ((acct as Acct).status !== "active") return err("Account is " + (acct as Acct).status, 409);
+  if (!isTradableAccount(acct as Acct)) return err("Account is " + (acct as Acct).status, 409);
 
   if (action === "open") {
     if (!(await claimOrderLock(db, (acct as Acct).id))) {
@@ -2422,6 +2487,17 @@ Deno.serve(async (req) => {
   await db.from("equity_snapshots").insert({
     account_id: (acct as Acct).id, user_id: user.id, balance: (acct as Acct).balance, equity: after.equity,
   });
+  if (!isDemoAccount(acct as Acct) && (acct as Acct).status === "breached") {
+    const failed = acct as Acct;
+    const demo = await ensureDemoAccount(db, user.id);
+    const demoState = await enforce(db, demo);
+    const payload = await statePayload(db, demo, demoState.open, demoState.equity, demoState.floating);
+    return new Response(JSON.stringify({
+      ...payload,
+      breach_notice: await breachNotice(db, failed),
+      switched_to_demo: true,
+    }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
   return new Response(JSON.stringify(await statePayload(db, acct as Acct, after.open, after.equity, after.floating)),
     { headers: { ...CORS, "Content-Type": "application/json" } });
 });

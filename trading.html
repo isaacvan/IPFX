@@ -73,6 +73,10 @@ body{font-family:var(--font-ui);background:var(--bg);color:var(--fg);display:fle
 .tb-acct{font-family:var(--font-ui);font-size:.88rem;font-weight:700;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;}
 .tb-pill{display:flex;align-items:center;gap:.25rem;padding:.22rem .55rem;border-radius:4px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:.68rem;color:var(--muted2);white-space:nowrap;flex-shrink:0;}
 .tb-pill strong{color:var(--fg);font-weight:600;}
+.acct-mode{display:flex;align-items:center;padding:2px;border:1px solid var(--line);border-radius:7px;background:#09090b;flex-shrink:0}
+.acct-mode-btn{height:24px;padding:0 9px;border:0;border-radius:5px;background:transparent;color:#74747b;font:700 10px var(--font-ui);letter-spacing:.03em;cursor:pointer}
+.acct-mode-btn.active{background:#242428;color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35)}
+.acct-mode-btn.demo.active{background:rgba(37,99,235,.2);color:#8fb1ff}
 .tb-right{margin-left:auto;display:flex;align-items:center;gap:.5rem;flex-shrink:0;}
 .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px rgba(16,185,129,.7);animation:pd 2s ease infinite;}
 @keyframes pd{0%,100%{opacity:1}50%{opacity:.35}}
@@ -484,7 +488,7 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .inf-freeze h2{font-size:24px;letter-spacing:-.03em;margin-bottom:8px}
 .inf-freeze p{color:#a1a1a8;font-size:14px;line-height:1.55}
 .inf-freeze-detail{margin:16px 0;padding:12px 14px;border:1px solid rgba(239,68,68,.22);border-radius:11px;background:rgba(239,68,68,.07);color:#ff9ca2;font-size:13px}
-.inf-freeze-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.inf-freeze-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:18px}
 .inf-freeze-btn{min-height:46px;border-radius:10px;border:1px solid #36363b;background:#202024;color:#fff;font:700 13px var(--font-ui);cursor:pointer}
 .inf-freeze-btn.primary{border-color:#3267ef;background:#3267ef}
 .inf-freeze-btn:disabled{opacity:.55;cursor:wait}
@@ -1311,6 +1315,10 @@ body.light .op-exec-buy{background:#2f8064;}
   <div class="tb-acct" id="tbAcct">Account</div>
   <div class="tb-pill">Account&nbsp;ID&nbsp;<strong id="tbLogin">—</strong></div>
   <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">IPFX Markets</strong></div>
+  <div class="acct-mode" role="group" aria-label="Trading account mode">
+    <button class="acct-mode-btn" id="modeChallenge" type="button" onclick="setAccountMode('challenge')">CHALLENGE</button>
+    <button class="acct-mode-btn demo" id="modeDemo" type="button" onclick="setAccountMode('demo')">DEMO</button>
+  </div>
   <!-- No real "Server" field exists — this is a simulated environment, not broker infrastructure. -->
   <div class="tb-right">
     <div class="tb-tool-grp">
@@ -1356,11 +1364,12 @@ body.light .op-exec-buy{background:#2f8064;}
 <div class="inf-freeze" id="infFreeze" role="dialog" aria-modal="true" aria-labelledby="infFreezeTitle">
   <div class="inf-freeze-card">
     <div class="inf-freeze-mark">!</div>
-    <h2 id="infFreezeTitle">Challenge account frozen</h2>
-    <p>Your position was closed the moment your live equity reached the challenge limit. A later price recovery cannot reverse this breach.</p>
+    <h2 id="infFreezeTitle">Challenge access paused</h2>
+    <p>Your position was closed the moment live equity reached the rule limit. IPFX Markets has switched you to demo; a later price recovery cannot reverse the breach.</p>
     <div class="inf-freeze-detail" id="infFreezeDetail">Drawdown limit reached.</div>
     <div class="inf-freeze-actions">
-      <button class="inf-freeze-btn primary" id="infContinueBtn" onclick="openChallengeContinue()">See continuation price</button>
+      <button class="inf-freeze-btn primary" id="infDemoBtn" onclick="continueOnDemo()">Continue on demo</button>
+      <button class="inf-freeze-btn" id="infContinueBtn" onclick="openChallengeContinue()">See continuation price</button>
       <button class="inf-freeze-btn" id="infRestartBtn" onclick="restartChallenge()">Restart challenge</button>
     </div>
     <p class="inf-freeze-note" id="infFreezeNote">Continuing creates a clean attempt at this same stage; closed positions are never reopened.</p>
@@ -2350,6 +2359,24 @@ function renderChallenge(){
   const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
   const typeLbl={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application',funded:'Funded'};
 
+  if(a.is_demo){
+    wrapT.textContent='IPFX Demo — Practice';
+    document.getElementById('ch-sub').textContent='Separate simulated account · no challenge progress, payout or funded access';
+    const verdict=document.getElementById('ch-verdict');
+    verdict.className='ch-verdict wait';verdict.textContent='Demo';
+    const pnl=eq-start,pct=start?Math.abs(pnl/start*100):0;
+    document.getElementById('ch-bars').innerHTML=`<div class="ch-bar">
+      <div class="ch-bar-top"><span class="ch-bar-lbl">Demo performance</span><span class="ch-bar-val" style="color:${pnl>=0?'#10b981':'#ef4444'}">${pnl>=0?'+':'-'}${money(pnl)}</span></div>
+      <div class="ch-track"><div class="ch-fill" style="width:${Math.min(100,pct).toFixed(1)}%;background:#2563eb"></div></div>
+      <div class="ch-bar-sub">Practice balance ${money(eq)} · does not affect any challenge</div>
+    </div>`;
+    document.getElementById('ch-reqs').innerHTML='<div class="ch-req"><div class="ch-req-ic done">✓</div><div class="ch-req-txt">Demo trading remains available while a challenge account is paused.</div></div>';
+    const badge=document.getElementById('chBadge');if(badge){badge.textContent='DEMO';badge.style.background='rgba(37,99,235,.2)';}
+    const rail=document.getElementById('brw');if(rail)rail.className='brw';
+    try{updateRiskPreview();}catch(_){}
+    return;
+  }
+
   wrapT.textContent=(typeLbl[a.challenge_type]||a.challenge_type||'Challenge')+
     (a.phase==='funded'?' — Funded':(a.stage?' — Stage '+a.stage:''));
   const ddModeLbl={static:'Static drawdown',trailing_intraday:'Trailing drawdown (intraday)',trailing_eod:'Trailing drawdown (end-of-day)'};
@@ -3195,6 +3222,7 @@ let ordLots=1,ordMidPrice=1.0850;
 
 const ENGINE_URL='https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine';
 let engineState=null,engineBusy=false;
+let selectedAccountMode=localStorage.getItem('ipfx-account-mode')==='demo'?'demo':'challenge';
 const SB_AUTH_KEY='sb-agulweemteoeagscmppy-auth-token';
 // Robust across every supabase-js storage format: raw JSON, base64- prefixed
 // (auth-js >= 2.54), and chunked keys (.0/.1). Falls back gracefully.
@@ -3343,10 +3371,15 @@ async function engineCall(body){
   const ctrl=new AbortController();
   const killer=setTimeout(()=>ctrl.abort(),15000);
   try{
-    const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body),signal:ctrl.signal});
+    const requestBody={...body,account_mode:selectedAccountMode};
+    const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(requestBody),signal:ctrl.signal});
     const j=await r.json().catch(()=>null);
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
     if(!r.ok||!j||j.ok===false){engineMsg((j&&j.error)||'Order rejected');return null;}
+    if(j.switched_to_demo||j.account?.is_demo){
+      selectedAccountMode='demo';
+      localStorage.setItem('ipfx-account-mode','demo');
+    }
     announceAutoClosedTrades(j);
     const prevType=engineState&&engineState.account&&engineState.account.challenge_type;
     engineState=j;
@@ -3356,7 +3389,13 @@ async function engineCall(body){
       if(isFut&&!futSym(activeSym))changeInstrument('CME:ES');else if(!isFut&&futSym(activeSym))changeInstrument('OANDA:EURUSD');
     }
     if(typeof refreshClientMarks==='function'&&liveQuotesBySymbol.size)refreshClientMarks();else renderPositions();
-    renderEngineAccount();if(typeof renderJournal==='function')renderJournal();return j;
+    renderEngineAccount();
+    if(j.order_blocked)engineMsg('Order not placed — the challenge breached and IPFX Markets switched you to demo.');
+    else if(j.switched_to_demo&&j.breach_notice&&sessionStorage.getItem('ipfx-breach-toast')!==j.breach_notice.source_account_id){
+      sessionStorage.setItem('ipfx-breach-toast',j.breach_notice.source_account_id);
+      engineMsg('Challenge access paused — switched to IPFX Demo.');
+    }
+    if(typeof renderJournal==='function')renderJournal();return j;
   }catch(e){
     engineMsg(e&&e.name==='AbortError'?'No response after 15s — check your connection and try again':'Network error — order not placed');
     return null;
@@ -3910,6 +3949,12 @@ function renderEngineAccount(){
   const f=v=>'$'+(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   if(a.id){const short=String(a.id).slice(0,8).toUpperCase();set('tbLogin',short);set('bp-login',short);}
+  const actualMode=a.is_demo?'demo':'challenge';
+  selectedAccountMode=actualMode;
+  localStorage.setItem('ipfx-account-mode',actualMode);
+  document.getElementById('modeChallenge')?.classList.toggle('active',actualMode==='challenge');
+  document.getElementById('modeDemo')?.classList.toggle('active',actualMode==='demo');
+  set('tbPlatform',a.is_demo?'IPFX Demo':(a.phase==='funded'?'IPFX Funded':'IPFX Markets'));
   set('bp-balance',f(a.balance));
   set('bp-daily',f(a.limits.daily_floor));
   set('bp-floor',f(a.limits.max_dd_floor));
@@ -3924,7 +3969,7 @@ function renderEngineAccount(){
     limit.textContent=parts.join(' ')||'Limits active';
   }
   if(state){
-    const locked=a.status&&a.status!=='active';
+    const locked=a.status&&a.status!=='active'&&a.status!=='demo';
     state.textContent=locked?String(a.status).replace(/_/g,' '):(L.require_stop_loss?'Stop required':'Ready');
     state.className='op-limit-state '+(locked?'locked':'ready');
   }
@@ -3937,28 +3982,55 @@ function renderEngineAccount(){
   }
   renderAccountFreeze(a);
 }
+async function setAccountMode(mode){
+  if(mode!=='challenge'&&mode!=='demo')return;
+  selectedAccountMode=mode;
+  localStorage.setItem('ipfx-account-mode',mode);
+  document.getElementById('modeChallenge')?.classList.toggle('active',mode==='challenge');
+  document.getElementById('modeDemo')?.classList.toggle('active',mode==='demo');
+  await engineCall({action:'state'});
+}
 let infStripe=null,infElements=null,infPaymentElement=null,infCheckout=null,infCheckoutBusy=false,infContinuePrice='';
+function currentBreach(){
+  if(engineState&&engineState.breach_notice)return engineState.breach_notice;
+  const a=engineState&&engineState.account;
+  return a&&a.status==='breached'?{
+    source_account_id:a.id,label:a.label,challenge_type:a.challenge_type,stage:a.stage,
+    phase:a.phase,reason:a.breach_reason,
+    reason_label:String(a.breach_reason||'Rule limit').replace(/_/g,' '),
+    trigger_equity:a.equity,breach_floor:a.breach_reason==='daily_loss'?a.limits?.daily_floor:a.limits?.max_dd_floor
+  }:null;
+}
 function renderAccountFreeze(a){
   const modal=document.getElementById('infFreeze');
   if(!modal)return;
-  const show=a&&a.status==='breached';
+  const breach=currentBreach();
+  const dismissed=breach&&sessionStorage.getItem('ipfx-breach-dismissed')===breach.source_account_id;
+  const show=!!breach&&!dismissed;
   modal.classList.toggle('open',!!show);
   if(!show)return;
   const labels={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application'};
-  const label=labels[a.challenge_type]||'Challenge';
-  const reason=a.breach_reason==='daily_loss'?'Daily loss limit reached':'Maximum drawdown reached';
-  const stage=Number(a.stage||1);
-  const evaluation=a.phase==='evaluation'&&['infinity','traditional','futures','pac'].includes(a.challenge_type);
-  document.getElementById('infFreezeTitle').textContent=label+' account frozen';
+  const label=labels[breach.challenge_type]||'Challenge';
+  const reason=breach.reason_label||(breach.reason==='daily_loss'?'Daily loss limit reached':'Maximum drawdown reached');
+  const stage=Number(breach.stage||1);
+  const evaluation=breach.phase==='evaluation'&&['infinity','traditional','futures','pac'].includes(breach.challenge_type);
+  const money=v=>'$'+Math.abs(Number(v)||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('infFreezeTitle').textContent=label+' access paused';
   document.getElementById('infFreezeDetail').textContent=
-    reason+` in Stage ${stage}. All positions are closed and this account cannot place another order.`;
+    reason+` in Stage ${stage}: equity reached ${money(breach.trigger_equity)} at the ${money(breach.breach_floor)} limit. All positions are closed, this account cannot place another order, and you are now on IPFX Demo.`;
   const continueBtn=document.getElementById('infContinueBtn'),restartBtn=document.getElementById('infRestartBtn');
   continueBtn.style.display=evaluation?'':'none';
-  restartBtn.textContent=a.challenge_type==='infinity'&&evaluation?'Restart from Stage 1':'Start a new '+label+' challenge';
+  restartBtn.textContent=breach.challenge_type==='infinity'&&evaluation?'Restart from Stage 1':'Start a new '+label+' challenge';
   document.getElementById('infFreezeNote').textContent=evaluation
-    ? 'Continuing creates a clean attempt at this same stage; closed positions are never reopened. '+
-      (a.challenge_type==='infinity'?'Restarting returns you to Stage 1 and uses a monthly attempt.':'Starting again opens the official challenge page; paid challenges are never granted for free.')
-    : 'Closed positions are never reopened. Start a new challenge or contact support if this funded account needs review.';
+    ? 'Challenge/funded access stays paused until you continue this stage, restart, or begin another approved challenge. Closed positions are never reopened. '+
+      (breach.challenge_type==='infinity'?'Restarting returns you to Stage 1 and uses a monthly attempt.':'Starting again opens the official challenge page; paid challenges are never granted for free.')
+    : 'Challenge/funded access stays paused. You can keep practising on demo, start a new challenge, or contact support for review.';
+}
+function continueOnDemo(){
+  const breach=currentBreach();
+  if(breach)sessionStorage.setItem('ipfx-breach-dismissed',breach.source_account_id);
+  document.getElementById('infFreeze')?.classList.remove('open');
+  setAccountMode('demo');
 }
 async function paymentCall(body){
   const tok=await freshToken();
@@ -3979,19 +4051,19 @@ async function paymentCall(body){
 }
 async function openChallengeContinue(){
   if(infCheckoutBusy||infElements)return;
-  const a=engineState&&engineState.account;
-  if(!a||a.phase!=='evaluation'||a.status!=='breached'||!['infinity','traditional','futures','pac'].includes(a.challenge_type))return;
+  const a=currentBreach();
+  if(!a||a.phase!=='evaluation'||!['infinity','traditional','futures','pac'].includes(a.challenge_type))return;
   const msg=document.getElementById('infPayMsg'),btn=document.getElementById('infContinueBtn');
   msg.textContent='';btn.disabled=true;btn.textContent='Opening secure checkout…';infCheckoutBusy=true;
   try{
     if(typeof window.Stripe!=='function')throw new Error('Secure checkout did not load. Please reconnect and try again.');
-    const sku='challenge_continue',source_account_id=a.id;
+    const sku='challenge_continue',source_account_id=a.source_account_id;
     const quote=await paymentCall({action:'quote',sku,source_account_id});
     infContinuePrice=new Intl.NumberFormat('en-GB',{style:'currency',currency:String(quote.product.currency||'GBP').toUpperCase()}).format(Number(quote.product.amount_minor)/100);
     document.getElementById('infPayTermsText').textContent=`I agree to the current Terms and want this ${infContinuePrice} digital continuation supplied immediately.`;
     document.getElementById('infPayBtn').textContent=`Pay ${infContinuePrice} and continue`;
     infStripe=window.Stripe(quote.publishable_key);
-    const keyName='ipfx-challenge-continue:'+a.id;
+    const keyName='ipfx-challenge-continue:'+a.source_account_id;
     let requestKey=localStorage.getItem(keyName);
     if(!/^[0-9a-f-]{36}$/i.test(requestKey||'')){requestKey=crypto.randomUUID();localStorage.setItem(keyName,requestKey)}
     infCheckout=await paymentCall({sku,source_account_id,request_key:requestKey,
@@ -4024,8 +4096,10 @@ async function confirmChallengeContinue(){
       await new Promise(r=>setTimeout(r,1500));
     }
     if(!ready)throw new Error('Payment is confirmed and activation is still processing. Do not pay again. Order: '+infCheckout.order_id);
-    localStorage.removeItem('ipfx-challenge-continue:'+engineState.account.id);
+    const breach=currentBreach();
+    if(breach)localStorage.removeItem('ipfx-challenge-continue:'+breach.source_account_id);
     infPaymentElement.unmount();infPaymentElement=null;infElements=null;infCheckout=null;
+    selectedAccountMode='challenge';localStorage.setItem('ipfx-account-mode','challenge');
     await engineCall({action:'state'});
   }catch(e){msg.textContent=(e&&e.message)||'Payment status is unavailable. Do not pay again.'}
   finally{infCheckoutBusy=false;btn.disabled=false;btn.textContent=infContinuePrice?`Pay ${infContinuePrice} and continue`:'Confirm and continue'}
@@ -4038,8 +4112,8 @@ function challengeRestartUrl(a){
 }
 async function restartChallenge(){
   if(infCheckoutBusy)return;
-  const a=engineState&&engineState.account;
-  if(!a||a.status!=='breached')return;
+  const a=currentBreach();
+  if(!a)return;
   const btn=document.getElementById('infRestartBtn');btn.disabled=true;btn.textContent='Restarting…';
   if(a.challenge_type!=='infinity'||a.phase!=='evaluation'){
     const opened=window.open(challengeRestartUrl(a),'_blank','noopener,noreferrer');
@@ -4058,6 +4132,7 @@ async function restartChallenge(){
     const result=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(result.error||'Could not restart the challenge.');
     engineMsg('Infinity restarted from Stage 1',true);
+    selectedAccountMode='challenge';localStorage.setItem('ipfx-account-mode','challenge');
     await engineCall({action:'state'});
   }catch(e){engineMsg((e&&e.message)||'Could not restart the challenge.')}
   btn.disabled=false;btn.textContent='Restart from Stage 1';
