@@ -72,8 +72,13 @@
   },
   {
    "key": "launch_note",
-   "value": "The website shows IPFX launching in **October 2026**, with pre-registration open. You can already create an account, verify your email and submit a challenge application from your dashboard. The FAQ and contact-form pages also launch in October 2026 — until then this assistant can answer most questions. For exactly what's available to you right now, especially paid programmes and payouts, email {{c:contact_email}}.",
+   "value": "IPFX is launching in **October 2026**. Until then, starting a challenge is not open to the public — you can create an account and verify your email now so you're ready. The FAQ and contact-form pages also launch in October 2026; until then this assistant can answer most questions, or email {{c:contact_email}}.",
    "description": "What to say about launch status / whether IPFX is live yet. Update this when you launch."
+  },
+  {
+   "key": "launch_short",
+   "value": "Challenges open to the public at launch in **October 2026** — you can create an account and verify your email now.",
+   "description": "One-line launch status shown at the top of 'how do I start'. Clear or change this at launch."
   }
  ],
  "kb": [
@@ -302,7 +307,7 @@
     "start trading",
     "onboarding"
    ],
-   "answer": "1. [Create an account](/signup.html) and confirm the verification email.\n2. Go to [Start a Challenge](/start-challenge.html) (or the [Infinity page](/infinity.html) for the free challenge) and pick your programme.\n3. Complete the application: personal details, a few questions, and your ID + proof of address.\n4. Wait for our review — {{c:review_time}}. You'll be emailed the decision.\n5. If approved: Infinity opens in your dashboard; Traditional/Futures move to payment; PAC waits for the team to confirm the next step.\n\n{{c:checkout_note}}",
+   "answer": "{{c:launch_short}}\n\nWhen applications are open:\n\n1. [Create an account](/signup.html) and confirm the verification email.\n2. Go to [Start a Challenge](/start-challenge.html) (or the [Infinity page](/infinity.html) for the free challenge) and pick your programme.\n3. Complete the application: personal details, a few questions, and your ID + proof of address.\n4. Wait for our review — {{c:review_time}}. You'll be emailed the decision.\n5. If approved: Infinity opens in your dashboard; Traditional/Futures move to payment; PAC waits for the team to confirm the next step.\n\n{{c:checkout_note}}",
    "follow_ups": [
     "What do I need to apply?",
     "How long does approval take?",
