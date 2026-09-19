@@ -1641,6 +1641,11 @@ Deno.serve(async (req) => {
   }
   if (!user) return err("Not signed in", 401);
 
+  const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
+  const challengePreviewAllowed = Date.now() >= challengePublicLaunchAt ||
+    String(user.email || "").trim().toLowerCase() ===
+      String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
+
   // A bot token is scoped to trading only (api_token.scope_text:
   // 'trade:own_account') — a leaked key can move positions on that one
   // simulated account but can never touch payouts, KYC, or account
@@ -1663,6 +1668,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, infinity: pub }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
   if (body.action === "claim_infinity") {
+    if (!challengePreviewAllowed) return err("Challenges launch 1 October 2026.", 403);
     if (!(await claimOrderLock(db, user.id))) return err("Already processing — try again in a moment.", 429);
     try {
       const st = await infinityStatus(db, user);
@@ -1806,6 +1812,7 @@ Deno.serve(async (req) => {
     } else if (last && body.action === "state") {
       acct = last;
     } else if (!last) {
+      if (!challengePreviewAllowed) return err("Challenges launch 1 October 2026.", 403);
       // Account creation belongs to verified server-side enrollment, never
       // user-editable signup metadata. Until paid checkout provisioning is
       // live, the one exception is a verified promo winner.

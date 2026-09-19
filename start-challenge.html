@@ -1090,9 +1090,32 @@
         @media (max-width: 768px) {
             .form-section { padding: 26px 20px; }
         }
+        [hidden] { display: none !important; }
+        .challenge-launch-gate { min-height: calc(100vh - 48px); display: grid; place-items: center; padding: 28px; }
+        .challenge-launch-card { width: min(680px, 100%); padding: 54px 42px; border: 1px solid var(--line); border-radius: 24px; background: rgba(15,16,20,.94); box-shadow: 0 32px 100px rgba(0,0,0,.42); text-align: center; }
+        .challenge-launch-logo { width: 64px; height: 64px; border-radius: 16px; margin-bottom: 22px; }
+        .challenge-launch-kicker { color: #8eaefc; font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+        .challenge-launch-card h1 { margin: 12px 0 14px; font-size: clamp(2.25rem, 7vw, 4.75rem); letter-spacing: -.055em; line-height: .98; }
+        .challenge-launch-card p { max-width: 510px; margin: 0 auto 24px; color: var(--muted); font-size: 1rem; line-height: 1.7; }
+        .challenge-launch-date { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 26px; padding: 10px 15px; border-radius: 999px; border: 1px solid rgba(56,103,239,.38); background: rgba(56,103,239,.1); color: #b9caff; font-weight: 750; }
+        .challenge-preview-link { display: inline-flex; justify-content: center; padding: 11px 18px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); text-decoration: none; font-weight: 700; }
+        .challenge-preview-link:hover { border-color: #567ff1; }
+        .challenge-launch-status { margin-top: 16px !important; min-height: 20px; font-size: .82rem !important; }
     </style>
 </head>
 <body>
+<section class="challenge-launch-gate" id="challengeLaunchGate" aria-labelledby="challengeLaunchTitle">
+    <div class="challenge-launch-card">
+        <img class="challenge-launch-logo" src="/desktop/build/icon.png" alt="IPFX Capital">
+        <div class="challenge-launch-kicker">IPFX Challenges</div>
+        <h1 id="challengeLaunchTitle">Launching<br>1 October 2026</h1>
+        <div class="challenge-launch-date">Applications and challenge access open at launch</div>
+        <p>We are finishing the secure application, verification and trading experience. Challenge applications cannot be started before launch.</p>
+        <a class="challenge-preview-link" id="challengePreviewLogin" href="/team-login.html">Authorised team preview</a>
+        <p class="challenge-launch-status" id="challengeLaunchStatus" role="status" aria-live="polite"></p>
+    </div>
+</section>
+<div id="challengePreviewApp" hidden>
 <nav>
     <a href="/" class="logo">
         <img src="/desktop/build/icon.png" alt="IPFX Logo">
@@ -1563,7 +1586,53 @@
     })();
     </script>
 
-    <script src="assets/js/checkout-flow.js"></script>
+    <script>
+    (async function challengeLaunchGate() {
+      const launchAt = Date.parse('2026-09-30T23:00:00Z');
+      const gate = document.getElementById('challengeLaunchGate');
+      const app = document.getElementById('challengePreviewApp');
+      const status = document.getElementById('challengeLaunchStatus');
+      const login = document.getElementById('challengePreviewLogin');
+      const next = location.pathname + location.search + location.hash;
+      login.href = '/team-login.html?next=' + encodeURIComponent(next);
+      function openPreview() {
+        gate.hidden = true;
+        app.hidden = false;
+        if (!document.querySelector('script[data-challenge-checkout]')) {
+          const script = document.createElement('script');
+          script.src = '/assets/js/checkout-flow.js';
+          script.dataset.challengeCheckout = 'owner-preview';
+          document.body.appendChild(script);
+        }
+      }
+      if (Date.now() >= launchAt) { openPreview(); return; }
+      try {
+        const db = window.supabase.createClient(
+          'https://agulweemteoeagscmppy.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ'
+        );
+        const [{ data: { user } }, { data: { session } }] = await Promise.all([
+          db.auth.getUser(), db.auth.getSession(),
+        ]);
+        if (!user || !session) return;
+        const response = await fetch('https://agulweemteoeagscmppy.supabase.co/functions/v1/team-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+          body: '{}',
+        });
+        const access = await response.json().catch(() => null);
+        if (!response.ok || !access?.team_access) return;
+        const { data: aal } = await db.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aal?.currentLevel !== 'aal2') {
+          status.textContent = 'Complete Team Login and its authenticator check to open the private preview.';
+          return;
+        }
+        openPreview();
+      } catch (_) {
+        status.textContent = 'The private preview could not be verified. Public challenge access remains closed.';
+      }
+    })();
+    </script>
 
     <script>
     // Order-summary sidebar sync — purely presentational, reads state that
@@ -1650,6 +1719,7 @@
     </script>
 
 
+</div>
   <div class="ipfx-launch-footer" aria-label="Legal and sharing">
     <span>&copy; 2026 IPFX Capital Ltd</span>
     <a href="/privacy.html">Privacy</a>

@@ -28,7 +28,8 @@ test('Team Login checks owner access and completes password plus authenticator v
   assert.match(teamLogin, /functions\/v1\/team-access/);
   assert.match(teamLogin, /mfa\.challengeAndVerify/);
   assert.match(teamLogin, /mfa\.enroll\(\{factorType:'totp'/);
-  assert.match(teamLogin, /location\.replace\('\/admin\.html'\)/);
+  assert.match(teamLogin, /location\.replace\(safeNext\)/);
+  assert.match(teamLogin, /safeNext=.*'\/admin\.html'/);
   assert.doesNotMatch(teamLogin, /signup\.html|Sign up/);
 });
 
