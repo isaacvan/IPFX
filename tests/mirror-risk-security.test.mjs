@@ -33,6 +33,12 @@ test('Team Login checks owner access and completes password plus authenticator v
   assert.doesNotMatch(teamLogin, /signup\.html|Sign up/);
 });
 
+test('homepage exposes Team Login in both navigation and footer', () => {
+  const home = read('index.html');
+  assert.match(home, /id="navTeamLogin"[^>]*href="\/team-login\.html"|href="\/team-login\.html"[^>]*id="navTeamLogin"/);
+  assert.match(home, /<li><a href="\/team-login\.html">Team Login<\/a><\/li>/);
+});
+
 test('adaptive controls affect only own-account mirror opens and never block closes', () => {
   assert.match(mirror, /never changes the trader's challenge trade/i);
   assert.match(mirror, /event === "open" && riskDecision\.action === "skip"/);
