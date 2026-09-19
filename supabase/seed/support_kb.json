@@ -22,8 +22,8 @@
   },
   {
    "key": "payout_min_usd",
-   "value": "50",
-   "description": "Minimum payout amount (USD) enforced by the payout function."
+   "value": "1000",
+   "description": "Minimum payout amount (USD) enforced by the payout function (fn_request_payout) and stated in the Terms."
   },
   {
    "key": "payout_min_days",
