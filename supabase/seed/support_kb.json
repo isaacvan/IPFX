@@ -1,0 +1,2123 @@
+{
+ "config": [
+  {
+   "key": "contact_email",
+   "value": "enquiries@ipfxcapital.com",
+   "description": "Public support email shown by the bot. Must match the address in the Terms/Privacy pages."
+  },
+  {
+   "key": "discord_url",
+   "value": "https://discord.gg/ipfxcapital",
+   "description": "Community Discord link."
+  },
+  {
+   "key": "review_time",
+   "value": "within 24 hours",
+   "description": "How long the team takes to decide on a challenge application."
+  },
+  {
+   "key": "pac_review_time",
+   "value": "24–48 business hours",
+   "description": "Review time stated on the Personalised Application Challenge page."
+  },
+  {
+   "key": "payout_min_usd",
+   "value": "50",
+   "description": "Minimum payout amount (USD) enforced by the payout function."
+  },
+  {
+   "key": "payout_min_days",
+   "value": "7",
+   "description": "Minimum days between payout requests enforced by the payout function."
+  },
+  {
+   "key": "payout_processing",
+   "value": "1–5 business days",
+   "description": "Typical processing time once a payout is approved (Terms 10.4)."
+  },
+  {
+   "key": "first_payout_threshold_pct",
+   "value": "5",
+   "description": "Minimum net realised profit (% of funded starting balance) before a first payout is eligible (Terms 10.8)."
+  },
+  {
+   "key": "kyc_deadline_days",
+   "value": "30",
+   "description": "Days allowed to provide requested KYC documents (Terms 13.3)."
+  },
+  {
+   "key": "rules_v2_date",
+   "value": "1 October 2026",
+   "description": "Date from which the 'v2' evaluation rules (execution costs, 60-second rule, etc.) apply to newly opened accounts."
+  },
+  {
+   "key": "leverage",
+   "value": "1:100",
+   "description": "Leverage on IPFX Markets."
+  },
+  {
+   "key": "referral_pct",
+   "value": "10",
+   "description": "Referral reward as % of the referred trader's challenge fee, paid after their first payout."
+  },
+  {
+   "key": "desktop_status",
+   "value": "The desktop app is in a private preview and is not publicly available yet. IPFX Markets works in your web browser.",
+   "description": "What to say about the desktop app."
+  },
+  {
+   "key": "checkout_note",
+   "value": "Payment options are shown at checkout once your application is approved. If a payment option isn't available for your programme yet, email {{c:contact_email}} for availability.",
+   "description": "What to say about paying for paid programmes."
+  },
+  {
+   "key": "launch_note",
+   "value": "The website shows IPFX launching in **October 2026**, with pre-registration open. You can already create an account, verify your email and submit a challenge application from your dashboard. The FAQ and contact-form pages also launch in October 2026 — until then this assistant can answer most questions. For exactly what's available to you right now, especially paid programmes and payouts, email {{c:contact_email}}.",
+   "description": "What to say about launch status / whether IPFX is live yet. Update this when you launch."
+  }
+ ],
+ "kb": [
+  {
+   "id": "what-is-ipfx",
+   "topic": "company",
+   "title": "What is IPFX Capital?",
+   "keywords": [
+    "what is ipfx",
+    "who are you",
+    "about ipfx",
+    "about the company",
+    "what do you do",
+    "tell me about ipfx",
+    "prop firm",
+    "proprietary trading firm",
+    "who is ipfx",
+    "what is this"
+   ],
+   "answer": "IPFX Capital Ltd is a UK-based proprietary trading firm (founded 2025, London) that runs trader evaluation programmes. You trade a simulated evaluation account on **IPFX Markets**, our trading platform. If you meet the rules you can progress to a funded account and earn a share of the profit — up to **{{p:trad_25k_p1.split_pct}}**.\n\nWe offer four programmes: the free **Infinity Challenge**, the **Traditional Challenge**, the **Futures Challenge** and the **Personalised Application Challenge (PAC)**. Ask me about any of them, or see the [About page](/about.html).",
+   "follow_ups": [
+    "How does it work?",
+    "Which programmes do you offer?",
+    "Is IPFX regulated?"
+   ]
+  },
+  {
+   "id": "how-it-works",
+   "topic": "company",
+   "title": "How does IPFX work?",
+   "keywords": [
+    "how does it work",
+    "how does ipfx work",
+    "how it works",
+    "process",
+    "steps",
+    "how do i get funded",
+    "walk me through",
+    "overview"
+   ],
+   "answer": "1. **Create an account** and verify your email.\n2. **Choose a programme** and submit an application (identity details and documents).\n3. **Our team reviews it** — {{c:review_time}}. Nothing is charged and no account is created until you're approved.\n4. **Trade on IPFX Markets.** The Infinity Challenge is free; Traditional and Futures are paid after approval.\n5. **Meet the rules** (profit target, drawdown and daily loss limits, minimum days).\n6. **Get funded** and request payouts — you keep {{p:trad_25k_p1.split_pct}} of the profit.\n\nEvaluation accounts use virtual capital. Ask me for detail on any step.",
+   "follow_ups": [
+    "How do I start?",
+    "What do I need to apply?",
+    "How do payouts work?"
+   ]
+  },
+  {
+   "id": "programmes-overview",
+   "topic": "company",
+   "title": "Which programmes do you offer?",
+   "keywords": [
+    "programmes",
+    "programs",
+    "challenges",
+    "what challenges",
+    "types of challenge",
+    "which challenge",
+    "options",
+    "products",
+    "what do you offer",
+    "list of challenges",
+    "what exactly do you offer",
+    "what services"
+   ],
+   "answer": "- **[Infinity Challenge](/infinity.html)** — free to start, four stages from a $1,000 evaluation account to a professional funded account.\n- **[Traditional Challenge](/start-challenge.html)** — {{p:trad_25k_p1.target_pct}} / {{p:trad_25k_p2.target_pct}} / {{p:trad_25k_p3.target_pct}} targets over three phases. Fees: {{fees:traditional}}.\n- **[Futures Challenge](/futures.html)** — two phases ({{p:fut_25k_p1.target_pct}} then {{p:fut_25k_p2.target_pct}}), end-of-day trailing drawdown. Fees: {{fees:futures}}.\n- **[Personalised Application Challenge (PAC)](/personalised-challenge.html)** — you disclose your strategy, our analysts backtest it and agree custom parameters. Entry fees: {{fees:pac}}.\n\nAll programmes need an approved application. Which would you like to know more about?",
+   "follow_ups": [
+    "Tell me about the Infinity Challenge",
+    "Traditional Challenge rules",
+    "What is the PAC?"
+   ]
+  },
+  {
+   "id": "which-programme",
+   "topic": "company",
+   "title": "Which programme should I choose?",
+   "keywords": [
+    "which challenge is best",
+    "which programme should i choose",
+    "which one should i pick",
+    "infinity vs traditional",
+    "difference between challenges",
+    "compare challenges",
+    "best challenge",
+    "recommend a challenge",
+    "which is better",
+    "which challenge should i pick",
+    "which challenge should i choose",
+    "which one should i choose",
+    "what should i start with"
+   ],
+   "answer": "I can't recommend one for your circumstances, but here's how they differ:\n\n- **Infinity** — no fee, small starting capital ($1,000), four stages, stricter trade-level rules (1% risk per trade, daily profit cap in Stage 1).\n- **Traditional** — paid, larger simulated accounts ($10K–$200K), three phases with static drawdown.\n- **Futures** — paid, two phases, end-of-day trailing drawdown, aimed at CME futures traders.\n- **PAC** — for traders who already have a documented, profitable strategy; custom parameters agreed with our analysts.\n\nCompare the exact numbers with \"What are the fees?\" or \"Compare the daily loss limits\". Trading is risky and none of this is financial advice.",
+   "follow_ups": [
+    "What are the fees?",
+    "Compare the drawdown rules",
+    "Is the Infinity Challenge really free?"
+   ]
+  },
+  {
+   "id": "regulation",
+   "topic": "company",
+   "title": "Is IPFX regulated by the FCA?",
+   "keywords": [
+    "regulated",
+    "fca",
+    "are you regulated",
+    "licensed",
+    "authorised",
+    "regulation",
+    "financial conduct authority",
+    "compliance status"
+   ],
+   "answer": "No. IPFX Capital Ltd is **not authorised or regulated by the Financial Conduct Authority (FCA)** or any other financial regulator. We do not provide investment advice, and we sell an evaluation service rather than a regulated financial product. See section 2 of our [Terms](/terms.html) and the [Risk Disclosure](/risk-disclosure.html).",
+   "follow_ups": [
+    "Is it real money?",
+    "What is the Risk Disclosure?"
+   ]
+  },
+  {
+   "id": "real-money",
+   "topic": "company",
+   "title": "Is it real money or a demo?",
+   "keywords": [
+    "real money",
+    "demo account",
+    "simulated",
+    "virtual capital",
+    "is it a demo",
+    "do i trade real money",
+    "live account",
+    "own money",
+    "deposit",
+    "risk my money"
+   ],
+   "answer": "- **Evaluation accounts are simulated** with virtual capital. None of your own money is placed in a market.\n- The **challenge fee** (where there is one) pays for the evaluation service — it isn't a deposit or balance you can withdraw.\n- **Funded accounts are owned by IPFX.** You never deposit into them; you trade the company's account under the agreed rules and receive a discretionary profit split.\n- **Infinity Stage 4** is described as trading on live markets (A-book).\n\nPrices on IPFX Markets are for simulated evaluation and may differ from live market prices. See sections 2 and 9 of the [Terms](/terms.html).",
+   "follow_ups": [
+    "How do payouts work?",
+    "What is the profit split?"
+   ]
+  },
+  {
+   "id": "legit-safe",
+   "topic": "company",
+   "title": "Is IPFX legit? Can I trust IPFX?",
+   "keywords": [
+    "is ipfx legit",
+    "is this a scam",
+    "can i trust",
+    "trustworthy",
+    "is it safe",
+    "is ipfx safe",
+    "fraud",
+    "fake company",
+    "real company",
+    "reviews",
+    "trustpilot",
+    "reputation",
+    "is this legit",
+    "is it legit",
+    "are you legit",
+    "is this real",
+    "is this a proper company",
+    "is ipfx a real company",
+    "is this a real company",
+    "proper company"
+   ],
+   "answer": "I can only give you facts rather than reassurance:\n\n- IPFX Capital Ltd is registered in England & Wales and launched in 2025, so we're a young firm.\n- Our [Terms](/terms.html), [Privacy Policy](/privacy.html) and [Risk Disclosure](/risk-disclosure.html) are public — please read them before you apply.\n- We are **not FCA regulated**, and passing a challenge, getting funded or being paid is never guaranteed.\n- Never pay anyone claiming to be IPFX outside our website checkout, and never share your password.\n\nOnly spend what you can afford to lose. You can leave an honest review on [Trustpilot](https://www.trustpilot.com/evaluate/ipfxcapital.com); we never pay or reward anyone for reviews.",
+   "follow_ups": [
+    "Is IPFX regulated?",
+    "Is the fee refundable?"
+   ]
+  },
+  {
+   "id": "team-founders",
+   "topic": "company",
+   "title": "Who runs IPFX? Who founded it?",
+   "keywords": [
+    "who founded",
+    "founder",
+    "ceo",
+    "who runs ipfx",
+    "who owns ipfx",
+    "the team",
+    "who is behind ipfx",
+    "paul adeniji",
+    "management",
+    "where are you based",
+    "headquarters",
+    "location",
+    "uk company",
+    "where is ipfx located",
+    "where are you located",
+    "company address",
+    "registered address",
+    "office address",
+    "company number",
+    "registration number",
+    "companies house",
+    "when did you start",
+    "when were you founded",
+    "how old is the company",
+    "founded in",
+    "year founded",
+    "is ipfx based in the uk"
+   ],
+   "answer": "IPFX Capital was founded in 2025 by a team of traders, analysts and operators, based in London. Paul Adeniji is Co-Founder & CEO. The [About page](/about.html) describes the team (trading, quant & risk, technology, compliance & operations). I can't share personal contact details for team members — please use {{c:contact_email}}.\n\nOur registered company number and registered-office address haven't been published on the website yet — if you need them, email {{c:contact_email}}.",
+   "follow_ups": [
+    "How do I contact IPFX?"
+   ]
+  },
+  {
+   "id": "how-to-start",
+   "topic": "getting-started",
+   "title": "How do I start a challenge?",
+   "keywords": [
+    "how do i start",
+    "get started",
+    "sign up",
+    "signup",
+    "create an account",
+    "register",
+    "begin",
+    "start a challenge",
+    "join",
+    "how to apply",
+    "start trading",
+    "onboarding"
+   ],
+   "answer": "1. [Create an account](/signup.html) and confirm the verification email.\n2. Go to [Start a Challenge](/start-challenge.html) (or the [Infinity page](/infinity.html) for the free challenge) and pick your programme.\n3. Complete the application: personal details, a few questions, and your ID + proof of address.\n4. Wait for our review — {{c:review_time}}. You'll be emailed the decision.\n5. If approved: Infinity opens in your dashboard; Traditional/Futures move to payment; PAC waits for the team to confirm the next step.\n\n{{c:checkout_note}}",
+   "follow_ups": [
+    "What do I need to apply?",
+    "How long does approval take?",
+    "Is the Infinity Challenge free?"
+   ]
+  },
+  {
+   "id": "application-requirements",
+   "topic": "getting-started",
+   "title": "What do I need to apply?",
+   "keywords": [
+    "what do i need",
+    "requirements",
+    "documents needed",
+    "what documents",
+    "application requirements",
+    "eligibility",
+    "am i eligible",
+    "who can join",
+    "what information",
+    "application form",
+    "what documents do i need to apply"
+   ],
+   "answer": "To apply you need:\n- a **verified email address** and to be **18 or over**\n- your legal name, date of birth, phone number, address and nationality\n- your occupation, source of funds and expected trading activity, and a politically-exposed-person declaration\n- a valid, unexpired **photo ID** (passport, driving licence or national ID card)\n- **proof of address** dated within the last 3 months (utility bill, bank statement or official letter)\n- acceptance of the Terms, Risk Disclosure and a few declarations\n\nEvery application is reviewed by a person. See \"Is my ID safe?\" for how we protect your documents.",
+   "follow_ups": [
+    "Is my ID safe?",
+    "How long does approval take?",
+    "Which countries are restricted?"
+   ]
+  },
+  {
+   "id": "approval-time",
+   "topic": "getting-started",
+   "title": "How long does approval take? Why is approval needed?",
+   "keywords": [
+    "approval",
+    "approved",
+    "review time",
+    "manual approval",
+    "why approval",
+    "when will i hear",
+    "pending",
+    "under review",
+    "application received",
+    "how long does approval take",
+    "how long is approval",
+    "how long is kyc",
+    "how long does kyc take",
+    "how long does verification take",
+    "waiting for approval",
+    "when will i hear back"
+   ],
+   "answer": "Every challenge application is reviewed by a member of our team, who decides Yes or No. We aim to decide **{{c:review_time}}** (the PAC's strategy review takes {{c:pac_review_time}}).\n\nUntil you're approved, **no payment is requested and no trading account is created**. Automated checks may flag issues for a person to look at, but they never make the final decision.\n\nI can't see your individual application — if it's taking longer, email {{c:contact_email}} from your registered email address.",
+   "follow_ups": [
+    "What if my application is denied?",
+    "What do I need to apply?"
+   ]
+  },
+  {
+   "id": "application-denied",
+   "topic": "getting-started",
+   "title": "What if my application is denied?",
+   "keywords": [
+    "denied",
+    "rejected",
+    "not approved",
+    "declined",
+    "application denied",
+    "why was i denied",
+    "appeal",
+    "reconsider",
+    "turned down"
+   ],
+   "answer": "You'll see the decision (and a note where one is given) in your application status and by email. You can ask us to explain or reconsider a decision by emailing {{c:contact_email}}. Because I can't see individual applications, I can't tell you why a specific one was denied.",
+   "follow_ups": [
+    "How do I contact IPFX?"
+   ]
+  },
+  {
+   "id": "kyc-documents",
+   "topic": "getting-started",
+   "title": "What ID and documents do you accept? How does identity verification work?",
+   "keywords": [
+    "kyc",
+    "id verification",
+    "identity",
+    "upload documents",
+    "proof of address",
+    "passport",
+    "driving licence",
+    "national id",
+    "what id",
+    "selfie",
+    "utility bill",
+    "bank statement",
+    "verify my identity",
+    "documents rejected",
+    "what documents do i need to upload",
+    "proof of address requirements",
+    "what id do you accept"
+   ],
+   "answer": "We accept:\n- **Photo ID:** passport, driving licence or national identity card — valid and not expired\n- **Proof of address:** utility bill, bank statement or official government letter dated within the last **3 months**\n\nYou upload them as part of your application (and can update them from your dashboard). Our team reviews them; if something is unclear or rejected you'll be told why and can upload again. KYC must also be verified before any payout. If you're asked for documents, please provide them within **{{c:kyc_deadline_days}} days**.",
+   "follow_ups": [
+    "Is my ID safe?",
+    "How do payouts work?"
+   ]
+  },
+  {
+   "id": "restricted-countries",
+   "topic": "getting-started",
+   "title": "Which countries are restricted? Can I use a VPN?",
+   "keywords": [
+    "restricted",
+    "which countries",
+    "country",
+    "available in my country",
+    "usa",
+    "united states",
+    "us residents",
+    "canada",
+    "ontario",
+    "sanctioned",
+    "ofac",
+    "vpn",
+    "proxy",
+    "my location",
+    "eligible countries",
+    "residents",
+    "can americans join",
+    "americans",
+    "american",
+    "can i join from",
+    "can i use a vpn",
+    "can uk residents join",
+    "my country",
+    "us traders",
+    "can i join from the us"
+   ],
+   "answer": "IPFX isn't available where our services are prohibited by law. Residents of **Canada (Ontario)** and any **OFAC-sanctioned country** are not eligible, and we can restrict other jurisdictions at any time. You're responsible for making sure using IPFX is lawful where you live.\n\nUsing a **VPN or proxy** to hide your location or get around a restriction is prohibited and can lead to account termination without refund. If you're unsure about your country, ask {{c:contact_email}} before applying.",
+   "follow_ups": [
+    "What do I need to apply?"
+   ]
+  },
+  {
+   "id": "age-limit",
+   "topic": "getting-started",
+   "title": "How old do I have to be?",
+   "keywords": [
+    "age",
+    "how old",
+    "18",
+    "under 18",
+    "minimum age",
+    "over 18",
+    "teenager",
+    "underage",
+    "year old",
+    "17 year old",
+    "16 year old",
+    "teen",
+    "can a minor join",
+    "under 18s"
+   ],
+   "answer": "You must be **18 or over** to register or start a challenge. We can request age verification at any time and will close accounts belonging to anyone under 18.",
+   "follow_ups": []
+  },
+  {
+   "id": "email-verification",
+   "topic": "getting-started",
+   "title": "I didn't get my verification email",
+   "keywords": [
+    "verification email",
+    "confirm email",
+    "email not received",
+    "didn't get email",
+    "no email",
+    "confirmation link",
+    "verify my email",
+    "resend email",
+    "spam folder",
+    "email confirmed"
+   ],
+   "answer": "Check your spam/junk folder first and search for \"IPFX\". The confirmation link takes you to a confirmation page on ipfxcapital.com. You need a verified email before you can apply for a challenge. If nothing arrives after a few minutes, check the address you signed up with for typos, or email {{c:contact_email}}.",
+   "follow_ups": []
+  },
+  {
+   "id": "forgot-password",
+   "topic": "getting-started",
+   "title": "I forgot my password",
+   "keywords": [
+    "forgot password",
+    "reset password",
+    "can't log in",
+    "cant login",
+    "login problem",
+    "password reset",
+    "locked out",
+    "change password",
+    "lost password",
+    "cannot sign in",
+    "log in"
+   ],
+   "answer": "On the [login page](/login.html) click **\"Forgot password?\"**, enter your email and we'll send a reset link. Open it on the same device, choose a new password (at least 8 characters) and log in again. Reset links expire — if yours has, request a new one. IPFX will never ask you for your password, so don't share it with anyone (including me).",
+   "follow_ups": []
+  },
+  {
+   "id": "change-details-close-account",
+   "topic": "getting-started",
+   "title": "How do I change my details or close my account?",
+   "keywords": [
+    "change email",
+    "change my details",
+    "update details",
+    "close my account",
+    "delete my account",
+    "delete account",
+    "deactivate",
+    "change name",
+    "update address",
+    "unsubscribe",
+    "how do i close my account",
+    "close account",
+    "close my ipfx account"
+   ],
+   "answer": "Email {{c:contact_email}} from your registered address to change your details or close your account. Closing an account doesn't refund a challenge fee for a challenge that was already activated. To delete your personal data see \"What are my data rights?\".",
+   "follow_ups": []
+  },
+  {
+   "id": "multiple-accounts",
+   "topic": "getting-started",
+   "title": "Can I have more than one account or challenge?",
+   "keywords": [
+    "multiple accounts",
+    "more than one account",
+    "two accounts",
+    "second account",
+    "several challenges",
+    "how many accounts",
+    "multi account",
+    "another account",
+    "different email",
+    "two challenges",
+    "at the same time",
+    "two challenges at the same time",
+    "more than one challenge",
+    "multiple challenges",
+    "run two challenges"
+   ],
+   "answer": "You may hold **one registered user account** only — creating several to get around the rules or promotions leads to termination of all of them. Under that one account you can hold more than one challenge account, subject to our approval. Running the same strategy on several accounts and only claiming the winners, or hedging between accounts, is prohibited. The free Infinity Challenge allows one active account at a time.",
+   "follow_ups": [
+    "What trading practices are prohibited?"
+   ]
+  },
+  {
+   "id": "infinity-overview",
+   "topic": "infinity",
+   "title": "Tell me about the Infinity Challenge",
+   "keywords": [
+    "infinity",
+    "infinity challenge",
+    "free challenge",
+    "4 stages",
+    "four stages",
+    "stages",
+    "free account",
+    "start free",
+    "1000 account",
+    "$1000",
+    "$1k",
+    "infinity rules",
+    "how does the infinity challenge work",
+    "how does infinity work",
+    "infinity explained",
+    "how many stages",
+    "how many stages are there",
+    "number of stages"
+   ],
+   "answer": "The **[Infinity Challenge](/infinity.html)** is our free four-stage pathway. You start with a $1,000 simulated account and progress if you meet the rules at each stage:\n\n{{rules:infinity}}\n\nStage 1 is free with up to 3 attempts per calendar month. Stages 2 and 3 are simulated funded accounts with an {{p:infinity_s2.split_pct}} profit split, and Stage 4 is a professional account on real markets. Like every challenge it needs an approved application.",
+   "follow_ups": [
+    "Is Infinity really free?",
+    "What happens if I fail a stage?",
+    "How do Infinity payouts work?"
+   ]
+  },
+  {
+   "id": "infinity-free",
+   "topic": "infinity",
+   "title": "Is the Infinity Challenge really free?",
+   "keywords": [
+    "really free",
+    "is infinity free",
+    "free to start",
+    "no fee",
+    "no cost",
+    "hidden fees",
+    "credit card",
+    "no credit card",
+    "zero cost",
+    "cost of infinity",
+    "free challenge catch",
+    "is there a fee for the free challenge"
+   ],
+   "answer": "Yes — there's **no fee and no credit card** for the Infinity Challenge. You still need to be approved: verify your email, submit an application with ID and proof of address, and our team reviews it ({{c:review_time}}). Stage 1 allows up to {{p:infinity_s1.attempts}} attempts per calendar month at no cost.",
+   "follow_ups": []
+  },
+  {
+   "id": "infinity-stage1",
+   "topic": "infinity",
+   "title": "Infinity Stage 1 rules",
+   "keywords": [
+    "stage 1",
+    "stage one",
+    "infinity stage 1",
+    "first stage",
+    "prove it",
+    "$1000 stage",
+    "stage 1 rules",
+    "evaluation stage"
+   ],
+   "answer": "**Stage 1 — {{p:infinity_s1.balance}} account (free):**\n- Profit target {{p:infinity_s1.target_pct}} ({{p:infinity_s1.target_amt}})\n- Max daily loss {{p:infinity_s1.daily_pct}} ({{p:infinity_s1.daily_amt}}); max drawdown {{p:infinity_s1.dd_pct}} ({{p:infinity_s1.dd_amt}}), {{p:infinity_s1.dd_mode}}\n- Minimum {{p:infinity_s1.min_days}} trading days and {{p:infinity_s1.min_trades}} trades\n- Max risk per trade {{p:infinity_s1.risk_pct}} ({{p:infinity_s1.risk_amt}}), stop-loss required\n- Daily profit cap {{p:infinity_s1.cap_pct}} — profit above the cap on one day doesn't count\n- Up to {{p:infinity_s1.attempts}} attempts per calendar month",
+   "follow_ups": [
+    "Why is there a daily profit cap?",
+    "What happens if I fail?"
+   ]
+  },
+  {
+   "id": "infinity-stage2",
+   "topic": "infinity",
+   "title": "Infinity Stage 2 rules",
+   "keywords": [
+    "stage 2",
+    "stage two",
+    "infinity stage 2",
+    "second stage",
+    "get funded stage",
+    "$5000 stage",
+    "funded simulation",
+    "stage 2 rules"
+   ],
+   "answer": "**Stage 2 — {{p:infinity_s2.balance}} simulated funded account:**\n- Profit target {{p:infinity_s2.target_pct}} ({{p:infinity_s2.target_amt}}); profit split {{p:infinity_s2.split_pct}}\n- Max daily loss {{p:infinity_s2.daily_pct}}; max drawdown {{p:infinity_s2.dd_pct}} ({{p:infinity_s2.dd_mode}})\n- Minimum {{p:infinity_s2.min_days}} trading days and {{p:infinity_s2.min_trades}} trades\n- At least {{p:infinity_s2.prof_days_pct}} of trading days must be profitable\n- Max risk per trade {{p:infinity_s2.risk_pct}}, stop-loss required\n\nYour Stage 2 earnings are **held** and released when you reach the 3% milestone in Stage 3 (see \"How do Infinity payouts work?\").",
+   "follow_ups": [
+    "How do Infinity payouts work?"
+   ]
+  },
+  {
+   "id": "infinity-stage3",
+   "topic": "infinity",
+   "title": "Infinity Stage 3 rules",
+   "keywords": [
+    "stage 3",
+    "stage three",
+    "infinity stage 3",
+    "third stage",
+    "qualification",
+    "$10000 stage",
+    "stage 3 rules",
+    "qualify"
+   ],
+   "answer": "**Stage 3 — {{p:infinity_s3.balance}} account (qualification):**\n- Profit target {{p:infinity_s3.target_pct}} ({{p:infinity_s3.target_amt}}); profit split {{p:infinity_s3.split_pct}}\n- Max daily loss {{p:infinity_s3.daily_pct}}; max drawdown {{p:infinity_s3.dd_pct}} ({{p:infinity_s3.dd_mode}})\n- Minimum {{p:infinity_s3.min_days}} trading days and {{p:infinity_s3.min_trades}} trades\n- Max risk per trade {{p:infinity_s3.risk_pct}}, stop-loss required\n\nAt 3% profit your held Stage 2 earnings are released; completing the target earns a second payout and triggers our quant review (within 24 hours) before Stage 4.",
+   "follow_ups": [
+    "What is the quant review?",
+    "How do Infinity payouts work?"
+   ]
+  },
+  {
+   "id": "infinity-stage4",
+   "topic": "infinity",
+   "title": "Infinity Stage 4 (professional account)",
+   "keywords": [
+    "stage 4",
+    "stage four",
+    "infinity stage 4",
+    "professional",
+    "a-book",
+    "real markets",
+    "stage 4 capital",
+    "how much capital stage 4",
+    "500k",
+    "scale to 500k",
+    "capital allocation",
+    "scaling",
+    "scale up",
+    "capital increase",
+    "grow my account"
+   ],
+   "answer": "**Stage 4 — professional account on real markets (A-book)** starts at **{{p:infinity_s4.balance}}** with an {{p:infinity_s4.split_pct}} profit split, paid bi-weekly. Any increase in capital is decided by our analysts from your results (Sharpe ratio, drawdown behaviour, risk-to-reward) — there's no automatic entitlement to a larger allocation. Your Stage 3 drawdown, daily loss and sizing limits continue to apply, and the firm can add further risk controls.",
+   "follow_ups": [
+    "What is the quant review?"
+   ]
+  },
+  {
+   "id": "infinity-fail-restart",
+   "topic": "infinity",
+   "title": "What happens if I fail an Infinity stage? How many attempts do I get?",
+   "keywords": [
+    "fail infinity",
+    "fail a stage",
+    "breach infinity",
+    "restart infinity",
+    "attempts",
+    "3 attempts",
+    "three attempts",
+    "retry stage 1",
+    "how many attempts",
+    "try again infinity",
+    "failed stage",
+    "start again",
+    "monthly attempts",
+    "reset infinity"
+   ],
+   "answer": "- **Stage 1:** if you breach a rule your account closes and you can start Stage 1 again — up to **{{p:infinity_s1.attempts}} attempts per calendar month**, free. A further attempt is available from the 1st of the next month.\n- **Stage 2, 3 or 4:** breaching a rule resets you to a fresh Stage 1. Any held Stage 2 earnings that hadn't yet been released are forfeited.\n- There's no payment or compensation for failing a stage.\n\nYou can only restart when you have no other active account.",
+   "follow_ups": [
+    "How do Infinity payouts work?"
+   ]
+  },
+  {
+   "id": "infinity-payouts",
+   "topic": "infinity",
+   "title": "How do Infinity payouts work?",
+   "keywords": [
+    "infinity payout",
+    "infinity payouts",
+    "when do i get paid infinity",
+    "first payout infinity",
+    "stage 2 earnings",
+    "held earnings",
+    "payout locked",
+    "3% milestone",
+    "two payouts",
+    "bi-weekly",
+    "biweekly"
+   ],
+   "answer": "- **Stage 2 earnings are held**, not paid when you finish Stage 2.\n- In **Stage 3**, the moment your closed profit reaches **3%**, your Stage 2 earnings (your {{p:infinity_s2.split_pct}} share) are released as your first payout.\n- Completing Stage 3 earns a **second payout** — {{p:infinity_s3.split_pct}} of your Stage 3 profit.\n- After the quant review you move to Stage 4 with **bi-weekly** payouts.\n- If you fail in Stage 2, 3 or 4 before the milestone, held earnings are forfeited.\n\nPayouts also require verified KYC and are reviewed by our team.",
+   "follow_ups": [
+    "What is the quant review?",
+    "What ID do you accept?"
+   ]
+  },
+  {
+   "id": "infinity-profit-cap",
+   "topic": "infinity",
+   "title": "Why is there a daily profit cap in Stage 1?",
+   "keywords": [
+    "daily profit cap",
+    "profit cap",
+    "cap on profit",
+    "cant make more than",
+    "max profit per day",
+    "3% cap",
+    "profit limit per day",
+    "capped profit"
+   ],
+   "answer": "Stage 1 counts at most **{{p:infinity_s1.cap_pct}} profit per day** ({{p:infinity_s1.target_amt}} target overall). It exists so a single lucky trade or day can't pass the stage — the result has to be repeatable across days. Profit above the cap on a day doesn't count towards the target. Losses always count in full.",
+   "follow_ups": []
+  },
+  {
+   "id": "quant-review",
+   "topic": "infinity",
+   "title": "What is the quant review?",
+   "keywords": [
+    "quant review",
+    "quantitative review",
+    "analyst review",
+    "sharpe",
+    "stage 3 review",
+    "review of my trades",
+    "why review",
+    "quant team"
+   ],
+   "answer": "When you complete Stage 3 our quantitative team reviews your trading across Stages 1–3 — Sharpe ratio, drawdown behaviour, average risk-to-reward, position sizing consistency, session and instrument concentration, and whether results look like genuine edge or noise. It's completed **within 24 hours** and you're notified of the outcome. We can decline Stage 4 for traders who hit the numbers but whose pattern doesn't reflect systematic, repeatable skill.",
+   "follow_ups": []
+  },
+  {
+   "id": "traditional-overview",
+   "topic": "traditional",
+   "title": "Tell me about the Traditional Challenge",
+   "keywords": [
+    "traditional",
+    "traditional challenge",
+    "paid challenge",
+    "3 phase",
+    "three phase",
+    "phases",
+    "standard challenge",
+    "forex challenge",
+    "traditional rules",
+    "phase 1",
+    "phase 2",
+    "phase 3",
+    "how many phases"
+   ],
+   "answer": "The **Traditional Challenge** is a paid evaluation on a simulated account of $10K–$200K.\n\n{{rules:traditional}}\n\n**Fees (Phase 1):** {{fees:traditional}}. Phases 2 and 3 are free. Pass all the phases and your funded account opens automatically. Your fee is credited back with your first eligible payout (see \"Is the fee refundable?\"). You need an approved application before paying.",
+   "follow_ups": [
+    "Is the fee refundable?",
+    "What if I fail a phase?",
+    "What is the stop-loss rule?"
+   ]
+  },
+  {
+   "id": "traditional-fees",
+   "topic": "traditional",
+   "title": "How much does the Traditional Challenge cost?",
+   "keywords": [
+    "traditional fee",
+    "how much is traditional",
+    "traditional price",
+    "cost of challenge",
+    "price of 50k",
+    "price list",
+    "challenge prices"
+   ],
+   "answer": "Traditional Challenge fees (one-off, USD): **{{fees:traditional}}**. See also the Futures ({{fees:futures}}) and PAC ({{fees:pac}}) fees. The Infinity Challenge is free. Tell me the size you're considering (e.g. \"$50K\") and I'll show the fee and limits.",
+   "follow_ups": []
+  },
+  {
+   "id": "traditional-fail",
+   "topic": "traditional",
+   "title": "What if I fail a Traditional phase?",
+   "keywords": [
+    "fail traditional",
+    "breach traditional",
+    "failed a phase",
+    "lost my challenge",
+    "phase failure",
+    "failed challenge",
+    "what happens if i fail",
+    "what if i breach",
+    "account closed",
+    "breached",
+    "what happens if i fail the challenge",
+    "fail the challenge",
+    "failed the challenge"
+   ],
+   "answer": "Breaching any rule (daily loss, max drawdown, a prohibited practice) closes that phase immediately and you don't advance. The fee for the failed phase is **not refunded**, and there's no automatic restart — you'd purchase a new challenge (subject to approval). Where a reset is offered it's a separate paid service. Rules for breaches are the same on every programme: see \"What happens if I breach a rule?\".",
+   "follow_ups": [
+    "Is the fee refundable?"
+   ]
+  },
+  {
+   "id": "stop-loss-risk-rule",
+   "topic": "traditional",
+   "title": "What is the stop-loss and risk-per-trade rule?",
+   "keywords": [
+    "stop loss required",
+    "mandatory stop loss",
+    "must use stop loss",
+    "risk per trade",
+    "max risk per trade",
+    "1% risk",
+    "position size limit",
+    "risk rule",
+    "no stop loss",
+    "trade without stop loss",
+    "stop loss rule",
+    "stop loss compulsory",
+    "is stop loss compulsory",
+    "compulsory"
+   ],
+   "answer": "Some programmes require a stop-loss on every order and cap the risk per trade (measured from entry to stop as a % of your starting balance):\n\n{{cmp:risk}}\n\nAn order that breaks these rules is rejected. Stops aren't guaranteed — in a gap the position closes at the next available price. See \"What are the execution costs?\" for slippage.",
+   "follow_ups": []
+  },
+  {
+   "id": "futures-overview",
+   "topic": "futures",
+   "title": "Tell me about the Futures Challenge",
+   "keywords": [
+    "futures",
+    "futures challenge",
+    "cme",
+    "cme futures",
+    "futures rules",
+    "eod drawdown",
+    "trailing drawdown futures",
+    "micro contracts",
+    "es nq",
+    "futures trading",
+    "futures account"
+   ],
+   "answer": "The **[Futures Challenge](/futures.html)** is a paid two-phase evaluation ($25K–$150K) with an **end-of-day trailing drawdown**:\n\n{{rules:futures}}\n\n**Fees (Phase 1):** {{fees:futures}}. There's no consistency rule to pass the evaluation, and payouts have standard consistency checks.\n\n⚠️ Before you buy, ask me \"Which instruments can I trade?\" — the markets enabled in IPFX Markets matter for this programme.",
+   "follow_ups": [
+    "Which instruments can I trade?",
+    "Is the fee refundable?"
+   ]
+  },
+  {
+   "id": "futures-markets",
+   "topic": "futures",
+   "title": "Can I trade CME futures (ES, NQ, CL, GC)?",
+   "keywords": [
+    "can i trade es",
+    "nq",
+    "es futures",
+    "cme contracts",
+    "e-mini",
+    "mes mnq",
+    "crude oil futures",
+    "gold futures",
+    "futures markets available",
+    "which futures",
+    "futures instruments",
+    "micro contracts available",
+    "can i trade micro contracts",
+    "micro contracts",
+    "micro futures",
+    "trade the s&p futures",
+    "s&p futures",
+    "nasdaq futures"
+   ],
+   "answer": "The [Futures Challenge page](/futures.html) lists CME markets such as ES/MES, NQ/MNQ, YM/MYM, CL/MCL and GC/MGC. The instruments currently **enabled in IPFX Markets** are:\n\n{{instruments}}\n\n{{futures_status}} If trading specific CME contracts matters to you, please email {{c:contact_email}} to confirm availability **before** you apply or pay.",
+   "follow_ups": [
+    "Which instruments can I trade?"
+   ]
+  },
+  {
+   "id": "pac-overview",
+   "topic": "pac",
+   "title": "What is the Personalised Application Challenge (PAC)?",
+   "keywords": [
+    "pac",
+    "personalised challenge",
+    "personalized challenge",
+    "application challenge",
+    "what is the pac",
+    "custom challenge",
+    "bespoke",
+    "no evaluation",
+    "funded from day one",
+    "strategy disclosure",
+    "already profitable",
+    "negotiated",
+    "how does the application challenge work",
+    "how does the pac work"
+   ],
+   "answer": "The **[PAC](/personalised-challenge.html)** is for traders who already have a documented, profitable strategy. There's no standard evaluation phase:\n1. **Apply and disclose** your strategy in full (entries/exits, instruments, sizing, track record).\n2. Our analysts **backtest it** and agree custom parameters with you in writing.\n3. Once agreed, your funded account goes live.\n\n{{rules:pac}}\n\n**Entry fees:** {{fees:pac}}. Applications are reviewed in {{c:pac_review_time}}; we can accept, reject or modify an application, and parameters are set by a separate written agreement.",
+   "follow_ups": [
+    "What do I need for the PAC?",
+    "Is the PAC fee refundable?"
+   ]
+  },
+  {
+   "id": "pac-requirements",
+   "topic": "pac",
+   "title": "What do I need to apply for the PAC?",
+   "keywords": [
+    "pac requirements",
+    "pac track record",
+    "what do i need for pac",
+    "track record",
+    "backtest",
+    "myfxbook",
+    "strategy details",
+    "pac apply",
+    "evidence",
+    "risk management evidence",
+    "what do i need for the pac",
+    "requirements for the pac"
+   ],
+   "answer": "For the PAC you need:\n- a **full strategy disclosure** — entry/exit rules, indicators, timeframes, instruments, position sizing and risk management\n- a **verified track record** of at least 3 months (live or demo — Myfxbook, FX Blue, broker statements or EA logs)\n- evidence of consistent sizing, defined stop-loss use and controlled drawdown\n- the standard ID and proof-of-address checks\n\nStrategies with no defined risk framework won't be approved. Your strategy data is treated as confidential.",
+   "follow_ups": []
+  },
+  {
+   "id": "pac-scaling-refund",
+   "topic": "pac",
+   "title": "Can I scale a PAC account? Is the PAC fee refundable?",
+   "keywords": [
+    "pac scaling",
+    "scale pac",
+    "pac fee refund",
+    "pac refundable",
+    "capital increase pac",
+    "500k pac",
+    "increase capital",
+    "after 3 months"
+   ],
+   "answer": "- **Scaling:** after about 3 months of consistent, disciplined trading you can apply for a capital increase (up to $500K, no extra fee) — it's at IPFX's discretion, not guaranteed.\n- **Fee:** the PAC entry fee is one-off and is credited against your first eligible payout once the payout conditions are met (see \"Is the fee refundable?\").",
+   "follow_ups": []
+  },
+  {
+   "id": "daily-loss-limit",
+   "topic": "rules",
+   "title": "What is the daily loss limit?",
+   "keywords": [
+    "daily loss",
+    "daily loss limit",
+    "max daily loss",
+    "daily drawdown",
+    "daily limit",
+    "loss per day",
+    "daily stop",
+    "daily reset",
+    "what time does daily reset",
+    "how does daily drawdown work",
+    "how much can i lose in a day",
+    "maximum loss per day",
+    "max loss per day",
+    "max loss allowed per day"
+   ],
+   "answer": "The **daily loss limit** is the most your equity can fall within a single trading day. Breaching it at any moment closes the account, whatever your overall result.\n\n{{cmp:daily}}\n\nFor accounts opened on or after {{c:rules_v2_date}}, each day's starting level is the **higher of balance and equity at 00:00 UTC**, so a floating loss carried past midnight counts towards the new day's limit.",
+   "follow_ups": [
+    "What is the max drawdown?",
+    "What happens if I breach a rule?"
+   ]
+  },
+  {
+   "id": "max-drawdown",
+   "topic": "rules",
+   "title": "What is max drawdown (static vs trailing)?",
+   "keywords": [
+    "drawdown",
+    "max drawdown",
+    "trailing drawdown",
+    "static drawdown",
+    "eod drawdown",
+    "overall loss",
+    "max overall loss",
+    "total loss limit",
+    "how is drawdown calculated",
+    "drawdown explained",
+    "what is drawdown",
+    "equity peak",
+    "how much can i lose",
+    "how much can i lose before i fail",
+    "how much can i lose overall",
+    "maximum loss"
+   ],
+   "answer": "**Max drawdown** is the largest fall in equity allowed overall. There are three kinds:\n- **Static** — measured from your *starting balance* and never moves (Traditional, PAC default).\n- **Trailing** — measured from your *highest equity ever*, so it rises as you profit (Infinity Stages 1–3).\n- **End-of-day trailing** — trails your highest *end-of-day* balance; intraday swings don't move it (Futures, Infinity Stage 4).\n\nCurrent limits:\n{{cmp:drawdown}}\n\nReaching the limit closes the account.",
+   "follow_ups": [
+    "What is the daily loss limit?"
+   ]
+  },
+  {
+   "id": "profit-target",
+   "topic": "rules",
+   "title": "What are the profit targets?",
+   "keywords": [
+    "profit target",
+    "targets",
+    "how much profit do i need",
+    "target percentage",
+    "phase target",
+    "how much to pass",
+    "pass target",
+    "profit goal",
+    "8%",
+    "closed trades"
+   ],
+   "answer": "{{cmp:target}}\n\nProfit counts on **closed trades only** — floating profit doesn't count. Reaching the target isn't enough on its own: you must also meet the minimum trading days and trades (and, in Infinity Stage 2, the profitable-days requirement).",
+   "follow_ups": [
+    "What are the minimum trading days?"
+   ]
+  },
+  {
+   "id": "minimum-days-trades",
+   "topic": "rules",
+   "title": "What are the minimum trading days and trades?",
+   "keywords": [
+    "minimum trading days",
+    "min days",
+    "minimum days",
+    "how many days",
+    "minimum trades",
+    "how many trades",
+    "trading day definition",
+    "what counts as a trading day",
+    "60 seconds",
+    "holding time",
+    "profitable day"
+   ],
+   "answer": "**Minimum trading days:**\n{{cmp:min_days}}\n\n**Minimum trades:**\n{{cmp:min_trades}}\n\nA trading day is a calendar day on which at least one trade was opened **and** closed. For accounts opened on or after {{c:rules_v2_date}}, a trade only counts if it was held at least **60 seconds**, partial closes don't create extra counted trades, and a day counts as profitable only if it closes at least 0.25% of the starting balance in profit.",
+   "follow_ups": []
+  },
+  {
+   "id": "consistency-rules",
+   "topic": "rules",
+   "title": "Is there a consistency rule?",
+   "keywords": [
+    "consistency",
+    "consistency rule",
+    "no consistency rule",
+    "one big day",
+    "single day profit",
+    "best day rule",
+    "40% rule",
+    "25% rule",
+    "single trade profit"
+   ],
+   "answer": "- **To pass the evaluation:** Traditional and Futures have **no consistency rule**. Infinity Stage 1 has a daily profit cap and Stage 2 requires a share of profitable days.\n- **To be paid:** payouts have consistency checks — no single trade may be more than **25%** of the period's profit; for accounts opened on or after {{c:rules_v2_date}}, the period must also include at least **4 trading days** and no single day may exceed **40%** of the profit.",
+   "follow_ups": [
+    "How do payouts work?"
+   ]
+  },
+  {
+   "id": "breach-what-happens",
+   "topic": "rules",
+   "title": "What happens if I breach a rule?",
+   "keywords": [
+    "breach",
+    "breached",
+    "rule breach",
+    "what if i break a rule",
+    "account closed",
+    "blown",
+    "blow up",
+    "hit the limit",
+    "hit drawdown",
+    "failed",
+    "violated",
+    "what does breach mean",
+    "i blew my account",
+    "blew my account",
+    "blown account",
+    "account blown",
+    "what now"
+   ],
+   "answer": "Breaching a trading parameter (daily loss, max drawdown, prohibited practice) closes the account **immediately**, fees aren't refunded and any pending profit split is forfeited. On the Infinity Challenge you can restart Stage 1 (up to {{p:infinity_s1.attempts}} times a month); on paid programmes you'd buy a new challenge.\n\nI can't see individual accounts — for a specific breach, email {{c:contact_email}} with your registered email.",
+   "follow_ups": [
+    "What are the execution costs?",
+    "Is the fee refundable?"
+   ]
+  },
+  {
+   "id": "prohibited-practices",
+   "topic": "rules",
+   "title": "What trading practices are prohibited?",
+   "keywords": [
+    "prohibited",
+    "not allowed",
+    "banned strategies",
+    "cheating",
+    "rules of trading",
+    "what can't i do",
+    "forbidden",
+    "allowed strategies",
+    "what is allowed",
+    "terms of trading"
+   ],
+   "answer": "The main prohibited practices (Terms section 8) are:\n- **Arbitrage and latency exploitation** — tick scalping, exploiting price delays or feed differences\n- **Hedging or coordinating across accounts** (yours or anyone else's)\n- **Copy trading and signals** — copying, being copied, or letting anyone else trade your account\n- **Unapproved bots/EAs** — algorithms need written approval first\n- **Martingale, grid and aggressive averaging** (unless agreed for a PAC)\n- **Single-trade gambling** or reverse-engineering the exact targets\n- **Exploiting platform errors** (report them instead) and **VPN/location masking**\n- **Account sharing** and multiple registered accounts\n\nBreaches mean immediate closure with no refund. Read section 8 of the [Terms](/terms.html) for the full wording.",
+   "follow_ups": [
+    "Can I use an EA or bot?",
+    "Is scalping allowed?"
+   ]
+  },
+  {
+   "id": "scalping-latency",
+   "topic": "rules",
+   "title": "Is scalping allowed?",
+   "keywords": [
+    "scalping",
+    "scalp",
+    "scalper",
+    "high frequency",
+    "hft",
+    "tick scalping",
+    "latency arbitrage",
+    "quick trades",
+    "fast trades",
+    "short trades",
+    "minimum holding",
+    "arbitrage",
+    "order rate",
+    "too many orders",
+    "max number of trades",
+    "max trades per day",
+    "trade limit",
+    "how many trades can i place",
+    "is there a max number of trades per day"
+   ],
+   "answer": "Scalping as a style is fine, but **tick scalping and latency/arbitrage exploitation are prohibited**. For accounts opened on or after {{c:rules_v2_date}}:\n- **Profit from a trade closed less than 60 seconds after opening doesn't count** towards your target (losses still count in full).\n- No more than **5 new orders in any 10 seconds** — extra orders are rejected.\n- Market orders have a short execution delay and slippage (see \"What are the execution costs?\").",
+   "follow_ups": [
+    "What are the execution costs?"
+   ]
+  },
+  {
+   "id": "ea-bots",
+   "topic": "rules",
+   "title": "Can I use an EA or trading bot?",
+   "keywords": [
+    "ea",
+    "expert advisor",
+    "trading bot",
+    "algo trading",
+    "automated trading",
+    "can i use a bot",
+    "algorithm",
+    "api trading",
+    "automation",
+    "mt4 ea",
+    "python bot",
+    "robot",
+    "can i use an ea",
+    "are bots allowed",
+    "run my bot",
+    "can i run a bot",
+    "run an ea",
+    "use my ea",
+    "can i run my bot on your platform"
+   ],
+   "answer": "Only through IPFX Markets, and only with written approval. Third-party software, EAs and any programmatic connection are prohibited unless you've submitted the full strategy (code, language, max risk per trade) via the designated tool and IPFX has **explicitly approved it in writing** — submission alone isn't approval. You stay responsible for everything the algorithm does. Personalised Application Challenge traders can agree algorithmic trading as part of their application.",
+   "follow_ups": [
+    "What is the PAC?"
+   ]
+  },
+  {
+   "id": "copy-trading",
+   "topic": "rules",
+   "title": "Is copy trading allowed?",
+   "keywords": [
+    "copy trading",
+    "copytrade",
+    "signals",
+    "signal provider",
+    "telegram signals",
+    "trade copier",
+    "mirror trades",
+    "follow another trader",
+    "master follower",
+    "challenge passing service",
+    "pass my challenge for me",
+    "managed account",
+    "someone else trade my account",
+    "let someone trade my account",
+    "share my account",
+    "friend trade my account",
+    "give my login to someone",
+    "someone trade for me",
+    "trade together",
+    "friend and i",
+    "trade with a friend",
+    "joint account",
+    "shared account",
+    "i use a trade copier",
+    "signal group",
+    "trade with a signal group"
+   ],
+   "answer": "No. Copy trading is **prohibited on every evaluation and funded account**, whether you're the follower or the source. It also covers acting on signals from Telegram/Discord/social accounts, using a \"challenge passing\" or account-management service, and having anyone direct your trades in real time. Every trade must be your own independent decision. Breaches lead to termination of all involved accounts with no refund or payout.",
+   "follow_ups": []
+  },
+  {
+   "id": "news-weekend-hold",
+   "topic": "rules",
+   "title": "Can I trade news or hold trades over weekends?",
+   "keywords": [
+    "news trading",
+    "news",
+    "economic calendar",
+    "high impact news",
+    "weekend",
+    "overnight",
+    "hold over weekend",
+    "swing",
+    "hold trades overnight",
+    "gap risk",
+    "nfp",
+    "fomc"
+   ],
+   "answer": "Unless your programme says otherwise you can hold positions overnight and over weekends (you carry the gap risk), and news trading is allowed. Where a programme specifies news windows, trades opened inside them may be cancelled and won't count. IPFX may restrict overnight or weekend holding in specific market conditions with reasonable notice. Also remember the daily loss limit includes floating losses carried past midnight.",
+   "follow_ups": []
+  },
+  {
+   "id": "leverage-margin",
+   "topic": "trading",
+   "title": "What leverage do you offer?",
+   "keywords": [
+    "leverage",
+    "margin",
+    "1:100",
+    "what leverage",
+    "max leverage",
+    "margin call",
+    "lot size",
+    "position size limits"
+   ],
+   "answer": "IPFX Markets uses **{{c:leverage}} leverage**. Position size is also limited by the per-trade risk rules on your programme and by maximum lot sizes. For accounts opened on or after {{c:rules_v2_date}} on programmes with a per-trade risk cap, the combined risk of all open positions (entry to stop-loss) may not exceed **three times** that cap.",
+   "follow_ups": []
+  },
+  {
+   "id": "instruments",
+   "topic": "trading",
+   "title": "Which instruments can I trade?",
+   "keywords": [
+    "instruments",
+    "what can i trade",
+    "which pairs",
+    "markets available",
+    "forex pairs",
+    "symbols",
+    "indices",
+    "metals",
+    "crypto",
+    "commodities",
+    "stocks",
+    "shares",
+    "oil",
+    "tradable",
+    "trading pairs",
+    "what markets can i trade",
+    "which markets can i trade"
+   ],
+   "answer": "The instruments currently enabled in IPFX Markets:\n\n{{instruments}}\n\n{{futures_status}} Which instruments your account can trade depends on your programme, and the list can change — IPFX Markets always shows what's available.",
+   "follow_ups": [
+    "Can I trade CME futures?",
+    "What leverage do you offer?"
+   ]
+  },
+  {
+   "id": "execution-costs",
+   "topic": "trading",
+   "title": "What are the execution costs (slippage, commission, delay)?",
+   "keywords": [
+    "slippage",
+    "commission",
+    "spread",
+    "execution delay",
+    "fees per trade",
+    "trading costs",
+    "execution costs",
+    "fill price",
+    "delay",
+    "requote",
+    "how are orders filled",
+    "stop not guaranteed",
+    "gap"
+   ],
+   "answer": "The platform is a simulation designed to behave like real markets. For evaluation accounts opened on or after **{{c:rules_v2_date}}** (and funded accounts arising from them):\n- **Execution delay:** market orders and closes you initiate execute after up to one second, at the less favourable of the price when received and when executed.\n- **Slippage:** applies to market orders, closes, stop-loss fills and triggered stops — currently up to about 0.3 basis points on forex, 0.5 on metals/indices and 5 on crypto. Take-profit and limit orders fill at their price or better.\n- **Commission:** US$6 per standard lot round-turn on forex and metals; none on indices and crypto.\n- **Stops aren't guaranteed** across gaps, and abnormal off-market prices may be disregarded.\n\nCosts are shown on every trade in your history. Rates can change under the Terms (section 18).",
+   "follow_ups": []
+  },
+  {
+   "id": "platform-ipfx-markets",
+   "topic": "trading",
+   "title": "What trading platform do you use? MT4/MT5? Desktop app?",
+   "keywords": [
+    "platform",
+    "ipfx markets",
+    "mt4",
+    "mt5",
+    "metatrader",
+    "ctrader",
+    "tradingview",
+    "desktop app",
+    "web platform",
+    "which platform",
+    "trading platform",
+    "app",
+    "mobile app",
+    "ios",
+    "android",
+    "charts",
+    "download",
+    "mac",
+    "windows",
+    "do you support mt4",
+    "mt4 support",
+    "do you support metatrader",
+    "support mt5",
+    "do you support ctrader",
+    "do you support tradingview"
+   ],
+   "answer": "All trading happens on **IPFX Markets**, our own web platform (open it from your dashboard). MetaTrader 4/5, cTrader and other third-party platforms aren't supported. {{c:desktop_status}} Charts are built into IPFX Markets; prices are for simulated evaluation and may differ from live exchange prices.",
+   "follow_ups": []
+  },
+  {
+   "id": "market-data-prices",
+   "topic": "trading",
+   "title": "Are the prices real? Why are prices different?",
+   "keywords": [
+    "are prices real",
+    "price feed",
+    "different prices",
+    "price lag",
+    "delayed prices",
+    "stale price",
+    "wrong price",
+    "price difference",
+    "data feed",
+    "tick data",
+    "quotes",
+    "why is the price different"
+   ],
+   "answer": "IPFX Markets prices are suitable for **simulated evaluation** and are not represented as exchange tick-by-tick data, so they can differ from your broker or exchange. If a price looks wrong, don't trade on it — report it straight away to {{c:contact_email}} (exploiting a known platform error is prohibited and its profits are void). Orders are rejected when no fresh, reliable price is available.",
+   "follow_ups": []
+  },
+  {
+   "id": "trading-hours",
+   "topic": "trading",
+   "title": "When can I trade? What are the market hours?",
+   "keywords": [
+    "trading hours",
+    "market hours",
+    "when can i trade",
+    "open hours",
+    "sessions",
+    "weekend trading",
+    "market closed",
+    "24/7",
+    "maintenance",
+    "downtime"
+   ],
+   "answer": "Each instrument follows its own trading sessions, shown in IPFX Markets — orders are rejected while a market is closed or no reliable price exists. The daily loss limit day runs 00:00–23:59 server time (UTC). Scheduled maintenance or outages can occur; see section 15.2 of the [Terms](/terms.html).",
+   "follow_ups": []
+  },
+  {
+   "id": "payout-how",
+   "topic": "payouts",
+   "title": "How do payouts work? How do I withdraw?",
+   "keywords": [
+    "payout",
+    "payouts",
+    "how do i get paid",
+    "withdraw",
+    "withdrawal",
+    "request payout",
+    "cash out",
+    "get my money",
+    "payout process",
+    "how to withdraw",
+    "profit split payout",
+    "payout schedule",
+    "payout frequency",
+    "how often",
+    "minimum payout",
+    "weekly payout",
+    "biweekly payout",
+    "keep the profits",
+    "keep my profits",
+    "do i keep my profits",
+    "do i keep 100%",
+    "how long till i get my money",
+    "how long do payouts take",
+    "how long does a payout take",
+    "when will i receive my payout",
+    "do you pay on time",
+    "are payouts on time",
+    "how much can i withdraw",
+    "what is the split",
+    "do i get paid straight away",
+    "instant payout",
+    "how quickly do i get paid",
+    "when can i request my first payout",
+    "when is the earliest i can request"
+   ],
+   "answer": "You request payouts from the **Payouts** page of your dashboard once you have a funded account in good standing. To be eligible:\n- your **identity (KYC) is verified**\n- at least **{{c:payout_min_days}} days** since your last payout (or since the account was funded)\n- the payout is at least **${{c:payout_min_usd}}**\n- you pass the **consistency checks** (see \"Is there a consistency rule?\")\n- no investigation or hold is open on the account\n\nEvery request is **reviewed by our team**; once approved it's typically processed in **{{c:payout_processing}}**. Payments go only to your own verified payout method. Your share is **{{p:trad_25k_p1.split_pct}}** of net profit. The very first payout has an extra profit threshold — see \"What's needed for my first payout?\".",
+   "follow_ups": [
+    "What's needed for my first payout?",
+    "Why was my payout withheld?",
+    "Is the fee refundable?"
+   ]
+  },
+  {
+   "id": "payout-first",
+   "topic": "payouts",
+   "title": "What's needed for my first payout?",
+   "keywords": [
+    "first payout",
+    "first withdrawal",
+    "5% threshold",
+    "minimum profit first payout",
+    "first payout requirement",
+    "when can i withdraw first",
+    "fee credit",
+    "when can i request my first payout",
+    "earliest first payout",
+    "when is the earliest i can request my first payout"
+   ],
+   "answer": "Before your **first** payout on a funded account you must reach at least **{{c:first_payout_threshold_pct}}% net realised (closed) profit** on the funded starting balance — e.g. $1,250 on a $25,000 account. Floating profit doesn't count. It's a one-off requirement; later payouts follow the normal conditions.\n\nOnce you're eligible, your **challenge fee is added to your first profit-split payment** as a single combined payment (see \"Is the fee refundable?\").",
+   "follow_ups": []
+  },
+  {
+   "id": "payout-consistency-denied",
+   "topic": "payouts",
+   "title": "Why was my payout denied or withheld?",
+   "keywords": [
+    "payout denied",
+    "payout rejected",
+    "payout withheld",
+    "payout delayed",
+    "payout not received",
+    "where is my payout",
+    "payout pending",
+    "payout failed",
+    "not paid",
+    "payout problem",
+    "payout error",
+    "too soon",
+    "below minimum",
+    "consistency failed"
+   ],
+   "answer": "Common reasons a payout request is refused or held:\n- KYC isn't verified yet, or documents haven't been supplied within {{c:kyc_deadline_days}} days of a request\n- fewer than {{c:payout_min_days}} days since the last payout, or under the ${{c:payout_min_usd}} minimum\n- a consistency check failed (one trade above 25% of the period's profit; and on newer accounts, under 4 trading days or one day above 40%)\n- an investigation/hold or unresolved rule breach on the account\n- a force-majeure or security suspension\n\nI can't look at your request. Email {{c:contact_email}} from your registered address with the payout date and amount (no documents or card details) and the team will check.",
+   "follow_ups": [
+    "How do payouts work?"
+   ]
+  },
+  {
+   "id": "payout-methods-tax",
+   "topic": "payouts",
+   "title": "How will I be paid? Do I pay tax?",
+   "keywords": [
+    "payout methods",
+    "payment method",
+    "how am i paid",
+    "bank transfer",
+    "paypal",
+    "crypto payout",
+    "usdt",
+    "tax",
+    "taxes",
+    "hmrc",
+    "income tax",
+    "payout currency",
+    "third party payment",
+    "payout to someone else",
+    "how will i be paid",
+    "how do you pay me",
+    "paid by paypal",
+    "paypal payout"
+   ],
+   "answer": "You add a payout method on the **Payouts** page of your dashboard — currently **bank transfer, PayPal or wire**. Payments are made **only to your own verified method**, never to a third party, in USD, and timing can vary with the provider and your bank's country. Store a reference only (never a full card or account number). Methods can change, so email {{c:contact_email}} if you need to confirm one. You're **responsible for any tax** on payouts in your country; IPFX doesn't withhold tax unless the law requires it and can supply payment records on request. We can't give tax advice.",
+   "follow_ups": []
+  },
+  {
+   "id": "fee-refundable",
+   "topic": "fees",
+   "title": "Is the challenge fee refundable?",
+   "keywords": [
+    "refund",
+    "refundable",
+    "money back",
+    "fee back",
+    "get my fee back",
+    "fee credit",
+    "credited",
+    "refund policy",
+    "can i get a refund",
+    "chargeback",
+    "cancel",
+    "cancellation",
+    "14 day",
+    "cooling off",
+    "cancel my purchase",
+    "do i get my fee back",
+    "is the fee refundable",
+    "what happens to my fee",
+    "what happens to my fee if i pass",
+    "do i get my fee back if i pass"
+   ],
+   "answer": "- **Not refundable once activated:** once your evaluation account is activated and you've started trading, the fee is non-refundable, and your 14-day cancellation right ends.\n- **Cancel before activating:** if you've paid but haven't placed any trade, you can cancel within **14 days** for a full refund — email {{c:contact_email}} *before* you trade.\n- **Credited on your first payout:** when you reach your first payout eligibility (see \"What's needed for my first payout?\"), the fee for that programme is **added to your first profit-split payment**.\n- No refund where a rule was broken, and please don't raise a chargeback (except for genuine fraud) — it leads to suspension.\n\nThe Infinity Challenge has no fee. See section 6 of the [Terms](/terms.html).",
+   "follow_ups": [
+    "What's needed for my first payout?"
+   ]
+  },
+  {
+   "id": "payment-methods",
+   "topic": "fees",
+   "title": "How can I pay? Which payment methods do you accept?",
+   "keywords": [
+    "payment methods",
+    "how do i pay",
+    "pay with card",
+    "credit card",
+    "debit card",
+    "crypto payment",
+    "paypal",
+    "apple pay",
+    "bank transfer",
+    "visa",
+    "mastercard",
+    "stripe",
+    "pay with crypto",
+    "usdt",
+    "bitcoin payment",
+    "checkout"
+   ],
+   "answer": "You pay **after** your application is approved, on the checkout step. Card payments are handled by our payment processor (we never see your full card details) and a crypto option is also available where enabled. {{c:checkout_note}} Fees are in US dollars; you cover any currency-conversion or bank charges, and taxes only where the law requires them.",
+   "follow_ups": [
+    "Is the fee refundable?",
+    "How much does it cost?"
+   ]
+  },
+  {
+   "id": "fees-overview",
+   "topic": "fees",
+   "title": "What are the fees? How much does it cost?",
+   "keywords": [
+    "fees",
+    "how much does it cost",
+    "price",
+    "prices",
+    "pricing",
+    "cost",
+    "cheapest",
+    "affordable",
+    "how much is it",
+    "fee list",
+    "challenge cost",
+    "entry fee",
+    "what are the fees",
+    "what are your fees",
+    "how much are the challenges"
+   ],
+   "answer": "- **Infinity:** free\n- **Traditional (Phase 1):** {{fees:traditional}}\n- **Futures (Phase 1):** {{fees:futures}}\n- **PAC (entry):** {{fees:pac}}\n\nFees are one-off, in USD, with no subscriptions, and are credited back with your first eligible payout. You pay only after your application is approved. Ask about a specific size (e.g. \"$50K fee\") for the details.",
+   "follow_ups": [
+    "Is the fee refundable?",
+    "What are the drawdown rules?"
+   ]
+  },
+  {
+   "id": "reset-retry",
+   "topic": "fees",
+   "title": "Can I reset or retry a challenge?",
+   "keywords": [
+    "reset",
+    "retry",
+    "restart",
+    "reset challenge",
+    "try again",
+    "second chance",
+    "buy again",
+    "reset fee",
+    "discounted retry",
+    "re-enter",
+    "another attempt",
+    "start over",
+    "can i retry after failing",
+    "retry after failing"
+   ],
+   "answer": "- **Infinity:** free restarts of Stage 1 — up to {{p:infinity_s1.attempts}} attempts per calendar month.\n- **Traditional / Futures:** there's no automatic restart. After a failure you'd buy a new challenge (subject to approval); where a reset is offered it's a separate paid service and doesn't refund the original fee.\n- A failed challenge isn't a ban — you can apply again.",
+   "follow_ups": []
+  },
+  {
+   "id": "promo-discount",
+   "topic": "fees",
+   "title": "Do you have promo codes or discounts?",
+   "keywords": [
+    "promo code",
+    "discount",
+    "coupon",
+    "voucher",
+    "offer",
+    "sale",
+    "black friday",
+    "deal",
+    "code",
+    "special offer",
+    "cheaper",
+    "free trial"
+   ],
+   "answer": "Promo codes and offers are issued by IPFX from time to time — I don't have a list of active ones. If you've been given a code, use it as instructed when you received it; otherwise follow our announcements on [Discord]({{c:discord_url}}) or email {{c:contact_email}}. The Infinity Challenge is always free to start.",
+   "follow_ups": []
+  },
+  {
+   "id": "referral",
+   "topic": "referral",
+   "title": "How does the referral programme work?",
+   "keywords": [
+    "referral",
+    "refer a friend",
+    "affiliate",
+    "referral code",
+    "referral link",
+    "commission",
+    "invite",
+    "earn by referring",
+    "referral reward",
+    "how do i refer",
+    "affiliate programme",
+    "partner"
+   ],
+   "answer": "Share your referral link from your dashboard. When someone you refer buys a challenge, gets funded and receives their **first payout**, you earn **{{c:referral_pct}}% of their challenge fee** as a reward.\n\nConditions: the friend must be a genuinely new customer using your link or code; self-referrals and rewards where you and the referred trader use the same network aren't paid; there's a default cap of 50 qualifying referrals per year unless the programme page says otherwise; and referrals must not be used for copy trading or signal-selling. Rewards can be withheld or reversed for fraud. See section 21 of the [Terms](/terms.html).",
+   "follow_ups": []
+  },
+  {
+   "id": "is-id-safe",
+   "topic": "privacy",
+   "title": "Is my ID and personal data safe?",
+   "keywords": [
+    "is my id safe",
+    "data safe",
+    "personal data",
+    "privacy",
+    "how do you store my id",
+    "who sees my documents",
+    "data security",
+    "encryption",
+    "data protection",
+    "gdpr",
+    "what do you do with my data",
+    "do you sell my data",
+    "documents secure",
+    "who has access",
+    "is my id secure",
+    "is my passport safe",
+    "is my personal info safe",
+    "is my personal information safe",
+    "how do you protect my personal information",
+    "keep my id",
+    "keep it forever",
+    "store my id",
+    "do you store my passport",
+    "how long do you keep my id",
+    "will you keep my id"
+   ],
+   "answer": "We collect your details only to review your application, run your account, pay you, prevent fraud and meet legal duties — and we **don't sell personal data**. Identity documents are kept in **private storage** (never in public folders), opened through short-lived links, and reviewed only by authorised staff with multi-factor authentication; access is logged. Data is encrypted in transit and protected by database access controls. No system is perfectly secure. Read the [Privacy Policy](/privacy.html) for full detail.",
+   "follow_ups": [
+    "How long do you keep my data?",
+    "What are my data rights?"
+   ]
+  },
+  {
+   "id": "data-retention-rights",
+   "topic": "privacy",
+   "title": "How long do you keep my data? What are my data rights?",
+   "keywords": [
+    "retention",
+    "how long do you keep",
+    "delete my data",
+    "data rights",
+    "subject access",
+    "erasure",
+    "right to be forgotten",
+    "access my data",
+    "gdpr rights",
+    "data request",
+    "remove my data",
+    "data deletion",
+    "copy of my data",
+    "keep my id forever",
+    "do you keep my documents",
+    "how long do you keep my documents"
+   ],
+   "answer": "- **Retention:** documents for an application that's denied, withdrawn or never activated are scheduled for review after **12 months**; for an approved challenge, after **5 years** (or the end of our relationship if later), unless a legal hold or investigation applies.\n- **Your rights (UK GDPR):** access your data, correct it, request erasure, object to or restrict processing, get a portable copy, and withdraw consent.\n\nExercise them by emailing {{c:contact_email}} from your registered address. Some records must be kept for legal, fraud-prevention or dispute purposes.",
+   "follow_ups": []
+  },
+  {
+   "id": "cookies-analytics",
+   "topic": "privacy",
+   "title": "What cookies do you use?",
+   "keywords": [
+    "cookies",
+    "analytics",
+    "tracking",
+    "cookie settings",
+    "consent",
+    "cookie banner",
+    "do you track me"
+   ],
+   "answer": "We use essential storage for security, sessions and your consent choices. **Optional analytics stay off until you choose \"Accept analytics\"**, and you can change your mind any time using **Cookie settings** in the page footer. See the [Privacy Policy](/privacy.html).",
+   "follow_ups": []
+  },
+  {
+   "id": "account-security",
+   "topic": "privacy",
+   "title": "How do I keep my account secure?",
+   "keywords": [
+    "account security",
+    "hacked",
+    "someone accessed my account",
+    "compromised",
+    "2fa",
+    "two factor",
+    "share password",
+    "phishing",
+    "suspicious email",
+    "fake email",
+    "scam email",
+    "unauthorised access",
+    "secure my account",
+    "account stolen",
+    "someone logged into my account",
+    "someone else logged in",
+    "unauthorised login",
+    "unrecognised login",
+    "think i was hacked",
+    "i was hacked"
+   ],
+   "answer": "- Never share your password, login or access with anyone — sharing an account breaches the Terms.\n- **IPFX will never ask for your password** or ask you to pay outside our checkout. Beware of fake emails, DMs or \"account managers\" using our name.\n- Use a strong, unique password and reset it from the [login page](/login.html) if in doubt.\n- If you suspect unauthorised access, email {{c:contact_email}} **immediately** — you're responsible for safeguarding your credentials.",
+   "follow_ups": []
+  },
+  {
+   "id": "who-processes-data",
+   "topic": "privacy",
+   "title": "Who do you share my data with?",
+   "keywords": [
+    "share my data",
+    "third parties",
+    "who processes",
+    "supabase",
+    "stripe",
+    "tradingview",
+    "data processors",
+    "international transfers",
+    "sell my data",
+    "data sharing"
+   ],
+   "answer": "We share data only with providers needed to run the service — for example our database/authentication host (Supabase), our payment processor (Stripe, where enabled) and chart provider (where used) — and with law-enforcement or regulators where legally required. Where data leaves the UK we rely on adequacy decisions or standard contractual clauses. We don't sell your personal data. Details are in the [Privacy Policy](/privacy.html).",
+   "follow_ups": []
+  },
+  {
+   "id": "contact",
+   "topic": "support",
+   "title": "How do I contact IPFX support?",
+   "keywords": [
+    "contact",
+    "email",
+    "support",
+    "help",
+    "customer service",
+    "human",
+    "speak to someone",
+    "talk to a person",
+    "phone number",
+    "call",
+    "live chat",
+    "agent",
+    "team",
+    "how do i reach",
+    "customer support",
+    "enquiries",
+    "inquiries",
+    "complaint",
+    "escalate",
+    "what is your email address",
+    "your email address",
+    "support email",
+    "what is your email",
+    "email address for support",
+    "how do i speak to a real person",
+    "speak to a real person",
+    "talk to a real person",
+    "do you have a phone number",
+    "live chat with a person"
+   ],
+   "answer": "Email **{{c:contact_email}}** and the team will help. For account-specific issues please write from your registered email address and **don't include passwords, full card numbers or ID documents** in the email. You can also join the community on [Discord]({{c:discord_url}}) for general questions — but don't post account details there. Our [contact page]({{c:website}}/contact.html) form is launching in October 2026.",
+   "follow_ups": []
+  },
+  {
+   "id": "technical-issue",
+   "topic": "support",
+   "title": "The platform isn't working / I found a bug",
+   "keywords": [
+    "bug",
+    "not working",
+    "error",
+    "platform down",
+    "can't place order",
+    "order rejected",
+    "won't load",
+    "glitch",
+    "technical problem",
+    "site down",
+    "cannot trade",
+    "stuck",
+    "crash",
+    "broken",
+    "outage",
+    "freezing",
+    "my order was rejected",
+    "order was rejected",
+    "orders are being rejected"
+   ],
+   "answer": "Sorry about that. Quick checks: refresh the page, confirm you're logged in to the right account, and check whether the market is open (orders are rejected when a market is closed or no fresh price is available). Note that closing the browser doesn't close open positions. If it persists, email {{c:contact_email}} with the time, the account, the instrument, and what you saw. If you believe a platform fault materially affected your evaluation, the Terms let IPFX extend it or issue a replacement at its discretion (section 6.4).",
+   "follow_ups": []
+  },
+  {
+   "id": "complaints-disputes",
+   "topic": "support",
+   "title": "How do I make a complaint or dispute a decision?",
+   "keywords": [
+    "complaint",
+    "complain",
+    "dispute",
+    "unfair",
+    "appeal decision",
+    "appeal breach",
+    "legal",
+    "solicitor",
+    "ombudsman",
+    "not happy",
+    "terminated unfairly",
+    "escalation",
+    "complaints procedure",
+    "complaint procedure",
+    "how do i complain",
+    "complaints process",
+    "what is your complaints procedure"
+   ],
+   "answer": "Email {{c:contact_email}} with your registered email address, the account concerned and what you'd like reviewed. Decisions on rule breaches and prohibited practices are final under the Terms, but a written request will be reviewed at IPFX's discretion. The Terms (sections 19–20) set out governing law (England & Wales) and how disputes are handled. I can't give legal advice.",
+   "follow_ups": []
+  },
+  {
+   "id": "dashboard-what",
+   "topic": "support",
+   "title": "What's in my dashboard?",
+   "keywords": [
+    "dashboard",
+    "where do i find",
+    "my account page",
+    "accounts page",
+    "where is my account",
+    "payouts page",
+    "how do i see my rules",
+    "login and find",
+    "my area"
+   ],
+   "answer": "After logging in, your [dashboard](/dashboard.html) is where you can see your challenge accounts and their limits and progress, open IPFX Markets, submit or update your verification documents, request payouts, add payout methods and find your referral link. If something is missing, email {{c:contact_email}}.",
+   "follow_ups": []
+  },
+  {
+   "id": "how-to-trade",
+   "topic": "trading",
+   "title": "How do I place a trade on IPFX Markets?",
+   "keywords": [
+    "how to trade",
+    "place an order",
+    "how do i place a trade",
+    "buy sell",
+    "market order",
+    "limit order",
+    "pending order",
+    "close trade",
+    "how do i close",
+    "set stop loss",
+    "set take profit",
+    "modify order",
+    "order types"
+   ],
+   "answer": "Open IPFX Markets from your dashboard, choose your account and instrument, enter your size, set your stop-loss (required on some programmes) and optional take-profit, then place a market order or a pending limit/stop order. You can modify SL/TP, partially close, or close positions from the positions panel. All orders are checked against your rules before they fill. See \"What are the execution costs?\" for slippage and delay.",
+   "follow_ups": [
+    "What is the stop-loss rule?"
+   ]
+  },
+  {
+   "id": "about-bot",
+   "topic": "meta",
+   "title": "Are you a real person? Who are you?",
+   "keywords": [
+    "are you a bot",
+    "are you human",
+    "are you ai",
+    "real person",
+    "who am i talking to",
+    "are you a robot",
+    "chatbot",
+    "who are you really",
+    "artificial",
+    "are you a real person",
+    "is this a bot",
+    "am i talking to a bot"
+   ],
+   "answer": "I'm IPFX's automated support assistant, not a person. I can answer questions about our programmes, rules, payouts and policies, but I can't see or change anyone's account. For anything personal or that I can't answer, email {{c:contact_email}}. Nothing I say is financial advice.",
+   "follow_ups": []
+  },
+  {
+   "id": "what-can-you-do",
+   "topic": "meta",
+   "title": "What can you help with?",
+   "keywords": [
+    "what can you do",
+    "what can you help with",
+    "help me",
+    "what do you know",
+    "commands",
+    "topics",
+    "menu",
+    "options"
+   ],
+   "answer": "I can help with: how IPFX works, the four programmes and their live fees and rules, applying and ID verification, trading rules and prohibited practices, payouts, refunds, referrals, data privacy and how to contact us. Try \"What's the drawdown on the $50K Traditional?\" or \"How do payouts work?\".",
+   "follow_ups": []
+  },
+  {
+   "id": "guarantee-profits",
+   "topic": "meta",
+   "title": "Can I guarantee I'll pass or make money?",
+   "keywords": [
+    "guarantee",
+    "guaranteed",
+    "will i pass",
+    "chance of passing",
+    "pass rate",
+    "success rate",
+    "how many pass",
+    "can i make money",
+    "is it easy",
+    "income",
+    "earn a living",
+    "how much can i make",
+    "get rich",
+    "passing percentage",
+    "win rate",
+    "what is the pass rate",
+    "what percent of people pass",
+    "percentage of people who pass",
+    "how many people pass",
+    "what percent pass",
+    "will i definitely get paid",
+    "definitely get paid if i pass",
+    "is payout guaranteed"
+   ],
+   "answer": "No — nothing is guaranteed. We can't promise you'll pass a challenge, get funded or receive a payout, and past performance (including on simulated accounts) doesn't predict future results. We haven't published pass-rate statistics. Trading involves substantial risk; only pay what you can afford to lose and treat any payout as uncertain. See the [Risk Disclosure](/risk-disclosure.html).",
+   "follow_ups": []
+  },
+  {
+   "id": "financial-advice",
+   "topic": "meta",
+   "title": "Can you give trading advice?",
+   "keywords": [
+    "trading advice",
+    "financial advice",
+    "investment advice",
+    "trade tips",
+    "strategy advice",
+    "recommend a strategy",
+    "give me trading tips",
+    "trading tips",
+    "give me tips"
+   ],
+   "answer": "I can't give investment or trading advice, signals or predictions — IPFX doesn't provide regulated financial advice and nothing on the site or in this chat is a recommendation. I *can* explain the rules so you can plan within them. For personal financial decisions, please speak to a qualified independent adviser.",
+   "follow_ups": []
+  },
+  {
+   "id": "time-limit",
+   "topic": "rules",
+   "title": "Is there a time limit to pass a challenge?",
+   "keywords": [
+    "time limit",
+    "is there a time limit",
+    "deadline",
+    "how long do i have to pass",
+    "how many days do i have",
+    "how many days do i have to hit the target",
+    "expire",
+    "expiry",
+    "expires",
+    "evaluation period",
+    "unlimited time",
+    "no time limit",
+    "30 day challenge"
+   ],
+   "answer": "- **Traditional and Futures:** there's **no time limit** to pass a phase. You must still meet the minimum trading days and trades, and every rule applies at all times.\n- **Infinity:** none of the published rules includes a deadline; the limit that applies is the number of Stage 1 attempts per calendar month ({{p:infinity_s1.attempts}}).\n- **PAC:** the evaluation window (standard, extended or unlimited) is agreed with you.",
+   "follow_ups": [
+    "What are the minimum trading days?",
+    "What are the profit targets?"
+   ]
+  },
+  {
+   "id": "how-ipfx-makes-money",
+   "topic": "company",
+   "title": "How does IPFX make money?",
+   "keywords": [
+    "how do you make money",
+    "how does ipfx make money",
+    "business model",
+    "where does the money come from",
+    "where does my fee go",
+    "what do you do with my fee",
+    "how do you profit",
+    "how are you funded",
+    "what is your business model"
+   ],
+   "answer": "Challenge fees fund the risk pool used to back funded accounts, and part of each fee covers platform and operating costs. When a funded trader is profitable, they keep {{p:trad_25k_p1.split_pct}} of the profit and IPFX keeps the rest. I can't share internal financials or risk models — the [About page](/about.html) describes how we run things.",
+   "follow_ups": [
+    "How do payouts work?",
+    "Is the fee refundable?"
+   ]
+  },
+  {
+   "id": "trading-data-use",
+   "topic": "privacy",
+   "title": "Who can see my trades? Do you use my trading data?",
+   "keywords": [
+    "who can see my trades",
+    "do you use my trades",
+    "trading data",
+    "do you copy my trades",
+    "do you mirror my trades",
+    "do you trade against me",
+    "who sees my trading",
+    "is my strategy private",
+    "do you steal strategies",
+    "do you share my strategy",
+    "trade data privacy",
+    "my strategy confidential"
+   ],
+   "answer": "We record the trading data on your accounts (orders, sizes, prices, timings, balance history). It's used to run your account, calculate your results and payouts, enforce the rules and detect prohibited practices, and — in **aggregated, anonymised** form — to calibrate our risk models and improve the platform.\n\nUnder our Terms (section 11) we do **not** place, mirror or copy trades on any live account based on your individual, identifiable trading data. Any future programme that did would be a separate, clearly described opt-in with its own terms and compensation. For the PAC, your strategy disclosure is treated as confidential. See the [Privacy Policy](/privacy.html).",
+   "follow_ups": [
+    "Is my ID safe?",
+    "How long do you keep my data?"
+   ]
+  },
+  {
+   "id": "launch-status",
+   "topic": "company",
+   "title": "When does IPFX launch? Is it live yet?",
+   "keywords": [
+    "when do you launch",
+    "when does ipfx launch",
+    "are you live",
+    "is it live",
+    "open yet",
+    "launching october",
+    "launch date",
+    "pre-register",
+    "pre register",
+    "coming soon",
+    "when will it open",
+    "is ipfx open",
+    "is the site live",
+    "when can i start",
+    "are you open",
+    "is the faq available",
+    "is the contact form live"
+   ],
+   "answer": "{{c:launch_note}}",
+   "follow_ups": [
+    "How do I start?",
+    "Is the Infinity Challenge free?"
+   ]
+  }
+ ]
+}

@@ -238,6 +238,56 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
   </div>
   <div id="promoList"><div class="msg" style="padding:1.25rem">Click <b>Refresh</b> to list promo codes.</div></div>
 
+  <!-- support chatbot: answers, facts, unanswered questions -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem;gap:.5rem;flex-wrap:wrap">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Support chatbot</h2>
+    <button class="chip" onclick="loadChatbot()">Load / refresh</button>
+  </div>
+  <div id="cbWrap"><div class="msg" style="padding:1.25rem">The chatbot answers from the live challenge rules (they update automatically) plus the answers and facts below. Click <b>Load / refresh</b> to manage them.</div></div>
+  <div id="cbBody" style="display:none">
+    <h3 style="font-size:.74rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700;margin:1.25rem 0 .5rem">Questions the bot couldn't answer (last 30 days, personal details removed)</h3>
+    <div id="cbGaps"></div>
+
+    <h3 style="font-size:.74rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700;margin:1.25rem 0 .5rem">Try the bot</h3>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <input id="cbTryQ" placeholder="Type a question exactly as a visitor would" maxlength="500" style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:.45rem .7rem;font-size:.8rem" onkeydown="if(event.key==='Enter')cbTry()">
+      <button class="chip" onclick="cbTry()">Ask</button>
+    </div>
+    <div id="cbTryOut" style="margin-top:.5rem;font-size:.8rem;color:var(--muted);white-space:pre-wrap"></div>
+
+    <h3 style="font-size:.74rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700;margin:1.25rem 0 .5rem">Facts the bot quotes (change these when the business changes)</h3>
+    <div id="cbFacts"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:1.25rem 0 .5rem;gap:.5rem;flex-wrap:wrap">
+      <h3 style="font-size:.74rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700;margin:0">Answers the bot knows</h3>
+      <div style="display:flex;gap:.4rem">
+        <input id="cbSearch" placeholder="Search answers" oninput="cbRenderEntries()" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:999px;padding:.35rem .85rem;font-size:.78rem;min-width:180px">
+        <button class="chip" onclick="cbNew('')">+ Add answer</button>
+      </div>
+    </div>
+    <div id="cbForm" style="display:none;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:1rem;margin-bottom:1rem">
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:.6rem;margin-bottom:.6rem">
+        <div><label style="font-size:.7rem;color:var(--muted2)">Topic</label><input id="cbTopic" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:.45rem .7rem;font-size:.8rem;width:100%;font-family:inherit" placeholder="e.g. payouts"></div>
+        <div><label style="font-size:.7rem;color:var(--muted2)">Question this answers</label><input id="cbTitle" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:.45rem .7rem;font-size:.8rem;width:100%;font-family:inherit" placeholder="e.g. How long do payouts take?" maxlength="200"></div>
+      </div>
+      <label style="font-size:.7rem;color:var(--muted2)">Other ways people ask it (one per line)</label>
+      <textarea id="cbKeywords" rows="4" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:.45rem .7rem;font-size:.8rem;width:100%;font-family:inherit" placeholder="withdrawal time&#10;how long to get paid"></textarea>
+      <label style="font-size:.7rem;color:var(--muted2);display:block;margin-top:.6rem">Answer (you can use **bold**, "- " bullets and [link](/page.html))</label>
+      <textarea id="cbAnswer" rows="6" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:.45rem .7rem;font-size:.8rem;width:100%;font-family:inherit" maxlength="4000"></textarea>
+      <div style="font-size:.7rem;color:var(--muted2);margin:.3rem 0 .6rem">Live values: <code>{{c:contact_email}}</code> (a fact above) · <code>{{p:trad_50k_p1.fee}}</code> · <code>{{fees:traditional}}</code> · <code>{{rules:infinity}}</code> · <code>{{cmp:daily}}</code> · <code>{{instruments}}</code>. Use these instead of typing numbers so the answer never goes out of date.</div>
+      <label style="font-size:.7rem;color:var(--muted2)">Suggested follow-up questions (one per line, up to 4)</label>
+      <textarea id="cbFollow" rows="2" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:.45rem .7rem;font-size:.8rem;width:100%;font-family:inherit"></textarea>
+      <div style="display:flex;align-items:center;gap:.8rem;margin-top:.8rem;flex-wrap:wrap">
+        <label style="font-size:.78rem"><input type="checkbox" id="cbActive" checked> Active</label>
+        <input type="hidden" id="cbId">
+        <button class="btn btn-b" onclick="cbSave()">Save answer</button>
+        <button class="btn btn-o" onclick="document.getElementById('cbForm').style.display='none'">Cancel</button>
+        <span id="cbFormNote" style="font-size:.72rem;color:var(--muted2)"></span>
+      </div>
+    </div>
+    <div id="cbEntries"></div>
+  </div>
+
   <!-- concentration risk: the firm loses when many traders win the same trade -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem">
     <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">
@@ -1177,6 +1227,93 @@ async function refreshAdminView(){
 }
 loadApplicationQueue();
 setInterval(refreshAdminView,10000);
+</script>
+<script>
+// ── Support chatbot management ─────────────────────────────────────────────
+let CB={entries:[],config:[],gaps:[]};
+const CB_ENDPOINT='https://agulweemteoeagscmppy.supabase.co/functions/v1/support-chat';
+async function loadChatbot(){
+  const r=await call({action:'chatbot_overview'});
+  if(!r) return;
+  CB=r;
+  document.getElementById('cbWrap').style.display='none';
+  document.getElementById('cbBody').style.display='block';
+  cbRenderGaps(); cbRenderFacts(); cbRenderEntries();
+}
+function cbRenderGaps(){
+  const w=document.getElementById('cbGaps');
+  if(!CB.gaps.length){w.innerHTML='<div class="msg" style="padding:.9rem">Nothing unanswered recently — every question found an answer.</div>';return;}
+  w.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Question</th><th>Times asked</th><th></th></tr></thead><tbody>'+CB.gaps.map((g,i)=>
+    `<tr><td>${esc(g.question)}</td><td>${Number(g.count)}</td><td><button class="btn btn-b" onclick="cbAddFromGap(${i})">Add answer</button> <button class="btn btn-o" onclick="cbDismissGap(${i})">Dismiss</button></td></tr>`).join('')+'</tbody></table></div>';
+}
+function cbAddFromGap(i){ cbNew(CB.gaps[i].question); }
+async function cbDismissGap(i){
+  const r=await call({action:'gap_resolve',question:CB.gaps[i].question});
+  if(r){toast('Dismissed',true);CB.gaps.splice(i,1);cbRenderGaps();}
+}
+function cbRenderFacts(){
+  const w=document.getElementById('cbFacts');
+  w.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Fact</th><th>Value</th><th></th></tr></thead><tbody>'+CB.config.map((c,i)=>
+    `<tr><td><div><b>${esc(c.key)}</b></div><div style="font-size:.7rem;color:var(--muted)">${esc(c.description||'')}</div></td>
+      <td style="min-width:260px"><input id="cbf_${i}" value="${esc(c.value)}" maxlength="1000" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:.4rem .6rem;font-size:.78rem;width:100%"></td>
+      <td><button class="btn btn-b" onclick="cbSaveFact(${i})">Save</button></td></tr>`).join('')+'</tbody></table></div>';
+}
+async function cbSaveFact(i){
+  const c=CB.config[i]; const v=document.getElementById('cbf_'+i).value.trim();
+  const r=await call({action:'config_save',key:c.key,value:v});
+  if(r){toast('Saved — the bot uses it within a minute',true);c.value=v;}
+}
+function cbRenderEntries(){
+  const q=(document.getElementById('cbSearch').value||'').toLowerCase();
+  const rows=CB.entries.map((e,i)=>({e,i})).filter(({e})=>!q||(e.title+' '+e.topic+' '+(e.keywords||[]).join(' ')).toLowerCase().includes(q));
+  const w=document.getElementById('cbEntries');
+  if(!rows.length){w.innerHTML='<div class="msg" style="padding:.9rem">No answers match.</div>';return;}
+  w.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Topic</th><th>Question</th><th>Status</th><th></th></tr></thead><tbody>'+rows.map(({e,i})=>
+    `<tr><td>${esc(e.topic)}</td><td>${esc(e.title)}</td>
+     <td>${e.is_active?'<span style="color:var(--green)">Active</span>':'<span style="color:var(--muted)">Off</span>'}${e.edited_by_owner?' · <span style="color:var(--muted)">edited</span>':''}</td>
+     <td><button class="btn btn-o" onclick="cbEdit(${i})">Edit</button> <button class="btn btn-o" onclick="cbToggle(${i})">${e.is_active?'Turn off':'Turn on'}</button> <button class="btn btn-o" onclick="cbDelete(${i})">Delete</button></td></tr>`).join('')+'</tbody></table></div>';
+}
+function cbFill(e,isNew){
+  document.getElementById('cbId').value=isNew?'':e.id;
+  document.getElementById('cbTopic').value=e.topic||'';
+  document.getElementById('cbTitle').value=e.title||'';
+  document.getElementById('cbKeywords').value=(e.keywords||[]).join('\n');
+  document.getElementById('cbAnswer').value=e.answer||'';
+  document.getElementById('cbFollow').value=(e.follow_ups||[]).join('\n');
+  document.getElementById('cbActive').checked=e.is_active!==false;
+  document.getElementById('cbFormNote').textContent=isNew?'New answer':'Editing "'+e.id+'". Once you save, the built-in wording for this entry is no longer overwritten by updates.';
+  const f=document.getElementById('cbForm'); f.style.display='block'; f.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cbNew(title){ cbFill({topic:'general',title:title||'',keywords:title?[title]:[],answer:'',follow_ups:[],is_active:true},true); }
+function cbEdit(i){ cbFill(CB.entries[i],false); }
+const cbLines=id=>document.getElementById(id).value.split('\n').map(x=>x.trim()).filter(Boolean);
+async function cbSave(){
+  const r=await call({action:'kb_save',id:document.getElementById('cbId').value||undefined,
+    topic:document.getElementById('cbTopic').value,title:document.getElementById('cbTitle').value,
+    keywords:cbLines('cbKeywords'),answer:document.getElementById('cbAnswer').value,
+    follow_ups:cbLines('cbFollow'),is_active:document.getElementById('cbActive').checked});
+  if(r){toast('Saved — live within a minute',true);document.getElementById('cbForm').style.display='none';loadChatbot();}
+}
+async function cbToggle(i){
+  const e=CB.entries[i];
+  const r=await call({action:'kb_save',id:e.id,topic:e.topic,title:e.title,keywords:e.keywords,answer:e.answer,follow_ups:e.follow_ups,is_active:!e.is_active});
+  if(r){toast(e.is_active?'Turned off':'Turned on',true);loadChatbot();}
+}
+async function cbDelete(i){
+  const e=CB.entries[i];
+  if(!confirm('Delete "'+e.title+'"? The bot will stop answering this. (Turn it off instead if you might want it back.)')) return;
+  const r=await call({action:'kb_delete',id:e.id});
+  if(r){toast('Deleted',true);loadChatbot();}
+}
+async function cbTry(){
+  const q=document.getElementById('cbTryQ').value.trim(); const out=document.getElementById('cbTryOut');
+  if(!q) return; out.textContent='Thinking…';
+  try{
+    const res=await fetch(CB_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:q})});
+    const d=await res.json();
+    out.textContent=d.ok?('['+d.mode+(d.kb?' · '+d.kb:'')+']\n'+d.reply):('Error: '+(d.error||res.status));
+  }catch(e){out.textContent='Could not reach the chatbot.';}
+}
 </script>
 </body>
 </html>

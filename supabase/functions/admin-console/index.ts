@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
 
   const action = body.action;
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
-  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide"]);
+  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
   const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log"]);
   if (sensitiveActions.has(String(action)) && tokenAal(bearerToken) !== "aal2") {
@@ -1747,6 +1747,78 @@ Deno.serve(async (req) => {
     });
     if (queueAuditError) return err("KYC records are unavailable because the audit trail could not be written.", 503);
     return json({ ok: true, queue: out });
+  }
+
+  // ---- Support chatbot: knowledge base, facts and unanswered questions (owner only) ----
+  if (action === "chatbot_overview") {
+    const [kb, cfg, gaps] = await Promise.all([
+      db.from("support_kb").select("id,topic,title,keywords,answer,follow_ups,is_active,edited_by_owner,updated_at").order("topic").order("title"),
+      db.from("support_config").select("key,value,description,edited_by_owner,updated_at").order("key"),
+      db.from("support_chat_log").select("question,created_at").eq("answered", false).eq("resolved", false)
+        .gte("created_at", new Date(Date.now() - 30 * 86400_000).toISOString()).order("created_at", { ascending: false }).limit(500),
+    ]);
+    if (kb.error || cfg.error || gaps.error) return err("Could not load the chatbot data", 500);
+    const tally = new Map<string, { question: string; count: number; last: string }>();
+    for (const g of gaps.data ?? []) {
+      const key = String(g.question).toLowerCase().trim();
+      const cur = tally.get(key);
+      if (cur) cur.count++; else tally.set(key, { question: g.question, count: 1, last: g.created_at });
+    }
+    const gapList = [...tally.values()].sort((a, b) => b.count - a.count || (a.last < b.last ? 1 : -1)).slice(0, 60);
+    return json({ ok: true, entries: kb.data ?? [], config: cfg.data ?? [], gaps: gapList });
+  }
+
+  if (action === "kb_save") {
+    const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+    const title = String(body.title ?? "").trim();
+    const answer = String(body.answer ?? "").trim();
+    const topic = String(body.topic ?? "general").trim().toLowerCase().slice(0, 40) || "general";
+    const id = String(body.id ?? "").trim() || slug(title);
+    const list = (v: unknown, max: number, len: number) =>
+      (Array.isArray(v) ? v : []).map((x) => String(x).trim()).filter(Boolean).map((x) => x.slice(0, len)).slice(0, max);
+    if (!/^[a-z0-9][a-z0-9-]{1,63}$/.test(id)) return err("The id must be 2-64 characters: lowercase letters, numbers and hyphens");
+    if (title.length < 3 || title.length > 200) return err("The question/title must be 3-200 characters");
+    if (answer.length < 3 || answer.length > 4000) return err("The answer must be 3-4000 characters");
+    if (topic.length < 2) return err("Choose a topic");
+    const row = {
+      id, topic, title, answer,
+      keywords: list(body.keywords, 40, 120), follow_ups: list(body.follow_ups, 6, 70),
+      is_active: body.is_active !== false, edited_by_owner: true, embedding: null,
+      updated_at: new Date().toISOString(), updated_by: user.id,
+    };
+    const { error: saveError } = await db.from("support_kb").upsert(row, { onConflict: "id" });
+    if (saveError) return err("Could not save the entry", 500);
+    await logAdmin("kb_save", { detail: { id, is_active: row.is_active } });
+    return json({ ok: true, id });
+  }
+
+  if (action === "kb_delete") {
+    const id = String(body.id ?? "");
+    if (!/^[a-z0-9][a-z0-9-]{1,63}$/.test(id)) return err("Bad id");
+    const { error: delError } = await db.from("support_kb").delete().eq("id", id);
+    if (delError) return err("Could not delete the entry", 500);
+    await logAdmin("kb_delete", { detail: { id } });
+    return json({ ok: true });
+  }
+
+  if (action === "config_save") {
+    const key = String(body.key ?? "").trim();
+    const value = String(body.value ?? "").trim();
+    if (!/^[a-z][a-z0-9_]{1,63}$/.test(key)) return err("Bad key");
+    if (!value || value.length > 1000) return err("The value must be 1-1000 characters");
+    const { error: cfgError } = await db.from("support_config").upsert(
+      { key, value, edited_by_owner: true, updated_at: new Date().toISOString(), updated_by: user.id }, { onConflict: "key" });
+    if (cfgError) return err("Could not save the fact", 500);
+    await logAdmin("config_save", { detail: { key } });
+    return json({ ok: true });
+  }
+
+  if (action === "gap_resolve") {
+    const question = String(body.question ?? "").slice(0, 300);
+    if (!question) return err("Missing question");
+    const pattern = question.replace(/[\\%_]/g, "\\$&"); // match this exact text; no wildcards
+    await db.from("support_chat_log").update({ resolved: true }).ilike("question", pattern).eq("answered", false);
+    return json({ ok: true });
   }
 
   return err("unknown action");

@@ -1061,36 +1061,6 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 </main>
 
-<!-- CHAT WIDGET -->
-<div class="chat-w" id="chatW">
-  <div class="chat-panel" id="chatPanel">
-    <div class="chat-head">
-      <div class="chat-head-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-      <div>
-        <div class="chat-head-name">IPFX Support</div>
-        <div class="chat-head-status">Online now</div>
-      </div>
-    </div>
-    <div class="chat-msgs" id="chatMsgs">
-      <div class="msg bot"><div class="mb">Hey! I'm the IPFX support assistant. How can I help you today?</div><div class="mt">Now</div></div>
-    </div>
-    <div class="chat-sugs" id="chatSugs">
-      <button class="sug" onclick="askSug(this)">How do payouts work?</button>
-      <button class="sug" onclick="askSug(this)">What is the PAC?</button>
-      <button class="sug" onclick="askSug(this)">Drawdown rules</button>
-      <button class="sug" onclick="askSug(this)">Scaling capital</button>
-    </div>
-    <div class="chat-input-row">
-      <input class="chat-input" id="chatInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMsg()">
-      <button class="chat-send" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
-    </div>
-  </div>
-  <button class="chat-bubble" onclick="toggleChat()" style="position:relative">
-    <svg class="oi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    <span class="chat-notif" id="chatNotif">1</span>
-  </button>
-</div>
 
 <script>
 // ── SUPABASE ──
@@ -2301,35 +2271,10 @@ function submitAffForm(e){
 }
 
 // Chat KB
-const KB={
-  payout:['payout','withdraw','profit split','money','payment'],
-  pac:['pac','application challenge','personalised','funded from day','no evaluation','strategy disclose'],
-  drawdown:['drawdown','blow','breach','limit','floor','lose','fail'],
-  scaling:['scale','scaling','500k','more capital','bigger account','upgrade'],
-  ea:['ea','expert advisor','automated','algo','bot','robot','api'],
-  platform:['platform','mt4','mt5','ctrader','metatrader'],
-  hello:['hello','hi','hey','morning','afternoon','evening'],
-};
-const ANS={
-  payout:'Your profits are available under the **Payouts** tab. IPFX operates a 85/15 split — you keep 85%. Payouts process in 1–3 business days to your connected payment method. You need to pass the consistency check to be eligible.',
-  pac:'The **Application Challenge (PAC)** is our funded-from-day-one programme. You disclose your strategy, our analysts backtest it, agree custom parameters with you, and you trade live capital immediately — no evaluation phases. Starts at $25K, scales to $500K.',
-  drawdown:'Your drawdown limit is the floor your balance cannot breach. If hit, trading is suspended. Infinity accounts can reset; PAC accounts: a breach ends the agreement as it falls outside your agreed parameters — you can reapply.',
-  scaling:'After proving a consistent edge, apply for more capital — up to **$200K on Infinity** and up to **$500K on PAC accounts at no fee**. Go to Accounts after 3+ months of consistent returns.',
-  ea:'Yes — EAs and algos are fully permitted. For the PAC, your algorithm logic must be disclosed so our analysts can backtest and agree appropriate parameters before you go live.',
-  platform:'IPFX trades on our own in-house platform, **IPFX Markets** — a simulated trading environment. We do not currently offer MetaTrader or cTrader.',
-  hello:'Hey! Good to hear from you. I can help with payouts, drawdown, the Application Challenge, scaling capital, EAs, platforms and more. What do you need?',
-  default:'Great question — for detailed help reach us on Discord (usually under 10 mins) or email enquiries@ipfxcapital.com. Anything else I can help clarify?'
-};
-function classify(t){const l=t.toLowerCase();for(const[k,ps] of Object.entries(KB)){if(ps.some(p=>l.includes(p)))return k;}return 'default';}
-function addMsg(txt,role){const msgs=document.getElementById('chatMsgs');const d=document.createElement('div');d.className='msg '+role;const n=new Date();const h=n.getHours().toString().padStart(2,'0'),m=n.getMinutes().toString().padStart(2,'0');d.innerHTML=`<div class="mb">${txt.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div><div class="mt">${h}:${m}</div>`;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
-function showTyping(){const msgs=document.getElementById('chatMsgs');const d=document.createElement('div');d.className='msg bot';d.id='typing';d.innerHTML='<div class="mb"><div class="tdots"><span></span><span></span><span></span></div></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
-function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
-function sendMsg(){const inp=document.getElementById('chatInput');const txt=inp.value.trim();if(!txt)return;addMsg(txt,'user');inp.value='';document.getElementById('chatSugs').style.display='none';showTyping();setTimeout(()=>{removeTyping();addMsg(ANS[classify(txt)],'bot');},800+Math.random()*500);}
-function askSug(btn){document.getElementById('chatInput').value=btn.textContent;sendMsg();}
-function toggleChat(){const w=document.getElementById('chatW');w.classList.toggle('open');document.getElementById('chatNotif').style.display='none';}
 </script>
 
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
+<script defer src="/assets/js/support-chat.js"></script>
 </body>
 </html>

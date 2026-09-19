@@ -1694,9 +1694,11 @@ Deno.serve(async (req) => {
       }
       if (application.status !== "approved") return err("This challenge is not approved yet.", 403);
       if (application.trading_account_id) {
-        const { data: existing } = await db.from("trading_accounts").select("id,label,starting_balance")
+        // Idempotent replay only while that account is still running. Once it has ended
+        // (breached/closed) the trader is entitled to a fresh Stage 1 within their monthly attempts.
+        const { data: existing } = await db.from("trading_accounts").select("id,label,starting_balance,status")
           .eq("id", application.trading_account_id).is("access_revoked_at", null).maybeSingle();
-        if (existing) return new Response(JSON.stringify({ ok: true, account: existing }),
+        if (existing && existing.status === "active") return new Response(JSON.stringify({ ok: true, account: existing }),
           { headers: { ...CORS, "Content-Type": "application/json" } });
       }
       const account = await insertAccountFromPreset(db, user.id, st.preset, 0);
