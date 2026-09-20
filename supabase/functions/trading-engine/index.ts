@@ -501,6 +501,40 @@ type Acct = {
 const isDemoAccount = (acct: Acct) => acct.phase === "demo" && acct.status === "demo";
 const isTradableAccount = (acct: Acct) => acct.status === "active" || isDemoAccount(acct);
 
+// A fixed percentage cap alone still lets a trader gamble when only a small
+// amount of loss room remains. Keep every new trade below the phase cap and
+// below a conservative share of the live drawdown/daily buffers.
+const DRAWDOWN_BUFFER_RISK_FRACTION = 0.20; // at least five full losses remain
+const DAILY_BUFFER_RISK_FRACTION = 0.25;    // at least four full losses remain today
+type EffectiveRiskLimit = {
+  base: number; effective: number; drawdownRemaining: number; dailyRemaining: number;
+};
+function effectiveRiskLimit(acct: Acct, equityNow: number): EffectiveRiskLimit | null {
+  if (acct.max_risk_per_trade_pct == null || isDemoAccount(acct)) return null;
+  const start = Number(acct.starting_balance);
+  const equity = Number(equityNow);
+  const base = round2(start * Number(acct.max_risk_per_trade_pct) / 100);
+  const ddAmount = start * Number(acct.max_drawdown_pct) / 100;
+  const paidOut = Number(acct.total_paid_out ?? 0);
+  const mode = acct.drawdown_mode ?? "static";
+  const peak = mode === "trailing_intraday"
+    ? Math.max(Number(acct.trailing_peak ?? start), equity)
+    : Number(acct.trailing_peak ?? start);
+  const ddFloor = mode === "static"
+    ? start * (1 - Number(acct.max_drawdown_pct) / 100) - paidOut
+    : peak - ddAmount - paidOut;
+  const dayStart = Number(acct.day_start_equity ?? equity);
+  const dailyFloor = dayStart - start * Number(acct.daily_loss_pct) / 100;
+  const drawdownRemaining = round2(Math.max(0, equity - ddFloor));
+  const dailyRemaining = round2(Math.max(0, equity - dailyFloor));
+  const effective = round2(Math.max(0, Math.min(
+    base,
+    drawdownRemaining * DRAWDOWN_BUFFER_RISK_FRACTION,
+    dailyRemaining * DAILY_BUFFER_RISK_FRACTION,
+  )));
+  return { base, effective, drawdownRemaining, dailyRemaining };
+}
+
 async function ensureDemoAccount(db: Db, userId: string): Promise<Acct> {
   const ensured = await db.rpc("fn_ensure_demo_account", { p_user_id: userId });
   if (ensured.error || !ensured.data) throw new Error("DEMO_ACCOUNT_UNAVAILABLE");
@@ -676,9 +710,10 @@ function ruleGate(
   }
   if (acct.max_risk_per_trade_pct != null && sl !== null) {
     const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
-    const maxRisk = round2(startBal * Number(acct.max_risk_per_trade_pct) / 100);
+    const limit = effectiveRiskLimit(acct, equityNow);
+    const maxRisk = limit?.effective ?? round2(startBal * Number(acct.max_risk_per_trade_pct) / 100);
     if (riskUsd > maxRisk + 0.01) {
-      return `Risk $${riskUsd.toFixed(2)} exceeds the ${acct.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)})`;
+      return `Risk $${riskUsd.toFixed(2)} exceeds the current $${maxRisk.toFixed(2)} limit (base cap ${acct.max_risk_per_trade_pct}%; reduced as loss room is used)`;
     }
     if (openRisk !== null) {
       const cap = round2(maxRisk * MAX_TOTAL_RISK_MULTIPLE);
@@ -1358,6 +1393,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
   const ddFloor = mode === "static"
     ? round2(start * (1 - Number(acct.max_drawdown_pct) / 100) - paidOut)
     : round2(Math.max(peak, mode === "trailing_intraday" ? equity : peak) - ddAmount - paidOut);
+  const liveRiskLimit = effectiveRiskLimit(acct, equity);
 
   return {
     ok: true,
@@ -1377,8 +1413,10 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         trailing_peak: mode === "static" ? null : round2(peak),
         daily_floor: round2(Number(acct.day_start_equity) - start * Number(acct.daily_loss_pct) / 100),
         max_risk_per_trade_pct: acct.max_risk_per_trade_pct ?? null,
-        max_risk_per_trade_usd: acct.max_risk_per_trade_pct == null ? null
-          : round2(start * Number(acct.max_risk_per_trade_pct) / 100),
+        max_risk_per_trade_usd: liveRiskLimit?.effective ?? null,
+        base_risk_per_trade_usd: liveRiskLimit?.base ?? null,
+        drawdown_room_usd: liveRiskLimit?.drawdownRemaining ?? null,
+        daily_loss_room_usd: liveRiskLimit?.dailyRemaining ?? null,
         daily_profit_cap_usd: acct.daily_profit_cap_pct == null ? null
           : round2(start * Number(acct.daily_profit_cap_pct) / 100),
         require_stop_loss: !!acct.require_stop_loss,
@@ -2217,13 +2255,15 @@ Deno.serve(async (req) => {
         return reject("This challenge requires a stop-loss on every order.", q);
       }
 
-      // Max risk per trade (Infinity: 1% of starting balance).
+      // Phase-specific max risk per trade, tightened further as the trader
+      // approaches either live loss boundary.
       if (A.max_risk_per_trade_pct != null && sl !== null) {
         const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
-        const maxRisk = round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
+        const limit = effectiveRiskLimit(A, state.equity);
+        const maxRisk = limit?.effective ?? round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
         if (riskUsd > maxRisk + 0.01) {
           return reject(
-            `Risk on this order is $${riskUsd.toFixed(2)}, above the ${A.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)}). Reduce size or tighten the stop.`, q);
+            `Risk on this order is $${riskUsd.toFixed(2)}, above your current $${maxRisk.toFixed(2)} limit (base cap ${A.max_risk_per_trade_pct}%). Reduce size or tighten the stop.`, q);
         }
       }
       const needed = (inst.contract * volume * q.mid * conv) / LEVERAGE;
@@ -2234,9 +2274,11 @@ Deno.serve(async (req) => {
       if (v2 && A.max_risk_per_trade_pct != null && sl !== null) {
         const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
         const openRisk = await openRiskUsd(state.open);
-        const cap = round2(startBal * Number(A.max_risk_per_trade_pct) / 100 * MAX_TOTAL_RISK_MULTIPLE);
+        const limit = effectiveRiskLimit(A, state.equity);
+        const perTrade = limit?.effective ?? round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
+        const cap = round2(perTrade * MAX_TOTAL_RISK_MULTIPLE);
         if (openRisk + riskUsd > cap + 0.01) {
-          return reject(`Total open risk would be $${(openRisk + riskUsd).toFixed(2)}, above the ${Number(A.max_risk_per_trade_pct) * MAX_TOTAL_RISK_MULTIPLE}% limit ($${cap.toFixed(2)}). Close or tighten another position first.`, q);
+          return reject(`Total open risk would be $${(openRisk + riskUsd).toFixed(2)}, above the current $${cap.toFixed(2)} aggregate limit. Close or tighten another position first.`, q);
         }
       }
 
@@ -2255,9 +2297,10 @@ Deno.serve(async (req) => {
         }
         if (A.max_risk_per_trade_pct != null && sl !== null) {
           const riskAtFill = Math.abs(ex.price - sl) * inst.contract * volume * conv;
-          const maxRisk = round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
+          const limit = effectiveRiskLimit(A, state.equity);
+          const maxRisk = limit?.effective ?? round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
           if (riskAtFill > maxRisk + 0.01) {
-            return reject(`Slippage took this order's risk to $${riskAtFill.toFixed(2)}, above the ${A.max_risk_per_trade_pct}% cap — order not filled`, ex.quote);
+            return reject(`Slippage took this order's risk to $${riskAtFill.toFixed(2)}, above the current $${maxRisk.toFixed(2)} limit — order not filled`, ex.quote);
           }
         }
         openPrice = ex.price;
@@ -2372,9 +2415,10 @@ Deno.serve(async (req) => {
       if (conv2 === null) return err("Could not check this stop against your risk limit — try again", 503);
       {
         const riskUsd = Math.abs(Number(target.open_price) - nsl) * inst2.contract * Number(target.volume) * conv2;
-        const maxRisk = round2(Number(A2.starting_balance) * Number(A2.max_risk_per_trade_pct) / 100);
+        const limit = effectiveRiskLimit(A2, state.equity);
+        const maxRisk = limit?.effective ?? round2(Number(A2.starting_balance) * Number(A2.max_risk_per_trade_pct) / 100);
         if (riskUsd > maxRisk + 0.01) {
-          return err(`That stop implies $${riskUsd.toFixed(2)} of risk, above the ${A2.max_risk_per_trade_pct}% cap ($${maxRisk.toFixed(2)}).`);
+          return err(`That stop implies $${riskUsd.toFixed(2)} of risk, above your current $${maxRisk.toFixed(2)} limit (base cap ${A2.max_risk_per_trade_pct}%).`);
         }
       }
     }

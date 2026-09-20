@@ -1,0 +1,4 @@
+update public.support_kb
+set answer = E'I can''t recommend one for your circumstances, but here''s how they differ:\n\n- **Infinity** — no fee, small starting capital ($1,000), four stages, stricter trade-level rules (0.70% risk per trade in Stages 1–3, 0.50% in Stage 4, plus a daily profit cap in Stage 1).\n- **Traditional** — paid, larger simulated accounts ($10K–$200K), three phases with static drawdown and phase-specific risk caps.\n- **Futures** — paid, two phases, end-of-day trailing drawdown, aimed at CME futures traders.\n- **PAC** — for traders who already have a documented, profitable strategy; custom parameters agreed with our analysts.\n\nCompare the exact numbers with "What are the fees?" or "Compare the daily loss limits". Trading is risky and none of this is financial advice.',
+    updated_at = now()
+where id = 'which-programme';

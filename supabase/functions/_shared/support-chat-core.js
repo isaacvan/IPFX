@@ -335,6 +335,7 @@ export function rulesText(K, type) {
     return [
       `- No fixed evaluation phase — your parameters are agreed with you after our analysts review your strategy.`,
       `- Default framework: max daily loss ${pct(r.daily_loss_pct)} · max drawdown ${pct(r.max_drawdown_pct)} (${MODE_SHORT[r.drawdown_mode]}) — custom limits can be agreed.`,
+      `- Default risk ceiling ${pct(r.max_risk_per_trade_pct)} of starting balance per trade · stop-loss required · a lower cap may be agreed.`,
       `- Profit split ${pct(r.profit_split_pct)}`,
     ].join("\n");
   }
@@ -356,7 +357,8 @@ export function rulesText(K, type) {
   if (shared.length) lines.push(`- Every ${u.toLowerCase()}: ${shared.join(" · ")}`);
   if (perStage.length) {
     for (const [i, r] of rows.entries()) {
-      lines.push(`- ${u} ${i + 1}: daily ${pct(r.daily_loss_pct)} · drawdown ${pct(r.max_drawdown_pct)} · ${r.min_trading_days} days / ${r.min_trades} trades`);
+      const risk = r.max_risk_per_trade_pct == null ? "no fixed per-trade cap" : `risk ≤ ${pct(r.max_risk_per_trade_pct)} per trade`;
+      lines.push(`- ${u} ${i + 1}: daily ${pct(r.daily_loss_pct)} · drawdown ${pct(r.max_drawdown_pct)} · ${risk} · ${r.min_trading_days} days / ${r.min_trades} trades`);
     }
   }
   return lines.join("\n");

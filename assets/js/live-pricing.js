@@ -6,7 +6,7 @@
 // The text already in the element is the fallback shown if the request
 // fails; data-prefix / data-suffix wrap the generated value.
 // Fields: fee, size, balance, target, target_rev, target_pct, target_amt,
-//   daily, daily_rev, daily_amt, dd, dd_rev, dd_amt, min_days, min_trades, split, risk,
+//   daily, daily_rev, daily_amt, dd, dd_rev, dd_amt, min_days, min_trades, split, risk, risk_pct,
 //   profit_cap, profitable_days
 // An element with data-preset-price="ID" gets data-price set to the fee.
 // Fires `ipfx:presets` on document with { detail: { [id]: preset } }.
@@ -45,6 +45,7 @@
       case "min_trades": return String(num(p.min_trades));
       case "split": return pct(p.profit_split_pct);
       case "risk": return p.max_risk_per_trade_pct == null ? "None" : pct(p.max_risk_per_trade_pct) + " (" + amt(p.max_risk_per_trade_pct) + ")";
+      case "risk_pct": return p.max_risk_per_trade_pct == null ? "None" : pct(p.max_risk_per_trade_pct);
       case "profit_cap": return p.daily_profit_cap_pct == null ? "None" : pct(p.daily_profit_cap_pct) + " (" + amt(p.daily_profit_cap_pct) + ")";
       case "profitable_days": return p.min_profitable_days_pct == null ? "None" : pct(p.min_profitable_days_pct) + "+";
       default: return null;

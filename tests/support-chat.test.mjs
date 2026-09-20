@@ -75,7 +75,9 @@ test('facts: traditional answers report the enforced 3 phases and stop-loss/risk
   const text = expandTemplate('{{rules:traditional}}', K);
   assert.match(text, /3 phases/);
   assert.match(text, /stop-loss required/);
-  assert.match(text, /risk ≤ 1%/);
+  assert.match(text, /risk ≤ 0\.75%/);
+  assert.match(text, /risk ≤ 0\.5%/);
+  assert.match(text, /risk ≤ 0\.4%/);
 });
 test('rules generated for every programme are non-empty', () => {
   for (const t of ['infinity', 'traditional', 'futures', 'pac']) assert.ok(rulesText(K, t).length > 30, t);
@@ -109,7 +111,8 @@ test('every KB answer expands with no leftover tokens or blanks', () => {
   for (const e of K.kb) {
     const text = expandTemplate(e.answer, K);
     assert.ok(!/\{\{|\}\}/.test(text), `${e.id} has unresolved token`);
-    assert.ok(!/\$\s*(\.|,|\)|$)|\(\s*\)|\bundefined\b|\bNaN\b|\bnull\b/i.test(text.replace(/\$\d/g, '')), `${e.id} looks broken: ${text.slice(0, 200)}`);
+    const withoutValidMoney = text.replace(/\$\d[\d,.]*/g, 'USD');
+    assert.ok(!/\$\s*(\.|,|\)|$)|\(\s*\)|\bundefined\b|\bNaN\b|\bnull\b/i.test(withoutValidMoney), `${e.id} looks broken: ${text.slice(0, 200)}`);
     assert.ok(text.length > 20, e.id);
   }
 });
