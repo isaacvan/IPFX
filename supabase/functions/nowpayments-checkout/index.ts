@@ -21,10 +21,12 @@ const headers = {
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
-const challengePreviewAllowed = (email: string | undefined) =>
-  Date.now() >= challengePublicLaunchAt ||
+const ownerPreview = (email: string | undefined) =>
   String(email || "").trim().toLowerCase() ===
     String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
+const challengePreviewAllowed = (email: string | undefined) =>
+  Date.now() >= challengePublicLaunchAt ||
+  ownerPreview(email);
 
 Deno.serve(async req => {
   if (req.method === "OPTIONS") return new Response(null, { headers });
@@ -61,6 +63,9 @@ Deno.serve(async req => {
 
   const sku = String(body.sku ?? "");
   if (!/^[a-z0-9_]{1,64}$/.test(sku)) return json({ error: "Invalid product" }, 400);
+  if (!ownerPreview(auth.user.email)) {
+    return json({ error: "Traditional, Futures and PAC are on hold. No payment has been taken." }, 403);
+  }
   const { data: identity, error: identityError } = await db.from("trader_identity_private")
     .select("user_id").eq("user_id", auth.user.id).maybeSingle();
   if (identityError || !identity) {

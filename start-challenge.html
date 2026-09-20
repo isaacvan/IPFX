@@ -1107,10 +1107,10 @@
 <section class="challenge-launch-gate" id="challengeLaunchGate" aria-labelledby="challengeLaunchTitle">
     <div class="challenge-launch-card">
         <img class="challenge-launch-logo" src="/desktop/build/icon.png" alt="IPFX Capital">
-        <div class="challenge-launch-kicker">IPFX Challenges</div>
+        <div class="challenge-launch-kicker">Infinity Challenge</div>
         <h1 id="challengeLaunchTitle">Launching<br>1 October 2026</h1>
-        <div class="challenge-launch-date">Applications and challenge access open at launch</div>
-        <p>We are finishing the secure application, verification and trading experience. Challenge applications cannot be started before launch.</p>
+        <div class="challenge-launch-date">Free Infinity applications open at launch</div>
+        <p id="challengeLaunchCopy">Infinity is the only programme launching on 1 October. Traditional, Futures and PAC remain on hold.</p>
         <a class="challenge-preview-link" id="challengePreviewLogin" href="/team-login.html">Authorised team preview</a>
         <p class="challenge-launch-status" id="challengeLaunchStatus" role="status" aria-live="polite"></p>
     </div>
@@ -1172,7 +1172,7 @@
     <div class="checkout-topbar">
         <div>
             <div class="checkout-eyebrow">Checkout</div>
-            <h1>Start your <span>Challenge</span></h1>
+            <h2>Start your <span>Challenge</span></h2>
         </div>
         <a href="index.html" class="back-link">← Back to Home</a>
     </div>
@@ -1394,7 +1394,7 @@
                 </div>
                 <div class="checkbox-group"><input type="checkbox" id="ownBehalf" required><label for="ownBehalf">I am applying on my own behalf and the information and documents provided belong to me. <span class="required">*</span></label></div>
                 <div class="checkbox-group"><input type="checkbox" id="accuracyConfirm" required><label for="accuracyConfirm">I confirm the information is complete and accurate and I will notify IPFX if it changes. <span class="required">*</span></label></div>
-                <div class="checkbox-group"><input type="checkbox" id="riskConfirm" required><label for="riskConfirm">I understand this is a simulated trading evaluation, not a deposit or investment account, and I have read the <a href="/risk-disclosure.html" target="_blank" rel="noopener">Risk Disclosure</a>. <span class="required">*</span></label></div>
+                <div class="checkbox-group"><input type="checkbox" id="riskConfirm" required><label for="riskConfirm">I understand this is a simulated trading evaluation, not a deposit or investment account, and I have read the <a href="/risk-disclosure.html" target="_blank" rel="noopener noreferrer">Risk Disclosure</a>. <span class="required">*</span></label></div>
                 <div class="checkbox-group"><input type="checkbox" id="screeningConsent" required><label for="screeningConsent">I acknowledge that IPFX may perform identity, sanctions and PEP screening and request additional evidence where necessary. <span class="required">*</span></label></div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" required>
@@ -1547,7 +1547,7 @@
     // One protected application experience for every IPFX challenge family.
     // The server still owns every preset, price and challenge rule.
     (() => {
-      const type = new URLSearchParams(location.search).get('type') || 'traditional';
+      const type = new URLSearchParams(location.search).get('type') || 'infinity';
       const section = document.querySelector('#step1 .form-section');
       const configs = {
         futures: { title:'Futures Challenge', copy:'Two phases with end-of-day trailing drawdown, disciplined trade-count requirements and an 85% funded profit split.', sub:'Futures Challenge · 2 phases', tiers:[['25k','fut_25k_p1',129,'25K'],['50k','fut_50k_p1',179,'50K'],['100k','fut_100k_p1',329,'100K'],['150k','fut_150k_p1',479,'150K']] },
@@ -1589,6 +1589,7 @@
     <script>
     (async function challengeLaunchGate() {
       const launchAt = Date.parse('2026-09-30T23:00:00Z');
+      const programme = new URLSearchParams(location.search).get('type') || 'infinity';
       const gate = document.getElementById('challengeLaunchGate');
       const app = document.getElementById('challengePreviewApp');
       const status = document.getElementById('challengeLaunchStatus');
@@ -1605,7 +1606,13 @@
           document.body.appendChild(script);
         }
       }
-      if (Date.now() >= launchAt) { openPreview(); return; }
+      if (Date.now() >= launchAt && programme === 'infinity') { openPreview(); return; }
+      if (Date.now() >= launchAt && programme !== 'infinity') {
+        document.getElementById('challengeLaunchTitle').innerHTML = 'Programme<br>on hold';
+        document.querySelector('.challenge-launch-date').textContent = 'Infinity is the only open challenge';
+        document.getElementById('challengeLaunchCopy').textContent = 'Traditional, Futures and PAC applications and payments remain paused. No replacement launch date has been announced.';
+        status.textContent = 'Choose the Infinity Challenge to apply from 1 October 2026.';
+      }
       try {
         const db = window.supabase.createClient(
           'https://agulweemteoeagscmppy.supabase.co',

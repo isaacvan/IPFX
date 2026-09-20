@@ -1764,9 +1764,10 @@ Deno.serve(async (req) => {
   if (!user) return err("Not signed in", 401);
 
   const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
+  const ownerPreviewAllowed = String(user.email || "").trim().toLowerCase() ===
+    String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
   const challengePreviewAllowed = Date.now() >= challengePublicLaunchAt ||
-    String(user.email || "").trim().toLowerCase() ===
-      String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
+    ownerPreviewAllowed;
 
   // A bot token is scoped to trading only (api_token.scope_text:
   // 'trade:own_account') — a leaked key can move positions on that one
@@ -1948,7 +1949,7 @@ Deno.serve(async (req) => {
     } else if (last && last.status === "breached") {
       breachSource = last as Acct;
       acct = await ensureDemoAccount(db, user.id);
-    } else if (!last && challengePreviewAllowed) {
+    } else if (!last && ownerPreviewAllowed) {
       // Preserve the verified promo-winner provisioning path. Everyone else
       // still receives a demo account rather than an unusable terminal.
       const provisioned = await provisionFromPromoClaim(db, user);

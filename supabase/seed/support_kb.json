@@ -72,13 +72,13 @@
   },
   {
    "key": "launch_note",
-   "value": "IPFX is launching in **October 2026**. Until then, starting a challenge is not open to the public — you can create an account and verify your email now so you're ready. The FAQ and contact-form pages also launch in October 2026; until then this assistant can answer most questions, or email {{c:contact_email}}.",
-   "description": "What to say about launch status / whether IPFX is live yet. Update this when you launch."
+    "value": "The free **Infinity Challenge** opens on **1 October 2026**. Traditional, Futures and PAC are on hold with no public application or payment date announced.",
+    "description": "Public programme launch status."
   },
   {
    "key": "launch_short",
-   "value": "Challenges open to the public at launch in **October 2026** — you can create an account and verify your email now.",
-   "description": "One-line launch status shown at the top of 'how do I start'. Clear or change this at launch."
+    "value": "The free **Infinity Challenge** opens on **1 October 2026**. Other programmes remain on hold.",
+    "description": "One-line public programme launch status."
   }
  ],
  "kb": [
@@ -170,7 +170,7 @@
     "which one should i choose",
     "what should i start with"
    ],
-    "answer": "I can't recommend one for your circumstances, but here's how they differ:\n\n- **Infinity** — no fee, small starting capital ($1,000), four stages, stricter trade-level rules (0.70% risk per trade in Stages 1–3, 0.50% in Stage 4, plus a daily profit cap in Stage 1).\n- **Traditional** — paid, larger simulated accounts ($10K–$200K), three phases with static drawdown and phase-specific risk caps.\n- **Futures** — paid, two phases, end-of-day trailing drawdown, aimed at CME futures traders.\n- **PAC** — for traders who already have a documented, profitable strategy; custom parameters agreed with our analysts.\n\nCompare the exact numbers with \"What are the fees?\" or \"Compare the daily loss limits\". Trading is risky and none of this is financial advice.",
+    "answer": "The free **Infinity Challenge** is the only programme opening on 1 October 2026. It starts with a $1,000 simulated evaluation and uses staged observation, concentration and risk controls. Traditional, Futures and PAC applications and payments are on hold until a separate public launch notice. Trading is risky and none of this is financial advice.",
    "follow_ups": [
     "What are the fees?",
     "Compare the drawdown rules",
@@ -647,7 +647,7 @@
     "funded simulation",
     "stage 2 rules"
    ],
-   "answer": "**Stage 2 — {{p:infinity_s2.balance}} simulated funded account:**\n- Profit target {{p:infinity_s2.target_pct}} ({{p:infinity_s2.target_amt}}); profit split {{p:infinity_s2.split_pct}}\n- Max daily loss {{p:infinity_s2.daily_pct}}; max drawdown {{p:infinity_s2.dd_pct}} ({{p:infinity_s2.dd_mode}})\n- Minimum {{p:infinity_s2.min_days}} trading days and {{p:infinity_s2.min_trades}} trades\n- At least {{p:infinity_s2.prof_days_pct}} of trading days must be profitable\n- Max risk per trade {{p:infinity_s2.risk_pct}}, stop-loss required\n\nYour Stage 2 earnings are **held** and released when you reach the 3% milestone in Stage 3 (see \"How do Infinity payouts work?\").",
+    "answer": "**Stage 2 — {{p:infinity_s2.balance}} simulated account:**\n- Profit target {{p:infinity_s2.target_pct}} ({{p:infinity_s2.target_amt}}); provisional {{p:infinity_s2.split_pct}} profit share\n- Max daily loss {{p:infinity_s2.daily_pct}}; max drawdown {{p:infinity_s2.dd_pct}} ({{p:infinity_s2.dd_mode}})\n- Minimum {{p:infinity_s2.min_days}} trading days and {{p:infinity_s2.min_trades}} independent exposure sessions\n- At least {{p:infinity_s2.prof_days_pct}} of trading days must be profitable\n- Max risk per trade {{p:infinity_s2.risk_pct}}, stop-loss required\n- Best day no more than 25% of positive profit\n\nStage 2 earnings are held. They become eligible for review only after the 5% Stage 3 milestone and its observation requirements are satisfied.",
    "follow_ups": [
     "How do Infinity payouts work?"
    ]
@@ -666,7 +666,7 @@
     "stage 3 rules",
     "qualify"
    ],
-   "answer": "**Stage 3 — {{p:infinity_s3.balance}} account (qualification):**\n- Profit target {{p:infinity_s3.target_pct}} ({{p:infinity_s3.target_amt}}); profit split {{p:infinity_s3.split_pct}}\n- Max daily loss {{p:infinity_s3.daily_pct}}; max drawdown {{p:infinity_s3.dd_pct}} ({{p:infinity_s3.dd_mode}})\n- Minimum {{p:infinity_s3.min_days}} trading days and {{p:infinity_s3.min_trades}} trades\n- Max risk per trade {{p:infinity_s3.risk_pct}}, stop-loss required\n\nAt 3% profit your held Stage 2 earnings are released; completing the target earns a second payout and triggers our quant review (within 24 hours) before Stage 4.",
+    "answer": "**Stage 3 — {{p:infinity_s3.balance}} qualification account:**\n- Profit target {{p:infinity_s3.target_pct}} ({{p:infinity_s3.target_amt}})\n- Max daily loss {{p:infinity_s3.daily_pct}}; max drawdown {{p:infinity_s3.dd_pct}} ({{p:infinity_s3.dd_mode}})\n- Minimum {{p:infinity_s3.min_days}} trading days and {{p:infinity_s3.min_trades}} independent exposure sessions\n- Max risk per trade {{p:infinity_s3.risk_pct}}, stop-loss required\n- Best day no more than 30% of positive profit\n\nAt 5% closed profit, after all observation rules are met, held Stage 2 earnings become eligible for payout review. Completing the full target triggers the Stage 4 review.",
    "follow_ups": [
     "What is the quant review?",
     "How do Infinity payouts work?"
@@ -693,7 +693,7 @@
     "capital increase",
     "grow my account"
    ],
-   "answer": "**Stage 4 — professional account on real markets (A-book)** starts at **{{p:infinity_s4.balance}}** with an {{p:infinity_s4.split_pct}} profit split, paid bi-weekly. Any increase in capital is decided by our analysts from your results (Sharpe ratio, drawdown behaviour, risk-to-reward) — there's no automatic entitlement to a larger allocation. Your Stage 3 drawdown, daily loss and sizing limits continue to apply, and the firm can add further risk controls.",
+    "answer": "Completing Stage 3 makes you eligible for a **professional-allocation review**. It does not guarantee a live account, A-book routing or any particular allocation. Unless separate legal, treasury, broker and operational approval is granted in writing, the account remains simulated. Any approved allocation and later increase are discretionary and subject to ongoing risk controls.",
    "follow_ups": [
     "What is the quant review?"
    ]
@@ -735,12 +735,12 @@
     "stage 2 earnings",
     "held earnings",
     "payout locked",
-    "3% milestone",
+     "5% milestone",
     "two payouts",
     "bi-weekly",
     "biweekly"
    ],
-   "answer": "- **Stage 2 earnings are held**, not paid when you finish Stage 2.\n- In **Stage 3**, the moment your closed profit reaches **3%**, your Stage 2 earnings (your {{p:infinity_s2.split_pct}} share) are released as your first payout.\n- Completing Stage 3 earns a **second payout** — {{p:infinity_s3.split_pct}} of your Stage 3 profit.\n- After the quant review you move to Stage 4 with **bi-weekly** payouts.\n- If you fail in Stage 2, 3 or 4 before the milestone, held earnings are forfeited.\n\nPayouts also require verified KYC and are reviewed by our team.",
+    "answer": "- **Stage 2 earnings are held**, not paid when Stage 2 finishes.\n- In **Stage 3**, reaching **5% closed profit** is necessary but not sufficient: the observation, consistency, KYC and payout checks must also pass.\n- Once approved, the Stage 2 share becomes the first Infinity payout.\n- Completing Stage 3 triggers the Stage 4 review.\n- A breach before release forfeits held earnings under the programme Terms.",
    "follow_ups": [
     "What is the quant review?",
     "What ID do you accept?"
@@ -756,7 +756,7 @@
     "cap on profit",
     "cant make more than",
     "max profit per day",
-    "3% cap",
+     "1.5% cap",
     "profit limit per day",
     "capped profit"
    ],

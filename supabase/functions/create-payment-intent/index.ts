@@ -13,10 +13,12 @@ const json = (value: unknown, status = 200, extraHeaders: Record<string, string>
   new Response(JSON.stringify(value), { status, headers: { ...headers, ...extraHeaders } });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
-const challengePreviewAllowed = (email: string | undefined) =>
-  Date.now() >= challengePublicLaunchAt ||
+const ownerPreview = (email: string | undefined) =>
   String(email || "").trim().toLowerCase() ===
     String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
+const challengePreviewAllowed = (email: string | undefined) =>
+  Date.now() >= challengePublicLaunchAt ||
+  ownerPreview(email);
 const quoteCache = new Map<string, { product: Record<string, unknown>; publishableKey: string; expiresAt: number }>();
 
 type SourceAccount = {
@@ -72,6 +74,9 @@ Deno.serve(async req => {
   }
   const sku = String(body.sku ?? "");
   if (!/^[a-z0-9_]{1,64}$/.test(sku)) return traced({ error: "Invalid product" }, 400);
+  if (sku !== "challenge_continue" && !ownerPreview(auth.user.email)) {
+    return traced({ error: "Traditional, Futures and PAC are on hold. No payment has been taken." }, 403);
+  }
   let sourceAccountId: string | null = null;
   let sourceAccount: SourceAccount | null = null;
   let continuationOffer: Record<string, unknown> | null = null;
@@ -99,6 +104,9 @@ Deno.serve(async req => {
     }
     if ((activeCount ?? 0) > 0) return traced({ error: "You already have an active trading account." }, 409);
     sourceAccount = source as SourceAccount;
+    if (sourceAccount.challenge_type !== "infinity" && !ownerPreview(auth.user.email)) {
+      return traced({ error: "Continuation checkout is currently available only for Infinity accounts." }, 403);
+    }
 
     const existing = await db.from("challenge_continuation_offers").select("*")
       .eq("source_account_id", sourceAccountId).eq("user_id", auth.user.id).maybeSingle();

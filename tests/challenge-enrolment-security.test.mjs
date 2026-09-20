@@ -47,12 +47,14 @@ test('sensitive admin PII routes require MFA and fail closed on audit failure', 
   assert.match(admin, /Access-Control-Allow-Origin": "https:\/\/ipfxcapital\.com"/);
 });
 
-test('Infinity and Futures CTAs retain the selected product', () => {
+test('Infinity remains selectable while paused programme CTAs are disabled', () => {
   const infinity = read('infinity.html');
   const futures = read('futures.html');
   const pac = read('personalised-challenge.html');
   assert.match(infinity, /start-challenge\.html\?type=infinity/);
-  assert.match(futures, /start-challenge\.html\?type=futures#25k/);
-  assert.match(pac, /start-challenge\.html\?type=pac/);
+  assert.doesNotMatch(futures, /start-challenge\.html\?type=futures#25k/);
+  assert.match(futures, /Futures Challenge applications and payments are on hold/);
+  assert.doesNotMatch(pac, /start-challenge\.html\?type=pac/);
+  assert.match(pac, /Personalised Application Challenge applications and payments are on hold/);
   assert.match(read('start-challenge.html'), /data-sku="trad_10k_p1"/);
 });

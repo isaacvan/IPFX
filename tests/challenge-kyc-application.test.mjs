@@ -12,11 +12,12 @@ const engine = read('supabase/functions/trading-engine/index.ts');
 const retention = read('supabase/migrations/20260919001500_identity_retention_controls.sql');
 const privacy = read('privacy.html');
 
-test('all challenge families use one themed application page', () => {
+test('all challenge families are represented but only Infinity has a public CTA', () => {
   for (const type of ['futures','infinity','pac']) assert.match(page, new RegExp(type + ': \\{'));
   assert.match(flow, /if \(sku\.startsWith\('infinity_'\)\) return 'infinity'/);
   assert.match(read('infinity.html'), /start-challenge\.html\?type=infinity/);
-  assert.match(read('personalised-challenge.html'), /start-challenge\.html\?type=pac#100k/);
+  assert.doesNotMatch(read('personalised-challenge.html'), /start-challenge\.html\?type=pac#100k/);
+  assert.match(read('personalised-challenge.html'), /applications and payments are on hold/);
 });
 
 test('application collects proportionate identity and suitability data', () => {

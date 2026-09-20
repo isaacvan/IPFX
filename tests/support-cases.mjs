@@ -27,7 +27,7 @@ export const KB_CASES = [
   ['tell me about stage 4', 'infinity-stage4'], ['how much capital do i get in stage 4', 'infinity-stage4'], ['can i scale to 500k', 'infinity-stage4'],
   ['what if i fail infinity', 'infinity-fail-restart'], ['how many attempts do i get', 'infinity-fail-restart'], ['can i restart stage 1', 'infinity-fail-restart'],
   ['how do infinity payouts work', 'infinity-payouts'], ['when do i get paid on infinity', 'infinity-payouts'],
-  ['why is there a daily profit cap', 'infinity-profit-cap'], ['what is the 3% cap', 'infinity-profit-cap'],
+  ['why is there a daily profit cap', 'infinity-profit-cap'], ['what is the 1.5% cap', 'infinity-profit-cap'],
   ['what is the quant review', 'quant-review'], ['what does the quant team check', 'quant-review'],
   ['tell me about the traditional challenge', 'traditional-overview'], ['how many phases does traditional have', 'traditional-overview'], ['what are the traditional rules', 'traditional-overview'],
   ['how much does the traditional challenge cost', ['traditional-fees', 'facts']], ['traditional challenge price list', ['traditional-fees', 'facts']],
