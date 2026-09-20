@@ -10,12 +10,6 @@
   }
 
   var CONSENT_KEY = "ipfx_cookie_consent_v1";
-  var PUBLIC_PAGES = new Set([
-    "/", "/index.html", "/about.html", "/backtest.html", "/contact.html",
-    "/faq.html", "/futures.html", "/infinity.html", "/personalised-challenge.html",
-    "/press.html", "/privacy.html", "/start-challenge.html", "/terms.html",
-    "/trading-pot.html", "/downloads.html", "/risk-disclosure.html"
-  ]);
   var main = document.querySelector("main, [role='main']");
   function resolveMain() {
     if (main) return main;
@@ -34,15 +28,6 @@
     link.href = "#" + main.id;
     link.textContent = "Skip to main content";
     document.body.insertBefore(link, document.body.firstChild);
-  }
-
-  function addPreviewNotice() {
-    if (!PUBLIC_PAGES.has(location.pathname) || document.querySelector(".ipfx-preview-notice")) return;
-    var notice = document.createElement("aside");
-    notice.className = "ipfx-preview-notice";
-    notice.setAttribute("role", "status");
-    notice.innerHTML = "<strong>Closed research preview.</strong> IPFX Markets is simulated only. Public challenge applications, payments, payouts, live capital and trade copying are disabled. Programme descriptions are proposed and may change before launch. <a href='/risk-disclosure.html'>Read the risk disclosure</a>.";
-    document.body.insertBefore(notice, document.body.firstChild);
   }
 
   function hardenLinks() {
@@ -174,7 +159,6 @@
   });
 
   document.addEventListener("DOMContentLoaded", function () {
-    addPreviewNotice();
     addSkipLink();
     hardenLinks();
     improveMedia();

@@ -43,24 +43,6 @@ async function log(db: Db, row: Record<string, unknown>) {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("POST only", { status: 405 });
 
-  // Production kill switch. This function can place real broker orders, so a
-  // database flag alone is not enough to activate it. It must be enabled in
-  // the server environment and invoked with the service-role bearer token.
-  if (Deno.env.get("IPFX_LIVE_MIRROR_ENABLED") !== "true") {
-    return new Response(JSON.stringify({ ok: false, error: "Live mirroring is disabled" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-    });
-  }
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const authorization = req.headers.get("authorization") ?? "";
-  if (!serviceRole || authorization !== `Bearer ${serviceRole}`) {
-    return new Response(JSON.stringify({ ok: false, error: "Forbidden" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-    });
-  }
-
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return new Response("bad json", { status: 400 }); }
 

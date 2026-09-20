@@ -458,10 +458,6 @@ const BREACH_TEXT: Record<string, string> = {
 };
 
 function fireMirror(acct: Acct, t: Tr, event: "open" | "close") {
-  // Live copying is a gated production capability, not a normal challenge
-  // feature. Keep it fail-closed until licensed data, broker onboarding,
-  // reconciliation, reserves and an external security review are complete.
-  if (Deno.env.get("IPFX_LIVE_MIRROR_ENABLED") !== "true") return;
   // deno-lint-ignore no-explicit-any
   if (!(acct as any).mirror_enabled) return;
   const p = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/live-mirror`, {
@@ -1767,7 +1763,8 @@ Deno.serve(async (req) => {
   }
   if (!user) return err("Not signed in", 401);
 
-  const challengePreviewAllowed = Deno.env.get("IPFX_PUBLIC_CHALLENGES_ENABLED") === "true" ||
+  const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
+  const challengePreviewAllowed = Date.now() >= challengePublicLaunchAt ||
     String(user.email || "").trim().toLowerCase() ===
       String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
 
@@ -1793,7 +1790,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, infinity: pub }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
   if (body.action === "claim_infinity") {
-    if (!challengePreviewAllowed) return err("Challenge applications are not open to the public yet.", 403);
+    if (!challengePreviewAllowed) return err("Challenges launch 1 October 2026.", 403);
     if (!(await claimOrderLock(db, user.id))) return err("Already processing — try again in a moment.", 429);
     try {
       const st = await infinityStatus(db, user);
@@ -2064,9 +2061,6 @@ Deno.serve(async (req) => {
   }
 
   if (action === "request_payout") {
-    if (Deno.env.get("IPFX_PAYOUTS_ENABLED") !== "true") {
-      return err("Payouts are not enabled during the closed research preview.", 503);
-    }
     if (await rateLimited("request_payout", 5, 60)) return err("Too many payout requests — try again later.", 429);
     const { data: funded } = await db.from("trading_accounts")
       .select("*").eq("user_id", user.id).eq("phase", "funded")

@@ -20,8 +20,9 @@ const headers = {
 };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
 const challengePreviewAllowed = (email: string | undefined) =>
-  Deno.env.get("IPFX_PUBLIC_CHALLENGES_ENABLED") === "true" ||
+  Date.now() >= challengePublicLaunchAt ||
   String(email || "").trim().toLowerCase() ===
     String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
 
@@ -45,7 +46,7 @@ Deno.serve(async req => {
       : data ? json({ order: data }) : json({ error: "Order not found" }, 404);
   }
   if (!challengePreviewAllowed(auth.user.email)) {
-    return json({ error: "Challenge applications are not open to the public yet." }, 403);
+    return json({ error: "Challenges launch 1 October 2026." }, 403);
   }
 
   // Deliberately sandbox-only in this release, same rationale as the Stripe

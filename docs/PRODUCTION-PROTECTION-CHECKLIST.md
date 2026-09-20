@@ -1,6 +1,6 @@
 # IPFX production protection checklist
 
-Last reviewed: 20 September 2026
+Last reviewed: 17 September 2026
 
 This is the IPFX-specific interpretation of the 20-item launch list. “Implemented” means the repository contains an enforceable control and a test. “Owner action” means the control lives in a provider account and cannot truthfully be marked complete from source code alone.
 
@@ -17,7 +17,7 @@ This is the IPFX-specific interpretation of the 20-item launch list. “Implemen
 | 9 | Duplicate subscriptions | Not applicable to current product | IPFX challenge fees are one-time, not recurring subscriptions. Newsletter collection remains disabled until an owned endpoint is configured; that provider must enforce unique email addresses. |
 | 10 | Duplicate payments | Implemented | Unique `(user_id, request_key)` and unique provider-intent constraints, an atomic order RPC, and a Stripe idempotency key derived from the immutable order ID. |
 | 11 | Optimise DB queries | Implemented for audited hot paths | Auth lookups in RLS are cached per statement; large review lists are bounded; trade/payout queries use matching composite/partial indexes. Re-run Supabase performance advisors before each public release. |
-| 12 | DB indexes | Implemented and production-verified | Added leading indexes for every uncovered foreign key plus indexes for closed trades, open pending orders, safety reviews, admin audit history, payout methods, consent history, and rate-limit expiry. The Supabase unindexed-foreign-key advisor is clear. |
+| 12 | DB indexes | Implemented | Added indexes for closed trades, open pending orders, safety reviews, admin audit history, payout methods, consent history, and rate-limit expiry. |
 | 13 | Paginate large results | Implemented for growing logs | Admin audit and safety-review APIs use bounded cursor pagination and expose `has_more` / `next_cursor`. Existing trading history calls retain explicit limits. |
 | 14 | Compress files | Provider verified at deploy | Static pages/assets are served through the production CDN, which must be checked for Brotli or gzip after deployment. Desktop installers are already compressed packages and are chunked for transfer. Do not double-compress them. |
 | 15 | Limit upload size | Implemented | The private release bucket is capped at 50 MiB per object; the CI uploader uses 40 MiB chunks; the signing function restricts object names and release version. |
@@ -26,15 +26,6 @@ This is the IPFX-specific interpretation of the 20-item launch list. “Implemen
 | 18 | Error logging | Implemented | Critical checkout/rate-limit failures emit sanitized structured events with request IDs. Admin actions continue to write the immutable admin audit log. Never log tokens, payment secrets, or full request bodies. |
 | 19 | Test simultaneous users | Test harness implemented; production run requires approval | `node scripts/concurrency-smoke.mjs` runs a bounded read-only test locally. Production is locked unless `IPFX_ALLOW_PRODUCTION_LOAD_TEST=true` is deliberately set for an approved window. |
 | 20 | Test backup restore | Verification implemented; restore drill requires owner action | `scripts/backup-restore-verification.sql` checks a restored staging project for required tables, row counts, orphans, and duplicate payment identifiers. Never run a restore drill against production. |
-
-## Closed-preview financial controls
-
-- Database launch flags default to false for public applications, checkout, payouts and live mirroring.
-- Challenge-application and payout database triggers reject state changes while the corresponding launch control is closed.
-- Edge Functions independently fail closed unless their matching environment switch is explicitly set to `true`.
-- Every mirror target and account-level mirror flag was disabled in production during the 20 September 2026 remediation.
-- Browser roles have no implicit table or trigger-function privileges; RLS-only service tables carry explicit deny policies for browser roles.
-- Operating and incident procedures are in `docs/CLOSED-PREVIEW-OPERATIONS-RUNBOOK.md`.
 
 ## Required owner evidence before public launch
 
@@ -45,8 +36,6 @@ This is the IPFX-specific interpretation of the 20-item launch list. “Implemen
 - [ ] Approved simultaneous-user test completed — date, target, concurrency, requests, failures, p95:
 - [ ] Backup restored into a separate staging project and verification SQL returned zero orphaned trades and zero duplicate payment identifiers — date and restore project ref:
 - [ ] Supabase security and performance advisors re-run; all remaining findings accepted with an owner and reason:
-
-Current accepted advisor items (20 September 2026): leaked-password protection requires an Auth-dashboard owner action; pg_net is non-relocatable and needs a tested maintenance window; the public promo validator and authenticated user-scoped RPCs are intentionally callable; unused indexes require representative traffic before any destructive removal.
 
 ## Safe commands
 
