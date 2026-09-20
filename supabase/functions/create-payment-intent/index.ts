@@ -12,9 +12,8 @@ const headers = {
 const json = (value: unknown, status = 200, extraHeaders: Record<string, string> = {}) =>
   new Response(JSON.stringify(value), { status, headers: { ...headers, ...extraHeaders } });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
 const challengePreviewAllowed = (email: string | undefined) =>
-  Date.now() >= challengePublicLaunchAt ||
+  Deno.env.get("IPFX_PUBLIC_CHALLENGES_ENABLED") === "true" ||
   String(email || "").trim().toLowerCase() ===
     String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
 const quoteCache = new Map<string, { product: Record<string, unknown>; publishableKey: string; expiresAt: number }>();
@@ -44,7 +43,7 @@ Deno.serve(async req => {
 
   const action = body.action === "status" || body.action === "quote" ? body.action : "create";
   if (action !== "status" && !challengePreviewAllowed(auth.user.email)) {
-    return traced({ error: "Challenges launch 1 October 2026." }, 403);
+    return traced({ error: "Challenge applications are not open to the public yet." }, 403);
   }
   const rate = action === "status" ? [60, 60] : action === "quote" ? [30, 60] : [10, 600];
   try {

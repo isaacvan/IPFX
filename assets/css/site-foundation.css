@@ -13,6 +13,19 @@
 }
 .ipfx-skip-link:focus { transform: translateY(0); }
 
+.ipfx-preview-notice {
+  position: relative;
+  z-index: 9000;
+  padding: 11px 18px;
+  color: #dbeafe;
+  background: #111827;
+  border-bottom: 1px solid #3157b7;
+  text-align: center;
+  font: 650 13px/1.45 Inter, system-ui, sans-serif;
+}
+.ipfx-preview-notice strong { color: #fff; }
+.ipfx-preview-notice a { color: #93c5fd; }
+
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 3px solid #60a5fa !important;
   outline-offset: 3px !important;

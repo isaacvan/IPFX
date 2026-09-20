@@ -811,7 +811,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="stat-card"><div class="sc-label">Last Payout</div><div class="sc-val" id="pout-last">—</div><div class="sc-sub" id="pout-last-sub">No payouts yet</div></div>
         <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val" id="pout-next">—</div><div class="sc-sub">After first funded week</div></div>
       </div>
-      <div id="poutKycNotice" style="display:none;padding:.9rem 1.1rem;border-radius:var(--r);margin-bottom:1rem;font-size:.85rem"></div>
+      <div id="poutKycNotice" style="display:block;padding:.9rem 1.1rem;border-radius:var(--r);margin-bottom:1rem;font-size:.85rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#f5c473">Payouts and payout-detail collection are disabled during the closed research preview.</div>
       <div id="kycUpload" style="display:none;padding:1rem 1.1rem;border:1px solid var(--line);border-radius:var(--r);margin-bottom:1rem">
         <div style="font-weight:700;margin-bottom:.35rem">Verify your identity</div>
         <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">Upload a government-issued photo ID and a proof of address dated within the last 3 months (bank statement or utility bill). JPG, PNG, WEBP or PDF, up to 10 MB each. Documents are stored privately and only reviewed by IPFX compliance.</div>
@@ -831,9 +831,9 @@ tr:hover td{background:rgba(255,255,255,.015);}
           <select id="poutMethodSelect" style="width:100%;background:var(--bgcard);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.55rem .7rem;font-size:.85rem"></select>
         </div>
         <div class="pout-note" id="poutNote">Available balance shown above · profit split applied · full period paid at once.</div>
-        <button class="full-btn" id="poutSubmitBtn" onclick="doPayout()">Request Payout</button>
+        <button class="full-btn" id="poutSubmitBtn" disabled>Payouts unavailable in closed preview</button>
       </div>
-      <div class="sec-hd"><div><div class="sec-title">Payment Methods</div></div><button class="cbtn p" onclick="showAddMethodForm()">+ Add Method</button></div>
+      <div class="sec-hd"><div><div class="sec-title">Payment Methods</div><div style="font-size:.76rem;color:var(--muted2);margin-top:.2rem">New payout details are not collected during the closed preview.</div></div></div>
       <div id="poutMethodForm" style="display:none;background:var(--bgcard);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:.7rem">
           <select id="pmType" style="background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:.5rem .6rem;font-size:.85rem">
@@ -870,7 +870,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div style="width:62px;height:62px;border-radius:16px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.75rem;flex-shrink:0;">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Coming October 2026</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Not available in closed preview</div>
         <div style="font-size:.9rem;color:var(--muted);max-width:390px;line-height:1.7;margin-bottom:1.6rem;">The IPFX Leaderboard will rank funded traders by monthly return, profit and consistency — with real capital prizes for the top performers each month.</div>
         <div style="display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.78rem;color:#60a5fa;font-weight:600;">
           <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;flex-shrink:0;"></div>
@@ -885,7 +885,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div style="width:62px;height:62px;border-radius:16px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.75rem;flex-shrink:0;">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
         </div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Coming October 2026</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Not available in closed preview</div>
         <div style="font-size:.9rem;color:var(--muted);max-width:390px;line-height:1.7;margin-bottom:1.6rem;">IPFX Competitions will pit funded traders against each other for real cash prizes. Monthly sprints, quarterly cups and invitation-only championships for elite performers.</div>
         <div style="display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.78rem;color:#60a5fa;font-weight:600;">
           <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;flex-shrink:0;"></div>
@@ -900,7 +900,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div style="width:62px;height:62px;border-radius:16px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.75rem;flex-shrink:0;">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         </div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Coming October 2026</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;">Not available in closed preview</div>
         <div style="font-size:.9rem;color:var(--muted);max-width:390px;line-height:1.7;margin-bottom:1.6rem;">IPFX Education will include video courses, written guides and live webinars covering risk management, trading psychology, strategy development and funded account rules.</div>
         <div style="display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1.1rem;border-radius:20px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);font-size:.78rem;color:#60a5fa;font-weight:600;">
           <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;flex-shrink:0;"></div>
@@ -2131,16 +2131,10 @@ function renderPayoutStats(kyc){
   const kycStatus=(kyc&&kyc.status)||'unverified';
   if(kycStatus!=='verified'){
     notice.style.display='block';
-    notice.style.background='rgba(245,158,11,.1)';notice.style.border='1px solid rgba(245,158,11,.3)';notice.style.color='#f5c473';
-    notice.textContent=kycStatus==='rejected'
-      ?'Identity verification was rejected — please upload new documents below.'
-      :kycStatus==='pending'
-      ?'Identity verification is in progress. Payouts are unavailable until this clears.'
-      :'Identity verification (KYC) is required before you can request a payout. Upload your documents below.';
-  } else {
-    notice.style.display='none';
   }
-  document.getElementById('kycUpload').style.display=(kycStatus==='unverified'||kycStatus==='rejected')?'':'none';
+  notice.style.background='rgba(245,158,11,.1)';notice.style.border='1px solid rgba(245,158,11,.3)';notice.style.color='#f5c473';
+  notice.textContent='Payouts and payout-detail collection are disabled during the closed research preview.';
+  document.getElementById('kycUpload').style.display='none';
 
   const s=PAYOUT_SUMMARY;
   if(!s||!s.has_funded_account){
@@ -2155,8 +2149,9 @@ function renderPayoutStats(kyc){
   document.getElementById('pout-avail-sub').textContent=s.account_status==='active'?'Funded — good standing':'Account '+s.account_status;
   document.getElementById('poutAmtDisplay').textContent=poutFmt(s.available_now);
   const blocked=s.investigation_hold?'Account under review':kycStatus!=='verified'?'Verify identity first':s.available_now<=0?'Nothing available yet':null;
-  document.getElementById('poutSubmitBtn').disabled=!!blocked||!PAYOUT_METHODS.length;
-  document.getElementById('poutNote').textContent=blocked||(!PAYOUT_METHODS.length?'Add a payout method below first.':'Available balance shown above · profit split already applied · full period paid at once.');
+  document.getElementById('poutSubmitBtn').disabled=true;
+  document.getElementById('poutSubmitBtn').textContent='Payouts unavailable in closed preview';
+  document.getElementById('poutNote').textContent='No payout can be requested and no new payout details are collected during the closed research preview.';
 }
 
 function renderPayoutMethods(){
@@ -2177,8 +2172,10 @@ function renderPayoutMethods(){
     </div>`).join('');
 }
 
-function showAddMethodForm(){document.getElementById('poutMethodForm').style.display='block';}
+function showAddMethodForm(){alert('New payout details are not collected during the closed research preview.');}
 async function submitAddMethod(){
+  alert('New payout details are not collected during the closed research preview.');
+  return;
   const method_type=document.getElementById('pmType').value;
   const label=document.getElementById('pmLabel').value.trim();
   const reference=document.getElementById('pmReference').value.trim();
@@ -2211,6 +2208,8 @@ function renderPayoutHistory(rows){
 }
 
 async function doPayout(){
+  alert('Payouts are disabled during the closed research preview.');
+  return;
   const s=PAYOUT_SUMMARY;
   if(!s||!s.has_funded_account){alert('You need a funded account before you can request a payout.');return;}
   const method_id=document.getElementById('poutMethodSelect').value;

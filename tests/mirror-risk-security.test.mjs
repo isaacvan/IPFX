@@ -40,6 +40,9 @@ test('homepage exposes Team Login in both navigation and footer', () => {
 });
 
 test('adaptive controls affect only own-account mirror opens and never block closes', () => {
+  assert.match(mirror, /IPFX_LIVE_MIRROR_ENABLED/);
+  assert.match(mirror, /authorization !== `Bearer \$\{serviceRole\}`/);
+  assert.match(read('supabase/functions/trading-engine/index.ts'), /IPFX_LIVE_MIRROR_ENABLED/);
   assert.match(mirror, /never changes the trader's challenge trade/i);
   assert.match(mirror, /event === "open" && riskDecision\.action === "skip"/);
   assert.match(read('supabase/functions/_shared/trader-risk.ts'), /event === "close".*action: "allow"/);

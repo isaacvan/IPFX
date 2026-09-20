@@ -1108,9 +1108,9 @@
     <div class="challenge-launch-card">
         <img class="challenge-launch-logo" src="/desktop/build/icon.png" alt="IPFX Capital">
         <div class="challenge-launch-kicker">IPFX Challenges</div>
-        <h1 id="challengeLaunchTitle">Launching<br>1 October 2026</h1>
-        <div class="challenge-launch-date">Applications and challenge access open at launch</div>
-        <p>We are finishing the secure application, verification and trading experience. Challenge applications cannot be started before launch.</p>
+        <h1 id="challengeLaunchTitle">Closed<br>Research Preview</h1>
+        <div class="challenge-launch-date">Closed research preview</div>
+        <p>We are finishing the secure application, verification and simulated-trading experience. Public challenge applications, payments and payouts are not enabled. A launch date will be published only after the readiness checks are complete.</p>
         <a class="challenge-preview-link" id="challengePreviewLogin" href="/team-login.html">Authorised team preview</a>
         <p class="challenge-launch-status" id="challengeLaunchStatus" role="status" aria-live="polite"></p>
     </div>
@@ -1172,7 +1172,7 @@
     <div class="checkout-topbar">
         <div>
             <div class="checkout-eyebrow">Checkout</div>
-            <h1>Start your <span>Challenge</span></h1>
+            <h2>Start your <span>Challenge</span></h2>
         </div>
         <a href="index.html" class="back-link">← Back to Home</a>
     </div>
@@ -1394,7 +1394,7 @@
                 </div>
                 <div class="checkbox-group"><input type="checkbox" id="ownBehalf" required><label for="ownBehalf">I am applying on my own behalf and the information and documents provided belong to me. <span class="required">*</span></label></div>
                 <div class="checkbox-group"><input type="checkbox" id="accuracyConfirm" required><label for="accuracyConfirm">I confirm the information is complete and accurate and I will notify IPFX if it changes. <span class="required">*</span></label></div>
-                <div class="checkbox-group"><input type="checkbox" id="riskConfirm" required><label for="riskConfirm">I understand this is a simulated trading evaluation, not a deposit or investment account, and I have read the <a href="/risk-disclosure.html" target="_blank" rel="noopener">Risk Disclosure</a>. <span class="required">*</span></label></div>
+                <div class="checkbox-group"><input type="checkbox" id="riskConfirm" required><label for="riskConfirm">I understand this is a simulated trading evaluation, not a deposit or investment account, and I have read the <a href="/risk-disclosure.html" target="_blank" rel="noopener noreferrer">Risk Disclosure</a>. <span class="required">*</span></label></div>
                 <div class="checkbox-group"><input type="checkbox" id="screeningConsent" required><label for="screeningConsent">I acknowledge that IPFX may perform identity, sanctions and PEP screening and request additional evidence where necessary. <span class="required">*</span></label></div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" required>
@@ -1588,7 +1588,6 @@
 
     <script>
     (async function challengeLaunchGate() {
-      const launchAt = Date.parse('2026-09-30T23:00:00Z');
       const gate = document.getElementById('challengeLaunchGate');
       const app = document.getElementById('challengePreviewApp');
       const status = document.getElementById('challengeLaunchStatus');
@@ -1605,7 +1604,6 @@
           document.body.appendChild(script);
         }
       }
-      if (Date.now() >= launchAt) { openPreview(); return; }
       try {
         const db = window.supabase.createClient(
           'https://agulweemteoeagscmppy.supabase.co',

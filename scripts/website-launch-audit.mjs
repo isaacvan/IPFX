@@ -31,11 +31,19 @@ for(const file of publicPages){
 const siteJs=read('assets/js/site-foundation.js');
 ok(siteJs.includes('CONSENT_KEY')&&/if \(value === ["']analytics["']\) loadAnalytics\(\)/.test(siteJs), 'analytics is not consent-gated');
 ok(siteJs.includes('navigator.share')&&siteJs.includes('navigator.clipboard'), 'share fallbacks incomplete');
+ok(siteJs.includes('Closed research preview.')&&siteJs.includes('live capital and trade copying are disabled'), 'public closed-preview disclosure missing');
 const robots=read('robots.txt');ok(robots.includes('Sitemap: https://ipfxcapital.com/sitemap.xml'),'robots.txt missing sitemap');ok(robots.includes('Disallow: /dashboard.html')&&robots.includes('Disallow: /trading.html'),'robots.txt exposes private application routes');
 const sitemap=read('sitemap.xml');for(const file of publicPages)ok(sitemap.includes(file==='index.html'?'https://ipfxcapital.com/':`https://ipfxcapital.com/${file}`),`sitemap missing ${file}`);
 const notFound=read('404.html');ok(/name=["']robots["'][^>]*noindex/i.test(notFound),'404 page must be noindex');
 const all=publicPages.map(read).join('\n');ok(!all.includes("IPFX supports **MT4, MT5 and cTrader**"),'outdated MetaTrader/cTrader support claim remains');ok(!all.includes('evaluations with MT5'),'outdated MT5 evaluation claim remains');ok(!read('privacy.html').includes('MetaApi / broker connections'),'privacy page conflicts with terms on broker mirroring');ok(read('trading.html').includes("https://www.tradingview.com/signin/"),'official TradingView sign-in link missing');
 ok(read('index.html').includes('id="newsletterForm"')&&read('index.html').includes('IPFX_NEWSLETTER_ENDPOINT'),'newsletter form lacks explicit provider state');
 ok(read('backtest.html').includes('async function submitBacktest'),'backtest form handler missing');ok(read('start-challenge.html').includes('payDemoNotice'),'checkout lacks honest unavailable state');
+ok(!read('backtest.html').includes("/rest/v1/backtest_submissions"),'closed backtest form still uploads strategy data');
+ok(!read('index.html').includes('Review us · Get <strong>15% Back</strong>'),'incentivised review offer remains');
+ok(!/\b(?:launching|launch in|coming)\s+october\s+2026\b/i.test(all),'unapproved October 2026 public launch date remains');
+ok(read('terms.html').includes('Closed-preview limitation:')&&read('terms.html').includes('No Stage 4 live-market infrastructure is offered'),'terms do not clearly override proposed live/payout features');
+ok(!read('terms.html').includes('[Registered Address]')&&!read('terms.html').includes('Registered in England and Wales.'),'terms claim unverified company details');
+ok(!read('terms.html').includes('no appeal process is available')&&!read('terms.html').includes('immediate suspension of your account and forfeiture'),'terms still contain an absolute no-appeal or chargeback-forfeiture clause');
+ok(read('dashboard.html').includes('Payouts unavailable in closed preview')&&read('dashboard.html').includes("alert('Payouts are disabled during the closed research preview.')"),'dashboard payout UI is not fail-closed');
 if(failures.length){console.error(`FAIL: ${failures.length} of ${checks} checks failed`);for(const f of failures)console.error(`- ${f}`);process.exit(1)}
 console.log(`PASS: ${checks} website launch checks`);
