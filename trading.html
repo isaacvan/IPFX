@@ -1301,7 +1301,37 @@ body.light .op-exec-buy{background:#2f8064;}
 .desktop-auth-submit{width:100%;height:40px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer}
 .desktop-auth-submit:disabled{opacity:.55;cursor:wait}
 .desktop-auth-note{margin-top:11px;color:#6e6e73;font-size:10px;line-height:1.45;text-align:center}
-@media(max-width:980px){.desktop-app .guide{width:360px}.desktop-app .tb-acct,.desktop-app .tb-pill{display:none}}</style>
+@media(max-width:980px){.desktop-app .guide{width:360px}.desktop-app .tb-acct,.desktop-app .tb-pill{display:none}}
+/* ── Chart-first layout ──
+   Smaller default side and bottom panels so the chart gets most of the
+   screen, wide easy-to-grab dividers, and a layout toolbar. Sizes the
+   trader drags to are remembered (see LAYOUT in the script). */
+.btm-outer{height:200px}
+.desktop-app .btm-outer{height:170px}
+@media(max-width:800px){.btm-outer{height:220px}}
+.guide{width:380px}
+@media(max-width:1180px){.guide{width:360px}}
+.guide-resize-handle{left:-9px;width:18px}
+.btm-resize-handle{top:-9px;height:18px}
+.guide-resize-handle::before,.btm-resize-handle::before{content:"";position:absolute;background:transparent;transition:background .15s;pointer-events:none}
+.guide-resize-handle::before{top:0;bottom:0;left:50%;width:2px;transform:translateX(-50%)}
+.btm-resize-handle::before{left:0;right:0;top:50%;height:2px;transform:translateY(-50%)}
+.guide-resize-handle:hover::before,.guide.resizing .guide-resize-handle::before,
+.btm-resize-handle:hover::before,.btm-outer.resizing .btm-resize-handle::before{background:rgba(10,132,255,.6)}
+.guide-resize-grip{width:4px;height:64px;background:rgba(255,255,255,.24);position:relative;z-index:1}
+.btm-resize-grip{width:64px;height:4px;background:rgba(255,255,255,.24);position:relative;z-index:1}
+.guide-resize-handle:hover .guide-resize-grip,.guide.resizing .guide-resize-grip{width:5px;background:#0a84ff;box-shadow:none}
+.btm-resize-handle:hover .btm-resize-grip,.btm-outer.resizing .btm-resize-grip{height:5px;background:#0a84ff;box-shadow:none}
+body.light .guide-resize-grip,body.light .btm-resize-grip{background:rgba(12,12,22,.22)}
+.layout-tools{margin-left:auto;display:flex;align-items:center;gap:.3rem}
+.layout-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.22rem .55rem;border-radius:4px;border:1px solid var(--line);background:none;color:var(--muted);font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--font-ui);white-space:nowrap;transition:all .12s}
+.layout-btn:hover{color:var(--fg);border-color:rgba(255,255,255,.2)}
+.layout-btn:focus-visible{outline:2px solid #0a84ff;outline-offset:1px}
+.layout-btn.active{background:var(--cobalt-d);border-color:rgba(37,99,235,.4);color:#60a5fa}
+.layout-btn svg{width:13px;height:13px;flex-shrink:0}
+body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
+@media(max-width:900px){.layout-btn .layout-lbl{display:none}}
+</style>
 </head>
 <body>
 
@@ -1420,6 +1450,16 @@ body.light .op-exec-buy{background:#2f8064;}
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="4.5" y1="0" x2="4.5" y2="13"/><line x1="8.5" y1="0" x2="8.5" y2="13"/><line x1="0" y1="4.5" x2="13" y2="4.5"/><line x1="0" y1="8.5" x2="13" y2="8.5"/></svg>
         <span class="grid-txt" id="gridTxt">Off</span>
       </button>
+      <div class="layout-tools" role="group" aria-label="Chart layout">
+        <button class="layout-btn" id="focusChartBtn" type="button" onclick="toggleChartFocus()" title="Hide the side and bottom panels to give the chart the whole screen" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9l-3 3 3 3M16 9l3 3-3 3"/></svg>
+          <span class="layout-lbl" id="focusChartLbl">Focus chart</span>
+        </button>
+        <button class="layout-btn" id="resetLayoutBtn" type="button" onclick="resetLayout()" title="Put the panels back to their default sizes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          <span class="layout-lbl">Reset layout</span>
+        </button>
+      </div>
     </div>
     <div class="chart-area">
       <div id="tv_chart_container"></div>
@@ -1445,7 +1485,7 @@ body.light .op-exec-buy{background:#2f8064;}
     <div class="guide-tog" id="guideTog" onclick="toggleGuide()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
-    <div class="guide-resize-handle" id="guideResizeHandle"><div class="guide-resize-grip"></div></div>
+    <div class="guide-resize-handle" id="guideResizeHandle" title="Drag to resize · double-click to hide"><div class="guide-resize-grip"></div></div>
 
     <div class="guide-tabs">
       <div class="gtab active" onclick="switchTab('order',this)">Order</div>
@@ -1603,7 +1643,7 @@ body.light .op-exec-buy{background:#2f8064;}
       </div>
 
       <!-- INDICATORS TAB -->
-      <div class="gpanel active" id="tab-ind" style="flex-direction:column;">
+      <div class="gpanel" id="tab-ind" style="flex-direction:column;">
         <div class="ind-search-row" style="flex-shrink:0;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ind-search-ic"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="indSearch" class="ind-search-inp" placeholder="Search indicators (name, abbreviation, keyword)…"
@@ -1793,7 +1833,7 @@ body.light .op-exec-buy{background:#2f8064;}
 
 <!-- BOTTOM PANEL -->
 <div class="btm-outer" id="btmOuter">
-  <div class="btm-resize-handle" id="btmResizeHandle"><div class="btm-resize-grip"></div></div>
+  <div class="btm-resize-handle" id="btmResizeHandle" title="Drag to resize · double-click to collapse"><div class="btm-resize-grip"></div></div>
   <div class="btm-header">
     <div class="btab active" onclick="switchBtab('positions',this)">Positions <span class="btab-badge" id="posBadge">0</span></div>
     <div class="btab" onclick="switchBtab('pending',this)">Pending Orders <span class="btab-badge" id="pendBadge">0</span></div>
@@ -2648,12 +2688,18 @@ function leaveFullscreenThen(href){
 }
 
 // ── PANEL TOGGLES ──
-let guideExpandedWidth=430;
+// Widths/heights the panels return to when shown. Seeded from the CSS
+// defaults at load, then from whatever the trader drags to (remembered).
+let guideExpandedWidth=380;
+const GUIDE_MIN=340, GUIDE_ORDER_MIN=380, BTM_MIN=90;
+const guideMax=()=>Math.round(window.innerWidth*0.55);
+const btmMax=()=>Math.round(window.innerHeight*0.75);
 function toggleGuide(){
   const g=document.getElementById('guidePanel');
   g.classList.toggle('hidden');
   const hidden=g.classList.contains('hidden');
   g.style.width=hidden?'':guideExpandedWidth+'px';
+  if(typeof syncLayoutUi==='function'){syncLayoutUi();saveLayout();}
 }
 // ── SHARED DRAG-TO-RESIZE (pointer events + capture) ──
 // Pointer capture ties every subsequent move/up/cancel event to the handle
@@ -2662,7 +2708,7 @@ function toggleGuide(){
 // mousedown/mousemove/mouseup drag stuck "attached" to the pointer forever.
 // Also cancels on right-click, Escape, and window blur so there is no path
 // that leaves dragging=true with no way to release it.
-function makeDragResizer({handle,container,axis,min,max,resize,getStart}){
+function makeDragResizer({handle,container,axis,min,max,resize,getStart,onEnd,onDoubleClick}){
   let dragging=false,startPos=0,startSize=0,pointerId=null;
   const axisPos=e=>axis==='x'?e.clientX:e.clientY;
   const begin=e=>{
@@ -2689,7 +2735,9 @@ function makeDragResizer({handle,container,axis,min,max,resize,getStart}){
     document.body.style.userSelect='';
     if(pointerId!=null){try{handle.releasePointerCapture(pointerId);}catch(_){}}
     pointerId=null;
+    if(onEnd)onEnd();
   };
+  if(onDoubleClick)handle.addEventListener('dblclick',e=>{e.preventDefault();end();onDoubleClick();});
   handle.addEventListener('pointerdown',e=>{if(e.button===0||e.pointerType!=='mouse')begin(e);});
   handle.addEventListener('pointermove',move);
   handle.addEventListener('pointerup',end);
@@ -2707,10 +2755,12 @@ function makeDragResizer({handle,container,axis,min,max,resize,getStart}){
   const handle=document.getElementById('guideResizeHandle');
   if(!panel||!handle)return;
   makeDragResizer({
-    handle,container:panel,axis:'x',min:360,max:()=>Math.round(window.innerWidth*0.5),
+    handle,container:panel,axis:'x',min:GUIDE_MIN,max:guideMax,
     getStart:()=>!panel.classList.contains('hidden'),
     // dragging left (negative delta) widens the right-side panel
-    resize:(startW,dx)=>{const w=startW-dx;guideExpandedWidth=Math.min(Math.round(window.innerWidth*0.5),Math.max(360,w));return w;},
+    resize:(startW,dx)=>{const w=startW-dx;guideExpandedWidth=Math.min(guideMax(),Math.max(GUIDE_MIN,w));return w;},
+    onEnd:()=>{syncLayoutUi();saveLayout();},
+    onDoubleClick:()=>toggleGuide(),
   });
 })();
 
@@ -2723,8 +2773,8 @@ function switchTab(id,el){
   const guide=document.getElementById('guidePanel');
   guide.classList.toggle('order-mode',id==='order');
   if(id==='order'){
-    const minOrderWidth=Math.min(430,Math.round(window.innerWidth*0.5));
-    if(guide.getBoundingClientRect().width<minOrderWidth){guideExpandedWidth=minOrderWidth;guide.style.width=minOrderWidth+'px';}
+    const minOrderWidth=Math.min(GUIDE_ORDER_MIN,guideMax());
+    if(!guide.classList.contains('hidden')&&guide.getBoundingClientRect().width<minOrderWidth){guideExpandedWidth=minOrderWidth;guide.style.width=minOrderWidth+'px';}
     document.getElementById('tab-order').scrollTop=0;
     updateRiskPreview();
   }
@@ -2783,7 +2833,7 @@ async function loadOrderHistory(){
   }catch(_){body.innerHTML='<tr><td colspan="9"><div class="postbl-empty">Could not load order history</div></td></tr>';}
 }
 
-let btmExpandedHeight=desktopMode()?132:260;
+let btmExpandedHeight=desktopMode()?170:200;
 function toggleBtm(){
   const o=document.getElementById('btmOuter');
   const t=document.getElementById('btmTog');
@@ -2791,6 +2841,7 @@ function toggleBtm(){
   const collapsed=o.classList.contains('collapsed');
   t.textContent=collapsed?'Expand':'Collapse';
   o.style.height=collapsed?'':btmExpandedHeight+'px';
+  if(typeof syncLayoutUi==='function'){syncLayoutUi();saveLayout();}
 }
 // ── DRAG-TO-RESIZE BOTTOM PANEL ──
 (function(){
@@ -2798,10 +2849,81 @@ function toggleBtm(){
   const handle=document.getElementById('btmResizeHandle');
   if(!outer||!handle)return;
   makeDragResizer({
-    handle,container:outer,axis:'y',min:120,max:()=>Math.round(window.innerHeight*0.75),
+    handle,container:outer,axis:'y',min:BTM_MIN,max:btmMax,
     getStart:()=>!outer.classList.contains('collapsed'),
     // dragging up (negative delta) grows the bottom panel
-    resize:(startH,dy)=>{const h=startH-dy;btmExpandedHeight=Math.min(Math.round(window.innerHeight*0.75),Math.max(120,h));return h;},
+    resize:(startH,dy)=>{const h=startH-dy;btmExpandedHeight=Math.min(btmMax(),Math.max(BTM_MIN,h));return h;},
+    onEnd:()=>{syncLayoutUi();saveLayout();},
+    onDoubleClick:()=>toggleBtm(),
+  });
+})();
+
+// ── CHART LAYOUT: remember sizes, focus chart, reset ──
+// Stored per browser only (a convenience, never needed for trading).
+const LAYOUT_KEY='ipfx_chart_layout_v1';
+let preFocusLayout=null;
+function currentLayout(){
+  return {
+    guideW:Math.round(guideExpandedWidth),
+    guideHidden:document.getElementById('guidePanel').classList.contains('hidden'),
+    btmH:Math.round(btmExpandedHeight),
+    btmCollapsed:document.getElementById('btmOuter').classList.contains('collapsed'),
+  };
+}
+function saveLayout(){try{localStorage.setItem(LAYOUT_KEY,JSON.stringify(currentLayout()));}catch(_){}}
+function applyLayout(l){
+  const g=document.getElementById('guidePanel'), o=document.getElementById('btmOuter'), t=document.getElementById('btmTog');
+  guideExpandedWidth=Math.min(guideMax(),Math.max(GUIDE_MIN,Number(l.guideW)||guideExpandedWidth));
+  btmExpandedHeight=Math.min(btmMax(),Math.max(BTM_MIN,Number(l.btmH)||btmExpandedHeight));
+  g.classList.toggle('hidden',!!l.guideHidden);
+  g.style.width=l.guideHidden?'':guideExpandedWidth+'px';
+  o.classList.toggle('collapsed',!!l.btmCollapsed);
+  o.style.height=l.btmCollapsed?'':btmExpandedHeight+'px';
+  if(t)t.textContent=l.btmCollapsed?'Expand':'Collapse';
+  syncLayoutUi();
+}
+function isChartFocused(){const l=currentLayout();return l.guideHidden&&l.btmCollapsed;}
+function syncLayoutUi(){
+  const on=isChartFocused(), b=document.getElementById('focusChartBtn'), lbl=document.getElementById('focusChartLbl');
+  if(!b)return;
+  b.classList.toggle('active',on);
+  b.setAttribute('aria-pressed',on?'true':'false');
+  b.title=on?'Bring back the side and bottom panels':'Hide the side and bottom panels to give the chart the whole screen';
+  if(lbl)lbl.textContent=on?'Show panels':'Focus chart';
+}
+function toggleChartFocus(){
+  if(isChartFocused()){
+    applyLayout(preFocusLayout||{...currentLayout(),guideHidden:false,btmCollapsed:false});
+    preFocusLayout=null;
+  } else {
+    preFocusLayout=currentLayout();
+    applyLayout({...preFocusLayout,guideHidden:true,btmCollapsed:true});
+  }
+  saveLayout();
+}
+function resetLayout(){
+  try{localStorage.removeItem(LAYOUT_KEY);}catch(_){}
+  preFocusLayout=null;
+  const g=document.getElementById('guidePanel'), o=document.getElementById('btmOuter');
+  g.style.width='';o.style.height='';
+  g.classList.remove('hidden');o.classList.remove('collapsed');
+  guideExpandedWidth=Math.round(g.getBoundingClientRect().width)||380;
+  btmExpandedHeight=Math.round(o.getBoundingClientRect().height)||200;
+  applyLayout({guideW:guideExpandedWidth,guideHidden:false,btmH:btmExpandedHeight,btmCollapsed:false});
+}
+(function restoreLayout(){
+  const g=document.getElementById('guidePanel'), o=document.getElementById('btmOuter');
+  if(!g||!o)return;
+  // seed the "expanded" sizes from the CSS defaults actually in force
+  if(!g.classList.contains('hidden'))guideExpandedWidth=Math.round(g.getBoundingClientRect().width)||guideExpandedWidth;
+  if(!o.classList.contains('collapsed'))btmExpandedHeight=Math.round(o.getBoundingClientRect().height)||btmExpandedHeight;
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(LAYOUT_KEY)||'null');}catch(_){saved=null;}
+  if(saved&&typeof saved==='object')applyLayout(saved);else syncLayoutUi();
+  // keep panels inside the window if it shrinks
+  window.addEventListener('resize',()=>{
+    if(!g.classList.contains('hidden')&&g.getBoundingClientRect().width>guideMax()){guideExpandedWidth=guideMax();g.style.width=guideExpandedWidth+'px';}
+    if(!o.classList.contains('collapsed')&&o.getBoundingClientRect().height>btmMax()){btmExpandedHeight=btmMax();o.style.height=btmExpandedHeight+'px';}
   });
 })();
 
