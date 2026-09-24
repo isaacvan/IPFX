@@ -69,7 +69,8 @@
    *   edit(trade)                   -> open the precise SL/TP dialog
    *   status(text, isError)         -> show a short message to the trader
    *   loading(bool)                 -> show / hide the page's loading overlay
-   *   loaded({symbol,tf,proxy,bars})-> optional; history arrived (proxy = futures history for a spot price)
+   *   loaded({symbol,tf,proxy,closesOnly,bars}) -> optional; history arrived (proxy = futures history
+   *                                    for a spot price; closesOnly = history had one price per bar)
    *   label(symbol)                 -> optional display name for the legend (e.g. "EUR/USD")
    *   scaleChanged({mode, auto})    -> optional; price scale mode (0 normal, 1 log, 2 %) or auto-fit changed
    */
@@ -80,6 +81,7 @@
     let symbol = null, tf = "60", seconds = 3600;
     let raw = [];            // [{time, open, high, low, close}] in engine-aligned prices
     let aligned = false;     // history shifted onto the engine's live price yet?
+    let closesOnly = false;  // history sampled once per bar (FX 1m on Yahoo): wicks are not real
     let proxy = false;
     let loadSeq = 0;
     let loadingHistory = false;
@@ -208,22 +210,34 @@
       while (lo <= hi) { const m = (lo + hi) >> 1; if (raw[m].time <= sec) { hit = m; lo = m + 1; } else hi = m - 1; }
       return hit < 0 ? null : raw[hit].time;
     }
+    // Labels are only drawn where they have room at the current zoom: open
+    // positions first, then the newest closes. Crowded markers keep their
+    // arrow or dot without text, so labels never print over each other.
+    let markerSpacing = 0;
     function applyMarkers() {
       if (!markersApi) return;
-      const out = [];
+      markerSpacing = chart.timeScale().options().barSpacing;
+      const minGap = Math.ceil(72 / Math.max(1, markerSpacing));   // bars a label needs
+      const items = [];
       for (const m of tradeMarks) {
         const time = snapTime(m.time);
         if (time == null) continue;
-        const buy = m.side === "buy";
-        if (m.kind === "exit") {
-          const pnl = Number(m.pnl) || 0;
-          out.push({ time, position: buy ? "aboveBar" : "belowBar", color: pnl >= 0 ? UP : DOWN, shape: "circle", text: money(pnl), size: 0.8 });
-        } else {
-          out.push({ time, position: buy ? "belowBar" : "aboveBar", color: buy ? UP : DOWN, shape: buy ? "arrowUp" : "arrowDown",
-            text: (buy ? "Buy " : "Sell ") + Number(m.volume).toFixed(2) });
-        }
+        const buy = m.side === "buy", exit = m.kind === "exit";
+        const pnl = Number(m.pnl) || 0;
+        items.push({
+          idx: barAt(time), open: !!m.open,
+          marker: exit
+            ? { time, position: buy ? "aboveBar" : "belowBar", color: pnl >= 0 ? UP : DOWN, shape: "circle", size: 0.8 }
+            : { time, position: buy ? "belowBar" : "aboveBar", color: buy ? UP : DOWN, shape: buy ? "arrowUp" : "arrowDown" },
+          text: exit ? money(pnl) : (buy ? "Buy " : "Sell ") + Number(m.volume).toFixed(2),
+        });
       }
-      out.sort((a, b) => a.time - b.time);
+      const taken = { aboveBar: [], belowBar: [] };
+      [...items].sort((a, b) => (b.open - a.open) || (b.idx - a.idx)).forEach((it) => {
+        const lane = taken[it.marker.position];
+        if (lane.every((i) => Math.abs(i - it.idx) >= minGap)) { it.marker.text = it.text; lane.push(it.idx); }
+      });
+      const out = items.map((it) => it.marker).sort((a, b) => a.time - b.time);
       markersApi.setMarkers(out);
     }
 
@@ -298,13 +312,14 @@
         if (seq !== loadSeq) return; // a newer symbol/timeframe won the race
         if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || "Chart history unavailable");
         proxy = !!j.proxy;
+        closesOnly = !!j.closes_only;
         raw = j.bars.map((b) => ({ time: b.t, open: b.o, high: b.h, low: b.l, close: b.c }));
         pushAll();
         chart.timeScale().scrollToRealTime();
         applyRange();
         applyMarkers();
         drawLegend();
-        if (hooks.loaded) hooks.loaded({ symbol, tf, proxy, bars: raw.length });
+        if (hooks.loaded) hooks.loaded({ symbol, tf, proxy, closesOnly, bars: raw.length });
       } catch (e) {
         if (seq !== loadSeq) return;
         hooks.status("Chart history is unavailable right now — live prices will still draw.", true);
@@ -484,7 +499,12 @@
     // The price scale can rescale without an event (autoscale, axis drag),
     // so keep lines glued to their prices while any are shown.
     setInterval(() => { if (!document.hidden && overlay.childElementCount) schedule(); }, 120);
-    chart.timeScale().subscribeVisibleLogicalRangeChange(schedule);
+    chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      schedule();
+      // zooming changes how many labels fit
+      const sp = chart.timeScale().options().barSpacing;
+      if (tradeMarks.length && Math.abs(sp - markerSpacing) > markerSpacing * 0.15) applyMarkers();
+    });
     chart.timeScale().subscribeSizeChange(schedule);
 
     // ---------------------------------------------------------------- dragging

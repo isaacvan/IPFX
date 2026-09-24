@@ -88,6 +88,25 @@ function aggregate(bars: Bar[], seconds: number): Bar[] {
   return out;
 }
 
+// Yahoo samples currencies once a minute, so its FX 1m bars (and some 5m
+// ones) arrive with open = high = low = close and draw as flat dashes.
+// Rebuild those as close-to-close candles: open at the previous close, with
+// the body spanning the move. Returns the share of bars that needed it.
+// Only consecutive bars are joined, so a weekend or session gap stays a gap.
+function repairFlatBars(bars: Bar[], stepSeconds: number): number {
+  let flat = 0;
+  for (let i = 1; i < bars.length; i++) {
+    const b = bars[i];
+    if (b.o !== b.h || b.h !== b.l || b.l !== b.c) continue;
+    flat++;
+    if (b.t - bars[i - 1].t > stepSeconds * 3) continue;
+    b.o = bars[i - 1].c;
+    b.h = Math.max(b.o, b.c);
+    b.l = Math.min(b.o, b.c);
+  }
+  return bars.length > 1 ? flat / (bars.length - 1) : 0;
+}
+
 async function fetchYahoo(code: string, interval: string, range: string): Promise<Bar[] | null> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(code)}?interval=${interval}&range=${range}&includePrePost=false`;
   const r = await fetch(url, {
@@ -146,8 +165,12 @@ Deno.serve(async (req) => {
     if (!raw || !raw.length) return json({ ok: false, error: "No chart history for this instrument right now" }, 502);
     // Intraday: snap every bar (including Yahoo's partial last bar) onto clean
     // UTC boundaries. Daily/weekly bars keep the exchange's own session stamps.
+    // Repair before grouping, so 3m candles are built from repaired 1m ones.
+    const step = { "1m": 60, "5m": 300, "15m": 900, "30m": 1800, "60m": 3600 }[spec.interval];
+    const flatShare = step ? repairFlatBars(raw, step) : 0;
     const bars = spec.seconds < 86400 ? aggregate(raw, spec.seconds) : raw;
-    const body = { ok: true, symbol, tf, source: "yahoo", proxy, seconds: spec.seconds, bars: bars.slice(-2000) };
+    // `closes_only`: most of this history was sampled once per bar, so wicks are not real.
+    const body = { ok: true, symbol, tf, source: "yahoo", proxy, closes_only: flatShare > 0.5, seconds: spec.seconds, bars: bars.slice(-2000) };
     memo.set(key, { at: Date.now(), body });
     return json(body, 200, spec.cache);
   } catch (e) {
