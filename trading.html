@@ -2115,7 +2115,7 @@ let activeSym='OANDA:EURUSD';
 let isDarkMode=true;
 const GRID_ALPHAS=[0,.04,.09];
 const GRID_LABELS=['Grid Off','Grid Subtle','Grid On'];
-let gridMode=0;
+let gridMode=2;
 
 // ── INDICATORS DATA ──
 const INDS=[
@@ -5114,8 +5114,8 @@ function initTheme(){
   const t=localStorage.getItem('ipfx_theme');
   if(t==='light'){isDarkMode=false;document.body.classList.add('light');}
   updateThemeBtn();
-  const gm=parseInt(localStorage.getItem('ipfx_grid')||'0');
-  gridMode=gm;
+  const gm=parseInt(localStorage.getItem('ipfx_grid_v2')??'2');
+  gridMode=[0,1,2].includes(gm)?gm:2;
   updateGridBtn();
 }
 function updateThemeBtn(){
@@ -5147,7 +5147,7 @@ function updateGridBtn(){
 }
 function cycleGrid(){
   gridMode=(gridMode+1)%3;
-  localStorage.setItem('ipfx_grid',gridMode);
+  localStorage.setItem('ipfx_grid_v2',gridMode);
   updateGridBtn();
   rebuildChart();
 }
