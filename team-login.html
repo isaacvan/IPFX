@@ -18,7 +18,7 @@
 const SB_URL='https://agulweemteoeagscmppy.supabase.co',SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ',FN=SB_URL+'/functions/v1/team-access';
 const sb=window.supabase.createClient(SB_URL,SB_ANON);let factorId=null;
 const requestedNext=new URLSearchParams(location.search).get('next')||'';
-const safeNext=/^\/start-challenge\.html(?:[?#].*)?$/.test(requestedNext)?requestedNext:'/admin.html';
+const safeNext=/^\/start-challenge\.html(?:[?#].*)?$/.test(requestedNext)?requestedNext:'/trader-analytics.html';
 const stages=['passwordStage','mfaStage','enrollStage','checkingStage'];
 function show(id){stages.forEach(x=>document.getElementById(x).classList.toggle('on',x===id));document.getElementById('error').style.display='none'}
 function message(text,ok=false){const e=document.getElementById(ok?'ok':'error');e.textContent=text;e.style.display='block'}
