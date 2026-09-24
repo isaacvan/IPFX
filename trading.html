@@ -26,22 +26,23 @@
     <meta name="twitter:description" content="Secure IPFX Capital account and operations page.">
     <meta name="twitter:image" content="https://ipfxcapital.com/assets/images/social-card.png">
     <link rel="stylesheet" href="/assets/css/site-foundation.css">
-<link rel="preconnect" href="https://s3.tradingview.com">
 <script>
-// Kick off the TradingView widget script download as early as physically
-// possible — in parallel with the rest of this (large) page's HTML
-// parsing — instead of a blocking <script src> tag placed after ~1500
-// lines of markup, which used to serialize [parse everything above it]
-// then [download+exec tv.js] then [parse everything below it] before the
-// chart could even start its own ~10s+ iframe bootstrap. window.__tvReady
-// resolves once TradingView is available, from whichever point calls it.
-window.__tvReady=new Promise(res=>{
-  const s=document.createElement('script');
-  s.src='https://s3.tradingview.com/tv.js';
-  s.onload=res;
-  document.head.appendChild(s);
-});
+// The IPFX chart (Lightweight Charts, below) is the default. TradingView's
+// widget is only needed for the classic chart with indicators, so tv.js is
+// fetched on demand — or straight away if this trader last used it.
+window.__loadTv=function(){
+  return window.__tvReady||(window.__tvReady=new Promise(function(res,rej){
+    var s=document.createElement('script');
+    s.src='https://s3.tradingview.com/tv.js';
+    s.onload=res;
+    s.onerror=function(){window.__tvReady=null;rej(new Error('tv.js failed'));};
+    document.head.appendChild(s);
+  }));
+};
+try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch(_){}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="/assets/js/ipfx-chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,6 +129,45 @@ body{font-family:var(--font-ui);background:var(--bg);color:var(--fg);display:fle
 .chart-pos-close:hover{background:rgba(239,68,68,.16);color:#ff8d99;transform:scale(1.04);}
 body.light .chart-pos-chip{background:rgba(255,255,255,.92);box-shadow:0 10px 28px rgba(15,23,42,.12);}
 @media(max-width:760px){.chart-pos-chip{right:8px;max-width:calc(100vw - 24px)}.chart-pos-meta{display:none}}
+/* ── IPFX chart: trade lines over Lightweight Charts ── */
+#ipfx_chart_container{position:absolute;inset:0;}
+#ipfx_chart_container[hidden],#tv_chart_container[hidden]{display:none;}
+.ipc-layer{position:absolute;inset:0;z-index:42;pointer-events:none;overflow:hidden;}
+.ipc-layer[hidden]{display:none;}
+.ipc-shield{position:absolute;inset:0;z-index:44;cursor:ns-resize;touch-action:none;}
+.ipc-shield[hidden]{display:none;}
+.ipc-line{position:absolute;left:0;top:0;width:var(--pane-w,100%);height:0;border-top:1px dashed var(--c);will-change:transform;}
+.ipc-entry{border-top-style:solid;opacity:.9;}
+.ipc-sl{--c:#ef4444;}
+.ipc-tp{--c:#10b981;}
+.ipc-grab{position:absolute;left:0;right:0;top:-6px;height:12px;cursor:ns-resize;pointer-events:auto;touch-action:none;outline:none;}
+.ipc-grab:focus-visible{background:color-mix(in srgb,var(--c) 22%,transparent);}
+.ipc-tag{position:absolute;top:-12px;height:24px;display:flex;align-items:center;gap:.4rem;padding:0 .25rem 0 .5rem;border:1px solid var(--c);border-radius:6px;background:rgba(14,14,16,.94);box-shadow:0 6px 18px rgba(0,0,0,.28);color:var(--fg);font-size:.68rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:auto;user-select:none;-webkit-user-select:none;}
+.ipc-tag b{color:var(--c);font-weight:800;letter-spacing:.03em;}
+.ipc-entry .ipc-tag{left:10px;cursor:default;}
+.ipc-sl .ipc-tag,.ipc-tp .ipc-tag{right:10px;cursor:ns-resize;touch-action:none;}
+.ipc-pnl{color:var(--c);font-weight:800;min-width:58px;text-align:right;}
+.ipc-val{color:var(--muted);font-weight:600;}
+.ipc-over .ipc-val{color:#ff8d99;font-weight:700;}
+.ipc-over .ipc-tag{box-shadow:0 0 0 2px rgba(239,68,68,.35),0 6px 18px rgba(0,0,0,.28);}
+.ipc-active .ipc-tag{box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent),0 6px 18px rgba(0,0,0,.3);}
+.ipc-active{border-top-style:solid;}
+.ipc-saving{opacity:.55;}
+.ipc-saving .ipc-tag,.ipc-saving .ipc-grab{cursor:progress;}
+.ipc-add,.ipc-x{height:18px;border:0;border-radius:4px;font:inherit;font-size:.62rem;font-weight:700;cursor:pointer;pointer-events:auto;}
+.ipc-add{padding:0 .35rem;background:rgba(255,255,255,.07);color:var(--muted);cursor:ns-resize;touch-action:none;}
+.ipc-add[data-add="sl"]:hover{background:rgba(239,68,68,.16);color:#ff8d99;}
+.ipc-add[data-add="tp"]:hover{background:rgba(16,185,129,.16);color:#34d399;}
+.ipc-x{width:18px;padding:0;background:transparent;color:var(--muted2);}
+.ipc-x:hover{background:rgba(239,68,68,.16);color:#ff8d99;}
+.ipc-light .ipc-tag{background:rgba(255,255,255,.95);box-shadow:0 6px 18px rgba(15,23,42,.12);color:#111;}
+.ipc-light .ipc-add{background:rgba(0,0,0,.05);}
+body.ipc-dragging,body.ipc-dragging *{cursor:ns-resize!important;user-select:none!important;}
+@media(max-width:760px){.ipc-val{display:none}.ipc-entry .ipc-tag{left:6px}.ipc-sl .ipc-tag,.ipc-tp .ipc-tag{right:6px}}
+.ind-engine-note{flex-shrink:0;display:flex;align-items:center;gap:.6rem;margin:.55rem .8rem 0;padding:.55rem .7rem;border:1px solid rgba(37,99,235,.28);border-radius:8px;background:var(--cobalt-d);font-size:.68rem;line-height:1.45;color:var(--muted);}
+.ind-engine-note button{flex-shrink:0;padding:.3rem .6rem;border:1px solid rgba(37,99,235,.45);border-radius:6px;background:none;color:#60a5fa;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap;}
+.ind-engine-note button:hover{background:rgba(37,99,235,.18);}
+body.light .ind-engine-note button{color:var(--cobalt);}
 
 /* ── RIGHT GUIDE PANEL ── */
 .guide{width:220px;flex-shrink:0;flex-basis:auto;min-width:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;position:relative;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
@@ -222,6 +262,7 @@ body.light .guide-resize-grip{background:rgba(37,99,235,.28);}
 
 /* FOOTER */
 .chart-footer{display:flex;align-items:center;justify-content:flex-end;padding:.25rem .75rem;border-top:1px solid var(--line);background:var(--bg2);font-size:.62rem;color:var(--muted2);gap:.4rem;flex-shrink:0;}
+.chart-footer{display:block;text-align:right;line-height:1.5;}
 .chart-footer a{color:var(--muted2);text-decoration:none;}
 .chart-footer a:hover{color:var(--muted);}
 
@@ -1263,7 +1304,7 @@ body.light .op-exec-buy{background:#2f8064;}
 .desktop-app .chart-toolbar{min-height:36px;padding:4px 10px;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 .desktop-app .chart-toolbar::-webkit-scrollbar{display:none}
 .desktop-app .tf-btn,.desktop-app .style-btn{min-height:26px;padding:3px 8px;font-size:11px}
-.desktop-app .chart-footer{height:20px;padding:0 8px;justify-content:center;overflow:hidden;white-space:nowrap;font-size:9px;line-height:20px}
+.desktop-app .chart-footer{height:20px;padding:0 8px;justify-content:center;text-align:center;overflow:hidden;white-space:nowrap;font-size:9px;line-height:20px}
 .desktop-app .chart-footer br{display:none}
 .desktop-app .guide{width:clamp(360px,27vw,430px)}
 .desktop-app .guide.order-mode #tab-order{padding:10px 12px 8px;gap:7px}
@@ -1451,6 +1492,10 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
         <span class="grid-txt" id="gridTxt">Off</span>
       </button>
       <div class="layout-tools" role="group" aria-label="Chart layout">
+        <button class="layout-btn" id="chartEngineBtn" type="button" onclick="toggleChartEngine()" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M3 21h18"/></svg>
+          <span class="layout-lbl" id="chartEngineLbl">Indicators chart</span>
+        </button>
         <button class="layout-btn" id="focusChartBtn" type="button" onclick="toggleChartFocus()" title="Hide the side and bottom panels to give the chart the whole screen" aria-pressed="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9l-3 3 3 3M16 9l3 3-3 3"/></svg>
           <span class="layout-lbl" id="focusChartLbl">Focus chart</span>
@@ -1462,7 +1507,9 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
       </div>
     </div>
     <div class="chart-area">
-      <div id="tv_chart_container"></div>
+      <div id="ipfx_chart_container" aria-label="Price chart"></div>
+      <div class="ipc-layer" id="ipcLayer"></div>
+      <div id="tv_chart_container" hidden></div>
       <div class="chart-pos-layer" id="chartPosLayer" aria-live="polite"></div>
       <div class="chart-loading" id="chartLoading">
         <div class="chart-loading-spin"></div>
@@ -1470,7 +1517,7 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
       </div>
     </div>
     <div class="chart-footer">
-      Chart data powered by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>. Order fills are priced by IPFX's own market-data source, which may differ from the chart.
+      <span id="chartFooterSrc">Chart drawn from IPFX's own trading prices — the same quotes your orders fill at.</span>&nbsp;Charts by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>.
       <br>IPFX Markets is a simulated trading environment. IPFX does not hold client deposits, provide brokerage services, or provide investment advice.
     </div>
   </div>
@@ -1644,6 +1691,7 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
 
       <!-- INDICATORS TAB -->
       <div class="gpanel" id="tab-ind" style="flex-direction:column;">
+        <div class="ind-engine-note" id="indEngineNote"></div>
         <div class="ind-search-row" style="flex-shrink:0;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ind-search-ic"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="indSearch" class="ind-search-inp" placeholder="Search indicators (name, abbreviation, keyword)…"
@@ -2050,8 +2098,6 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
 </div>
 
 <script>
-// TradingView itself is already loading in parallel from window.__tvReady,
-// kicked off at the very top of <head> — see the comment there.
 // ── URL PARAMS ──
 const P=new URLSearchParams(location.search);
 document.getElementById('tbAcct').textContent=P.get('name')||'My Account';
@@ -2261,7 +2307,7 @@ function scheduleIndApply(){
   clearTimeout(indApplyTimer);
   indApplyTimer=setTimeout(()=>{
     saveChartLayout();
-    rebuildChart();
+    if(!indicatorsChanged())rebuildChart();
     if(btn){btn.textContent=btn.dataset.label||'Apply to Chart';btn.disabled=false;}
   },450);
 }
@@ -2283,7 +2329,7 @@ function resetIndicators(){
 
 function applyIndicators(){
   saveChartLayout();
-  rebuildChart();
+  if(!indicatorsChanged())rebuildChart();
 }
 
 // ── ORDER-TICKET RISK PREVIEW ──
@@ -2581,7 +2627,155 @@ var TV_FUT={ES:'CME_MINI:ES1!',MES:'CME_MINI:ES1!',NQ:'CME_MINI:NQ1!',MNQ:'CME_M
   RTY:'CME_MINI:RTY1!',M2K:'CME_MINI:RTY1!',CL:'NYMEX:CL1!',MCL:'NYMEX:CL1!',GC:'COMEX:GC1!',MGC:'COMEX:GC1!',NG:'NYMEX:NG1!',ZB:'CBOT:ZB1!',ZN:'CBOT:ZN1!'};
 function tvSymbolFor(sym){const f=futSym(sym);return f?TV_FUT[f]:sym;}
 function rebuildChart(){
-  if(typeof TradingView!=='undefined'){buildChart();}
+  if(chartEngine==='tv'){
+    window.__loadTv().then(()=>{if(chartEngine==='tv')buildChart();})
+      .catch(()=>engineMsg('The classic chart could not load — check your connection or ad blocker.'));
+    return;
+  }
+  buildIpfxChart();
+}
+
+// ── IPFX CHART ──
+// Default chart: drawn from the engine's own quotes (see assets/js/ipfx-chart.js),
+// with entry / SL / TP lines at their real prices. SL and TP drag to move;
+// the engine checks every change. The TradingView widget stays available as
+// the "classic" chart, which is where indicators draw for now.
+let chartEngine=(function(){try{return localStorage.getItem('ipfx_chart_engine')==='tv'?'tv':'ipfx';}catch(_){return 'ipfx';}})();
+let ipfxChart=null;
+let ipfxChartProxy=false;
+function pxDigits(symbol){
+  const clean=execSymbol(symbol||activeSym);
+  const digitsBySymbol={DJI:0,JPN225:0,SPXUSD:1,NSXUSD:1,UK100:1,GER40:1,FRA40:1,US2000:1,XAUUSD:2,XPTUSD:2,XPDUSD:2,XAGUSD:3,USDJPY:3,GBPJPY:3,EURJPY:3};
+  return FUT_SPECS[clean]?FUT_SPECS[clean][2]:(digitsBySymbol[clean]??5);
+}
+// USD value of one unit of price movement on a position (null until the conversion quote is known).
+function usdPerPoint(t){
+  const conv=clientUsdPerQuote(symMeta(t.symbol).quoteCurrency);
+  return conv==null?null:contractSizeFor(t.symbol)*(+t.volume)*conv;
+}
+function ipfxChartHooks(){
+  const limits=()=>(engineState&&engineState.account&&engineState.account.limits)||{};
+  return{
+    digits:pxDigits,
+    mark(t){
+      const q=liveQuotesBySymbol.get(execSymbol(t.symbol));
+      if(q)return t.side==='buy'?q.bid:q.ask;
+      return isFinite(+t.mark)&&t.mark!=null?+t.mark:null;
+    },
+    pnlAt(t,price){
+      const k=usdPerPoint(t);
+      return k==null?null:Math.round((price-(+t.open_price))*(t.side==='buy'?1:-1)*k*100)/100;
+    },
+    // Same measure as the engine's modify check: distance from ENTRY to the stop.
+    riskAt(t,stop){
+      const k=usdPerPoint(t);
+      return k==null?null:Math.abs((+t.open_price)-stop)*k;
+    },
+    riskLimit(){const v=limits().max_risk_per_trade_usd;return v==null||!isFinite(+v)?null:+v;},
+    stopRequired(){return !!limits().require_stop_loss;},
+    async save(t,lv){
+      if(engineBusy){engineMsg('Another order is still working — try again in a moment.');return false;}
+      engineBusy=true;
+      let r=null;
+      try{r=await engineCall({action:'modify',trade_id:t.id,sl:lv.sl,tp:lv.tp});}
+      finally{engineBusy=false;}
+      if(r){
+        const f=v=>v==null?'none':fmtPx(v,t.symbol);
+        engineMsg(execSymbol(t.symbol)+' updated — SL '+f(lv.sl)+' · TP '+f(lv.tp),true);
+      }
+      return !!r;
+    },
+    close(t){closeTradeById(t.id);},
+    edit(t){openModifyDialog(t.id);},
+    status(text,isError){engineMsg(text,!isError);},
+    loading(on){
+      const el=document.getElementById('chartLoading');
+      if(!el||chartEngine==='tv')return;
+      clearTimeout(el._safety);
+      el.hidden=!on;
+      if(on)el._safety=setTimeout(()=>{el.hidden=true;},12000);
+    },
+    loaded(info){ipfxChartProxy=!!info.proxy;syncChartEngineUi();},
+  };
+}
+function buildIpfxChart(){
+  if(!ipfxChart){
+    try{
+      ipfxChart=createIpfxChart(document.getElementById('ipfx_chart_container'),document.getElementById('ipcLayer'),ipfxChartHooks());
+    }catch(e){
+      // Chart library blocked or failed: fall back to the classic chart for this visit.
+      chartEngine='tv';
+      applyChartEngineDom();
+      rebuildChart();
+      return;
+    }
+  }
+  ipfxChart.setTheme(isDarkMode,GRID_ALPHAS[gridMode]);
+  ipfxChart.setStyle([1,2,3,8].includes(+currentStyle)?+currentStyle:1);
+  const sym=execSymbol(activeSym);
+  if(ipfxChart.symbol!==sym||ipfxChart.tf!==currentTf){ipfxChartProxy=false;syncChartEngineUi();ipfxChart.load(sym,currentTf);}
+  syncIpfxTrades();
+}
+function syncIpfxTrades(){
+  if(!ipfxChart)return;
+  const sym=execSymbol(activeSym);
+  ipfxChart.setTrades(((engineState&&engineState.open_trades)||[]).filter(t=>execSymbol(t.symbol)===sym));
+}
+function applyChartEngineDom(){
+  const tv=chartEngine==='tv';
+  document.body.classList.toggle('chart-classic',tv);
+  document.getElementById('ipfx_chart_container').hidden=tv;
+  document.getElementById('tv_chart_container').hidden=!tv;
+  if(ipfxChart)ipfxChart.setVisible(!tv);
+  else document.getElementById('ipcLayer').hidden=tv;
+  if(!tv){
+    // Drop the widget's iframe so it stops streaming in the background.
+    document.getElementById('tv_chart_container').innerHTML='';
+    tvWidget=null;
+    const ld=document.getElementById('chartLoading');
+    if(ld){clearTimeout(ld._safety);ld.hidden=true;}
+  }
+  syncChartEngineUi();
+}
+function syncChartEngineUi(){
+  const tv=chartEngine==='tv';
+  const btn=document.getElementById('chartEngineBtn');
+  if(btn){
+    btn.setAttribute('aria-pressed',tv?'true':'false');
+    btn.classList.toggle('active',tv);
+    btn.title=tv?'Back to the IPFX chart — drawn from IPFX prices, with draggable stop loss and take profit'
+      :'Switch to the classic TradingView chart, which shows indicators';
+  }
+  const lbl=document.getElementById('chartEngineLbl');
+  if(lbl)lbl.textContent=tv?'IPFX chart':'Indicators chart';
+  const src=document.getElementById('chartFooterSrc');
+  if(src)src.textContent=tv
+    ?'Classic chart data comes from TradingView\'s feed. Orders fill at IPFX\'s own prices, which may differ from this chart.'
+    :ipfxChartProxy
+      ?'Live candles use IPFX\'s own trading prices. Earlier history is drawn from the futures market and shifted onto the live spot price.'
+      :'Chart drawn from IPFX\'s own trading prices — the same quotes your orders fill at.';
+  const note=document.getElementById('indEngineNote');
+  if(note)note.innerHTML=tv
+    ?'<span>Indicators are showing on the classic chart. Switch back to drag your stop loss and take profit on the chart.</span><button type="button" onclick="setChartEngine(\'ipfx\')">IPFX chart</button>'
+    :'<span>Indicators draw on the classic chart — picking one switches to it. Draggable SL/TP stays on the IPFX chart.</span><button type="button" onclick="setChartEngine(\'tv\')">Open classic</button>';
+}
+function setChartEngine(mode,why){
+  mode=mode==='tv'?'tv':'ipfx';
+  const changed=mode!==chartEngine;
+  chartEngine=mode;
+  try{localStorage.setItem('ipfx_chart_engine',mode);}catch(_){}
+  applyChartEngineDom();
+  renderChartPositions();
+  if(changed||!ipfxChart)rebuildChart();
+  if(changed&&why==='indicators')engineMsg('Indicators show on the classic chart. Use "IPFX chart" in the toolbar to drag SL/TP again.',true);
+}
+function toggleChartEngine(){setChartEngine(chartEngine==='tv'?'ipfx':'tv');}
+// Called when the trader picks indicators: they only draw on the classic
+// chart, so switch to it rather than leave the pick silently invisible.
+// Returns true when the switch already rebuilt the chart.
+function indicatorsChanged(){
+  if(selectedStudies.size&&chartEngine!=='tv'){setChartEngine('tv','indicators');return true;}
+  return false;
 }
 
 // ── TIMEFRAME CONTROLS ──
@@ -3811,10 +4005,7 @@ async function flattenAll(){
 function fmtPx(v,symbol){
   const n=+v;
   if(!isFinite(n))return '—';
-  const clean=typeof execSymbol==='function'?execSymbol(symbol||activeSym):String(symbol||activeSym||'').replace(/^[^:]+:/,'');
-  const digitsBySymbol={DJI:0,JPN225:0,SPXUSD:1,NSXUSD:1,UK100:1,GER40:1,FRA40:1,US2000:1,XAUUSD:2,XPTUSD:2,XPDUSD:2,XAGUSD:3,USDJPY:3,GBPJPY:3,EURJPY:3};
-  const digits=FUT_SPECS[clean]?FUT_SPECS[clean][2]:(digitsBySymbol[clean]??5);
-  return n.toFixed(digits);
+  return n.toFixed(pxDigits(symbol));
 }
 // Counts a PnL display from its last shown value up to the new one, one
 // dollar (or finer, near zero) at a time, instead of snapping straight to
@@ -3867,8 +4058,12 @@ function refreshClientMarks(){
   renderPositions();
 }
 function renderChartPositions(){
+  syncIpfxTrades();
   const layer=document.getElementById('chartPosLayer');
   if(!layer)return;
+  // The IPFX chart draws positions at their real prices itself; these
+  // stacked chips are only for the classic chart, which cannot map prices.
+  if(chartEngine!=='tv'){layer.innerHTML='';return;}
   const open=(engineState&&engineState.open_trades)||[];
   if(!open.length){layer.innerHTML='';return;}
   layer.innerHTML=open.slice(0,6).map(function(p,i){
@@ -4337,6 +4532,7 @@ function applyFeedGate(){
 async function pollTicketPrice(){
   if(priceFetchBusy||!activeSym||!hasSession())return;
   priceFetchBusy=true;
+  const polledSym=activeSym;
   const tok=await freshToken();
   if(tok){
     try{
@@ -4355,6 +4551,7 @@ async function pollTicketPrice(){
         domPrice=j.mid;
         lastQuoteTs=Date.now();
         updateOrdPrices(j);
+        if(ipfxChart&&polledSym===activeSym&&j.status!=='stale')ipfxChart.onQuote(j.mid);
         // engine reports its own status ('live', 'demo', or 'stale') based on the
         // provider tick age — trust that over our own poll cadence.
         setFeed(j.status==='stale'?'stale':j.status==='live'?'live':'demo');
@@ -4565,7 +4762,7 @@ function chatToggleInd(id,el){
     el.textContent=`✓ Added`;
     addBotMsg(`${nm} added to chart ✓`);
   }
-  rebuildChart();
+  if(!indicatorsChanged())rebuildChart();
 }
 
 function addBotMsg(txt){
@@ -5057,7 +5254,7 @@ function applySetupConfig(){
   }
   closeSetupModal();
   saveChartLayout('setup_import');
-  rebuildChart();
+  if(!indicatorsChanged())rebuildChart();
 }
 
 // image analysis
@@ -5207,7 +5404,7 @@ initTheme();
 buildIndList();
 updatePnlPreview();
 
-window.__tvReady.then(buildChart);
+setChartEngine(chartEngine);
 </script>
 
 <!-- ── SETUP MODAL ── -->
