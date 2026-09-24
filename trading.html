@@ -262,7 +262,30 @@ body.light .guide-resize-grip{background:rgba(37,99,235,.28);}
 
 /* FOOTER */
 .chart-footer{display:flex;align-items:center;justify-content:flex-end;padding:.25rem .75rem;border-top:1px solid var(--line);background:var(--bg2);font-size:.62rem;color:var(--muted2);gap:.4rem;flex-shrink:0;}
-.chart-footer{display:block;text-align:right;line-height:1.5;}
+.chart-footer{justify-content:space-between;gap:.75rem;padding:.2rem .5rem;line-height:1.4;}
+.cf-group{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+.cf-text{flex:1;min-width:0;text-align:center;font-size:.62rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cf-btn{min-width:26px;height:22px;padding:0 .4rem;border:0;border-radius:4px;background:none;color:var(--muted);font:600 .7rem var(--font-ui);cursor:pointer;transition:background .12s,color .12s;}
+.cf-btn:hover{background:rgba(255,255,255,.06);color:var(--fg);}
+.cf-btn.active{background:var(--cobalt-d);color:#60a5fa;}
+.cf-btn:focus-visible{outline:2px solid #0a84ff;outline-offset:1px;}
+.cf-clock{font:600 .7rem var(--font-ui);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;padding:0 .3rem;}
+.cf-sep{width:1px;height:14px;background:var(--line);margin:0 .25rem;}
+body.light .cf-btn:hover{background:rgba(0,0,0,.05);}
+body.light .cf-btn.active{color:var(--cobalt);}
+body.chart-classic .cf-ranges,body.chart-classic .cf-scale,body.chart-classic .cf-right .cf-sep{visibility:hidden;}
+.chart-toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+.chart-toolbar::-webkit-scrollbar{display:none;}
+#focusChartBtn .layout-lbl,#resetLayoutBtn .layout-lbl{display:none;}
+/* chart legend: symbol · timeframe · OHLC */
+.ipc-legend{position:absolute;left:10px;top:8px;z-index:3;display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .55rem;max-width:calc(100% - 90px);pointer-events:none;font:500 .74rem var(--font-ui);color:var(--muted);font-variant-numeric:tabular-nums;}
+.ipc-lg-sym{color:var(--fg);font-weight:700;font-size:.82rem;}
+.ipc-lg-tf{color:var(--muted);font-weight:600;}
+.ipc-lg-tf::before{content:"·";margin-right:.55rem;color:var(--muted2);}
+.ipc-lg-ohlc b{font-weight:600;margin:0 .45rem 0 .15rem;}
+.ipc-lg-ohlc.up b{color:#10b981;}
+.ipc-lg-ohlc.down b{color:#ef4444;}
+body.light .ipc-lg-sym{color:#111;}
 .chart-footer a{color:var(--muted2);text-decoration:none;}
 .chart-footer a:hover{color:var(--muted);}
 
@@ -1286,7 +1309,7 @@ body.light .postbl tbody tr:hover{background:rgba(0,0,0,.035)}
 .op-advanced[open] summary::after{transform:rotate(-90deg);}
 .op-advanced .op-price-grid{margin:2px 0 8px;}
 .op-actions button{width:100%;}
-.of-note{margin-top:auto;padding:3px 0 0;font-style:normal;font-size:10px;color:var(--muted2);}
+.of-note{margin-top:auto;padding:3px 0 0;font-style:normal;font-size:10px;line-height:1.45;color:var(--muted2);}
 body.light .op-type-btn.active{background:#e4ebfb;color:#1647a8;}
 body.light .op-quick:has(.op-chk.on){color:#174eaa;}
 body.light .op-exec-sell{background:#b13b43;}
@@ -1304,7 +1327,8 @@ body.light .op-exec-buy{background:#2f8064;}
 .desktop-app .chart-toolbar{min-height:36px;padding:4px 10px;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 .desktop-app .chart-toolbar::-webkit-scrollbar{display:none}
 .desktop-app .tf-btn,.desktop-app .style-btn{min-height:26px;padding:3px 8px;font-size:11px}
-.desktop-app .chart-footer{height:20px;padding:0 8px;justify-content:center;text-align:center;overflow:hidden;white-space:nowrap;font-size:9px;line-height:20px}
+.desktop-app .chart-footer{height:26px;padding:0 6px;overflow:hidden;white-space:nowrap;font-size:9px;line-height:1.3}
+.desktop-app .cf-text{overflow:hidden;text-overflow:ellipsis}
 .desktop-app .chart-footer br{display:none}
 .desktop-app .guide{width:clamp(360px,27vw,430px)}
 .desktop-app .guide.order-mode #tab-order{padding:10px 12px 8px;gap:7px}
@@ -1465,7 +1489,6 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
       <button class="brw-act" onclick="flattenAll()">Close all</button>
     </div>
     <div class="chart-toolbar" id="chartToolbar">
-      <span class="ct-label">Timeframe</span>
       <button class="tf-btn" onclick="setTf('1',this)" title="1 Minute — each candle = 1 min. Scalping only.">1m</button>
       <button class="tf-btn" onclick="setTf('3',this)" title="3 Minutes — fast scalping timeframe.">3m</button>
       <button class="tf-btn" onclick="setTf('5',this)" title="5 Minutes — popular for news-event scalps.">5m</button>
@@ -1476,16 +1499,15 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
       <button class="tf-btn" onclick="setTf('D',this)" title="Daily — one candle per day. Position trading.">1D</button>
       <button class="tf-btn" onclick="setTf('W',this)" title="Weekly — big picture institutional view.">1W</button>
       <div class="ct-sep"></div>
-      <span class="ct-label">Style</span>
-      <button class="style-btn active" onclick="setStyle(1,this)" title="Candles">
+      <button class="style-btn active" data-style="1" onclick="setStyle(1,this)" title="Candles">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="3" height="7"/><rect x="8" y="2" width="3" height="5"/><line x1="4.5" y1="1" x2="4.5" y2="3"/><line x1="4.5" y1="10" x2="4.5" y2="12"/><line x1="9.5" y1="1" x2="9.5" y2="2"/><line x1="9.5" y1="7" x2="9.5" y2="12"/></svg>
         Candles
       </button>
-      <button class="style-btn" onclick="setStyle(2,this)" title="Line">
+      <button class="style-btn" data-style="2" onclick="setStyle(2,this)" title="Line">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,10 4,6 7,8 10,3 13,5"/></svg>
         Line
       </button>
-      <button class="style-btn" onclick="setStyle(8,this)" title="Heikin Ashi">HA</button>
+      <button class="style-btn" data-style="8" onclick="setStyle(8,this)" title="Heikin Ashi">HA</button>
       <div class="ct-sep"></div>
       <button class="style-btn" id="gridBtn" onclick="cycleGrid()" title="Toggle grid lines">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="4.5" y1="0" x2="4.5" y2="13"/><line x1="8.5" y1="0" x2="8.5" y2="13"/><line x1="0" y1="4.5" x2="13" y2="4.5"/><line x1="0" y1="8.5" x2="13" y2="8.5"/></svg>
@@ -1517,8 +1539,26 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
       </div>
     </div>
     <div class="chart-footer">
-      <span id="chartFooterSrc">Chart drawn from IPFX's own trading prices — the same quotes your orders fill at.</span>&nbsp;Charts by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>.
-      <br>IPFX Markets is a simulated trading environment. IPFX does not hold client deposits, provide brokerage services, or provide investment advice.
+      <div class="cf-group cf-ranges" role="group" aria-label="Chart range">
+        <button type="button" class="cf-btn" data-range="1D" onclick="setChartRange('1D')" title="Last day · 5-minute candles">1D</button>
+        <button type="button" class="cf-btn" data-range="5D" onclick="setChartRange('5D')" title="Last 5 days · 15-minute candles">5D</button>
+        <button type="button" class="cf-btn" data-range="1M" onclick="setChartRange('1M')" title="Last month · 1-hour candles">1M</button>
+        <button type="button" class="cf-btn" data-range="3M" onclick="setChartRange('3M')" title="Last 3 months · 4-hour candles">3M</button>
+        <button type="button" class="cf-btn" data-range="1Y" onclick="setChartRange('1Y')" title="Last year · daily candles">1Y</button>
+        <button type="button" class="cf-btn" data-range="5Y" onclick="setChartRange('5Y')" title="Last 5 years · weekly candles">5Y</button>
+      </div>
+      <div class="cf-text">
+      <span id="chartFooterSrc">Priced from IPFX's own quotes — the prices your orders fill at.</span>&nbsp;Charts by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>.
+      </div>
+      <div class="cf-group cf-right">
+        <span class="cf-clock" id="chartClock" title="Chart time (London)"></span>
+        <span class="cf-sep"></span>
+        <span class="cf-group cf-scale" role="group" aria-label="Price scale">
+          <button type="button" class="cf-btn" id="scalePct" onclick="toggleScaleMode(2)" title="Percentage scale" aria-pressed="false">%</button>
+          <button type="button" class="cf-btn" id="scaleLog" onclick="toggleScaleMode(1)" title="Logarithmic scale" aria-pressed="false">log</button>
+          <button type="button" class="cf-btn active" id="scaleAuto" onclick="chartAutoFit()" title="Fit the price scale to the chart automatically" aria-pressed="true">auto</button>
+        </span>
+      </div>
     </div>
   </div>
 
@@ -1555,7 +1595,7 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
         <div class="op-presets" aria-label="Quick lot sizes"><button type="button" class="op-preset active" onclick="setLots(0.01,this)">0.01</button><button type="button" class="op-preset" onclick="setLots(0.1,this)">0.10</button><button type="button" class="op-preset" onclick="setLots(0.5,this)">0.50</button><button type="button" class="op-preset" onclick="setLots(1,this)">1.00</button><button type="button" class="op-preset" onclick="setLots(2,this)">2.00</button></div>
         <details class="op-advanced"><summary>Price impact and position tools</summary><div class="op-price-grid"><div class="op-pg-col op-pg-left"><div class="op-pg-cell op-pg-price op-sell-price" id="op-bid-val">—</div><div class="op-pg-cell op-pg-val" id="op-ticks-l">—</div><div class="op-pg-cell op-pg-val" id="pnl-sell">—<span class="op-pg-sfx">$</span></div><div class="op-pg-cell op-pg-val" id="op-bal-sell">—<span class="op-pg-sfx">%</span></div></div><div class="op-pg-col op-pg-center"><div class="op-pg-cell op-pg-lbl">Price</div><div class="op-pg-cell op-pg-lbl">Ticks</div><div class="op-pg-cell op-pg-lbl">P&amp;L</div><div class="op-pg-cell op-pg-lbl">Balance</div></div><div class="op-pg-col op-pg-right"><div class="op-pg-cell op-pg-price op-buy-price" id="op-ask-val">—</div><div class="op-pg-cell op-pg-val" id="op-ticks-r">—</div><div class="op-pg-cell op-pg-val" id="pnl-buy">—<span class="op-pg-sfx">$</span></div><div class="op-pg-cell op-pg-val" id="op-bal-buy">—<span class="op-pg-sfx">%</span></div></div></div><div class="op-actions"><button type="button" class="op-act" onclick="closePosition()">Close latest trade</button><button type="button" class="op-act danger" onclick="flattenAll()">Close all positions</button></div><div class="op-pos-hd">Open positions</div><div id="ord-pos-list"><div class="of-pos-empty">No open positions</div></div></details>
-        <div class="of-note">Practice mode · no real money</div>
+        <div class="of-note">Practice mode · simulated trading, no real money. IPFX does not hold client deposits, provide brokerage services or give investment advice.</div>
       </div>
 
       <!-- LEARN TAB (hidden, content served by chatbot) -->
@@ -2695,7 +2735,12 @@ function ipfxChartHooks(){
       el.hidden=!on;
       if(on)el._safety=setTimeout(()=>{el.hidden=true;},12000);
     },
-    loaded(info){ipfxChartProxy=!!info.proxy;syncChartEngineUi();},
+    loaded(info){ipfxChartProxy=!!info.proxy;syncChartEngineUi();ipfxMarkKey='';syncIpfxTrades();},
+    label(sym){
+      const inst=Object.values(WL_DATA).flat().find(i=>execSymbol(i.sym)===sym);
+      return inst?inst.name:sym;
+    },
+    scaleChanged:syncScaleUi,
   };
 }
 function buildIpfxChart(){
@@ -2720,6 +2765,7 @@ function syncIpfxTrades(){
   if(!ipfxChart)return;
   const sym=execSymbol(activeSym);
   ipfxChart.setTrades(((engineState&&engineState.open_trades)||[]).filter(t=>execSymbol(t.symbol)===sym));
+  syncIpfxMarkers(sym);
 }
 function applyChartEngineDom(){
   const tv=chartEngine==='tv';
@@ -2750,10 +2796,10 @@ function syncChartEngineUi(){
   if(lbl)lbl.textContent=tv?'IPFX chart':'Indicators chart';
   const src=document.getElementById('chartFooterSrc');
   if(src)src.textContent=tv
-    ?'Classic chart data comes from TradingView\'s feed. Orders fill at IPFX\'s own prices, which may differ from this chart.'
+    ?'Classic chart uses TradingView\'s feed; orders fill at IPFX prices, which may differ.'
     :ipfxChartProxy
-      ?'Live candles use IPFX\'s own trading prices. Earlier history is drawn from the futures market and shifted onto the live spot price.'
-      :'Chart drawn from IPFX\'s own trading prices — the same quotes your orders fill at.';
+      ?'Live candles from IPFX quotes; older history from futures, shifted onto spot.'
+      :'Priced from IPFX\'s own quotes — the prices your orders fill at.';
   const note=document.getElementById('indEngineNote');
   if(note)note.innerHTML=tv
     ?'<span>Indicators are showing on the classic chart. Switch back to drag your stop loss and take profit on the chart.</span><button type="button" onclick="setChartEngine(\'ipfx\')">IPFX chart</button>'
@@ -2770,6 +2816,63 @@ function setChartEngine(mode,why){
   if(changed&&why==='indicators')engineMsg('Indicators show on the classic chart. Use "IPFX chart" in the toolbar to drag SL/TP again.',true);
 }
 function toggleChartEngine(){setChartEngine(chartEngine==='tv'?'ipfx':'tv');}
+
+// ── CHART RANGE, SCALE, CLOCK ──
+// Range presets pick a candle size that suits the span, like TradingView.
+const RANGE_PRESETS={'1D':['5',86400],'5D':['15',5*86400],'1M':['60',31*86400],'3M':['240',92*86400],'1Y':['D',366*86400],'5Y':['W',5*366*86400]};
+let activeRange=null;
+function syncRangeUi(){document.querySelectorAll('.cf-btn[data-range]').forEach(b=>b.classList.toggle('active',b.dataset.range===activeRange));}
+function setChartRange(key){
+  const preset=RANGE_PRESETS[key];
+  if(!preset||!ipfxChart||chartEngine==='tv')return;
+  const [tf,span]=preset;
+  const btn=[...document.querySelectorAll('.tf-btn')].find(b=>(b.getAttribute('onclick')||'').includes("'"+tf+"'"));
+  if(btn)setTf(tf,btn,true);   // starts the load first, so the range applies to the new candles
+  ipfxChart.setRange(span);
+  activeRange=key;syncRangeUi();
+}
+function toggleScaleMode(mode){
+  if(!ipfxChart)return;
+  const cur=ipfxChart.chart.priceScale('right').options().mode;
+  ipfxChart.setScaleMode(cur===mode?0:mode);
+}
+function chartAutoFit(){if(ipfxChart)ipfxChart.autoFit();}
+function syncScaleUi(st){
+  const set=(id,on)=>{const b=document.getElementById(id);if(b){b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');}};
+  set('scalePct',st.mode===2);set('scaleLog',st.mode===1);set('scaleAuto',st.auto);
+}
+(function startChartClock(){
+  const fmt=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  let zone=null;
+  try{zone=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',timeZoneName:'shortOffset'});}catch(_){}
+  const tick=()=>{
+    const el=document.getElementById('chartClock');if(!el)return;
+    const now=new Date();
+    const off=zone?(zone.formatToParts(now).find(p=>p.type==='timeZoneName')||{}).value:'';
+    el.textContent=fmt.format(now)+' London'+(off?' ('+off.replace('GMT','UTC').replace(/^UTC$/,'UTC+0')+')':'');
+  };
+  tick();setInterval(tick,1000);
+})();
+
+// Entry / exit markers for this instrument: open positions plus the most recent closes.
+let ipfxMarkKey='';
+function syncIpfxMarkers(sym){
+  if(!ipfxChart)return;
+  const ts=v=>Math.floor(new Date(v).getTime()/1000);
+  const open=((engineState&&engineState.open_trades)||[]).filter(t=>execSymbol(t.symbol)===sym&&t.opened_at);
+  const closed=((engineState&&engineState.closed_trades)||[]).filter(t=>execSymbol(t.symbol)===sym&&t.opened_at&&t.closed_at)
+    .sort((a,b)=>new Date(b.closed_at)-new Date(a.closed_at)).slice(0,30);
+  const marks=[];
+  open.forEach(t=>marks.push({time:ts(t.opened_at),side:t.side,volume:t.volume,kind:'entry'}));
+  closed.forEach(t=>{
+    marks.push({time:ts(t.opened_at),side:t.side,volume:t.volume,kind:'entry'});
+    marks.push({time:ts(t.closed_at),side:t.side,volume:t.volume,kind:'exit',pnl:t.pnl});
+  });
+  const key=sym+'|'+ipfxChart.tf+'|'+ipfxChart.bars.length+'|'+marks.map(m=>m.kind+m.time).join(',');
+  if(key===ipfxMarkKey)return;
+  ipfxMarkKey=key;
+  ipfxChart.setMarkers(marks);
+}
 // Called when the trader picks indicators: they only draw on the classic
 // chart, so switch to it rather than leave the pick silently invisible.
 // Returns true when the switch already rebuilt the chart.
@@ -2782,9 +2885,10 @@ function indicatorsChanged(){
 // Rebuilding the chart costs several real seconds (the widget's iframe has
 // to reload TradingView's own app + history), so re-clicking the already
 // active timeframe/style must not pay that cost for a no-op change.
-function setTf(tf,btn){
+function setTf(tf,btn,fromRange){
   document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  if(!fromRange&&typeof syncRangeUi==='function'){activeRange=null;syncRangeUi();}
   if(tf===currentTf)return;
   currentTf=tf;
   saveChartLayout();
@@ -2792,7 +2896,7 @@ function setTf(tf,btn){
 }
 
 function setStyle(style,btn){
-  document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.style-btn[data-style]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(style===currentStyle)return;
   currentStyle=style;
@@ -4551,7 +4655,7 @@ async function pollTicketPrice(){
         domPrice=j.mid;
         lastQuoteTs=Date.now();
         updateOrdPrices(j);
-        if(ipfxChart&&polledSym===activeSym&&j.status!=='stale')ipfxChart.onQuote(j.mid);
+        if(ipfxChart&&polledSym===activeSym&&j.status!=='stale')ipfxChart.onQuote(j.mid,j.bid,j.ask);
         // engine reports its own status ('live', 'demo', or 'stale') based on the
         // provider tick age — trust that over our own poll cadence.
         setFeed(j.status==='stale'?'stale':j.status==='live'?'live':'demo');
@@ -5250,7 +5354,7 @@ function applySetupConfig(){
   }
   if(style){
     currentStyle=style;
-    document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.style-btn[data-style]').forEach(b=>b.classList.toggle('active',+b.dataset.style===+style));
   }
   closeSetupModal();
   saveChartLayout('setup_import');

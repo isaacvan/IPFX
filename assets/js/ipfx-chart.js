@@ -18,6 +18,7 @@
   const TZ = "Europe/London";
   const TF_SECONDS = { "1": 60, "3": 180, "5": 300, "15": 900, "30": 1800, "60": 3600, "240": 14400, D: 86400, W: 604800 };
   const UP = "#10b981", DOWN = "#ef4444", BLUE = "#2563eb";
+  const TF_LABEL = { "1": "1m", "3": "3m", "5": "5m", "15": "15m", "30": "30m", "60": "1H", "240": "4H", D: "1D", W: "1W" };
 
   // ---------------------------------------------------------------- time labels (London)
   const fmtCache = {};
@@ -69,6 +70,8 @@
    *   status(text, isError)         -> show a short message to the trader
    *   loading(bool)                 -> show / hide the page's loading overlay
    *   loaded({symbol,tf,proxy,bars})-> optional; history arrived (proxy = futures history for a spot price)
+   *   label(symbol)                 -> optional display name for the legend (e.g. "EUR/USD")
+   *   scaleChanged({mode, auto})    -> optional; price scale mode (0 normal, 1 log, 2 %) or auto-fit changed
    */
   function createIpfxChart(container, overlay, hooks) {
     if (!LWC) throw new Error("Lightweight Charts failed to load");
@@ -85,6 +88,9 @@
     let trades = [];
     const draft = new Map(); // tradeId -> {sl, tp, saving}
     let drag = null;
+    let bid = null, ask = null, bidLine = null, askLine = null;
+    let markersApi = null, tradeMarks = [];
+    let pendingRange = null;
     const shield = document.createElement("div");
     shield.className = "ipc-shield";
     shield.hidden = true;
@@ -100,6 +106,44 @@
         tickMarkFormatter: tickLabel },
       localization: { timeFormatter: crosshairLabel },
       crosshair: { mode: LWC.CrosshairMode.Normal },
+    });
+
+    // ---------------------------------------------------------------- legend (symbol · TF · OHLC)
+    const legend = document.createElement("div");
+    legend.className = "ipc-legend";
+    container.appendChild(legend);
+    let hoverTime = null;
+    function barAt(time) {
+      let lo = 0, hi = raw.length - 1;
+      while (lo <= hi) {
+        const m = (lo + hi) >> 1;
+        if (raw[m].time === time) return m;
+        if (raw[m].time < time) lo = m + 1; else hi = m - 1;
+      }
+      return -1;
+    }
+    function drawLegend() {
+      if (!symbol) { legend.innerHTML = ""; return; }
+      const i = hoverTime == null ? raw.length - 1 : barAt(hoverTime);
+      const b = raw[i];
+      const name = esc(hooks.label ? hooks.label(symbol) : symbol);
+      let html = `<span class="ipc-lg-sym">${name}</span><span class="ipc-lg-tf">${TF_LABEL[tf] || tf}</span>`;
+      if (b) {
+        const d = hooks.digits(symbol), f = (v) => v.toFixed(d);
+        const prev = raw[i - 1] ? raw[i - 1].close : b.open;
+        const chg = b.close - prev, pct = prev ? (chg / prev) * 100 : 0;
+        const cls = b.close >= b.open ? "up" : "down";
+        const sign = chg >= 0 ? "+" : "";
+        html += `<span class="ipc-lg-ohlc ${cls}">O<b>${f(b.open)}</b> H<b>${f(b.high)}</b> L<b>${f(b.low)}</b> C<b>${f(b.close)}</b>` +
+          `<b class="ipc-lg-chg">${sign}${f(chg)} (${sign}${pct.toFixed(2)}%)</b></span>`;
+      }
+      legend.innerHTML = html;
+    }
+    chart.subscribeCrosshairMove((param) => {
+      const t = param && param.time != null && param.point ? Number(param.time) : null;
+      if (t === hoverTime) return;
+      hoverTime = t;
+      drawLegend();
     });
 
     // Keep SL/TP/entry inside the visible price range so a trader can always grab them.
@@ -130,8 +174,89 @@
           upColor: UP, downColor: DOWN, borderUpColor: UP, borderDownColor: DOWN, wickUpColor: UP, wickDownColor: DOWN,
           priceFormat, autoscaleInfoProvider: autoscale,
         });
+      bidLine = askLine = null;       // they belonged to the removed series
+      markersApi = LWC.createSeriesMarkers ? LWC.createSeriesMarkers(series, []) : null;
       pushAll();
+      syncQuoteLines();
+      applyMarkers();
     }
+
+    // ---------------------------------------------------------------- bid / ask lines
+    // Two labelled lines, like a trading platform: sells fill at the bid, buys at the ask.
+    function syncQuoteLines() {
+      if (!series) return;
+      if (bid == null || ask == null) {
+        if (bidLine) { series.removePriceLine(bidLine); bidLine = null; }
+        if (askLine) { series.removePriceLine(askLine); askLine = null; }
+        series.applyOptions({ lastValueVisible: true, priceLineVisible: true });
+        return;
+      }
+      const last = raw[raw.length - 1];
+      const color = !last || last.close >= last.open ? UP : DOWN;
+      const opts = (price) => ({ price, color, lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, title: "" });
+      if (bidLine) bidLine.applyOptions(opts(bid)); else bidLine = series.createPriceLine(opts(bid));
+      if (askLine) askLine.applyOptions(opts(ask)); else askLine = series.createPriceLine(opts(ask));
+      series.applyOptions({ lastValueVisible: false, priceLineVisible: false });
+    }
+
+    // ---------------------------------------------------------------- trade markers
+    // Entries (and recent exits) drawn on the candle they happened in.
+    function snapTime(sec) {
+      if (!raw.length || !isFinite(sec)) return null;
+      if (seconds < 86400) sec = Math.floor(sec / seconds) * seconds;
+      let lo = 0, hi = raw.length - 1, hit = -1;
+      while (lo <= hi) { const m = (lo + hi) >> 1; if (raw[m].time <= sec) { hit = m; lo = m + 1; } else hi = m - 1; }
+      return hit < 0 ? null : raw[hit].time;
+    }
+    function applyMarkers() {
+      if (!markersApi) return;
+      const out = [];
+      for (const m of tradeMarks) {
+        const time = snapTime(m.time);
+        if (time == null) continue;
+        const buy = m.side === "buy";
+        if (m.kind === "exit") {
+          const pnl = Number(m.pnl) || 0;
+          out.push({ time, position: buy ? "aboveBar" : "belowBar", color: pnl >= 0 ? UP : DOWN, shape: "circle", text: money(pnl), size: 0.8 });
+        } else {
+          out.push({ time, position: buy ? "belowBar" : "aboveBar", color: buy ? UP : DOWN, shape: buy ? "arrowUp" : "arrowDown",
+            text: (buy ? "Buy " : "Sell ") + Number(m.volume).toFixed(2) });
+        }
+      }
+      out.sort((a, b) => a.time - b.time);
+      markersApi.setMarkers(out);
+    }
+
+    // ---------------------------------------------------------------- range + scale
+    function applyRange() {
+      if (pendingRange == null || !raw.length) return;
+      const to = raw[raw.length - 1].time;
+      let from = Math.max(raw[0].time, to - pendingRange);
+      // Short ranges count trading days, not calendar days, so a weekend
+      // does not leave "5D" showing three days of candles.
+      const days = pendingRange / 86400;
+      if (days <= 7 && seconds < 86400) {
+        const seen = new Set();
+        for (let i = raw.length - 1; i >= 0; i--) {
+          // +3h folds the FX Sunday-evening open into Monday's session.
+          const day = Math.floor((raw[i].time + 10800) / 86400);
+          if (!seen.has(day) && seen.size === days) break;
+          seen.add(day);
+          from = raw[i].time;
+        }
+      }
+      pendingRange = null;
+      chart.timeScale().setVisibleRange({ from, to });
+    }
+    let lastScale = "";
+    function checkScale() {
+      const o = chart.priceScale("right").options();
+      const key = o.mode + ":" + o.autoScale;
+      if (key === lastScale) return;
+      lastScale = key;
+      if (hooks.scaleChanged) hooks.scaleChanged({ mode: o.mode, auto: !!o.autoScale });
+    }
+    setInterval(() => { if (!document.hidden) checkScale(); }, 400);
     function view() {
       if (style === 2) return raw.map((b) => ({ time: b.time, value: b.close }));
       if (style === 8) return heikinAshi(raw);
@@ -163,6 +288,7 @@
       const symbolChanged = newSymbol !== symbol;
       symbol = newSymbol; tf = newTf; seconds = TF_SECONDS[tf] || 3600;
       raw = []; aligned = false; proxy = false; pendingMid = null; loadingHistory = true;
+      bid = ask = null; hoverTime = null;
       if (symbolChanged) { trades = []; draft.clear(); render(true); }
       makeSeries();
       hooks.loading(true);
@@ -175,6 +301,9 @@
         raw = j.bars.map((b) => ({ time: b.t, open: b.o, high: b.h, low: b.l, close: b.c }));
         pushAll();
         chart.timeScale().scrollToRealTime();
+        applyRange();
+        applyMarkers();
+        drawLegend();
         if (hooks.loaded) hooks.loaded({ symbol, tf, proxy, bars: raw.length });
       } catch (e) {
         if (seq !== loadSeq) return;
@@ -184,16 +313,18 @@
           loadingHistory = false;
           hooks.loading(false);
           // Align to the quote that arrived mid-load rather than wait for the next poll.
-          if (pendingMid !== null) { const m = pendingMid; pendingMid = null; onQuote(m); }
+          if (pendingMid !== null) { const m = pendingMid; pendingMid = null; onQuote(m, bid, ask); }
         }
       }
       schedule();
     }
 
     // Engine quote -> align history once, then extend the current candle.
-    function onQuote(mid) {
+    function onQuote(mid, qBid, qAsk) {
       mid = Number(mid);
       if (!symbol || !isFinite(mid) || mid <= 0) return;
+      const qb = Number(qBid), qa = Number(qAsk);
+      if (isFinite(qb) && isFinite(qa) && qb > 0 && qa >= qb) { bid = qb; ask = qa; }
       if (loadingHistory) { pendingMid = mid; return; }
       if (!aligned && raw.length) {
         // History is Yahoo's feed (or a futures proxy for spot metals); the
@@ -209,13 +340,18 @@
       const intraday = seconds < 86400;
       const bucket = intraday ? Math.floor(now / seconds) * seconds : null;
       const last = raw[raw.length - 1];
+      let newBar = false;
       if (!last || (intraday && bucket > last.time)) {
         raw.push({ time: intraday ? bucket : now, open: last ? last.close : mid, high: Math.max(mid, last ? last.close : mid),
           low: Math.min(mid, last ? last.close : mid), close: mid });
+        newBar = true;
       } else {
         last.close = mid; last.high = Math.max(last.high, mid); last.low = Math.min(last.low, mid);
       }
       pushLast();
+      syncQuoteLines();
+      if (newBar) applyMarkers();
+      if (hoverTime == null) drawLegend();
       schedule();
     }
 
@@ -501,6 +637,12 @@
       get symbol() { return symbol; },
       get tf() { return tf; },
       setStyle(s) { if (s === style) return; style = s; makeSeries(); },
+      // [{time (unix s), side, volume, kind: "entry"|"exit", pnl}]
+      setMarkers(list) { tradeMarks = Array.isArray(list) ? list : []; applyMarkers(); },
+      // Show the last `spanSeconds` of history (applied after the next load if one is pending).
+      setRange(spanSeconds) { pendingRange = spanSeconds; if (!loadingHistory) applyRange(); },
+      setScaleMode(mode) { chart.priceScale("right").applyOptions({ mode }); checkScale(); },
+      autoFit() { chart.priceScale("right").applyOptions({ autoScale: true }); checkScale(); },
       setTheme(isDark, alpha) { dark = !!isDark; gridAlpha = alpha || 0; applyTheme(); },
       isDragging() { return !!drag; },
       setVisible(on) { overlay.hidden = !on; if (on) render(true); },
