@@ -27,563 +27,249 @@
     <link rel="stylesheet" href="/assets/css/site-foundation.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-
-        /* ===== STANDARD NAV ===== */
-        nav {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 999;
-            padding: 0 2.5rem;
-            height: 68px;
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            backdrop-filter: blur(10px);
-            background: rgba(10, 10, 12, 0);
-            border-bottom: 1px solid rgba(42, 42, 44, 0);
-            transform: translateY(-100%);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .nav-center {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            list-style: none;
-            flex: 1;
-            justify-content: center;
-        }
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-shrink: 0;
-        }
-        .nav-right a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: color 0.3s ease;
-        }
-        .nav-right a:hover { color: var(--fg); }
-        .nav-right-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.12); }
-        nav.scrolled {
-            background: rgba(10, 10, 12, 0.8);
-            border-bottom: 1px solid rgba(42, 42, 44, 0.3);
-            transform: translateY(0);
-        }
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.7rem;
-            text-decoration: none;
-            color: var(--fg);
-            transition: opacity 0.3s ease;
-        }
-        .logo:hover { opacity: 0.8; }
-        .logo img { width: 32px; height: 32px; object-fit: contain; }
-        .logo-text {
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        .nav-links { display: flex; gap: 3rem; list-style: none; }
-        .nav-links a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            transition: color 0.3s ease;
-            position: relative;
-        }
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -4px; left: 0;
-            width: 0; height: 2px;
-            background: var(--cobalt);
-            transition: width 0.3s ease;
-        }
-        .nav-links a:hover { color: var(--fg); }
-        .nav-links a:hover::after { width: 100%; }
-        .nav-center a {
-            color: var(--muted);
-            text-decoration: none;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: color 0.25s ease;
-        }
-        .nav-center a:hover { color: var(--fg); }
-        .nav-center a::after { display: none; }
-        .nav-social {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding-left: 0.9rem;
-            border-left: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0;
-        }
-        .nav-social a {
-            color: var(--muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px; height: 26px;
-            transition: color 0.2s ease;
-            text-decoration: none;
-        }
-        .nav-social a:hover { color: var(--fg); }
-        .nav-social a svg { width: 14px; height: 14px; fill: currentColor; }
-        .nav-item { position: relative; }
-        .nav-item > a { display: flex; align-items: center; gap: 0.3rem; }
-        .dropdown-arrow { font-size: 0.7rem; transition: transform 0.3s ease; }
-        .nav-item:hover .dropdown-arrow { transform: rotate(180deg); }
-        .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 0.4rem);
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 10, 12, 0.97);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            border-radius: 8px;
-            padding: 0.75rem 0;
-            min-width: 220px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        }
-        .nav-item:hover .dropdown-menu { opacity: 1; visibility: visible; top: calc(100% + 0.4rem); }
-        .dropdown-menu a {
-            display: block;
-            padding: 0.75rem 1.5rem;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
-        }
-        .dropdown-menu a::after { display: none; }
-        .dropdown-menu a:hover {
-            color: var(--fg);
-            background: rgba(37, 99, 235, 0.1);
-            border-left-color: var(--cobalt);
-        }
-        .nav-separator { width: 1px; height: 24px; background: rgba(255,255,255,0.15); align-self: center; }
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 6px;
-            cursor: pointer;
-            padding: 0.5rem;
-            z-index: 1000;
-        }
-        .hamburger span {
-            display: block;
-            width: 28px; height: 2px;
-            background: var(--fg);
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
-        .hamburger.active span:nth-child(2) { opacity: 0; }
-        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(8px, -8px); }
-        .nav-links.mobile-open { display: flex; }
-        @media (max-width: 768px) {
-            nav { padding: 0 1.25rem; height: 60px; }
-            .hamburger { display: flex; margin-left: auto; }
-            .nav-center {
-                display: none;
-                position: fixed;
-                top: 0; right: -100%;
-                width: 72%; max-width: 300px;
-                height: 100vh;
-                background: rgba(10, 10, 12, 0.98);
-                backdrop-filter: blur(20px);
-                flex-direction: column;
-                justify-content: flex-start;
-                gap: 0;
-                padding: 5rem 1.75rem 2rem;
-                border-left: 1px solid rgba(37, 99, 235, 0.2);
-                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: -4px 0 24px rgba(0,0,0,0.5);
-                list-style: none;
-            }
-            .nav-center.mobile-open { display: flex; right: 0; }
-            .nav-center li { width: 100%; border-bottom: 1px solid rgba(255,255,255,0.05); }
-            .nav-center a {
-                display: block;
-                padding: 1.1rem 0;
-                font-size: 1rem;
-                width: 100%;
-                color: var(--muted);
-                text-decoration: none;
-                font-family: 'Space Grotesk', sans-serif;
-                font-weight: 600;
-            }
-            .nav-right { display: none; }
-            .dropdown-menu {
-                position: static; transform: none;
-                opacity: 1; visibility: visible;
-                background: transparent; backdrop-filter: none;
-                border: none; border-radius: 0; box-shadow: none;
-                padding: 0; min-width: 0;
-                display: none; flex-direction: column;
-            }
-            .nav-item.mobile-open .dropdown-menu { display: flex; }
-            .dropdown-menu a {
-                padding: 0.5rem 0 0.5rem 1rem;
-                font-size: 0.9rem;
-                color: var(--muted);
-                border-left: 2px solid rgba(37,99,235,0.3);
-                border-bottom: none;
-            }
-            .nav-social { display: none; }
-            .hamburger { order: 3; margin-left: 0.75rem; }
-            .hamburger.active ~ .nav-social { opacity: 0; pointer-events: none; }
-            .mobile-social-row { display: none !important; }
-        }
-        /* ===== END STANDARD NAV ===== */
-
-
+        /* Sign-in page, modelled on Apple's account sign-in: a slim header, no
+           card, one joined field group with floating labels, and a round
+           arrow button inside the last field. */
         :root {
             --bg: #0a0a0c;
-            --fg: #ffffff;
-            --muted: #a0a0a0;
-            --line: #2a2a2c;
+            --fg: #f5f5f7;
+            --muted: #a1a1a6;
+            --faint: #6e6e73;
+            --field: #1c1c1e;
+            --field-line: #3a3a3c;
+            --link: #4d8dff;
             --cobalt: #2563eb;
-            --deep-blue: #1e3a8a;
-            --radius: 12px;
+            --danger: #ff453a;
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, "Segoe UI", Roboto, sans-serif;
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html, body {
-            height: 100%;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { min-height: 100%; }
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            color: var(--fg);
-            background: var(--bg);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .login-container {
-            max-width: 450px;
-            width: 100%;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 40px;
-            transition: color 0.3s ease;
-        }
-
-        .back-link:hover {
-            color: var(--cobalt);
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 3rem 2.5rem;
-            text-align: center;
-        }
-
-        .logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 1.5rem;
-        }
-
-        .logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        h1 {
-            font-family: 'Space Grotesk', 'Inter', system-ui;
-            font-size: 1.75rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-            color: var(--muted);
-            font-size: 0.95rem;
-            margin-bottom: 2rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 600;
+            background: var(--bg);
             color: var(--fg);
-            margin-bottom: 0.5rem;
+            font-family: var(--font);
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
         }
+        a { color: var(--link); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        a:focus-visible, button:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; border-radius: 4px; }
 
-        input {
-            width: 100%;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            color: var(--fg);
-            font-size: 0.95rem;
-            font-family: 'Inter', system-ui;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--cobalt);
-            background: rgba(37, 99, 235, 0.05);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        input::placeholder {
-            color: var(--muted);
-        }
-
-        .forgot-password {
-            text-align: right;
-            margin-bottom: 1.5rem;
-        }
-
-        .forgot-password a {
-            color: var(--cobalt);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: opacity 0.3s ease;
-        }
-
-        .forgot-password a:hover {
-            opacity: 0.8;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, var(--cobalt), var(--deep-blue));
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Inter', system-ui;
-        }
-
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-        }
-
-        .divider {
+        /* ---- header ---- */
+        .auth-header { border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .auth-header-inner {
+            max-width: 980px;
+            height: 52px;
+            margin: 0 auto;
+            padding: 0 22px;
             display: flex;
             align-items: center;
-            gap: 1rem;
-            margin: 2rem 0;
-            color: var(--muted);
-            font-size: 0.85rem;
+            justify-content: space-between;
         }
+        .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--fg); font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+        .brand:hover { text-decoration: none; opacity: 0.85; }
+        .brand img { width: 24px; height: 24px; border-radius: 6px; }
+        .header-links { display: flex; align-items: center; gap: 22px; font-size: 13px; }
+        .header-links a { color: var(--muted); }
+        .header-links a:hover { color: var(--fg); text-decoration: none; }
 
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--line);
-        }
+        /* ---- main column ---- */
+        .auth-main { flex: 1; display: flex; justify-content: center; padding: 11vh 22px 64px; }
+        .auth-column { width: 100%; max-width: 460px; text-align: center; }
+        .auth-mark { width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 22px; display: block; }
+        h1 { font-size: 32px; line-height: 1.125; font-weight: 600; letter-spacing: -0.025em; }
+        .subtitle { margin-top: 10px; font-size: 17px; line-height: 1.47; color: var(--muted); }
 
-        .signup-link {
-            color: var(--muted);
-            font-size: 0.95rem;
-        }
-
-        .signup-link a {
-            color: var(--cobalt);
-            text-decoration: none;
-            font-weight: 600;
-            transition: opacity 0.3s ease;
-        }
-
-        .signup-link a:hover {
-            opacity: 0.8;
-        }
-
-        .demo-credentials {
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 2rem;
+        /* ---- joined field group with floating labels ---- */
+        form { margin-top: 36px; }
+        .field-group {
+            border: 1px solid var(--field-line);
+            border-radius: 12px;
+            background: var(--field);
+            overflow: hidden;
             text-align: left;
+            transition: border-color .2s, box-shadow .2s;
         }
-
-        .demo-credentials h4 {
-            color: var(--cobalt);
-            font-size: 0.9rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .demo-credentials p {
-            color: var(--muted);
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-
-        .demo-credentials code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.85rem;
+        .field-group:focus-within { border-color: var(--cobalt); box-shadow: 0 0 0 4px rgba(37,99,235,0.22); }
+        .field-group.has-error { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(255,69,58,0.16); }
+        .field { position: relative; }
+        .field + .field { border-top: 1px solid var(--field-line); }
+        .field input {
+            width: 100%;
+            height: 56px;
+            padding: 22px 16px 6px;
+            border: 0;
+            background: transparent;
             color: var(--fg);
+            font: 400 17px/1.2 var(--font);
+            letter-spacing: -0.01em;
+            outline: none;
+        }
+        .field input::placeholder { color: transparent; }
+        .field label {
+            position: absolute;
+            left: 16px;
+            top: 18px;
+            font-size: 17px;
+            color: var(--faint);
+            pointer-events: none;
+            transform-origin: left top;
+            transition: transform .18s ease, color .18s ease;
+        }
+        .field input:focus + label,
+        .field input:not(:placeholder-shown) + label { transform: translateY(-10px) scale(0.7); color: var(--muted); }
+        .field-password input { padding-right: 60px; }
+        /* autofill: keep the dark field instead of the browser's yellow/blue */
+        .field input:-webkit-autofill {
+            -webkit-text-fill-color: var(--fg);
+            -webkit-box-shadow: 0 0 0 100px var(--field) inset;
+            caret-color: var(--fg);
         }
 
-        @media (max-width: 480px) {
-            .login-card {
-                padding: 2rem 1.5rem;
-            }
+        .btn-go {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            width: 32px;
+            height: 32px;
+            margin-top: -16px;
+            display: grid;
+            place-items: center;
+            border: 1.5px solid var(--faint);
+            border-radius: 50%;
+            background: transparent;
+            color: var(--faint);
+            cursor: pointer;
+            transition: border-color .2s, color .2s, background .2s;
+        }
+        .btn-go svg { width: 14px; height: 14px; }
+        .btn-go.ready { border-color: var(--fg); color: var(--fg); }
+        .btn-go.ready:hover { background: rgba(255,255,255,0.08); }
+        .btn-go .spin { display: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); border-top-color: var(--fg); animation: spin .7s linear infinite; }
+        .btn-go.is-loading { border-color: transparent; cursor: progress; }
+        .btn-go.is-loading svg { display: none; }
+        .btn-go.is-loading .spin { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---- messages ---- */
+        .auth-error { display: none; margin-top: 14px; text-align: left; font-size: 14px; line-height: 1.45; color: var(--danger); }
+        .auth-error p { display: flex; gap: 8px; }
+        .auth-error p::before { content: "!"; flex-shrink: 0; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%; background: var(--danger); color: #fff; font: 700 11px/16px var(--font); text-align: center; }
+        .link-btn { margin: 8px 0 0 24px; padding: 0; border: 0; background: none; color: var(--link); font: 500 14px var(--font); cursor: pointer; }
+        .link-btn:hover:not(:disabled) { text-decoration: underline; }
+        .link-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        #forgotMsg { margin-top: 10px; font-size: 13px; line-height: 1.5; }
+
+        .auth-links { margin-top: 30px; display: flex; flex-direction: column; gap: 14px; font-size: 14px; }
+        .auth-links .muted { color: var(--muted); }
+        .secure-note { margin-top: 44px; font-size: 12px; line-height: 1.5; color: var(--faint); }
+
+        /* ---- footer (shared markup, restyled quietly) ---- */
+        .ipfx-launch-footer {
+            max-width: 980px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 16px 22px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 0;
+            background: transparent;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            color: var(--faint);
+            font: 400 12px/1.4 var(--font);
+        }
+        .ipfx-launch-footer > span { margin-right: auto; padding-right: 16px; }
+        .ipfx-launch-footer a { color: var(--muted); padding: 0 10px; border-left: 1px solid rgba(255,255,255,0.14); }
+        .ipfx-launch-footer > span + a { border-left: 0; }
+        .ipfx-launch-footer a:hover { color: var(--fg); text-decoration: none; }
+        .ipfx-launch-footer .ipfx-cookie-preferences {
+            min-height: 0;
+            padding: 0 0 0 10px;
+            border: 0;
+            border-left: 1px solid rgba(255,255,255,0.14);
+            border-radius: 0;
+            background: none;
+            color: var(--muted);
+            font: 400 12px/1.4 var(--font);
+        }
+        .ipfx-launch-footer .ipfx-cookie-preferences:hover { color: var(--fg); }
+
+        /* keep the whole page on screen in short windows (the desktop app) */
+        @media (max-height: 760px) {
+            .auth-main { padding: 5vh 22px 32px; }
+            .auth-mark { width: 52px; height: 52px; border-radius: 13px; margin-bottom: 16px; }
+            h1 { font-size: 28px; }
+            form { margin-top: 26px; }
+            .auth-links { margin-top: 22px; gap: 10px; }
+            .secure-note { margin-top: 26px; }
+        }
+        /* leave room for the support chat bubble in the bottom-right corner */
+        @media (max-width: 1180px) { .ipfx-launch-footer { padding-right: 96px; } }
+        @media (max-width: 520px) {
+            .auth-main { padding-top: 7vh; }
+            h1 { font-size: 28px; }
+            .header-links a.optional { display: none; }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 </head>
 <body style="visibility:hidden">
-<nav>
-    <a href="/" class="logo">
-        <img src="/desktop/build/icon.png" alt="IPFX Logo">
-        <span class="logo-text">IPFX Capital</span>
-    </a>
-    <div class="hamburger">
-        <span></span><span></span><span></span>
+<header class="auth-header">
+    <div class="auth-header-inner">
+        <a href="/" class="brand"><img src="/desktop/build/icon.png" alt="">IPFX Capital</a>
+        <nav class="header-links" aria-label="Account">
+            <a href="/" class="optional">Home</a>
+            <a href="/faq.html" class="optional">FAQ</a>
+            <a href="signup.html">Create account</a>
+        </nav>
     </div>
-    <ul class="nav-center">
-        <li class="nav-item">
-            <a href="/#programs">Challenges <span class="dropdown-arrow">▼</span></a>
-            <div class="dropdown-menu">
-                <a href="/#infinity-challenge">Infinity Challenge</a>
-                <a href="/#application-challenge">Application Challenge</a>
-                <a href="/#traditional-challenge">Traditional Challenge</a>
-                <a href="futures.html">Futures Challenge</a>
-            </div>
-        </li>
-        <li class="nav-item">
-            <a href="/#resources">Resources <span class="dropdown-arrow">▼</span></a>
-            <div class="dropdown-menu">
-                <a href="/#profit-calculator">Profit Calculator</a>
-                <a href="futures.html">Futures Trading</a>
-                <a href="personalised-challenge.html">Personalised Challenge</a>
-            </div>
-        </li>
-        <li><a href="about.html">About</a></li>
-        <li><a href="/#faq">FAQ</a></li>
-    </ul>
-    <div class="nav-right">
-        <div class="nav-social">
-            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
-            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
-            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg></a>
-            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
-            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
-        </div>
-        <div class="nav-right-sep"></div>
-        <a href="login.html">Login</a>
-        <a href="/signup.html" class="btn btn-primary" style="padding:0.55rem 1.2rem;font-size:0.875rem;color:#fff;">Get Started</a>
-    </div>
-    <ul class="nav-links" style="display:none;">
-        <li class="mobile-social-row">
-            <a href="https://discord.gg/ipfxcapital" target="_blank" rel="noopener" aria-label="Discord"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
-            <a href="https://youtube.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
-            <a href="https://instagram.com/ipfxcapital" target="_blank" rel="noopener" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3z"/></svg></a>
-            <a href="https://twitter.com/ipfxcapital" target="_blank" rel="noopener" aria-label="X"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-            <a href="https://tiktok.com/@ipfxcapital" target="_blank" rel="noopener" aria-label="TikTok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
-            <a href="https://linkedin.com/company/ipfxcapital" target="_blank" rel="noopener" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
-        </li>
-    </ul>
-</nav>
-    <div class="login-container">
-        <a href="index.html" class="back-link">← Back to Home</a>
+</header>
 
-        <div class="login-card">
-            <div class="logo">
-                <img src="/desktop/build/icon.png" alt="IPFX Capital">
-            </div>
+<main class="auth-main">
+    <div class="auth-column">
+        <img class="auth-mark" src="/desktop/build/icon.png" alt="IPFX Capital">
+        <h1>Sign in to IPFX</h1>
+        <p class="subtitle">Your trader dashboard and IPFX Markets.</p>
 
-            <h1>Welcome Back</h1>
-            <p class="subtitle">Login to access your trader dashboard</p>
-
-            <form id="loginForm">
-                <div id="errorMessage" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                    <p style="color: #ef4444; font-size: 14px; margin-bottom: 12px;" id="errorText"></p>
-                    <button type="button" id="resendBtn" style="display: none; background: var(--cobalt); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">
-                        Resend Confirmation Email
-                    </button>
-                    <style>
-                        #resendBtn:hover:not(:disabled) {
-                            background: #1d4ed8;
-                            transform: translateY(-1px);
-                        }
-                        #resendBtn:disabled {
-                            opacity: 0.6;
-                            cursor: not-allowed;
-                        }
-                    </style>
+        <form id="loginForm" novalidate>
+            <div class="field-group" id="fieldGroup">
+                <div class="field">
+                    <input type="email" id="email" name="email" placeholder=" " autocomplete="username" autocapitalize="off" spellcheck="false" required>
+                    <label for="email">Email address</label>
                 </div>
-
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="john.doe@example.com" required>
-                </div>
-
-                <div class="form-group">
+                <div class="field field-password">
+                    <input type="password" id="password" name="password" placeholder=" " autocomplete="current-password" required>
                     <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter your password" required>
+                    <button type="submit" class="btn-go" id="loginBtn" aria-label="Sign in">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+                        <span class="spin" aria-hidden="true"></span>
+                    </button>
                 </div>
+            </div>
 
-                <div class="forgot-password">
-                    <a href="#" id="forgotLink">Forgot password?</a>
-                    <div id="forgotMsg" role="status" style="display:none;margin-top:10px;font-size:13px;line-height:1.5;text-align:left"></div>
-                </div>
+            <div id="errorMessage" class="auth-error" role="alert">
+                <p id="errorText"></p>
+                <button type="button" id="resendBtn" class="link-btn" style="display: none;">Resend confirmation email</button>
+            </div>
+        </form>
 
-                <button type="submit" class="btn-login">Login</button>
-            </form>
-
-            <div class="divider">or</div>
-
-            <p class="signup-link">Don't have an account? <a href="signup.html">Sign up now</a></p>
+        <div class="auth-links">
+            <div>
+                <a href="#" id="forgotLink">Forgot password?</a>
+                <div id="forgotMsg" role="status" style="display:none"></div>
+            </div>
+            <div><span class="muted">Don't have an account?</span> <a href="signup.html">Create one now</a></div>
         </div>
+
+        <p class="secure-note">Your sign-in is encrypted. IPFX will never ask for your password by email or chat.</p>
     </div>
+</main>
 
     <script>
         // ============================================
@@ -636,8 +322,13 @@
             const submitBtn = e.target.querySelector('button[type="submit"]');
 
             // Disable button and show loading state
+            if (!email || !password) {
+                (email ? document.getElementById('password') : document.getElementById('email')).focus();
+                return;
+            }
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Logging in...';
+            submitBtn.classList.add('is-loading');
+            submitBtn.setAttribute('aria-label', 'Signing in…');
 
             try {
                 if (!supabaseClient) throw new Error('The secure sign-in service did not load. Check your internet connection and try again.');
@@ -682,6 +373,7 @@
                 const resendBtn = document.getElementById('resendBtn');
 
                 errorMessage.style.display = 'block';
+                document.getElementById('fieldGroup').classList.add('has-error');
 
                 // Check if error is due to unconfirmed email
                 const errorStr = error.message ? error.message.toLowerCase() : '';
@@ -701,7 +393,8 @@
                 }
 
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Login';
+                submitBtn.classList.remove('is-loading');
+                submitBtn.setAttribute('aria-label', 'Sign in');
             }
         });
 
@@ -752,44 +445,20 @@
     </script>
 
     <script>
-    // Standard nav scroll + hamburger
+    // Arrow button lights up once both fields have something in them; typing
+    // again clears the error state.
     (function() {
-        var nav = document.querySelector('nav');
-        // Always show nav on non-hero pages
-        if (nav) { nav.classList.add('scrolled'); }
-
-        var hamburger = document.querySelector('.hamburger');
-        var navCenter = document.querySelector('.nav-center');
-        if (hamburger && navCenter) {
-            hamburger.addEventListener('click', function() {
-                hamburger.classList.toggle('active');
-                navCenter.classList.toggle('mobile-open');
-            });
-            document.querySelectorAll('.nav-item > a').forEach(function(link) {
-                link.addEventListener('click', function(e) {
-                    if (window.innerWidth <= 768 && link.nextElementSibling && link.nextElementSibling.classList.contains('dropdown-menu')) {
-                        e.preventDefault();
-                        var item = link.closest('.nav-item');
-                        var isOpen = item.classList.contains('mobile-open');
-                        document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
-                        if (!isOpen) item.classList.add('mobile-open');
-                    }
-                });
-            });
-            document.querySelectorAll('.nav-center a').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    hamburger.classList.remove('active');
-                    navCenter.classList.remove('mobile-open');
-                    document.querySelectorAll('.nav-item.mobile-open').forEach(function(el) { el.classList.remove('mobile-open'); });
-                });
-            });
-            document.addEventListener('click', function(e) {
-                if (!hamburger.contains(e.target) && !navCenter.contains(e.target)) {
-                    hamburger.classList.remove('active');
-                    navCenter.classList.remove('mobile-open');
-                }
-            });
-        }
+        var email = document.getElementById('email');
+        var password = document.getElementById('password');
+        var btn = document.getElementById('loginBtn');
+        var group = document.getElementById('fieldGroup');
+        function sync() { btn.classList.toggle('ready', !!(email.value && password.value)); }
+        [email, password].forEach(function(el) {
+            el.addEventListener('input', function() { sync(); group.classList.remove('has-error'); });
+        });
+        // browsers may autofill after load without firing input
+        setTimeout(sync, 400);
+        sync();
     })();
     </script>
 
