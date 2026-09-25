@@ -276,7 +276,7 @@ body.light .cf-btn.active{color:var(--cobalt);}
 body.chart-classic .cf-ranges,body.chart-classic .cf-scale,body.chart-classic .cf-right .cf-sep{visibility:hidden;}
 .chart-toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
 .chart-toolbar::-webkit-scrollbar{display:none;}
-#focusChartBtn .layout-lbl,#resetLayoutBtn .layout-lbl{display:none;}
+#resetLayoutBtn .layout-lbl{display:none;}
 /* chart legend: symbol · timeframe · OHLC */
 .ipc-legend{position:absolute;left:10px;top:8px;z-index:3;display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .55rem;max-width:calc(100% - 90px);pointer-events:none;font:500 .74rem var(--font-ui);color:var(--muted);font-variant-numeric:tabular-nums;}
 .ipc-lg-sym{color:var(--fg);font-weight:700;font-size:.82rem;}
@@ -1396,6 +1396,43 @@ body.light .guide-resize-grip,body.light .btm-resize-grip{background:rgba(12,12,
 .layout-btn svg{width:13px;height:13px;flex-shrink:0}
 body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
 @media(max-width:900px){.layout-btn .layout-lbl{display:none}}
+/* Maximise chart: the one layout control that should be found at a glance */
+.layout-btn-max{padding:.24rem .6rem;border-color:rgba(37,99,235,.55);background:rgba(37,99,235,.16);color:#8fb4ff;font-weight:700}
+.layout-btn-max:hover{border-color:#3b82f6;background:rgba(37,99,235,.28);color:#fff}
+.layout-btn-max .ic-min{display:none}
+.layout-btn-max.active{border-color:#3b82f6;background:#2563eb;color:#fff}
+.layout-btn-max.active .ic-max{display:none}
+.layout-btn-max.active .ic-min{display:block}
+.layout-btn-max #focusChartLbl{display:inline!important}
+.layout-kbd{margin-left:.15rem;padding:0 .3rem;border:1px solid currentColor;border-radius:3px;font:700 .6rem/1.35 var(--font-ui);opacity:.6}
+body.light .layout-btn-max{color:var(--cobalt)}
+body.light .layout-btn-max.active{color:#fff}
+.max-hint{position:absolute;left:50%;top:14px;z-index:60;transform:translateX(-50%);padding:.45rem .8rem;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(20,20,24,.92);box-shadow:0 8px 24px rgba(0,0,0,.35);color:var(--fg);font:600 .74rem var(--font-ui);white-space:nowrap;pointer-events:none;transition:opacity .3s}
+.max-hint[hidden]{display:none}
+.max-hint kbd{padding:0 .3rem;border:1px solid rgba(255,255,255,.35);border-radius:3px;font:700 .66rem var(--font-ui)}
+body.light .max-hint{background:rgba(255,255,255,.96);border-color:rgba(0,0,0,.1);color:#111}
+/* Bottom panel: a real button, not a faint link */
+.btm-outer .btm-tog{align-self:center;height:26px;margin:0 8px 0 6px;padding:0 .7rem;display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.04);color:var(--fg);font:600 .7rem var(--font-ui);cursor:pointer}
+.btm-outer .btm-tog:hover{border-color:rgba(37,99,235,.6);background:rgba(37,99,235,.16);color:#fff}
+.btm-outer .btm-tog svg{width:11px;height:11px;transition:transform .22s}
+.btm-outer.collapsed .btm-tog{border-color:rgba(37,99,235,.55);background:rgba(37,99,235,.16);color:#8fb4ff}
+.btm-outer.collapsed .btm-tog svg{transform:rotate(180deg)}
+.btm-outer.collapsed .btab{cursor:pointer}
+body.light .btm-outer .btm-tog{background:#fff;color:#1d1d1f}
+body.light .btm-outer.collapsed .btm-tog{color:var(--cobalt)}
+/* Order panel edge handle: bigger, and a labelled tab once the panel is hidden */
+.guide-tog-rail{position:relative;width:0;flex-shrink:0;z-index:100}
+body.focus-mode .guide-tog-rail{display:none}
+.guide-tog-rail .guide-tog{left:auto;right:0;width:18px;height:56px;padding:0;border:1px solid var(--line);border-right:none;background:var(--bg2);color:var(--muted);font:inherit}
+.guide-tog-rail .guide-tog:hover{color:#fff;background:rgba(37,99,235,.3);border-color:rgba(37,99,235,.6)}
+.guide-tog-rail .guide-tog svg{width:10px;height:10px;transition:transform .22s}
+.guide-tog-lbl{display:none}
+.guide-tog-rail.is-hidden .guide-tog{width:30px;height:auto;padding:.7rem 0;flex-direction:column;gap:.45rem;border-color:rgba(37,99,235,.55);background:rgba(37,99,235,.18);color:#8fb4ff}
+.guide-tog-rail.is-hidden .guide-tog svg{transform:rotate(180deg)}
+.guide-tog-rail.is-hidden .guide-tog-lbl{display:block;writing-mode:vertical-rl;transform:rotate(180deg);font:700 .68rem var(--font-ui);letter-spacing:.02em}
+.guide-tog-rail.is-hidden .guide-tog:hover{background:#2563eb;color:#fff}
+body.light .guide-tog-rail .guide-tog{background:#fff}
+body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);color:var(--cobalt)}
 </style>
 </head>
 <body>
@@ -1518,9 +1555,11 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M3 21h18"/></svg>
           <span class="layout-lbl" id="chartEngineLbl">Indicators chart</span>
         </button>
-        <button class="layout-btn" id="focusChartBtn" type="button" onclick="toggleChartFocus()" title="Hide the side and bottom panels to give the chart the whole screen" aria-pressed="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9l-3 3 3 3M16 9l3 3-3 3"/></svg>
-          <span class="layout-lbl" id="focusChartLbl">Focus chart</span>
+        <button class="layout-btn layout-btn-max" id="focusChartBtn" type="button" onclick="toggleChartFocus()" title="Maximise the chart — hides the order and positions panels (F)" aria-pressed="false" aria-keyshortcuts="F">
+          <svg class="ic-max" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          <svg class="ic-min" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>
+          <span class="layout-lbl" id="focusChartLbl">Maximise chart</span>
+          <kbd class="layout-kbd">F</kbd>
         </button>
         <button class="layout-btn" id="resetLayoutBtn" type="button" onclick="resetLayout()" title="Put the panels back to their default sizes">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
@@ -1531,6 +1570,7 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
     <div class="chart-area">
       <div id="ipfx_chart_container" aria-label="Price chart"></div>
       <div class="ipc-layer" id="ipcLayer"></div>
+      <div class="max-hint" id="maxHint" role="status" aria-live="polite" hidden></div>
       <div id="tv_chart_container" hidden></div>
       <div class="chart-pos-layer" id="chartPosLayer" aria-live="polite"></div>
       <div class="chart-loading" id="chartLoading">
@@ -1562,16 +1602,19 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
     </div>
   </div>
 
+  <!-- Zero-width rail just before the panel: the toggle hangs off it, so it
+       always sits on the panel's current edge (any dragged width, or the
+       window edge when hidden). It used to live inside the panel, whose
+       overflow:hidden clipped it out of sight. -->
+  <div class="guide-tog-rail" id="guideTogRail">
+    <button type="button" class="guide-tog" id="guideTog" onclick="toggleGuide()" title="Hide the order panel" aria-label="Hide the order panel" aria-expanded="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      <span class="guide-tog-lbl">Order panel</span>
+    </button>
+  </div>
+
   <!-- RIGHT: GUIDE PANEL -->
   <div class="guide order-mode" id="guidePanel">
-    <!-- Lives INSIDE the panel and is positioned relative to its own box
-         (left:-14px, see CSS) so it always sits on the panel's actual
-         current edge — at any drag-resized width, and at the collapsed
-         edge when hidden — instead of a hardcoded offset that only
-         matched the panel's default width. -->
-    <div class="guide-tog" id="guideTog" onclick="toggleGuide()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
     <div class="guide-resize-handle" id="guideResizeHandle" title="Drag to resize · double-click to hide"><div class="guide-resize-grip"></div></div>
 
     <div class="guide-tabs">
@@ -1932,10 +1975,10 @@ body.light .layout-btn:hover{border-color:rgba(12,12,22,.2)}
     <div class="btab" onclick="switchBtab('risk',this)">Risk Calculator</div>
     <div class="btab" onclick="switchBtab('journal',this)">Journal</div>
     <div class="btm-gap"></div>
-    <div class="btm-tog" onclick="toggleBtm()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-      <span id="btmTog">Collapse</span>
-    </div>
+    <button type="button" class="btm-tog" id="btmTogBtn" onclick="toggleBtm()" title="Hide the positions panel to give the chart more room" aria-expanded="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      <span id="btmTog">Hide panel</span>
+    </button>
   </div>
   <div class="btm-body">
 
@@ -3002,6 +3045,23 @@ function toggleGuide(){
   g.style.width=hidden?'':guideExpandedWidth+'px';
   if(typeof syncLayoutUi==='function'){syncLayoutUi();saveLayout();}
 }
+// Labels and state on the two panel toggles, kept in step with the layout.
+function syncPanelToggles(){
+  const g=document.getElementById('guidePanel'), gt=document.getElementById('guideTog');
+  if(g&&gt){
+    const hidden=g.classList.contains('hidden');
+    const tip=hidden?'Show the order panel':'Hide the order panel';
+    gt.title=tip;gt.setAttribute('aria-label',tip);gt.setAttribute('aria-expanded',hidden?'false':'true');
+    const rail=document.getElementById('guideTogRail');if(rail)rail.classList.toggle('is-hidden',hidden);
+  }
+  const o=document.getElementById('btmOuter'), bt=document.getElementById('btmTogBtn'), lbl=document.getElementById('btmTog');
+  if(o&&bt&&lbl){
+    const collapsed=o.classList.contains('collapsed');
+    lbl.textContent=collapsed?'Show panel':'Hide panel';
+    bt.title=collapsed?'Show the positions panel':'Hide the positions panel to give the chart more room';
+    bt.setAttribute('aria-expanded',collapsed?'false':'true');
+  }
+}
 // ── SHARED DRAG-TO-RESIZE (pointer events + capture) ──
 // Pointer capture ties every subsequent move/up/cancel event to the handle
 // itself, regardless of what's under the cursor — including the TradingView
@@ -3092,6 +3152,9 @@ function toggleLearn(el){
 
 // ── BOTTOM PANEL ──
 function switchBtab(id,el){
+  // a tab click on the hidden panel opens it
+  const outer=document.getElementById('btmOuter');
+  if(outer&&outer.classList.contains('collapsed'))toggleBtm();
   document.querySelectorAll('.btab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.bpanel').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
@@ -3140,7 +3203,6 @@ function toggleBtm(){
   const t=document.getElementById('btmTog');
   o.classList.toggle('collapsed');
   const collapsed=o.classList.contains('collapsed');
-  t.textContent=collapsed?'Expand':'Collapse';
   o.style.height=collapsed?'':btmExpandedHeight+'px';
   if(typeof syncLayoutUi==='function'){syncLayoutUi();saveLayout();}
 }
@@ -3180,17 +3242,26 @@ function applyLayout(l){
   g.style.width=l.guideHidden?'':guideExpandedWidth+'px';
   o.classList.toggle('collapsed',!!l.btmCollapsed);
   o.style.height=l.btmCollapsed?'':btmExpandedHeight+'px';
-  if(t)t.textContent=l.btmCollapsed?'Expand':'Collapse';
   syncLayoutUi();
 }
 function isChartFocused(){const l=currentLayout();return l.guideHidden&&l.btmCollapsed;}
 function syncLayoutUi(){
+  syncPanelToggles();
   const on=isChartFocused(), b=document.getElementById('focusChartBtn'), lbl=document.getElementById('focusChartLbl');
   if(!b)return;
   b.classList.toggle('active',on);
   b.setAttribute('aria-pressed',on?'true':'false');
-  b.title=on?'Bring back the side and bottom panels':'Hide the side and bottom panels to give the chart the whole screen';
-  if(lbl)lbl.textContent=on?'Show panels':'Focus chart';
+  b.title=on?'Bring back the order and positions panels (F or Esc)':'Maximise the chart — hides the order and positions panels (F)';
+  if(lbl)lbl.textContent=on?'Exit full chart':'Maximise chart';
+}
+let maxHintTimer=0;
+function showMaxHint(){
+  const h=document.getElementById('maxHint');
+  if(!h)return;
+  h.innerHTML='Chart maximised — press <kbd>F</kbd> or <kbd>Esc</kbd> to bring the panels back';
+  h.hidden=false;h.style.opacity='1';
+  clearTimeout(maxHintTimer);
+  maxHintTimer=setTimeout(()=>{h.style.opacity='0';maxHintTimer=setTimeout(()=>{h.hidden=true;},300);},2600);
 }
 function toggleChartFocus(){
   if(isChartFocused()){
@@ -3199,9 +3270,22 @@ function toggleChartFocus(){
   } else {
     preFocusLayout=currentLayout();
     applyLayout({...preFocusLayout,guideHidden:true,btmCollapsed:true});
+    showMaxHint();
   }
   saveLayout();
 }
+function dialogOpen(){
+  return !!document.querySelector('.open')||[...document.querySelectorAll('[aria-modal="true"],[role="dialog"]')].some(d=>d.getClientRects().length>0);
+}
+// F toggles the maximised chart, Esc leaves it — never while typing, and
+// Esc is left alone when a dialog or menu is open.
+document.addEventListener('keydown',e=>{
+  if(e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey)return;
+  const t=e.target, typing=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+  if(typing)return;
+  if(e.key==='f'||e.key==='F'){e.preventDefault();toggleChartFocus();}
+  else if(e.key==='Escape'&&isChartFocused()&&!dialogOpen()&&!(ipfxChart&&ipfxChart.isDragging())){toggleChartFocus();}
+});
 function resetLayout(){
   try{localStorage.removeItem(LAYOUT_KEY);}catch(_){}
   preFocusLayout=null;
