@@ -72,6 +72,8 @@
    *   loaded({symbol,tf,proxy,closesOnly,bars}) -> optional; history arrived (proxy = futures history
    *                                    for a spot price; closesOnly = history had one price per bar)
    *   label(symbol)                 -> optional display name for the legend (e.g. "EUR/USD")
+   *   pickSymbol()                  -> optional; the legend's symbol name was clicked
+   *   legendExtra()                 -> optional HTML appended to the legend (e.g. market status)
    *   scaleChanged({mode, auto})    -> optional; price scale mode (0 normal, 1 log, 2 %) or auto-fit changed
    */
   function createIpfxChart(container, overlay, hooks) {
@@ -129,7 +131,9 @@
       const i = hoverTime == null ? raw.length - 1 : barAt(hoverTime);
       const b = raw[i];
       const name = esc(hooks.label ? hooks.label(symbol) : symbol);
-      let html = `<span class="ipc-lg-sym">${name}</span><span class="ipc-lg-tf">${TF_LABEL[tf] || tf}</span>`;
+      // The symbol is a button: clicking it opens the page's instrument picker.
+      let html = `<button type="button" class="ipc-lg-sym" title="Change instrument (/)">${name}<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>` +
+        `<span class="ipc-lg-tf">${TF_LABEL[tf] || tf}</span>`;
       if (b) {
         const d = hooks.digits(symbol), f = (v) => v.toFixed(d);
         const prev = raw[i - 1] ? raw[i - 1].close : b.open;
@@ -139,8 +143,12 @@
         html += `<span class="ipc-lg-ohlc ${cls}">O<b>${f(b.open)}</b> H<b>${f(b.high)}</b> L<b>${f(b.low)}</b> C<b>${f(b.close)}</b>` +
           `<b class="ipc-lg-chg">${sign}${f(chg)} (${sign}${pct.toFixed(2)}%)</b></span>`;
       }
+      if (hooks.legendExtra) html += hooks.legendExtra();
       legend.innerHTML = html;
     }
+    legend.addEventListener("click", (e) => {
+      if (e.target.closest(".ipc-lg-sym") && hooks.pickSymbol) hooks.pickSymbol();
+    });
     chart.subscribeCrosshairMove((param) => {
       const t = param && param.time != null && param.point ? Number(param.time) : null;
       if (t === hoverTime) return;
@@ -657,6 +665,7 @@
       get symbol() { return symbol; },
       get tf() { return tf; },
       setStyle(s) { if (s === style) return; style = s; makeSeries(); },
+      refreshLegend() { drawLegend(); },
       // [{time (unix s), side, volume, kind: "entry"|"exit", pnl}]
       setMarkers(list) { tradeMarks = Array.isArray(list) ? list : []; applyMarkers(); },
       // Show the last `spanSeconds` of history (applied after the next load if one is pending).

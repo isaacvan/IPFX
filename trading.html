@@ -1433,6 +1433,93 @@ body.focus-mode .guide-tog-rail{display:none}
 .guide-tog-rail.is-hidden .guide-tog:hover{background:#2563eb;color:#fff}
 body.light .guide-tog-rail .guide-tog{background:#fff}
 body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);color:var(--cobalt)}
+/* ── Clarity pass: say what things are, show what to do next ── */
+/* top bar: account chip only when there is an account; sign-in reads as a button */
+body:not(.signed-in) .tb-signed,body:not(.signed-in) .tb-acct{display:none}
+.tb-pill-sep{margin:0 .35rem;color:var(--muted2)}
+.tb-signed #tbLogin{color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+body:not(.signed-in) .feed-badge{background:#2563eb;border-color:#2563eb;color:#fff;cursor:pointer}
+body:not(.signed-in) .feed-badge:hover{background:#1d4ed8}
+body:not(.signed-in) .feed-badge .feed-dot{display:none}
+body:not(.signed-in) .feed-badge .feed-lbl{color:#fff;font-weight:700;letter-spacing:0;text-transform:none}
+/* order ticket */
+.op-sym-btn{padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;border-radius:6px}
+.op-sym-btn:hover{color:#8fb4ff}
+.op-sym-caret{width:11px;height:7px;margin-left:-2px;color:var(--muted);pointer-events:none}
+.op-signin{display:none;align-items:center;gap:12px;padding:12px 14px;border:1px solid rgba(37,99,235,.35);border-radius:12px;background:rgba(37,99,235,.1)}
+body:not(.signed-in) .op-signin{display:flex}
+body:not(.signed-in) #opLimitCard{display:none}
+.op-signin-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.op-signin-txt strong{font-size:13px;font-weight:650;color:var(--fg)}
+.op-signin-txt span{font-size:11.5px;line-height:1.4;color:var(--muted)}
+.op-signin-btn{flex-shrink:0;height:32px;padding:0 14px;border:0;border-radius:8px;background:#2563eb;color:#fff;font:650 12.5px var(--font-ui);cursor:pointer}
+.op-signin-btn:hover{background:#1d4ed8}
+/* positions: empty state + close all */
+.postbl-empty{display:flex;flex-direction:column;align-items:center;gap:4px;padding:26px 16px!important;text-align:center}
+.postbl-empty strong{font-size:13px;font-weight:650;color:var(--fg)}
+.postbl-empty span{max-width:420px;font-size:12px;line-height:1.45;color:var(--muted)}
+.postbl-empty-btn{margin-top:8px;height:30px;padding:0 14px;border:0;border-radius:8px;background:#2563eb;color:#fff;font:650 12px var(--font-ui);cursor:pointer}
+.btm-closeall{align-self:center;height:26px;padding:0 .7rem;border:1px solid rgba(239,68,68,.45);border-radius:7px;background:rgba(239,68,68,.1);color:#ff8d99;font:650 .7rem var(--font-ui);cursor:pointer}
+.btm-closeall:hover{background:rgba(239,68,68,.2);color:#fff}
+.btm-closeall.confirming{background:#dc2626;border-color:#dc2626;color:#fff}
+/* chart legend: symbol button + market status */
+.ipc-legend .ipc-lg-sym{pointer-events:auto;display:inline-flex;align-items:center;gap:5px;margin:-3px -6px;padding:3px 6px;border:0;border-radius:6px;background:none;color:var(--fg);font:700 .82rem var(--font-ui);cursor:pointer}
+.ipc-legend .ipc-lg-sym svg{width:9px;height:6px;color:var(--muted)}
+.ipc-legend .ipc-lg-sym:hover{background:rgba(255,255,255,.08)}
+body.light .ipc-legend .ipc-lg-sym{color:#111}
+body.light .ipc-legend .ipc-lg-sym:hover{background:rgba(0,0,0,.06)}
+.mkt{display:inline-flex;align-items:center;gap:5px;margin-left:.2rem;padding:1px 8px;border-radius:999px;background:rgba(255,255,255,.06);font:600 .68rem var(--font-ui);color:var(--muted)}
+.mkt::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.mkt.open{color:#10b981;background:rgba(16,185,129,.12)}
+.mkt.demo{color:#60a5fa;background:rgba(37,99,235,.14)}
+.mkt.delayed{color:#f59e0b;background:rgba(245,158,11,.12)}
+body.light .mkt{background:rgba(0,0,0,.05)}
+.cf-icon{display:inline-grid;place-items:center;padding:0}
+.chart-footer .ipfx-cookie-preferences{min-height:0;height:auto;margin-right:.4rem;padding:0 .5rem 0 0;border:0;border-right:1px solid var(--line);white-space:nowrap;border-radius:0;background:none;color:var(--muted2);font:inherit;cursor:pointer}
+.chart-footer .ipfx-cookie-preferences:hover{color:var(--fg)}
+.op-sym-hd.st-off .op-live-dot{background:#6e6e73;box-shadow:none}
+.op-sym-hd.st-off .op-live-label{color:var(--muted2)}
+.op-sym-hd.st-demo .op-live-dot{background:#60a5fa;box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+.op-sym-hd.st-demo .op-live-label{color:#60a5fa}
+.op-sym-hd.st-delayed .op-live-dot{background:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.14)}
+.op-sym-hd.st-delayed .op-live-label{color:#f59e0b}
+.cf-icon svg{width:14px;height:14px}
+body.chart-classic .cf-snap{visibility:hidden}
+/* instrument picker: a Spotlight-style sheet */
+.sym-picker{position:fixed;inset:0;z-index:9000;display:flex;justify-content:center;align-items:flex-start;padding-top:11vh;background:rgba(0,0,0,.45);backdrop-filter:blur(3px)}
+.sym-picker[hidden]{display:none}
+.sym-sheet{width:min(620px,calc(100vw - 32px));max-height:72vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(22,22,26,.97);box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.sym-search{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sym-search svg{width:18px;height:18px;color:var(--muted);flex-shrink:0}
+.sym-search input{flex:1;min-width:0;border:0;outline:none;background:none;color:var(--fg);font:500 17px var(--font-ui);letter-spacing:-.01em}
+.sym-search input::placeholder{color:var(--muted2)}
+.sym-picker kbd{padding:1px 6px;border:1px solid rgba(255,255,255,.18);border-radius:5px;color:var(--muted);font:600 10.5px var(--font-ui)}
+.sym-cats{display:flex;gap:6px;padding:10px 16px 8px}
+.sym-cat{height:28px;padding:0 12px;border:1px solid transparent;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);font:600 12px var(--font-ui);cursor:pointer}
+.sym-cat:hover{color:var(--fg)}
+.sym-cat.active{background:#2563eb;color:#fff}
+.sym-head,.sym-row{display:grid;grid-template-columns:1fr 92px 92px 64px;align-items:center;gap:8px;padding:0 16px}
+.sym-head{height:26px;font:700 10px var(--font-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--muted2)}
+.sym-head span:not(:first-child),.sym-row .px{text-align:right}
+.sym-list{overflow-y:auto;padding:0 6px 6px}
+.sym-row{height:48px;margin:0;padding:0 10px;border-radius:10px;cursor:pointer}
+.sym-row:hover,.sym-row.hl{background:rgba(255,255,255,.07)}
+.sym-row.hl{box-shadow:inset 0 0 0 1px rgba(37,99,235,.55)}
+.sym-row .nm{display:flex;flex-direction:column;min-width:0}
+.sym-row .nm b{font:650 14px var(--font-ui);color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sym-row .nm small{font:500 11.5px var(--font-ui);color:var(--muted2)}
+.sym-row .nm b .cur{margin-left:6px;font:700 10px var(--font-ui);color:#60a5fa;vertical-align:1px}
+.sym-row .px{font:600 13px var(--font-ui);font-variant-numeric:tabular-nums;color:var(--fg)}
+.sym-row .px.sell{color:#ff7a7a}
+.sym-row .px.buy{color:#34d399}
+.sym-row .px.spr{color:var(--muted);font-size:12px}
+.sym-empty{padding:28px 16px;text-align:center;color:var(--muted);font:500 13px var(--font-ui)}
+.sym-foot{display:flex;gap:18px;padding:10px 16px;border-top:1px solid rgba(255,255,255,.08);color:var(--muted2);font:500 11px var(--font-ui)}
+.sym-foot kbd{margin-right:3px}
+body.light .sym-sheet{background:rgba(255,255,255,.98);border-color:rgba(0,0,0,.1)}
+body.light .sym-row:hover,body.light .sym-row.hl{background:rgba(0,0,0,.05)}
+body.light .sym-cat{background:rgba(0,0,0,.05)}
+body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
 </head>
 <body>
@@ -1445,8 +1532,7 @@ body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);co
   </div>
   <div class="tb-div"></div>
   <div class="tb-acct" id="tbAcct">Account</div>
-  <div class="tb-pill">Account&nbsp;ID&nbsp;<strong id="tbLogin">—</strong></div>
-  <div class="tb-pill">Platform&nbsp;<strong id="tbPlatform">IPFX Markets</strong></div>
+  <div class="tb-pill tb-signed" title="Account type and ID"><strong id="tbPlatform">IPFX Markets</strong><span class="tb-pill-sep">·</span><span id="tbLogin">—</span></div>
   <div class="acct-mode" role="group" aria-label="Trading account mode">
     <button class="acct-mode-btn" id="modeChallenge" type="button" onclick="setAccountMode('challenge')">CHALLENGE</button>
     <button class="acct-mode-btn demo" id="modeDemo" type="button" onclick="setAccountMode('demo')">DEMO</button>
@@ -1454,14 +1540,14 @@ body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);co
   <!-- No real "Server" field exists — this is a simulated environment, not broker infrastructure. -->
   <div class="tb-right">
     <div class="tb-tool-grp">
-      <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode">
+      <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle light or dark mode">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-      <button id="setupBtn" class="tb-tool-btn" onclick="openSetupModal()" title="Match My Trading Setup">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+      <button id="setupBtn" class="tb-tool-btn" onclick="openSetupModal()" title="Match my setup — copy your indicators, timeframe and style from a description or screenshot" aria-label="Match my trading setup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
       </button>
-      <button id="algoBtn" class="tb-tool-btn" onclick="openAlgoModal()" title="Algo Trading Bot">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <button id="algoBtn" class="tb-tool-btn" onclick="openAlgoModal()" title="Algo trading — submit a trading bot" aria-label="Algo trading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 14h.01M15 14h.01M8 4h8"/></svg>
       </button>
       <button id="fullscreenBtn" class="tb-tool-btn" onclick="toggleFullscreen()" title="Enter full-screen trading mode" aria-label="Enter full-screen trading mode">
         <svg id="fullscreenIconEnter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
@@ -1477,6 +1563,20 @@ body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);co
       <span class="feed-dot" id="feedDot"></span>
       <span class="feed-lbl" id="feedLbl">Connecting…</span>
     </div>
+  </div>
+</div>
+
+<div class="sym-picker" id="symPicker" role="dialog" aria-modal="true" aria-label="Choose an instrument" hidden>
+  <div class="sym-sheet">
+    <div class="sym-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="symSearch" placeholder="Search instruments — e.g. EUR, gold, Nasdaq" autocomplete="off" spellcheck="false" aria-controls="symList">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="sym-cats" id="symCats" role="tablist" aria-label="Instrument type"></div>
+    <div class="sym-head"><span>Instrument</span><span>Sell</span><span>Buy</span><span>Spread</span></div>
+    <div class="sym-list" id="symList" role="listbox" aria-label="Instruments"></div>
+    <div class="sym-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open chart</span><span><kbd>/</kbd> opens this anywhere</span></div>
   </div>
 </div>
 
@@ -1591,6 +1691,7 @@ body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);co
       <span id="chartFooterSrc">Priced from IPFX's own quotes — the prices your orders fill at.</span>&nbsp;Charts by&nbsp;<a href="https://www.tradingview.com" target="_blank" rel="noopener">TradingView</a>.
       </div>
       <div class="cf-group cf-right">
+        <button type="button" class="cf-btn cf-icon cf-snap" onclick="saveChartImage()" title="Save a picture of the chart" aria-label="Save a picture of the chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
         <span class="cf-clock" id="chartClock" title="Chart time (London)"></span>
         <span class="cf-sep"></span>
         <span class="cf-group cf-scale" role="group" aria-label="Price scale">
@@ -1627,11 +1728,15 @@ body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);co
 
       <!-- ORDER TAB -->
       <div class="gpanel active" id="tab-order">
-        <div class="op-ticket-head"><div><div class="op-eyebrow">New order</div><div class="op-sym-hd"><span class="op-sym-name" id="op-sym">EUR/USD</span><span class="op-live-dot"></span><span class="op-live-label">Live</span></div></div><div class="op-feed-label">Practice account</div></div>
+        <div class="op-ticket-head"><div><div class="op-eyebrow">New order</div><div class="op-sym-hd"><button type="button" class="op-sym-name op-sym-btn" id="op-sym" onclick="openSymbolPicker()" title="Change instrument (/)">EUR/USD</button><svg class="op-sym-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span class="op-live-dot"></span><span class="op-live-label">Live</span></div></div><div class="op-feed-label">Practice account</div></div>
         <div class="op-type-bar" role="tablist" aria-label="Order timing"><button type="button" class="op-type-btn active" onclick="setOrdType('market',this)" aria-selected="true">Market</button><button type="button" class="op-type-btn" onclick="setOrdType('pending',this)" aria-selected="false">Pending</button></div>
         <div class="op-quickbar" aria-label="Order protection"><button type="button" class="op-quick" onclick="toggleRisk()"><span class="op-chk" id="opRiskChk"></span><span>Risk</span></button><button type="button" class="op-quick" onclick="toggleSLTP('sl')"><span class="op-chk" id="slToggle"></span><span>Stop loss</span></button><button type="button" class="op-quick" onclick="toggleSLTP('tp')"><span class="op-chk" id="tpToggle"></span><span>Take profit</span></button><button type="button" class="op-quick" onclick="toggleTrail()"><span class="op-chk" id="opTrailChk"></span><span>Trail</span></button></div>
         <div class="op-pending-fields" id="opPendingFields" hidden><div class="op-field-label">Pending order type</div><div class="op-otype" id="opOtype"><button type="button" class="op-ot on" data-t="limit" onclick="setOrderType('limit',this)" title="Rests below market for a buy, above for a sell">Limit</button><button type="button" class="op-ot" data-t="stop" onclick="setOrderType('stop',this)" title="Rests above market for a buy, below for a sell">Stop</button></div><label class="op-field-label" for="triggerPrice">Trigger price</label><div class="op-trigger" id="opTriggerWrap"><input type="number" class="op-sltp-inp" id="triggerPrice" placeholder="Enter trigger price" step="0.0001" oninput="updateTriggerHint()"><div class="op-trigger-hint" id="opTriggerHint"></div></div></div>
         <div class="op-sltp-inputs" id="sltpFields"><div class="op-sltp-row"><div class="op-sltp-grp"><label class="op-field-label" for="slPrice">Stop loss price</label><div class="op-sltp-stepper"><button type="button" class="op-sltp-step" onclick="adjSltp('sl',-1)" tabindex="-1">−</button><input type="number" class="op-sltp-inp" id="slPrice" placeholder="Not set" step="0.0001" oninput="updatePnlPreview();updateRiskPreview();updateSltpReadouts()"><button type="button" class="op-sltp-step" onclick="adjSltp('sl',1)" tabindex="-1">+</button></div><div class="op-sltp-pnl" id="slPnlReadout">—</div></div><div class="op-sltp-grp"><label class="op-field-label" for="tpPrice">Take profit price</label><div class="op-sltp-stepper"><button type="button" class="op-sltp-step" onclick="adjSltp('tp',-1)" tabindex="-1">−</button><input type="number" class="op-sltp-inp" id="tpPrice" placeholder="Not set" step="0.0001" oninput="updatePnlPreview();updateRiskPreview();updateSltpReadouts()"><button type="button" class="op-sltp-step" onclick="adjSltp('tp',1)" tabindex="-1">+</button></div><div class="op-sltp-pnl" id="tpPnlReadout">—</div></div></div></div>
+        <div class="op-signin" id="opSignin">
+          <div class="op-signin-txt"><strong>Sign in to trade</strong><span>See live prices, place orders and track your challenge.</span></div>
+          <button type="button" class="op-signin-btn" onclick="openDesktopAuth()">Sign in</button>
+        </div>
         <div class="op-limit-card" id="opLimitCard"><div><span class="op-limit-kicker">Account order limit</span><strong id="opLimitSummary">Sign in to view limits</strong></div><span class="op-limit-state" id="opLimitState">—</span></div>
         <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Risk on this order</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div></div>
         <div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
@@ -1975,6 +2080,7 @@ body.light .guide-tog-rail.is-hidden .guide-tog{background:rgba(37,99,235,.1);co
     <div class="btab" onclick="switchBtab('risk',this)">Risk Calculator</div>
     <div class="btab" onclick="switchBtab('journal',this)">Journal</div>
     <div class="btm-gap"></div>
+    <button type="button" class="btm-closeall" id="btmCloseAll" onclick="confirmCloseAll(this)" hidden>Close all</button>
     <button type="button" class="btm-tog" id="btmTogBtn" onclick="toggleBtm()" title="Hide the positions panel to give the chart more room" aria-expanded="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       <span id="btmTog">Hide panel</span>
@@ -2785,6 +2891,8 @@ function ipfxChartHooks(){
       return inst?inst.name:sym;
     },
     scaleChanged:syncScaleUi,
+    pickSymbol(){openSymbolPicker();},
+    legendExtra(){const m=marketStatus();return '<span class="mkt '+m.cls+'">'+m.txt+'</span>';},
   };
 }
 function buildIpfxChart(){
@@ -2862,6 +2970,128 @@ function setChartEngine(mode,why){
   if(changed&&why==='indicators')engineMsg('Indicators show on the classic chart. Use "IPFX chart" in the toolbar to drag SL/TP again.',true);
 }
 function toggleChartEngine(){setChartEngine(chartEngine==='tv'?'ipfx':'tv');}
+
+// ── MARKET STATUS (chart legend) ──
+// One plain phrase instead of the feed jargon, next to the symbol.
+function marketStatus(){
+  if(!hasSession())return{cls:'',txt:'Sign in for live prices'};
+  if(feedState==='live')return{cls:'open',txt:'Market open'};
+  if(feedState==='demo')return{cls:'demo',txt:'Demo prices'};
+  if(feedState==='stale')return{cls:'delayed',txt:'Prices delayed — trading paused'};
+  if(feedState==='closed'){
+    const l=(document.getElementById('feedLbl')||{}).textContent||'';
+    return{cls:'',txt:/no feed/i.test(l)?'No price feed':'Market closed'};
+  }
+  return{cls:'',txt:'Connecting…'};
+}
+
+// The ticket's status next to the instrument used to say "Live" whatever the feed was doing.
+function syncTicketStatus(){
+  const hd=document.querySelector('.op-sym-hd'), lbl=hd&&hd.querySelector('.op-live-label');
+  if(!hd||!lbl)return;
+  const m=marketStatus();
+  const short={open:'Live',demo:'Demo prices',delayed:'Delayed'}[m.cls]||(hasSession()?(/closed/i.test(m.txt)?'Closed':'Offline'):'Offline');
+  lbl.textContent=short;
+  hd.classList.remove('st-open','st-demo','st-delayed','st-off');
+  hd.classList.add(m.cls?'st-'+m.cls:'st-off');
+}
+
+// ── CHART PICTURE ──
+function saveChartImage(){
+  if(!ipfxChart||chartEngine==='tv')return;
+  try{
+    const canvas=ipfxChart.chart.takeScreenshot();
+    const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    const a=document.createElement('a');
+    a.download='IPFX-'+execSymbol(activeSym)+'-'+(ipfxChart.tf==='60'?'1H':ipfxChart.tf)+'-'+stamp+'.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  }catch(_){engineMsg('Could not save the chart picture.');}
+}
+
+// ── SIGNED-OUT STATE ──
+function syncSignedOutUi(){try{renderPositions();}catch(_){}if(ipfxChart)ipfxChart.refreshLegend();syncTicketStatus();}
+// Cookie settings: site-foundation.js drops a full-width button at the end of
+// <body>, which here covered the positions panel. Move it into the chart bar.
+window.addEventListener('load',()=>{
+  const b=document.querySelector('body > .ipfx-cookie-preferences'), host=document.querySelector('.chart-footer .cf-right');
+  if(b&&host)host.insertBefore(b,host.firstChild);
+});
+
+// ── INSTRUMENT PICKER ──
+// Spotlight-style: type to filter, arrows to move, Enter to open the chart.
+const SYM_CAT_LABEL={forex:'Forex',metals:'Metals',indices:'Indices',crypto:'Crypto',futures:'Futures'};
+let symCat='all', symHl=0, symRows=[], symPollTimer=0;
+function symEntries(){
+  const q=(document.getElementById('symSearch').value||'').trim().toLowerCase();
+  const cats=symCat==='all'?wlAllowedCats():[symCat];
+  let rows=cats.flatMap(c=>(WL_DATA[c]||[]).map(i=>({...i,cat:c})));
+  if(q)rows=rows.filter(i=>i.name.toLowerCase().includes(q)||i.sym.toLowerCase().includes(q)||(SYM_CAT_LABEL[i.cat]||'').toLowerCase().includes(q));
+  return rows;
+}
+function renderSymCats(){
+  const cats=['all',...wlAllowedCats()];
+  document.getElementById('symCats').innerHTML=cats.map(c=>'<button type="button" role="tab" class="sym-cat'+(c===symCat?' active':'')+'" data-cat="'+c+'">'+(c==='all'?'All':SYM_CAT_LABEL[c]||c)+'</button>').join('');
+}
+function renderSymList(){
+  symRows=symEntries();
+  if(symHl>=symRows.length)symHl=Math.max(0,symRows.length-1);
+  const list=document.getElementById('symList');
+  if(!symRows.length){list.innerHTML='<div class="sym-empty">No instruments match — try a shorter search.</div>';return;}
+  list.innerHTML=symRows.map((i,k)=>{
+    const short=execSymbol(i.sym), q=liveQuotesBySymbol.get(short), d=q&&q.digits!=null?q.digits:pxDigits(short);
+    const px=v=>q&&isFinite(v)?(+v).toFixed(d):'—';
+    const pip=/JPY$/.test(short)?0.01:/^(EUR|GBP|AUD|NZD|USD|CAD|CHF)[A-Z]{3}$/.test(short)?0.0001:null;
+    const spr=q?(pip?((q.ask-q.bid)/pip).toFixed(1):(q.ask-q.bid).toFixed(d)):'—';
+    const cur=execSymbol(activeSym)===short?'<span class="cur">CURRENT</span>':'';
+    return '<div class="sym-row'+(k===symHl?' hl':'')+'" role="option" aria-selected="'+(k===symHl)+'" data-k="'+k+'">'
+      +'<span class="nm"><b>'+esc(i.name)+cur+'</b><small>'+esc(short)+' · '+(SYM_CAT_LABEL[i.cat]||i.cat)+'</small></span>'
+      +'<span class="px sell">'+px(q&&q.bid)+'</span><span class="px buy">'+px(q&&q.ask)+'</span><span class="px spr">'+spr+'</span></div>';
+  }).join('');
+  const hl=list.querySelector('.sym-row.hl');if(hl)hl.scrollIntoView({block:'nearest'});
+}
+async function pollSymPrices(){
+  if(document.getElementById('symPicker').hidden||!hasSession())return;
+  try{
+    const tok=await freshToken();if(!tok)return;
+    const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'prices',symbols:symEntries().map(i=>i.sym)})});
+    const j=await r.json().catch(()=>null);
+    if(j&&j.ok&&Array.isArray(j.quotes)){j.quotes.forEach(q=>cacheLiveQuote(q));renderSymList();}
+  }catch(_){}
+}
+function openSymbolPicker(){
+  const pk=document.getElementById('symPicker'), input=document.getElementById('symSearch');
+  symCat='all';input.value='';
+  symHl=Math.max(0,symEntries().findIndex(i=>execSymbol(i.sym)===execSymbol(activeSym)));
+  renderSymCats();renderSymList();
+  pk.hidden=false;input.focus();
+  pollSymPrices();clearInterval(symPollTimer);symPollTimer=setInterval(pollSymPrices,3000);
+}
+function closeSymbolPicker(){document.getElementById('symPicker').hidden=true;clearInterval(symPollTimer);}
+function pickSymRow(k){const i=symRows[k];if(!i)return;closeSymbolPicker();wlPick(i.sym);}
+(function wireSymbolPicker(){
+  const pk=document.getElementById('symPicker'), input=document.getElementById('symSearch');
+  if(!pk)return;
+  input.addEventListener('input',()=>{symHl=0;renderSymList();});
+  input.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();symHl=Math.min(symRows.length-1,symHl+1);renderSymList();}
+    else if(e.key==='ArrowUp'){e.preventDefault();symHl=Math.max(0,symHl-1);renderSymList();}
+    else if(e.key==='Enter'){e.preventDefault();pickSymRow(symHl);}
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeSymbolPicker();}
+  });
+  pk.addEventListener('click',e=>{
+    if(e.target===pk){closeSymbolPicker();return;}
+    const cat=e.target.closest('.sym-cat');
+    if(cat){symCat=cat.dataset.cat;symHl=0;renderSymCats();renderSymList();input.focus();pollSymPrices();return;}
+    const row=e.target.closest('.sym-row');if(row)pickSymRow(+row.dataset.k);
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='/'||e.ctrlKey||e.metaKey||e.altKey)return;
+    const t=e.target;if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;
+    if(!pk.hidden||dialogOpen())return;
+    e.preventDefault();openSymbolPicker();
+  });
+})();
 
 // ── CHART RANGE, SCALE, CLOCK ──
 // Range presets pick a candle size that suits the span, like TradingView.
@@ -3822,7 +4052,8 @@ function openDesktopAuth(){
 }
 function closeDesktopAuth(){document.getElementById('desktopAuth')?.classList.remove('open');}
 function applyDesktopSession(session){
-  if(!session){lastQuoteTs=0;setFeed('closed',desktopMode()?'CONNECT ACCOUNT':'SIGN IN');if(desktopMode())openDesktopAuth();return;}
+  document.body.classList.toggle('signed-in',!!session);
+  if(!session){lastQuoteTs=0;setFeed('closed',desktopMode()?'Connect account':'Sign in');if(desktopMode())openDesktopAuth();syncSignedOutUi();return;}
   document.getElementById('tbAcct').textContent=session.user?.user_metadata?.name||session.user?.email||'My Account';
   closeDesktopAuth();setFeed('connecting','CONNECTING');
   // Keep the auth callback synchronous; defer follow-up Supabase work.
@@ -3860,7 +4091,7 @@ async function waitForSbEngine(timeoutMs=8000){
 function initialiseDesktopAccount(){
   document.getElementById('desktopAuthForm')?.addEventListener('submit',connectDesktopAccount);
   const c=getSbEngine();
-  if(!c){setFeed('closed',desktopMode()?'CONNECTION ERROR':'SIGN IN');if(desktopMode())openDesktopAuth();return;}
+  if(!c){setFeed('closed',desktopMode()?'Connection error':'Sign in');if(desktopMode())openDesktopAuth();return;}
   c.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_OUT'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED')applyDesktopSession(session);
   });
@@ -4187,6 +4418,15 @@ async function reversePosition(){
   placeOrder(last.side==='buy'?'sell':'buy');
 }
 function cancelAll(){flattenAll();}
+function confirmCloseAll(btn){
+  if(btn.classList.contains('confirming')){
+    clearTimeout(btn._t);btn.classList.remove('confirming');flattenAll();return;
+  }
+  const n=((engineState&&engineState.open_trades)||[]).length;
+  btn.classList.add('confirming');btn.textContent='Click again to close '+(n===1?'1 position':n+' positions');
+  clearTimeout(btn._t);
+  btn._t=setTimeout(()=>{btn.classList.remove('confirming');try{renderPositions();}catch(_){}},4000);
+}
 async function flattenAll(){
   if(engineBusy)return;engineBusy=true;
   const r=await engineCall({action:'close_all'});
@@ -4350,6 +4590,8 @@ function utcStamp(iso){
 }
 function renderPosTable(o){
   const badge=document.getElementById('posBadge');if(badge)badge.textContent=o.length;
+  const closeAll=document.getElementById('btmCloseAll');
+  if(closeAll&&!closeAll.classList.contains('confirming')){closeAll.hidden=!o.length;closeAll.textContent=o.length>1?'Close all ('+o.length+')':'Close all';}
   const body=document.getElementById('posTableBody');
   const a=engineState&&engineState.account;
   let totalMargin=0;
@@ -4377,7 +4619,9 @@ function renderPosTable(o){
       </div></td>
     </tr>`;
   }).join('');
-  if(body)body.innerHTML=rows||'<tr><td colspan="15"><div class="postbl-empty">'+(hasSession()?'No open positions':'Log in to trade')+'</div></td></tr>';
+  if(body)body.innerHTML=rows||'<tr><td colspan="15"><div class="postbl-empty">'+(hasSession()
+    ?'<strong>No open positions</strong><span>Use Sell or Buy in the order panel to open one. It will appear here with live P&amp;L.</span>'
+    :'<strong>Sign in to see your positions</strong><span>Your open trades, P&amp;L and account balance show here once you are signed in.</span><button type="button" class="postbl-empty-btn" onclick="openDesktopAuth()">Sign in</button>')+'</div></td></tr>';
   o.forEach(p=>{
     const pnl=(p.live_pnl==null)?null:+p.live_pnl;
     animatePnl('tbl-'+p.id,document.getElementById('tblpnl-'+p.id),pnl,pos=>'postbl-pnl '+(pos?'pos':'neg'));
@@ -4454,6 +4698,7 @@ function renderClosedTable(){
 }
 function renderEngineAccount(){
   const a=engineState&&engineState.account;if(!a)return;
+  document.body.classList.add('signed-in');
   const f=v=>'$'+(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   if(a.id){const short=String(a.id).slice(0,8).toUpperCase();set('tbLogin',short);set('bp-login',short);}
@@ -4709,6 +4954,8 @@ function setFeed(state,label){
   else if(state==='closed'){badge.classList.add('closed');lbl.textContent=label||'NO FEED';}
   else{lbl.textContent=label||'Connecting…';}
   applyFeedGate();
+  if(typeof ipfxChart!=='undefined'&&ipfxChart)ipfxChart.refreshLegend();
+  syncTicketStatus();
 }
 function feedFresh(){ return lastQuoteTs>0 && (Date.now()-lastQuoteTs)<STALE_MS; }
 function applyFeedGate(){
@@ -5592,6 +5839,9 @@ document.addEventListener('change',e=>{
 
 // ── INIT ──
 initTheme();
+document.getElementById('modeChallenge')?.classList.toggle('active',selectedAccountMode==='challenge');
+document.getElementById('modeDemo')?.classList.toggle('active',selectedAccountMode==='demo');
+setTimeout(()=>{if(!hasSession())syncSignedOutUi();},0);
 buildIndList();
 updatePnlPreview();
 
