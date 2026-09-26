@@ -1521,6 +1521,71 @@ body.chart-classic .cf-snap{visibility:hidden}
 .sym-row .px.buy{color:#34d399}
 .sym-row .px.spr{color:var(--muted);font-size:12px}
 .sym-row .px.st{grid-column:2 / span 3;color:var(--muted2);font-size:12px;font-weight:500}
+/* ── Quick ticket: the order ticket as a small movable card over the chart ── */
+.qt{position:absolute;left:0;bottom:0;z-index:46;width:310px;max-width:calc(100% - 16px);padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(22,22,26,.94);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);box-shadow:0 18px 48px rgba(0,0,0,.5);font-family:var(--font-ui);color:var(--fg);user-select:none;-webkit-user-select:none}
+.qt[hidden]{display:none}
+.qt.dragging{box-shadow:0 26px 64px rgba(0,0,0,.6);border-color:rgba(37,99,235,.55)}
+.qt-head{display:flex;align-items:center;gap:6px;min-height:30px;cursor:grab;touch-action:none}
+.qt.dragging .qt-head{cursor:grabbing}
+.qt-grip{display:grid;grid-template-columns:repeat(2,3px);gap:2px;padding:6px 6px 6px 3px;opacity:.4}
+.qt-grip i{width:3px;height:3px;border-radius:50%;background:currentColor}
+.qt-sym{display:inline-flex;align-items:center;gap:6px;min-width:0;padding:4px 6px;border:0;border-radius:7px;background:none;color:var(--fg);font:650 12.5px var(--font-ui);cursor:pointer}
+.qt-sym:hover{background:rgba(255,255,255,.08)}
+.qt-dot{width:7px;height:7px;flex-shrink:0;border-radius:50%;background:#6e6e73}
+.qt.st-open .qt-dot{background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16)}
+.qt.st-demo .qt-dot{background:#60a5fa}
+.qt.st-delayed .qt-dot{background:#f59e0b}
+.qt-chips{display:flex;gap:4px;margin-left:auto}
+.qt-chip{height:22px;padding:0 8px;border:1px solid rgba(255,255,255,.14);border-radius:6px;background:none;color:var(--muted);font:650 10.5px var(--font-ui);cursor:pointer}
+.qt-chip:hover{color:var(--fg);border-color:rgba(255,255,255,.3)}
+.qt-chip.on{border-color:rgba(37,99,235,.7);background:rgba(37,99,235,.2);color:#8fb4ff}
+.qt-exp{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:7px;background:rgba(255,255,255,.07);color:var(--muted);cursor:pointer}
+.qt-exp:hover{background:rgba(37,99,235,.3);color:#fff}
+.qt-exp svg{width:12px;height:12px;transition:transform .2s}
+.qt.expanded .qt-exp svg{transform:rotate(180deg)}
+.qt-more{display:flex;flex-direction:column;gap:8px;padding:8px 2px 4px}
+.qt-more[hidden]{display:none}
+.qt-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.qt-presets button{height:24px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.04);color:var(--muted);font:600 11px var(--font-ui);cursor:pointer}
+.qt-presets button:hover{color:var(--fg);border-color:rgba(37,99,235,.55)}
+.qt-sltp{display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.qt-sltp[hidden]{display:none}
+.qt-step{display:flex;align-items:center;height:28px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.04);overflow:hidden}
+.qt-step button{width:26px;height:100%;border:0;background:none;color:var(--muted);font-size:15px;cursor:pointer}
+.qt-step button:hover{color:#fff;background:rgba(255,255,255,.07)}
+.qt-step input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;color:var(--fg);font:600 12px var(--font-ui);text-align:center;font-variant-numeric:tabular-nums;user-select:text;-webkit-user-select:text}
+.qt-step:focus-within{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.22)}
+.qt-usd{min-width:52px;text-align:right;font:600 11px var(--font-ui);font-variant-numeric:tabular-nums;color:var(--muted)}
+.qt-risk{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.05);font-size:11px;line-height:1.4;color:var(--muted)}
+.qt-risk[hidden],.qt-note[hidden]{display:none}
+.qt-risk.over{background:rgba(239,68,68,.12);color:#ff8d99}
+.qt-risk b{color:var(--fg)}
+.qt-note{padding:6px 8px;border-radius:8px;background:rgba(245,158,11,.12);font-size:11px;line-height:1.4;color:#fbbf24}
+.qt-full{padding:0;border:0;background:none;color:#4d8dff;font:500 11.5px var(--font-ui);text-align:left;cursor:pointer}
+.qt-full:hover{text-decoration:underline}
+.qt-margin{padding:4px 2px 6px;text-align:center;font-size:10.5px;color:var(--muted2)}
+.qt-margin b{color:var(--muted);font-weight:600}
+.qt-trade{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:6px;align-items:stretch}
+.qt-sell,.qt-buy{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:46px;padding:0 4px;border:0;border-radius:9px;color:#fff;font-family:var(--font-ui);cursor:pointer;transition:filter .12s,transform .1s}
+.qt-sell{background:#dc4b4b}
+.qt-buy{background:#22a06b}
+.qt-sell:hover,.qt-buy:hover{filter:brightness(1.12)}
+.qt-sell:active,.qt-buy:active{transform:scale(.97)}
+.qt-sell b,.qt-buy b{font:700 12.5px var(--font-ui);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.qt-sell span,.qt-buy span{font:700 9px var(--font-ui);letter-spacing:.06em;opacity:.85}
+.qt-lots{display:flex;align-items:center;height:46px;border:1px solid rgba(255,255,255,.14);border-radius:9px;background:rgba(255,255,255,.04)}
+.qt-lots>button{width:26px;height:100%;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer}
+.qt-lots>button:hover{color:#fff}
+.qt-lots>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}
+.qt-lots input{width:100%;border:0;outline:0;background:none;color:var(--fg);font:700 14px var(--font-ui);text-align:center;user-select:text;-webkit-user-select:text}
+.qt-lots small{font:600 8.5px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+.qt-lots:focus-within{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.22)}
+.qt.pending .qt-sell,.qt.pending .qt-buy{opacity:.4;pointer-events:none}
+body.light .qt{background:rgba(255,255,255,.96);border-color:rgba(0,0,0,.12);color:#111}
+body.light .qt-sym,body.light .qt-step input,body.light .qt-lots input{color:#111}
+body.light .qt-chip.on{color:var(--cobalt)}
+/* dragging the side panel past its minimum shows it is about to hide */
+.guide.will-collapse{opacity:.55}
 /* native indicator legends + settings */
 .ipc-ind-legends{position:absolute;inset:0;z-index:4;pointer-events:none}
 .ipc-ind-group{position:absolute;left:10px;display:flex;flex-direction:column;gap:2px;max-width:calc(100% - 100px)}
@@ -1709,6 +1774,43 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
       <div id="ipfx_chart_container" aria-label="Price chart"></div>
       <div class="ipc-layer" id="ipcLayer"></div>
       <div class="max-hint" id="maxHint" role="status" aria-live="polite" hidden></div>
+      <!-- Quick ticket: the order ticket as a small card over the chart while the order panel is hidden. -->
+      <div class="qt" id="quickTicket" role="group" aria-label="Quick order ticket" hidden>
+        <div class="qt-head" id="qtHandle" title="Drag to move · double-click to put back">
+          <span class="qt-grip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <button type="button" class="qt-sym" onclick="openSymbolPicker()" title="Change instrument (/)"><span class="qt-dot" id="qtDot"></span><span id="qtSym">EUR/USD</span></button>
+          <span class="qt-chips">
+            <button type="button" class="qt-chip" id="qtChipRisk" onclick="toggleRisk();syncQuickTicket()" title="Size the order by risk">Risk</button>
+            <button type="button" class="qt-chip" id="qtChipSl" onclick="qtToggleSltp('sl')" title="Add a stop loss">SL</button>
+            <button type="button" class="qt-chip" id="qtChipTp" onclick="qtToggleSltp('tp')" title="Add a take profit">TP</button>
+          </span>
+          <button type="button" class="qt-exp" id="qtExp" onclick="qtToggleExpand()" aria-expanded="false" aria-label="Expand the ticket" title="Expand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></button>
+        </div>
+        <div class="qt-more" id="qtMore" hidden>
+          <div class="qt-presets" aria-label="Quick lot sizes">
+            <button type="button" onclick="setLots(0.01);syncQuickTicket()">0.01</button><button type="button" onclick="setLots(0.1);syncQuickTicket()">0.10</button><button type="button" onclick="setLots(0.5);syncQuickTicket()">0.50</button><button type="button" onclick="setLots(1);syncQuickTicket()">1.00</button><button type="button" onclick="setLots(2);syncQuickTicket()">2.00</button>
+          </div>
+          <div class="qt-sltp" id="qtSlRow" hidden>
+            <label for="qtSlPrice">Stop loss</label>
+            <div class="qt-step"><button type="button" onclick="qtAdjSltp('sl',-1)" aria-label="Lower stop loss">−</button><input id="qtSlPrice" type="text" inputmode="decimal" placeholder="price" oninput="qtSltpInput('sl',this)"><button type="button" onclick="qtAdjSltp('sl',1)" aria-label="Raise stop loss">+</button></div>
+            <span class="qt-usd" id="qtSlUsd">—</span>
+          </div>
+          <div class="qt-sltp" id="qtTpRow" hidden>
+            <label for="qtTpPrice">Take profit</label>
+            <div class="qt-step"><button type="button" onclick="qtAdjSltp('tp',-1)" aria-label="Lower take profit">−</button><input id="qtTpPrice" type="text" inputmode="decimal" placeholder="price" oninput="qtSltpInput('tp',this)"><button type="button" onclick="qtAdjSltp('tp',1)" aria-label="Raise take profit">+</button></div>
+            <span class="qt-usd" id="qtTpUsd">—</span>
+          </div>
+          <div class="qt-risk" id="qtRisk" hidden></div>
+          <div class="qt-note" id="qtNote" hidden></div>
+          <button type="button" class="qt-full" onclick="qtOpenFull()">Pending orders &amp; more — open the full ticket</button>
+        </div>
+        <div class="qt-margin">Init. margin: <b id="qtMargin">—</b></div>
+        <div class="qt-trade">
+          <button type="button" class="qt-sell" id="qtSell" onclick="qtPlace('sell')" aria-label="Place sell order"><b id="qtBid">—</b><span>SELL</span></button>
+          <div class="qt-lots"><button type="button" onclick="adjLots(-1);syncQuickTicket()" aria-label="Reduce lot size">−</button><div><input id="qtLots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="qtLotsCommit(this)" onkeydown="if(event.key==='Enter')this.blur()" aria-label="Lot size"><small>lots</small></div><button type="button" onclick="adjLots(1);syncQuickTicket()" aria-label="Increase lot size">+</button></div>
+          <button type="button" class="qt-buy" id="qtBuy" onclick="qtPlace('buy')" aria-label="Place buy order"><b id="qtAsk">—</b><span>BUY</span></button>
+        </div>
+      </div>
       <div id="tv_chart_container" hidden></div>
       <div class="chart-pos-layer" id="chartPosLayer" aria-live="polite"></div>
       <div class="chart-loading" id="chartLoading">
@@ -3386,6 +3488,7 @@ function leaveFullscreenThen(href){
 // Widths/heights the panels return to when shown. Seeded from the CSS
 // defaults at load, then from whatever the trader drags to (remembered).
 let guideExpandedWidth=380;
+let guideRawWidth=1e9;
 const GUIDE_MIN=340, GUIDE_ORDER_MIN=380, BTM_MIN=90;
 const guideMax=()=>Math.round(window.innerWidth*0.55);
 const btmMax=()=>Math.round(window.innerHeight*0.75);
@@ -3396,6 +3499,139 @@ function toggleGuide(){
   g.style.width=hidden?'':guideExpandedWidth+'px';
   if(typeof syncLayoutUi==='function'){syncLayoutUi();saveLayout();}
 }
+// ── QUICK TICKET ──
+// While the order panel is hidden the ticket floats over the chart as a small card. It is a
+// remote control for the real ticket: every value is read from, and every action goes through,
+// the same controls and functions (lots, SL/TP, placeOrder), so risk checks, the stale-price
+// gate and fills behave exactly as in the full ticket.
+const QT_KEY='ipfx_quick_ticket_v1';
+let qtState=(function(){try{const v=JSON.parse(localStorage.getItem(QT_KEY)||'null');return v&&typeof v==='object'?v:{};}catch(_){return{};}})();
+let qtTimer=0;
+function qtSave(){try{localStorage.setItem(QT_KEY,JSON.stringify(qtState));}catch(_){}}
+function qtShouldShow(){
+  const g=document.getElementById('guidePanel');
+  return !!g&&(g.classList.contains('hidden')||document.body.classList.contains('focus-mode'));
+}
+function qtPlace(side){
+  if(orderType!=='market'){engineMsg('The full ticket is set to a pending order — open it to place that, or switch it back to Market.');return;}
+  placeOrder(side);
+}
+function qtOpenFull(){const g=document.getElementById('guidePanel');if(g&&g.classList.contains('hidden'))toggleGuide();}
+function qtLotsCommit(el){
+  const real=document.getElementById('ord-lots');
+  if(real){real.value=el.value;lotsInputCommit(real);}
+  syncQuickTicket();
+}
+function qtToggleSltp(type){
+  toggleSLTP(type);
+  if(type==='sl'?slOn:tpOn)qtSetExpanded(true);
+  const el=document.getElementById(type==='sl'?'qtSlPrice':'qtTpPrice');
+  syncQuickTicket();
+  if(el&&(type==='sl'?slOn:tpOn))setTimeout(()=>el.focus(),0);
+}
+function qtSltpInput(type,el){
+  el.value=el.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');
+  const real=document.getElementById(type==='sl'?'slPrice':'tpPrice');
+  if(!real)return;
+  real.value=el.value;
+  if(el.value&&type==='sl'&&!slOn)toggleSLTP('sl');
+  if(el.value&&type==='tp'&&!tpOn)toggleSLTP('tp');
+  updatePnlPreview();updateRiskPreview();updateSltpReadouts();
+}
+function qtAdjSltp(type,dir){adjSltp(type,dir);syncQuickTicket();}
+function qtSetExpanded(on){
+  qtState.expanded=!!on;qtSave();
+  const qt=document.getElementById('quickTicket'), more=document.getElementById('qtMore'), btn=document.getElementById('qtExp');
+  if(!qt)return;
+  qt.classList.toggle('expanded',!!on);more.hidden=!on;
+  btn.setAttribute('aria-expanded',on?'true':'false');btn.title=on?'Collapse':'Expand';btn.setAttribute('aria-label',on?'Collapse the ticket':'Expand the ticket');
+  qtClamp();
+}
+function qtToggleExpand(){qtSetExpanded(!qtState.expanded);syncQuickTicket();}
+// Position: pixels from the chart area's left and bottom edges, kept inside the chart.
+function qtApplyPos(){
+  const qt=document.getElementById('quickTicket');if(!qt)return;
+  const x=Number.isFinite(qtState.x)?qtState.x:12, y=Number.isFinite(qtState.y)?qtState.y:38;
+  qt.style.left=x+'px';qt.style.bottom=y+'px';
+}
+function qtClamp(){
+  const qt=document.getElementById('quickTicket'), area=qt&&qt.parentElement;
+  if(!qt||qt.hidden||!area)return;
+  const aw=area.clientWidth, ah=area.clientHeight, w=qt.offsetWidth, h=qt.offsetHeight;
+  const x=Math.min(Math.max(4,Number.isFinite(qtState.x)?qtState.x:12),Math.max(4,aw-w-4));
+  const y=Math.min(Math.max(4,Number.isFinite(qtState.y)?qtState.y:38),Math.max(4,ah-h-4));
+  qtState.x=x;qtState.y=y;qtApplyPos();
+}
+function syncQuickTicketVisibility(){
+  const qt=document.getElementById('quickTicket');if(!qt)return;
+  const show=qtShouldShow();
+  if(show===!qt.hidden)return;
+  qt.hidden=!show;
+  clearInterval(qtTimer);
+  // first sync after the script has finished loading: it reads variables declared further down
+  if(show){qtSetExpanded(!!qtState.expanded);qtApplyPos();qtClamp();setTimeout(syncQuickTicket,0);qtTimer=setInterval(syncQuickTicket,300);}
+}
+function syncQuickTicket(){
+  try{syncQuickTicketNow();}catch(_){/* still booting */}
+}
+function syncQuickTicketNow(){
+  const qt=document.getElementById('quickTicket');if(!qt||qt.hidden)return;
+  const $=id=>document.getElementById(id), txt=(id,v)=>{const e=$(id);if(e&&e.textContent!==v)e.textContent=v;};
+  txt('qtSym',($('op-sym')||{}).textContent||'');
+  txt('qtBid',($('ord-bid-price')||{}).textContent||'—');
+  txt('qtAsk',($('ord-ask-price')||{}).textContent||'—');
+  txt('qtMargin',(($('op-margin')||{}).textContent||'—').replace(/^~/,'~'));
+  const lots=$('qtLots'), real=$('ord-lots');
+  if(lots&&real&&document.activeElement!==lots&&lots.value!==real.value)lots.value=real.value;
+  $('qtChipRisk').classList.toggle('on',!!riskMode);
+  $('qtChipSl').classList.toggle('on',!!slOn);
+  $('qtChipTp').classList.toggle('on',!!tpOn);
+  for(const [row,inp,usd,on,realId,readout] of [['qtSlRow','qtSlPrice','qtSlUsd',slOn,'slPrice','slPnlReadout'],['qtTpRow','qtTpPrice','qtTpUsd',tpOn,'tpPrice','tpPnlReadout']]){
+    $(row).hidden=!on;
+    if(!on)continue;
+    const e=$(inp), r=$(realId);
+    if(e&&r&&document.activeElement!==e&&e.value!==r.value)e.value=r.value;
+    txt(usd,(($(readout)||{}).textContent)||'—');
+  }
+  const rb=$('opRisk'), qr=$('qtRisk');
+  if(rb&&rb.style.display!=='none'&&($('opRiskVal')||{}).textContent){
+    qr.hidden=false;qr.classList.toggle('over',rb.classList.contains('over'));
+    qr.innerHTML='Risk on this order <b>'+esc($('opRiskVal').textContent)+'</b>'+(($('opRiskNote')||{}).textContent?' — '+esc($('opRiskNote').textContent):'');
+  }else qr.hidden=true;
+  const pending=orderType!=='market', note=$('qtNote');
+  qt.classList.toggle('pending',pending);
+  note.hidden=!pending;
+  if(pending)note.textContent='The full ticket is set to a '+orderType+' order. Open it to place that, or set it back to Market.';
+  const m=marketStatus();
+  qt.classList.remove('st-open','st-demo','st-delayed');
+  if(m.cls)qt.classList.add('st-'+m.cls);
+}
+(function wireQuickTicket(){
+  const qt=document.getElementById('quickTicket'), handle=document.getElementById('qtHandle');
+  if(!qt||!handle)return;
+  let drag=null;
+  let swallowClick=false;
+  handle.addEventListener('pointerdown',e=>{
+    if(e.button!==0||e.target.closest('.qt-chip,.qt-exp'))return;
+    const area=qt.parentElement.getBoundingClientRect(), r=qt.getBoundingClientRect();
+    drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.bottom,x0:e.clientX,y0:e.clientY,moved:false,area};
+    try{handle.setPointerCapture(e.pointerId);}catch(_){}
+  });
+  handle.addEventListener('pointermove',e=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    if(!drag.moved){if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<4)return;drag.moved=true;qt.classList.add('dragging');}
+    qtState.x=e.clientX-drag.dx-drag.area.left;
+    qtState.y=drag.area.bottom-(e.clientY-drag.dy);
+    qtClamp();
+  });
+  // a drag that started on the symbol name must not also open the picker
+  handle.addEventListener('click',e=>{if(swallowClick){e.stopPropagation();e.preventDefault();swallowClick=false;}},true);
+  const end=e=>{if(!drag||(e&&e.pointerId!==drag.id))return;if(drag.moved){swallowClick=true;setTimeout(()=>{swallowClick=false;},0);qtSave();}drag=null;qt.classList.remove('dragging');};
+  handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',end);handle.addEventListener('lostpointercapture',end);
+  handle.addEventListener('dblclick',e=>{if(e.target.closest('button'))return;delete qtState.x;delete qtState.y;qtSave();qtApplyPos();qtClamp();});
+  window.addEventListener('resize',()=>qtClamp());
+})();
+
 // Labels and state on the two panel toggles, kept in step with the layout.
 function syncPanelToggles(){
   const g=document.getElementById('guidePanel'), gt=document.getElementById('guideTog');
@@ -3412,6 +3648,7 @@ function syncPanelToggles(){
     bt.title=collapsed?'Show the positions panel':'Hide the positions panel to give the chart more room';
     bt.setAttribute('aria-expanded',collapsed?'false':'true');
   }
+  if(typeof syncQuickTicketVisibility==='function')syncQuickTicketVisibility();
 }
 // ── SHARED DRAG-TO-RESIZE (pointer events + capture) ──
 // Pointer capture ties every subsequent move/up/cancel event to the handle
@@ -3470,8 +3707,14 @@ function makeDragResizer({handle,container,axis,min,max,resize,getStart,onEnd,on
     handle,container:panel,axis:'x',min:GUIDE_MIN,max:guideMax,
     getStart:()=>!panel.classList.contains('hidden'),
     // dragging left (negative delta) widens the right-side panel
-    resize:(startW,dx)=>{const w=startW-dx;guideExpandedWidth=Math.min(guideMax(),Math.max(GUIDE_MIN,w));return w;},
-    onEnd:()=>{syncLayoutUi();saveLayout();},
+    // Dragging well past the minimum width hides the panel (the ticket then floats over the chart).
+    resize:(startW,dx)=>{const w=startW-dx;guideRawWidth=w;panel.classList.toggle('will-collapse',w<GUIDE_MIN-70);guideExpandedWidth=Math.min(guideMax(),Math.max(GUIDE_MIN,w));return w;},
+    onEnd:()=>{
+      const collapse=guideRawWidth<GUIDE_MIN-70;
+      panel.classList.remove('will-collapse');guideRawWidth=1e9;
+      if(collapse&&!panel.classList.contains('hidden')){toggleGuide();return;}
+      syncLayoutUi();saveLayout();
+    },
     onDoubleClick:()=>toggleGuide(),
   });
 })();
@@ -4076,7 +4319,9 @@ function refreshDom(){
 setInterval(animateDom,600);
 
 // ── ORDER TICKET (server-side fills via trading-engine) ──
-let ordLots=1,ordMidPrice=1.0850;
+// Must match the size the ticket shows and highlights on load (0.01). It used to start at 1, so an order
+// placed without touching the size buttons went out as a full lot while the screen said 0.01.
+let ordLots=0.01,ordMidPrice=1.0850;
 
 const ENGINE_URL='https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine';
 let engineState=null,engineBusy=false;
@@ -5082,7 +5327,7 @@ function feedFresh(){ return lastQuoteTs>0 && (Date.now()-lastQuoteTs)<STALE_MS;
 function applyFeedGate(){
   // Disable Buy/Sell when the quote is stale — never fill on stale data.
   const stale=!feedFresh();
-  document.querySelectorAll('.ord-buy,.ord-sell,.of-buy,.of-sell,.op-exec-buy,.op-exec-sell').forEach(b=>{
+  document.querySelectorAll('.ord-buy,.ord-sell,.of-buy,.of-sell,.op-exec-buy,.op-exec-sell,.qt-buy,.qt-sell').forEach(b=>{
     b.style.opacity=stale?'0.4':'';
     b.style.pointerEvents=stale?'none':'';
     b.setAttribute('aria-disabled',stale?'true':'false');
