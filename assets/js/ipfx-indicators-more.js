@@ -11,7 +11,7 @@
   const flt = (key, label, d, min, max, step) => ({ key, label, type: "float", default: d, min, max, step });
   const int = (key, label, d, min = 1, max = 500) => ({ key, label, type: "int", default: d, min, max });
   const line = (key, label, color, extra) => ({ key, label, type: "line", color, ...extra });
-  const NOTE = " Most forex pairs and metals report no real volume, so this is most useful on crypto, indices and futures.";
+  const NOTE = " Volume is the exchange's for crypto, indices, metals and futures; for the forex majors IPFX uses the matching CME currency future (named in the chart footer); pairs without one, such as GBP/JPY, have none.";
   const nulls = (n) => new Array(n).fill(null);
 
   // DecisionPoint's EMA: smoothing 2/n (not 2/(n+1)), seeded with the first value.

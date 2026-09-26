@@ -2977,6 +2977,7 @@ let chartEngine=(function(){try{return localStorage.getItem('ipfx_chart_engine')
 let ipfxChart=null;
 let ipfxChartProxy=false;
 let ipfxChartClosesOnly=false;
+let ipfxChartVolumeSource=null;
 function pxDigits(symbol){
   const clean=execSymbol(symbol||activeSym);
   // Must match INSTRUMENTS digits in trading-engine/index.ts.
@@ -3031,7 +3032,7 @@ function ipfxChartHooks(){
       el.hidden=!on;
       if(on)el._safety=setTimeout(()=>{el.hidden=true;},12000);
     },
-    loaded(info){ipfxChartProxy=!!info.proxy;ipfxChartClosesOnly=!!info.closesOnly;syncChartEngineUi();ipfxMarkKey='';syncIpfxTrades();},
+    loaded(info){ipfxChartProxy=!!info.proxy;ipfxChartClosesOnly=!!info.closesOnly;ipfxChartVolumeSource=info.volumeSource||null;syncChartEngineUi();ipfxMarkKey='';syncIpfxTrades();},
     label(sym){
       const inst=Object.values(WL_DATA).flat().find(i=>execSymbol(i.sym)===sym);
       return inst?inst.name:sym;
@@ -3058,7 +3059,7 @@ function buildIpfxChart(){
   ipfxChart.setTheme(isDarkMode,GRID_ALPHAS[gridMode]);
   ipfxChart.setStyle([1,2,3,8].includes(+currentStyle)?+currentStyle:1);
   const sym=execSymbol(activeSym);
-  if(ipfxChart.symbol!==sym||ipfxChart.tf!==currentTf){ipfxChartProxy=false;ipfxChartClosesOnly=false;syncChartEngineUi();ipfxChart.load(sym,currentTf);}
+  if(ipfxChart.symbol!==sym||ipfxChart.tf!==currentTf){ipfxChartProxy=false;ipfxChartClosesOnly=false;ipfxChartVolumeSource=null;syncChartEngineUi();ipfxChart.load(sym,currentTf);}
   syncIpfxTrades();
   syncNativeIndicators();
 }
@@ -3096,13 +3097,18 @@ function syncChartEngineUi(){
   const lbl=document.getElementById('chartEngineLbl');
   if(lbl)lbl.textContent=tv?'IPFX chart':'Indicators chart';
   const src=document.getElementById('chartFooterSrc');
-  if(src)src.textContent=tv
-    ?'Classic chart uses TradingView\'s feed; orders fill at IPFX prices, which may differ.'
-    :ipfxChartClosesOnly
-      ?'Live candles from IPFX quotes. Older 1–3m history is minute closes only, without wicks.'
-      :ipfxChartProxy
-      ?'Live candles from IPFX quotes; older history from futures, shifted onto spot.'
-      :'Priced from IPFX\'s own quotes — the prices your orders fill at.';
+  if(src){
+    let text=tv
+      ?'Classic chart uses TradingView\'s feed; orders fill at IPFX prices, which may differ.'
+      :ipfxChartClosesOnly
+        ?'Live candles from IPFX quotes. Older 1–3m history is minute closes only, without wicks.'
+        :ipfxChartProxy
+        ?'Live candles from IPFX quotes; older history from futures, shifted onto spot.'
+        :'Priced from IPFX\'s own quotes — the prices your orders fill at.';
+    // Spot forex has no volume of its own; say where the volume bars come from.
+    if(!tv&&ipfxChartVolumeSource)text+=' Volume: '+ipfxChartVolumeSource+'.';
+    src.textContent=text;src.title=text;
+  }
   const note=document.getElementById('indEngineNote');
   if(note)note.innerHTML=tv
     ?'<span>Indicators are showing on the classic chart. Switch back to drag your stop loss and take profit on the chart.</span><button type="button" onclick="setChartEngine(\'ipfx\')">IPFX chart</button>'

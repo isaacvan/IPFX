@@ -10,7 +10,7 @@
   const int = (key, label, d, min = 1, max = 500) => ({ key, label, type: "int", default: d, min, max });
   const line = (key, label, color, extra) => ({ key, label, type: "line", color, ...extra });
   const vol = (bars) => bars.map((b) => b.volume || 0);
-  const NOTE = " Most forex pairs and metals report no real volume, so this is most useful on crypto, indices and futures.";
+  const NOTE = " Volume is the exchange's for crypto, indices, metals and futures; for the forex majors IPFX uses the matching CME currency future (named in the chart footer); pairs without one, such as GBP/JPY, have none.";
   // Money-flow multiplier x volume for each candle (Chaikin).
   const adTerm = (bars) => bars.map((b) => (b.high === b.low || (b.close === b.high && b.close === b.low) ? 0 : ((2 * b.close - b.low - b.high) / (b.high - b.low)) * (b.volume || 0)));
 

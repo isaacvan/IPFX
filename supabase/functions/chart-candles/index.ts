@@ -17,6 +17,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, safeErrorCode } from "../_shared/request-guards.ts";
+import { mergeVolume, VOLUME_PROXY } from "./volume-merge.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -169,8 +170,23 @@ Deno.serve(async (req) => {
     const step = { "1m": 60, "5m": 300, "15m": 900, "30m": 1800, "60m": 3600 }[spec.interval];
     const flatShare = step ? repairFlatBars(raw, step) : 0;
     const bars = spec.seconds < 86400 ? aggregate(raw, spec.seconds) : raw;
+    // Spot forex has no volume of its own: borrow the matching CME currency future's (volume only;
+    // prices stay spot). If that fetch fails the candles still work, just without volume.
+    let volumeSource: string | null = null;
+    const vp = VOLUME_PROXY[symbol];
+    if (vp) {
+      try {
+        const futRaw = await fetchYahoo(vp[0], spec.interval, spec.range);
+        if (futRaw && futRaw.length) {
+          const fut = spec.seconds < 86400 ? aggregate(futRaw, spec.seconds) : futRaw;
+          if (mergeVolume(bars, fut, spec.seconds) > 0) volumeSource = vp[1];
+        }
+      } catch (e) {
+        console.error(JSON.stringify({ event: "chart_candles_volume", symbol, tf, code: safeErrorCode(e) }));
+      }
+    }
     // `closes_only`: most of this history was sampled once per bar, so wicks are not real.
-    const body = { ok: true, symbol, tf, source: "yahoo", proxy, closes_only: flatShare > 0.5, seconds: spec.seconds, bars: bars.slice(-2000) };
+    const body = { ok: true, symbol, tf, source: "yahoo", proxy, volume_source: volumeSource, closes_only: flatShare > 0.5, seconds: spec.seconds, bars: bars.slice(-2000) };
     memo.set(key, { at: Date.now(), body });
     return json(body, 200, spec.cache);
   } catch (e) {

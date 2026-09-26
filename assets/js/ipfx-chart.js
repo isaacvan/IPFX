@@ -86,7 +86,8 @@
     let symbol = null, tf = "60", seconds = 3600;
     let raw = [];            // [{time, open, high, low, close}] in engine-aligned prices
     let aligned = false;     // history shifted onto the engine's live price yet?
-    let closesOnly = false;  // history sampled once per bar (FX 1m on Yahoo): wicks are not real
+    let closesOnly = false;
+    let volumeSource = null; // e.g. "CME Euro FX (6E) futures" when spot forex borrows futures volume  // history sampled once per bar (FX 1m on Yahoo): wicks are not real
     let proxy = false;
     let loadSeq = 0;
     let loadingHistory = false;
@@ -501,6 +502,22 @@
       if (!indicators.length) indLegend.innerHTML = "";
     }
 
+    // Volume of the newest candles keeps growing (and new candles start at 0 here), so pull fresh
+    // volume from the candle service every minute and update only the volume fields.
+    async function refreshVolume() {
+      if (!symbol || loadingHistory || !raw.some((b) => b.volume > 0)) return;
+      const sym = symbol, timeframe = tf;
+      try {
+        const j = await (await fetch(`${CANDLES_URL}?symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(timeframe)}`)).json();
+        if (!j || !j.ok || sym !== symbol || timeframe !== tf) return;
+        const m = new Map(j.bars.map((b) => [b.t, b.v || 0]));
+        let changed = false;
+        for (const b of raw) { const v = m.get(b.time); if (v !== undefined && v !== b.volume) { b.volume = v; changed = true; } }
+        if (changed) { indFull = true; scheduleIndicators(); }
+      } catch (_) { /* keep what we have */ }
+    }
+    setInterval(() => { if (!document.hidden) refreshVolume(); }, 60000);
+
     // ---------------------------------------------------------------- range + scale
     function applyRange() {
       if (pendingRange == null || !raw.length) return;
@@ -590,13 +607,14 @@
         if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || "Chart history unavailable");
         proxy = !!j.proxy;
         closesOnly = !!j.closes_only;
+        volumeSource = j.volume_source || null;
         raw = j.bars.map((b) => ({ time: b.t, open: b.o, high: b.h, low: b.l, close: b.c, volume: b.v || 0 }));
         pushAll();
         chart.timeScale().scrollToRealTime();
         applyRange();
         applyMarkers();
         drawLegend();
-        if (hooks.loaded) hooks.loaded({ symbol, tf, proxy, closesOnly, bars: raw.length });
+        if (hooks.loaded) hooks.loaded({ symbol, tf, proxy, closesOnly, volumeSource, bars: raw.length });
       } catch (e) {
         if (seq !== loadSeq) return;
         hooks.status("Chart history is unavailable right now — live prices will still draw.", true);
