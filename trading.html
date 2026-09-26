@@ -43,6 +43,11 @@ try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch
 </script>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
 <script src="/assets/js/ipfx-indicators.js"></script>
+<script src="/assets/js/ipfx-indicators-trend.js"></script>
+<script src="/assets/js/ipfx-indicators-volatility.js"></script>
+<script src="/assets/js/ipfx-indicators-momentum.js"></script>
+<script src="/assets/js/ipfx-indicators-volume.js"></script>
+<script src="/assets/js/ipfx-indicators-structure.js"></script>
 <script src="/assets/js/ipfx-chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -2404,6 +2409,10 @@ const INDS=[
    brief:'RSI that includes volume',
    explain:'Like RSI but factors in volume, making its signals more meaningful. Above 80 = overbought. Below 20 = oversold. If price reaches a new high but MFI does not, it suggests the move is weakening — this divergence is a warning sign before reversals.'},
 ];
+// The classic TradingView chart only understands the hand-written ids above; everything the
+// IPFX indicator files add draws on the IPFX chart only.
+const TV_STUDY_IDS=new Set(INDS.map(i=>i.id));
+if(typeof IPFX_INDICATORS!=='undefined')IPFX_INDICATORS.catalog().forEach(e=>{if(!TV_STUDY_IDS.has(e.id))INDS.push(e);});
 
 // No indicators on load. Layout is restored per-account from localStorage
 // only if the user previously applied some — never auto-applied by default.
@@ -2477,8 +2486,8 @@ function indSearchKeydown(e){
 function buildIndList(){
   const listEl=document.getElementById('indList');
   if(!listEl)return;
-  const cats=['trend','momentum','volume'];
-  const labels={trend:'Trend',momentum:'Momentum & Oscillators',volume:'Volume'};
+  const cats=['trend','volatility','momentum','volume','structure'];
+  const labels={trend:'Trend',volatility:'Volatility & Bands',momentum:'Momentum & Oscillators',volume:'Volume',structure:'Structure & Levels'};
   const q=indFilterQuery;
   let html='';
   let totalShown=0;
@@ -2805,7 +2814,7 @@ function buildChart(){
     save_image:true,
     withdateranges:true,
     hide_volume:false,
-    studies:[...selectedStudies],
+    studies:[...selectedStudies].filter(id=>TV_STUDY_IDS.has(id)),
     // Hide TradingView's own native Indicators button — it opens their
     // free-plan-limited picker, which competes with (and would confuse
     // traders alongside) the iPFX Indicators tab in the side panel. Only
@@ -3241,8 +3250,8 @@ function openIndSettings(uid){
     +'<div class="ind-set-hd"><div><div class="ind-set-title">'+esc(def.name)+'</div><div class="ind-set-sub">'+esc(cat?cat.brief:'Settings')+'</div></div>'
     +'<button type="button" class="ind-set-x" data-act="close" aria-label="Close">✕</button></div>'
     +def.inputs.map(i=>'<label class="ind-set-row"><span>'+esc(i.label)+'</span>'
-      +(i.type==='source'
-        ?'<select name="'+i.key+'">'+srcOpts.map(o=>'<option'+(o===vals[i.key]?' selected':'')+'>'+o+'</option>').join('')+'</select>'
+      +(i.type==='source'||i.type==='select'
+        ?'<select name="'+i.key+'">'+(i.type==='source'?srcOpts:i.options).map(o=>'<option'+(o===vals[i.key]?' selected':'')+'>'+o+'</option>').join('')+'</select>'
         :'<input name="'+i.key+'" type="number" inputmode="decimal" value="'+vals[i.key]+'"'+(i.min!=null?' min="'+i.min+'"':'')+(i.max!=null?' max="'+i.max+'"':'')+' step="'+(i.step||(i.type==='int'?1:'any'))+'">')
       +'</label>').join('')
     +'<div class="ind-set-actions"><button type="button" class="ind-set-link" data-act="defaults">Reset to defaults</button>'

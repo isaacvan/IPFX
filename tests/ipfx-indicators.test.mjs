@@ -7,8 +7,18 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 const IND = require('../assets/js/ipfx-indicators.js');
+for (const family of ['trend', 'volatility', 'momentum', 'volume', 'structure']) require(`../assets/js/ipfx-indicators-${family}.js`);
 const { defs, ta, defaults, cleanInputs, label } = IND;
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const tradingHtml = fs.readFileSync(path.join(root, 'trading.html'), 'utf8');
+// ids of the hand-written catalog in trading.html (INDS)
+const indsStart = tradingHtml.indexOf('const INDS=[');
+const indsBlock = tradingHtml.slice(indsStart, tradingHtml.indexOf('];', indsStart));
+const staticIds = [...indsBlock.matchAll(/id:'([A-Za-z0-9_]+@tv-basicstudies)'/g)].map((m) => m[1]);
 
 const bar = (c, i, spread = 0) => ({ time: 1_700_000_000 + i * 60, open: c, high: c + spread, low: c - spread, close: c, volume: 100 });
 const barsOf = (closes, spread = 0) => closes.map((c, i) => bar(c, i, spread));
@@ -99,4 +109,71 @@ test('inputs are clamped and typed; labels show the key numbers', () => {
   assert.deepEqual(cleanInputs('MAExp@tv-basicstudies', { length: '20.6', source: 'hl2' }), { length: 21, source: 'hl2' });
   assert.deepEqual(cleanInputs('MAExp@tv-basicstudies', { length: -5, source: 'bogus' }), { length: 1, source: 'close' });
   assert.equal(label('BB@tv-basicstudies', defaults('BB@tv-basicstudies')), 'BB 20 2');
+});
+
+test('every catalog entry in trading.html has a native version', () => {
+  assert.ok(staticIds.length >= 20, `found ${staticIds.length} static catalog ids`);
+  for (const id of staticIds) assert.ok(defs[id], `${id} is listed in the Indicators tab but has no native definition`);
+});
+
+test('every native definition is listed: in the static catalog, or through its own meta', () => {
+  const cats = new Set(['trend', 'volatility', 'momentum', 'volume', 'structure']);
+  const seen = new Set(), names = new Set();
+  for (const [id, d] of Object.entries(defs)) {
+    if (staticIds.includes(id)) continue;
+    assert.ok(d.meta, `${id} has no meta, so it would not appear in the Indicators list`);
+    assert.ok(cats.has(d.meta.cat), `${id}: category ${d.meta.cat}`);
+    assert.ok(d.meta.brief && d.meta.brief.length > 8, `${id}: brief`);
+    assert.ok(d.meta.explain && d.meta.explain.length > 60, `${id}: a real explanation`);
+    assert.match(d.meta.color, /^#[0-9a-f]{6}$/i, `${id}: catalog colour`);
+    assert.ok(!seen.has(id) && !names.has(d.name), `${id}: duplicate id or name ${d.name}`);
+    seen.add(id); names.add(d.name);
+  }
+  // catalog() hands exactly those to the page, with the fields the registry test needs
+  const cat = IND.catalog();
+  assert.ok(cat.length >= 50, `catalog has ${cat.length} entries`);
+  for (const e of cat) for (const f of ['cat', 'id', 'name', 'full', 'color', 'brief', 'explain']) assert.ok(e[f], `${e.id}: catalog field ${f}`);
+  const all = [...staticIds, ...cat.map((e) => e.id)];
+  assert.equal(new Set(all).size, all.length, 'no id is listed twice');
+  const allNames = [...tradingHtml.matchAll(/,name:'([^']+)'/g)].map((m) => m[1]).slice(0, staticIds.length).concat(cat.map((e) => e.name));
+  assert.equal(new Set(allNames).size, allNames.length, 'no display name is used twice');
+});
+
+test('definitions are internally consistent: select inputs, plots, levels, panes', () => {
+  for (const [id, d] of Object.entries(defs)) {
+    for (const i of d.inputs) {
+      assert.ok(['int', 'float', 'source', 'select'].includes(i.type), `${id}: input type ${i.type}`);
+      if (i.type === 'select') assert.ok(Array.isArray(i.options) && i.options.includes(i.default), `${id}: select default is an option`);
+      if (i.type === 'int' || i.type === 'float') assert.ok(Number.isFinite(i.default), `${id}: numeric default`);
+    }
+    const keys = d.plots.map((p) => p.key);
+    assert.equal(new Set(keys).size, keys.length, `${id}: plot keys are unique`);
+    for (const p of d.plots) {
+      assert.ok(['line', 'histogram', 'dots'].includes(p.type), `${id}: plot type ${p.type}`);
+      if (p.type === 'line' || p.type === 'dots') assert.match(p.color, /^#[0-9a-f]{6}$/i, `${id}.${p.key}: colour`);
+      if (p.shiftInput) assert.ok(d.inputs.some((i) => i.key === p.shiftInput), `${id}.${p.key}: shiftInput is an input`);
+    }
+    if (d.range) assert.ok(d.range[0] < d.range[1], `${id}: range`);
+    assert.ok(d.pane === 'overlay' || !d.plots.some((p) => p.scale), `${id}: only overlays can use their own scale`);
+  }
+});
+
+test('select inputs accept only their options', () => {
+  assert.equal(cleanInputs('MACross@tv-basicstudies', { type: 'wma' }).type, 'wma');
+  assert.equal(cleanInputs('MACross@tv-basicstudies', { type: 'nonsense' }).type, 'sma');
+});
+
+test('indicators survive real-world data: gaps, zero ranges, a single bar and no bars', () => {
+  const T = 1_700_000_000;
+  const flat = [...Array(120)].map((_, i) => ({ time: T + i * 60, open: 5, high: 5, low: 5, close: 5, volume: 0 }));
+  const one = [{ time: T, open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 }];
+  for (const [id, d] of Object.entries(defs)) {
+    for (const bars of [[], one, flat]) {
+      const out = d.calc(bars, defaults(id));
+      for (const p of d.plots) {
+        assert.equal(out[p.key].length, bars.length, `${id}: ${p.key} length on ${bars.length} bars`);
+        assert.ok(out[p.key].every((v) => v === null || Number.isFinite(v)), `${id}: ${p.key} has NaN/Infinity on ${bars.length} bars`);
+      }
+    }
+  }
 });

@@ -51,6 +51,8 @@
     }
     return out;
   }
+  // 1.23K / 4.56M for volume-sized numbers
+  const compact = (v) => { const a = Math.abs(v); return a >= 1e9 ? (v / 1e9).toFixed(2) + "B" : a >= 1e6 ? (v / 1e6).toFixed(2) + "M" : a >= 1e3 ? (v / 1e3).toFixed(2) + "K" : v.toFixed(0); };
   const money = (v) => (v < 0 ? "-$" : "+$") + Math.abs(v).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -266,17 +268,33 @@
     }
     function mkSeries(ind, plot, paneIndex, first) {
       const digits = symbol ? hooks.digits(symbol) : 5;
+      const prec = ind.def.precision != null ? ind.def.precision : 2;
       const base = {
-        priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false,
-        priceFormat: ind.def.pane === "overlay" || ind.def.priceUnits ? { type: "price", precision: digits, minMove: 1 / Math.pow(10, digits) }
-          : { type: "price", precision: ind.def.precision != null ? ind.def.precision : 2, minMove: 0.01 },
+        // Axis labels only for indicators with a few lines; ribbons, clouds and pivots would bury the axis.
+        priceLineVisible: false, lastValueVisible: !plot.scale && plot.type !== "dots" && (ind.def.pane !== "overlay" || ind.def.plots.length <= 3), crosshairMarkerVisible: false,
+        priceFormat: ind.def.format === "volume" ? { type: "volume" }
+          : ind.def.pane === "overlay" || ind.def.priceUnits ? { type: "price", precision: digits, minMove: 1 / Math.pow(10, digits) }
+          : { type: "price", precision: prec, minMove: 1 / Math.pow(10, prec) },
       };
+      if (plot.scale) base.priceScaleId = plot.scale; // own scale inside the price pane (volume bars)
       if (first && ind.def.range) {
         const [lo, hi] = ind.def.range;
         base.autoscaleInfoProvider = () => ({ priceRange: { minValue: lo, maxValue: hi } });
       }
-      if (plot.type === "histogram") return chart.addSeries(LWC.HistogramSeries, { ...base, color: plot.upColor || "#26a69a" }, paneIndex);
-      return chart.addSeries(LWC.LineSeries, { ...base, color: plot.color, lineWidth: plot.width || (ind.def.pane === "overlay" ? 2 : 1.5) }, paneIndex);
+      let api;
+      if (plot.type === "histogram") {
+        api = chart.addSeries(LWC.HistogramSeries, { ...base, color: plot.color || plot.upColor || "#26a69a" }, paneIndex);
+      } else if (plot.type === "dots") {
+        // Sparse single points do not paint as line point-markers, so dots are series markers
+        // (set in computeIndicators) on an invisible line.
+        api = chart.addSeries(LWC.LineSeries, { ...base, color: plot.color, lineVisible: false, pointMarkersVisible: false }, paneIndex);
+        api._dots = LWC.createSeriesMarkers(api, []);
+      } else {
+        api = chart.addSeries(LWC.LineSeries, { ...base, color: plot.color, lineWidth: plot.width || (ind.def.pane === "overlay" ? 2 : 1.5),
+          lineStyle: plot.dashed ? LWC.LineStyle.Dashed : LWC.LineStyle.Solid }, paneIndex);
+      }
+      if (plot.scale) chart.priceScale(plot.scale, paneIndex).applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+      return api;
     }
     function mountIndicator(ind) {
       ind.pane = ind.def.pane === "overlay" ? 0 : chart.panes().length;
@@ -307,23 +325,64 @@
       const each = panes.length > 3 ? 0.22 : 0.3;
       panes.forEach((pane, i) => pane.setStretchFactor(i === 0 ? 1 : each));
     }
+    // Bars a plot is drawn ahead of (positive) or behind (negative) the candle it was computed on.
+    function plotShift(ind, plot) {
+      if (plot.shiftInput) return (plot.shiftSign || 1) * Math.max(0, Number(ind.inputs[plot.shiftInput]) - 1);
+      return plot.shift || 0;
+    }
+    function maxAhead() {
+      let m = 0;
+      for (const ind of indicators) for (const pl of ind.def.plots) m = Math.max(m, plotShift(ind, pl));
+      return m;
+    }
+    // One chart point per bar (whitespace where the value is missing). Plots shifted into the
+    // future extend past the last candle on extrapolated times.
+    function pointsFor(ind, plot, vals, colors, times, from) {
+      const shift = plotShift(ind, plot), n = raw.length, pts = [];
+      let prev;
+      if (plot.breakOnChange && from > 0) prev = vals[from - 1];
+      for (let i = from; i < n; i++) {
+        const j = i + shift, t = times[j];
+        if (t === undefined) continue;
+        const v = vals[i];
+        if (v == null || !isFinite(v)) { prev = undefined; pts.push({ time: t }); continue; }
+        if (plot.breakOnChange && prev != null && v !== prev) { prev = v; pts.push({ time: t }); continue; } // a gap where the level changes
+        prev = v;
+        if (plot.type === "histogram") {
+          const c = colors && colors[i] ? colors[i] : plot.upColor || plot.downColor ? (v >= 0 ? plot.upColor || UP : plot.downColor || DOWN) : plot.color;
+          pts.push({ time: t, value: v, color: c });
+        } else pts.push({ time: t, value: v });
+      }
+      return pts;
+    }
     function computeIndicators() {
       if (!raw.length) return;
+      const full = indFull; indFull = false;
+      const ahead = maxAhead();
+      const baseTimes = raw.map((b) => b.time);
+      const times = ahead ? baseTimes.concat(Array.from({ length: ahead }, (_, k) => raw[raw.length - 1].time + (k + 1) * seconds)) : baseTimes;
       for (const ind of indicators) {
         let out;
         try { out = ind.def.calc(raw, ind.inputs); } catch (e) { out = null; }
         ind.out = out;
+        // A tick that only moved the last candle (or added one) needs just the last points redrawn,
+        // unless the indicator repaints history or draws ahead of price.
+        const live = !full && !ind.def.repaint && ind.lastCount != null && raw.length - ind.lastCount <= 1
+          && !ind.def.plots.some((pl) => plotShift(ind, pl) !== 0 || pl.breakOnChange || pl.type === "dots");
+        ind.lastCount = raw.length;
         for (const plot of ind.def.plots) {
           const api = ind.series[plot.key], vals = out && out[plot.key];
           if (!api || !vals) continue;
-          api.setData(raw.map((b, i) => {
-            const v = vals[i];
-            if (v == null || !isFinite(v)) return { time: b.time };
-            if (plot.type === "histogram") return { time: b.time, value: v, color: v >= 0 ? (plot.upColor || UP) : (plot.downColor || DOWN) };
-            return { time: b.time, value: v };
-          }));
+          const colors = out.colors && out.colors[plot.key];
+          if (live) { for (const pt of pointsFor(ind, plot, vals, colors, times, Math.max(0, raw.length - 2))) api.update(pt); }
+          else {
+            const pts = pointsFor(ind, plot, vals, colors, times, 0);
+            api.setData(pts);
+            if (api._dots) api._dots.setMarkers(pts.filter((q) => q.value !== undefined).map((q) => ({ time: q.time, position: "inBar", shape: "circle", color: plot.color, size: 0.4 })));
+          }
         }
       }
+      chart.timeScale().applyOptions({ rightOffset: Math.max(6, ahead) });
       drawIndLegends();
     }
     // One legend row per indicator: name + inputs, live values, settings and remove.
@@ -347,11 +406,13 @@
         }
         html += `<div class="ipc-ind-group" style="top:${Math.round(top)}px">`;
         for (const ind of list) {
-          const vals = ind.def.plots.map((p) => {
-            const v = ind.out && ind.out[p.key] ? ind.out[p.key][i] : null;
+          const vals = ind.def.plots.filter((p) => p.type !== "dots").map((p) => {
+            const src = ind.out && ind.out[p.key], k = i - plotShift(ind, p);
+            const v = src && i >= 0 && k >= 0 && k < raw.length ? src[k] : null;
             if (v == null || !isFinite(v)) return "";
             const d = ind.def.pane === "overlay" || ind.def.priceUnits ? hooks.digits(symbol) : (ind.def.precision != null ? ind.def.precision : 2);
-            const col = p.type === "histogram" ? (v >= 0 ? (p.upColor || UP) : (p.downColor || DOWN)) : p.color;
+            if (ind.def.format === "volume") return `<b style="color:${p.color || p.upColor || "#8a8a90"}">${compact(v)}</b>`;
+            const col = p.type === "histogram" ? (p.upColor || p.downColor ? (v >= 0 ? (p.upColor || UP) : (p.downColor || DOWN)) : p.color) : p.color;
             return `<b style="color:${col}">${v.toFixed(d)}</b>`;
           }).join(" ");
           html += `<div class="ipc-ind-row" data-uid="${esc(ind.uid)}"><span class="ipc-ind-name">${esc(IND.label(ind.id, ind.inputs))}</span>` +
@@ -434,7 +495,8 @@
       if (style === 8) return heikinAshi(raw);
       return raw;
     }
-    function pushAll() { if (series) series.setData(view()); scheduleIndicators(); }
+    let indFull = true; // history changed (new load, price alignment, style): indicators redraw whole
+    function pushAll() { if (series) series.setData(view()); indFull = true; scheduleIndicators(); }
     function pushLast() {
       if (!series || !raw.length) return;
       if (style === 8) { pushAll(); return; } // HA depends on the previous bar

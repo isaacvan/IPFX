@@ -97,11 +97,12 @@
       return Math.sqrt(s / n);
     });
   }
+  // Rolling extremes; null if any value in the window is null (Pine na semantics).
   function highest(x, n) {
     return x.map((_, i) => {
       if (i < n - 1) return null;
       let m = -Infinity;
-      for (let k = 0; k < n; k++) m = Math.max(m, x[i - k]);
+      for (let k = 0; k < n; k++) { const v = x[i - k]; if (v == null) return null; if (v > m) m = v; }
       return m;
     });
   }
@@ -109,7 +110,7 @@
     return x.map((_, i) => {
       if (i < n - 1) return null;
       let m = Infinity;
-      for (let k = 0; k < n; k++) m = Math.min(m, x[i - k]);
+      for (let k = 0; k < n; k++) { const v = x[i - k]; if (v == null) return null; if (v < m) m = v; }
       return m;
     });
   }
@@ -130,11 +131,92 @@
     });
   }
 
-  const ta = { src, nz, sma, ema, rma, wma, stdev, highest, lowest, trueRange, change, sub, dev };
+  // Rolling sum over n values; null if the window has a null.
+  function sum(x, n) {
+    return x.map((_, i) => {
+      if (i < n - 1) return null;
+      let s = 0;
+      for (let k = 0; k < n; k++) { const v = x[i - k]; if (v == null) return null; s += v; }
+      return s;
+    });
+  }
+  // Running total (ta.cum); nulls count as 0.
+  function cum(x) { let t = 0; return x.map((v) => (t += v == null ? 0 : v)); }
+  // The value k bars ago.
+  function back(x, k) { return x.map((_, i) => (i - k < 0 ? null : x[i - k])); }
+  const map2 = (a, b, f) => a.map((v, i) => (v == null || b[i] == null ? null : f(v, b[i], i)));
+  const map1 = (a, f) => a.map((v, i) => (v == null ? null : f(v, i)));
+  function rsi(x, n) {
+    const ch = change(x);
+    const up = rma(ch.map((v) => (v == null ? null : Math.max(v, 0))), n);
+    const dn = rma(ch.map((v) => (v == null ? null : Math.max(-v, 0))), n);
+    return up.map((u, i) => (u == null || dn[i] == null ? null : dn[i] === 0 ? 100 : u === 0 ? 0 : 100 - 100 / (1 + u / dn[i])));
+  }
+  // Least-squares line over the last n values, evaluated at the newest bar minus `offset` (ta.linreg).
+  function linreg(x, n, offset = 0) {
+    const out = new Array(x.length).fill(null);
+    const sx = (n * (n - 1)) / 2, sxx = ((n - 1) * n * (2 * n - 1)) / 6;
+    for (let i = n - 1; i < x.length; i++) {
+      let sy = 0, sxy = 0, ok = true;
+      for (let k = 0; k < n; k++) { const v = x[i - n + 1 + k]; if (v == null) { ok = false; break; } sy += v; sxy += k * v; }
+      if (!ok) continue;
+      const slope = (n * sxy - sx * sy) / (n * sxx - sx * sx), icpt = (sy - slope * sx) / n;
+      out[i] = icpt + slope * (n - 1 - offset);
+    }
+    return out;
+  }
+  // Pearson correlation of x with a second series over n values (ta.correlation).
+  function correlation(x, y, n) {
+    return x.map((_, i) => {
+      if (i < n - 1) return null;
+      let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+      for (let k = 0; k < n; k++) {
+        const a = x[i - k], b = y[i - k];
+        if (a == null || b == null) return null;
+        sx += a; sy += b; sxx += a * a; syy += b * b; sxy += a * b;
+      }
+      const den = Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
+      return den === 0 ? null : (n * sxy - sx * sy) / den;
+    });
+  }
+  function median(x, n) {
+    return x.map((_, i) => {
+      if (i < n - 1) return null;
+      const w = [];
+      for (let k = 0; k < n; k++) { const v = x[i - k]; if (v == null) return null; w.push(v); }
+      w.sort((a, b) => a - b);
+      return n % 2 ? w[(n - 1) / 2] : (w[n / 2 - 1] + w[n / 2]) / 2;
+    });
+  }
+  // A moving average chosen by name (for indicators with an "MA type" input).
+  function ma(type, x, n) {
+    if (type === "ema") return ema(x, n);
+    if (type === "wma") return wma(x, n);
+    if (type === "rma") return rma(x, n);
+    return sma(x, n);
+  }
+  // Seconds between bars (median gap), for indicators that depend on the timeframe.
+  function barSeconds(bars) {
+    if (bars.length < 2) return 3600;
+    const gaps = [];
+    for (let i = 1; i < Math.min(bars.length, 200); i++) gaps.push(bars[i].time - bars[i - 1].time);
+    gaps.sort((a, b) => a - b);
+    return gaps[gaps.length >> 1] || 3600;
+  }
+
+  const ta = { src, nz, sma, ema, rma, wma, stdev, highest, lowest, trueRange, change, sub, dev,
+    sum, cum, back, map1, map2, rsi, linreg, correlation, median, ma, barSeconds };
 
   // ---------------------------------------------------------------- definitions
-  // input types: "int" | "float" | "source" (close/open/high/low/hl2/hlc3/ohlc4)
-  // plot types:  "line" | "histogram"  (histogram colours: up/down by sign)
+  // input types: "int" | "float" | "source" (close/open/high/low/hl2/hlc3/ohlc4) | "select" (options: [...])
+  // plot types:  "line" | "histogram" | "dots" (markers only, e.g. SAR, fractals)
+  //   histogram colours: `out.colors[plotKey]` per bar if the calc gives it, else up/down by sign,
+  //   else the plot's fixed `color`.
+  // plot options: width, dashed, shift (bars into the future; negative = back), breakOnChange
+  //   (a gap whenever the value changes — pivot levels), scale: "volume" (own scale at the bottom of
+  //   the price pane).
+  // meta (for the Indicators list): cat (trend|volatility|momentum|volume|structure), full, color, brief, explain
+  // repaint: true when earlier values can change as new bars arrive (zig-zag, swing points)
   // pane:        "overlay" (on price) | "separate" (own pane below)
   // priceUnits:  values are in price units (MACD, ATR) → shown with the instrument's decimals
   // range:       fixed [min, max] for the pane (RSI 0–100); precision: decimals otherwise (default 2)
@@ -176,14 +258,7 @@
       inputs: [len(14), SOURCE],
       plots: [{ key: "rsi", label: "RSI", type: "line", color: "#7e57c2" }],
       levels: [{ value: 70, label: "Overbought" }, { value: 50, label: "Middle" }, { value: 30, label: "Oversold" }],
-      calc: (bars, p) => {
-        const ch = change(src(bars, p.source));
-        const up = rma(ch.map((v) => (v == null ? null : Math.max(v, 0))), p.length);
-        const dn = rma(ch.map((v) => (v == null ? null : Math.max(-v, 0))), p.length);
-        return {
-          rsi: up.map((u, i) => (u == null || dn[i] == null ? null : dn[i] === 0 ? 100 : u === 0 ? 0 : 100 - 100 / (1 + u / dn[i]))),
-        };
-      },
+      calc: (bars, p) => ({ rsi: rsi(src(bars, p.source), p.length) }),
     },
     "MACD@tv-basicstudies": {
       name: "MACD", pane: "separate", priceUnits: true,
@@ -256,6 +331,7 @@
       const v = values ? values[i.key] : undefined;
       if (v === undefined || v === null || v === "") continue;
       if (i.type === "source") { if (["close", "open", "high", "low", "hl2", "hlc3", "ohlc4"].includes(v)) out[i.key] = v; continue; }
+      if (i.type === "select") { if (i.options.includes(v)) out[i.key] = v; continue; }
       let n = Number(v);
       if (!isFinite(n)) continue;
       if (i.type === "int") n = Math.round(n);
@@ -273,7 +349,23 @@
     return (d.short || d.name) + (shown.length ? " " + shown.join(" ") : "");
   }
 
-  const api = { defs, ta, defaults, cleanInputs, label };
+  // Family files call register() to add their definitions.
+  function register(map) {
+    for (const [id, d] of Object.entries(map)) {
+      if (defs[id]) throw new Error("duplicate indicator id " + id);
+      defs[id] = d;
+    }
+  }
+  // Entries for the Indicators list, from definitions that carry meta (the original
+  // hand-written catalog entries stay in trading.html).
+  function catalog() {
+    return Object.entries(defs).filter(([, d]) => d.meta).map(([id, d]) => ({
+      id, name: d.name, cat: d.meta.cat, full: d.meta.full || d.name, color: d.meta.color,
+      brief: d.meta.brief, explain: d.meta.explain,
+    }));
+  }
+
+  const api = { defs, ta, defaults, cleanInputs, label, register, catalog, SOURCE, len };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.IPFX_INDICATORS = api;
 })(typeof window !== "undefined" ? window : globalThis);
