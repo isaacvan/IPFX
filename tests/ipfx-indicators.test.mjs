@@ -101,7 +101,7 @@ test('every registered indicator is well formed and returns aligned plots', () =
       const last = out[p.key].at(-1);
       assert.ok(last === null || Number.isFinite(last), `${id}: plot ${p.key} last value is a number`);
       // marker plots (divergences, gaps, moon phases) can legitimately be empty on a smooth series; they have their own tests
-      if (p.type !== 'dots') assert.ok(out[p.key].some((v) => v != null), `${id}: plot ${p.key} produces values on 300 bars`);
+      if (p.type !== 'dots' && !d.needsSymbol) assert.ok(out[p.key].some((v) => v != null), `${id}: plot ${p.key} produces values on 300 bars`);
     }
   }
 });

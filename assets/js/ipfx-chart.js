@@ -355,6 +355,42 @@
       }
       return pts;
     }
+    // Extra context some indicators need: the visible bar range (Visible Average Price) and
+    // another symbol's closes aligned to these bars (Correlation Coefficient).
+    const otherCache = new Map(); // "SYMBOL|tf" -> { at, closes: Map(time -> close) } or { pending: true }
+    function otherCloses(sym) {
+      if (!sym || sym === symbol) return raw.map((b) => b.close);
+      const key = sym + "|" + tf, hit = otherCache.get(key);
+      if (!hit || (!hit.pending && Date.now() - hit.at > 300000)) {
+        otherCache.set(key, { ...(hit || {}), pending: true });
+        fetch(`${CANDLES_URL}?symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(tf)}`).then((r) => r.json()).then((j) => {
+          if (!j || !j.ok) throw new Error("no data");
+          otherCache.set(key, { at: Date.now(), closes: new Map(j.bars.map((b) => [b.t, b.c])) });
+          indFull = true; scheduleIndicators();
+        }).catch(() => otherCache.set(key, { at: Date.now(), closes: new Map() }));
+      }
+      const c = otherCache.get(key);
+      if (!c || !c.closes) return null;
+      let last = null; // markets that are closed at different times: carry the last close forward
+      return raw.map((b) => { if (c.closes.has(b.time)) last = c.closes.get(b.time); return last; });
+    }
+    function visibleRange() {
+      const r = chart.timeScale().getVisibleLogicalRange();
+      return r ? { from: Math.max(0, Math.floor(r.from)), to: Math.min(raw.length - 1, Math.ceil(r.to)) } : { from: 0, to: raw.length - 1 };
+    }
+    function contextFor(ind) {
+      const ctx = {};
+      if (ind.def.needsVisible) ctx.visible = visibleRange();
+      if (ind.def.needsSymbol) ctx.other = otherCloses(ind.inputs[ind.def.needsSymbol]);
+      return ctx;
+    }
+    let lastVisKey = "", lastAhead = -1;
+    chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      if (!indicators.some((x) => x.def.needsVisible)) return;
+      const v = visibleRange(), key = v.from + ":" + v.to;
+      if (key === lastVisKey) return;
+      lastVisKey = key; indFull = true; scheduleIndicators();
+    });
     function computeIndicators() {
       if (!raw.length) return;
       const full = indFull; indFull = false;
@@ -363,7 +399,7 @@
       const times = ahead ? baseTimes.concat(Array.from({ length: ahead }, (_, k) => raw[raw.length - 1].time + (k + 1) * seconds)) : baseTimes;
       for (const ind of indicators) {
         let out;
-        try { out = ind.def.calc(raw, ind.inputs); } catch (e) { out = null; }
+        try { out = ind.def.calc(raw, ind.inputs, contextFor(ind)); } catch (e) { out = null; }
         ind.out = out;
         // A tick that only moved the last candle (or added one) needs just the last points redrawn,
         // unless the indicator repaints history or draws ahead of price.
@@ -382,7 +418,7 @@
           }
         }
       }
-      chart.timeScale().applyOptions({ rightOffset: Math.max(6, ahead) });
+      if (ahead !== lastAhead) { lastAhead = ahead; chart.timeScale().applyOptions({ rightOffset: Math.max(6, ahead) }); }
       // candle recolouring (Bollinger Bars): the last indicator asking for it wins
       const recolour = [...indicators].reverse().find((ind) => ind.def.candleColors && ind.out && ind.out.candleColors);
       const map = new Map();

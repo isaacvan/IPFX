@@ -10,7 +10,7 @@ const { defs, ta, defaults } = IND;
 
 const T0 = Date.UTC(2024, 0, 1) / 1000; // a Monday, midnight UTC
 const mk = (closes, o = {}) => closes.map((c, i) => ({ time: T0 + i * (o.step ?? 3600), open: o.open ?? c, high: c + (o.spread ?? 0), low: c - (o.spread ?? 0), close: c, volume: o.vols ? o.vols[i] : o.volume ?? 100 }));
-const run = (id, bars, over = {}) => defs[id].calc(bars, { ...defaults(id), ...over });
+const run = (id, bars, over = {}, ctx) => defs[id].calc(bars, { ...defaults(id), ...over }, ctx);
 const near = (a, b, eps = 1e-9, msg = '') => assert.ok(a != null && Math.abs(a - b) <= eps, `${msg} expected ${b}, got ${a}`);
 const line = (n, f = (i) => 100 + i) => [...Array(n)].map((_, i) => f(i));
 const noisy = line(400, (i) => 100 + Math.sin(i / 5) * 8 + Math.cos(i / 11) * 5 + i * 0.03);
@@ -208,4 +208,25 @@ test('VWAP Auto Anchored starts each line at its swing point', () => {
   assert.equal(r.high[10], null); near(r.high[11], h3(11));            // swing high at index 11
   assert.equal(r.low[7], null); near(r.low[8], h3(8));                  // swing low at index 8
   near(r.low[9], (h3(8) + h3(9)) / 2);
+});
+
+test('Visible Average Price averages only the visible bars and is flat across them', () => {
+  const bars = mk(line(50));
+  const r = run('VisibleAveragePrice@tv-basicstudies', bars, { source: 'close' }, { visible: { from: 10, to: 19 } });
+  assert.equal(r.avg[9], null); assert.equal(r.avg[20], null);
+  near(r.avg[10], 114.5); near(r.avg[19], 114.5);
+  // with volume it is volume-weighted
+  const w = mk([10, 20], { vols: [1, 3] });
+  near(run('VisibleAveragePrice@tv-basicstudies', w, { source: 'close' }, { visible: { from: 0, to: 1 } }).avg[0], (10 * 1 + 20 * 3) / 4);
+  // without a context it covers everything
+  near(run('VisibleAveragePrice@tv-basicstudies', mk([1, 3]), { source: 'close' }).avg[0], 2);
+});
+
+test('Correlation Coefficient with another symbol: +1 together, -1 opposite, nothing until the data arrives', () => {
+  const bars = mk(line(60, (i) => 100 + Math.sin(i / 3) * 5));
+  const same = bars.map((b) => b.close), opp = bars.map((b) => 200 - b.close);
+  near(run('CorrelationCoefficient@tv-basicstudies', bars, { length: 20 }, { other: same }).cc[59], 1);
+  near(run('CorrelationCoefficient@tv-basicstudies', bars, { length: 20 }, { other: opp }).cc[59], -1);
+  assert.ok(run('CorrelationCoefficient@tv-basicstudies', bars, { length: 20 }, { other: null }).cc.every((v) => v == null));
+  assert.equal(defs['CorrelationCoefficient@tv-basicstudies'].needsSymbol, 'symbol');
 });

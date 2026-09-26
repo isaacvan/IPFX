@@ -236,6 +236,30 @@
         return { high: ph == null ? nulls(bars.length) : anchoredAverage(bars, x, ph, true), low: pl == null ? nulls(bars.length) : anchoredAverage(bars, x, pl, true) };
       },
     },
+    // ---------------------------------------------------------------- needs chart context
+    "VisibleAveragePrice@tv-basicstudies": {
+      name: "Visible Average Price", short: "VAP", pane: "overlay", needsVisible: true,
+      meta: { cat: "trend", full: "Visible Average Price", color: "#f59e0b", brief: "Average price of the candles you can see",
+        explain: "A horizontal line at the average price of the candles currently on screen (volume-weighted where there is volume). It moves as you scroll and zoom, so it shows where the middle of whatever you are looking at is." },
+      inputs: [{ ...SOURCE, default: "hlc3" }],
+      plots: [line("avg", "Visible average", "#f59e0b", { dashed: true, width: 1 })],
+      calc: (bars, p, ctx) => {
+        const r = (ctx && ctx.visible) || { from: 0, to: bars.length - 1 }, x = src(bars, p.source), hasVol = bars.slice(r.from, r.to + 1).some((b) => b.volume > 0);
+        let spv = 0, sv = 0;
+        for (let i = r.from; i <= r.to && i < bars.length; i++) { const w = hasVol ? bars[i].volume || 0 : 1; spv += x[i] * w; sv += w; }
+        const v = sv > 0 ? spv / sv : null;
+        return { avg: bars.map((_, i) => (i >= r.from && i <= r.to ? v : null)) };
+      },
+    },
+    "CorrelationCoefficient@tv-basicstudies": {
+      name: "Correlation Coefficient", short: "Corr", pane: "separate", range: [-1, 1], precision: 3, needsSymbol: "symbol",
+      meta: { cat: "momentum", full: "Correlation Coefficient", color: "#22d3ee", brief: "How closely this market moves with another",
+        explain: "The correlation between this instrument's closes and another instrument's over the last N candles: +1 they move together, -1 they move opposite, 0 unrelated. Pick the instrument to compare with in the settings (the cog next to it on the chart). Useful to avoid doubling up on the same risk." },
+      inputs: [{ key: "symbol", label: "Compare with", type: "select", options: ["SPXUSD", "NSXUSD", "DJI", "UK100", "GER40", "JPN225", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "XAUUSD", "XAGUSD", "BTCUSD", "ETHUSD"], default: "SPXUSD" }, len(20), SOURCE],
+      plots: [line("cc", "Correlation", "#2962ff")],
+      levels: [{ value: 1 }, { value: 0 }, { value: -1 }],
+      calc: (bars, p, ctx) => (ctx && ctx.other ? { cc: ta.correlation(src(bars, p.source), ctx.other, p.length) } : { cc: nulls(bars.length) }),
+    },
     // ---------------------------------------------------------------- volume
     "Volume24h@tv-basicstudies": {
       name: "24-hour Volume", pane: "separate", format: "volume",
