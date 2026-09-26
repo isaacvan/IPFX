@@ -48,6 +48,7 @@ try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch
 <script src="/assets/js/ipfx-indicators-momentum.js"></script>
 <script src="/assets/js/ipfx-indicators-volume.js"></script>
 <script src="/assets/js/ipfx-indicators-structure.js"></script>
+<script src="/assets/js/ipfx-indicators-more.js"></script>
 <script src="/assets/js/ipfx-chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -3003,7 +3004,7 @@ function syncChartEngineUi(){
   const note=document.getElementById('indEngineNote');
   if(note)note.innerHTML=tv
     ?'<span>Indicators are showing on the classic chart. Switch back to drag your stop loss and take profit on the chart.</span><button type="button" onclick="setChartEngine(\'ipfx\')">IPFX chart</button>'
-    :'<span>Indicators draw on the IPFX chart. Use the ⚙ next to one on the chart to change its settings. Ones marked Classic chart open the TradingView chart for now.</span><button type="button" onclick="setChartEngine(\'tv\')">Open classic</button>';
+    :'<span>Every indicator draws on the IPFX chart. Hover one on the chart and use ⚙ to change its settings, or add a second copy.</span><button type="button" onclick="setChartEngine(\'tv\')">Open classic</button>';
 }
 function setChartEngine(mode,why){
   mode=mode==='tv'?'tv':'ipfx';

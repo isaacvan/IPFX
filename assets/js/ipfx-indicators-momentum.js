@@ -39,6 +39,34 @@
     });
   }
 
+  // Spearman rank correlation of the last n values with time, in percent (+100 = every close higher).
+  function rci(x, n) {
+    return x.map((_, i) => {
+      if (i < n - 1) return null;
+      const w = [];
+      for (let k = 0; k < n; k++) { const v = x[i - k]; if (v == null) return null; w.push(v); } // w[0] = newest
+      const pr = ranksDesc(w);
+      let d2 = 0;
+      for (let k = 0; k < n; k++) d2 += (k + 1 - pr[k]) ** 2;
+      return (1 - (6 * d2) / (n * (n * n - 1))) * 100;
+    });
+  }
+  // Aroon up/down: how many bars ago the highest high / lowest low of the last n+1 bars was.
+  function aroon(bars, n) {
+    const up = new Array(bars.length).fill(null), down = new Array(bars.length).fill(null);
+    for (let i = n; i < bars.length; i++) {
+      let hi = -Infinity, lo = Infinity, hiAgo = 0, loAgo = 0;
+      for (let k = n; k >= 0; k--) { // oldest to newest, so ties keep the newest
+        const b = bars[i - k];
+        if (b.high >= hi) { hi = b.high; hiAgo = k; }
+        if (b.low <= lo) { lo = b.low; loAgo = k; }
+      }
+      up[i] = (100 * (n - hiAgo)) / n; down[i] = (100 * (n - loAgo)) / n;
+    }
+    return { up, down };
+  }
+  ta.rci = rci; ta.aroon = aroon;
+
   IND.register({
     "WilliamR@tv-basicstudies": {
       name: "Williams %R", short: "%R", pane: "separate", range: [-100, 0], precision: 2,
@@ -356,18 +384,7 @@
       inputs: [len(9), SOURCE],
       plots: [line("rci", "RCI", "#2962ff")],
       levels: [{ value: 80 }, { value: 0 }, { value: -80 }],
-      calc: (bars, p) => {
-        const x = src(bars, p.source), n = p.length;
-        return { rci: x.map((_, i) => {
-          if (i < n - 1) return null;
-          const w = [];
-          for (let k = 0; k < n; k++) { const v = x[i - k]; if (v == null) return null; w.push(v); } // w[0] = newest
-          const pr = ranksDesc(w);
-          let d2 = 0;
-          for (let k = 0; k < n; k++) d2 += (k + 1 - pr[k]) ** 2;
-          return (1 - (6 * d2) / (n * (n * n - 1))) * 100;
-        }) };
-      },
+      calc: (bars, p) => ({ rci: rci(src(bars, p.source), p.length) }),
     },
     "TrendStrengthIndex@tv-basicstudies": {
       name: "Trend Strength Index", short: "TSI", pane: "separate", range: [-1, 1], precision: 3,
@@ -399,19 +416,7 @@
       inputs: [len(14)],
       plots: [line("up", "Aroon Up", "#fb8c00"), line("down", "Aroon Down", "#2962ff")],
       levels: [{ value: 70 }, { value: 50 }, { value: 30 }],
-      calc: (bars, p) => {
-        const n = p.length, up = new Array(bars.length).fill(null), down = new Array(bars.length).fill(null);
-        for (let i = n; i < bars.length; i++) {
-          let hi = -Infinity, lo = Infinity, hiAgo = 0, loAgo = 0;
-          for (let k = n; k >= 0; k--) { // oldest to newest, so ties keep the newest
-            const b = bars[i - k];
-            if (b.high >= hi) { hi = b.high; hiAgo = k; }
-            if (b.low <= lo) { lo = b.low; loAgo = k; }
-          }
-          up[i] = (100 * (n - hiAgo)) / n; down[i] = (100 * (n - loAgo)) / n;
-        }
-        return { up, down };
-      },
+      calc: (bars, p) => aroon(bars, p.length),
     },
   });
 })(typeof window !== "undefined" ? window : globalThis);

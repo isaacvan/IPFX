@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const IND = require('../assets/js/ipfx-indicators.js');
-for (const family of ['trend', 'volatility', 'momentum', 'volume', 'structure']) require(`../assets/js/ipfx-indicators-${family}.js`);
+for (const family of ['trend', 'volatility', 'momentum', 'volume', 'structure', 'more']) require(`../assets/js/ipfx-indicators-${family}.js`);
 const { defs, ta, defaults, cleanInputs, label } = IND;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tradingHtml = fs.readFileSync(path.join(root, 'trading.html'), 'utf8');
@@ -20,7 +20,7 @@ const indsStart = tradingHtml.indexOf('const INDS=[');
 const indsBlock = tradingHtml.slice(indsStart, tradingHtml.indexOf('];', indsStart));
 const staticIds = [...indsBlock.matchAll(/id:'([A-Za-z0-9_]+@tv-basicstudies)'/g)].map((m) => m[1]);
 
-const bar = (c, i, spread = 0) => ({ time: 1_700_000_000 + i * 60, open: c, high: c + spread, low: c - spread, close: c, volume: 100 });
+const bar = (c, i, spread = 0) => ({ time: 1_700_000_000 + i * 3600, open: c, high: c + spread, low: c - spread, close: c, volume: 100 });
 const barsOf = (closes, spread = 0) => closes.map((c, i) => bar(c, i, spread));
 const near = (a, b, eps = 1e-6, msg) => assert.ok(a != null && Math.abs(a - b) <= eps, `${msg || ''} expected ${b}, got ${a}`);
 
@@ -100,7 +100,8 @@ test('every registered indicator is well formed and returns aligned plots', () =
       assert.equal(out[p.key].length, bars.length, `${id}: plot ${p.key} aligned to bars`);
       const last = out[p.key].at(-1);
       assert.ok(last === null || Number.isFinite(last), `${id}: plot ${p.key} last value is a number`);
-      assert.ok(out[p.key].some((v) => v != null), `${id}: plot ${p.key} produces values on 300 bars`);
+      // marker plots (divergences, gaps, moon phases) can legitimately be empty on a smooth series; they have their own tests
+      if (p.type !== 'dots') assert.ok(out[p.key].some((v) => v != null), `${id}: plot ${p.key} produces values on 300 bars`);
     }
   }
 });

@@ -38,6 +38,40 @@
     }
   }
 
+  // Swing points: bar indexes whose high (low) beats every bar `left` before and `right` after.
+  function swingPivots(bars, left, right) {
+    const highs = [], lows = [];
+    for (let i = left; i < bars.length - right; i++) {
+      let isH = true, isL = true;
+      for (let k = 1; k <= left && (isH || isL); k++) { if (bars[i - k].high > bars[i].high) isH = false; if (bars[i - k].low < bars[i].low) isL = false; }
+      for (let k = 1; k <= right && (isH || isL); k++) { if (bars[i + k].high >= bars[i].high) isH = false; if (bars[i + k].low <= bars[i].low) isL = false; }
+      if (isH) highs.push(i);
+      if (isL) lows.push(i);
+    }
+    return { highs, lows };
+  }
+  // Zig-zag pivots [index, price] for a percentage deviation; the last one is provisional.
+  function zigzagPivots(bars, dev) {
+    const n = bars.length, H = bars.map((b) => b.high), L = bars.map((b) => b.low), pivots = [];
+    let mode = 0, hiIdx = 0, hiP = H[0], loIdx = 0, loP = L[0];
+    for (let i = 1; i < n; i++) {
+      if (mode === 0) {
+        if (H[i] > hiP) { hiP = H[i]; hiIdx = i; }
+        if (L[i] < loP) { loP = L[i]; loIdx = i; }
+        if (loP > 0 && ((hiP - loP) / loP) * 100 >= dev) {
+          if (loIdx < hiIdx) { pivots.push([loIdx, loP]); mode = 1; } else { pivots.push([hiIdx, hiP]); mode = -1; }
+        }
+      } else if (mode === 1) {
+        if (H[i] > hiP) { hiP = H[i]; hiIdx = i; }
+        else if (((hiP - L[i]) / hiP) * 100 >= dev) { pivots.push([hiIdx, hiP]); mode = -1; loP = L[i]; loIdx = i; }
+      } else if (L[i] < loP) { loP = L[i]; loIdx = i; }
+      else if (loP > 0 && ((H[i] - loP) / loP) * 100 >= dev) { pivots.push([loIdx, loP]); mode = 1; hiP = H[i]; hiIdx = i; }
+    }
+    if (mode === 1) pivots.push([hiIdx, hiP]); else if (mode === -1) pivots.push([loIdx, loP]);
+    return pivots;
+  }
+  ta.swingPivots = swingPivots; ta.zigzagPivots = zigzagPivots;
+
   IND.register({
     "PivotPointsStandard@tv-basicstudies": {
       name: "Pivot Points", short: "Pivots", pane: "overlay",
@@ -72,14 +106,9 @@
       inputs: [int("left", "Left bars", 10), int("right", "Right bars", 10)],
       plots: [{ key: "high", label: "Pivot High", type: "dots", color: "#ef4444" }, { key: "low", label: "Pivot Low", type: "dots", color: "#22c55e" }],
       calc: (bars, p) => {
-        const n = bars.length, high = new Array(n).fill(null), low = new Array(n).fill(null);
-        for (let i = p.left; i < n - p.right; i++) {
-          let isH = true, isL = true;
-          for (let k = 1; k <= p.left && (isH || isL); k++) { if (bars[i - k].high > bars[i].high) isH = false; if (bars[i - k].low < bars[i].low) isL = false; }
-          for (let k = 1; k <= p.right && (isH || isL); k++) { if (bars[i + k].high >= bars[i].high) isH = false; if (bars[i + k].low <= bars[i].low) isL = false; }
-          if (isH) high[i] = bars[i].high;
-          if (isL) low[i] = bars[i].low;
-        }
+        const n = bars.length, high = new Array(n).fill(null), low = new Array(n).fill(null), sw = swingPivots(bars, p.left, p.right);
+        sw.highs.forEach((i) => { high[i] = bars[i].high; });
+        sw.lows.forEach((i) => { low[i] = bars[i].low; });
         return { high, low };
       },
     },
@@ -110,23 +139,7 @@
       inputs: [flt("deviation", "Deviation %", 5, 0.05, 100, 0.05)],
       plots: [{ key: "zz", label: "ZigZag", type: "line", color: "#2962ff", width: 2 }],
       calc: (bars, p) => {
-        const n = bars.length, H = bars.map((b) => b.high), L = bars.map((b) => b.low), dev = p.deviation;
-        const pivots = []; // [index, price]
-        let mode = 0, hiIdx = 0, hiP = H[0], loIdx = 0, loP = L[0];
-        for (let i = 1; i < n; i++) {
-          if (mode === 0) {
-            if (H[i] > hiP) { hiP = H[i]; hiIdx = i; }
-            if (L[i] < loP) { loP = L[i]; loIdx = i; }
-            if (loP > 0 && ((hiP - loP) / loP) * 100 >= dev) {
-              if (loIdx < hiIdx) { pivots.push([loIdx, loP]); mode = 1; } else { pivots.push([hiIdx, hiP]); mode = -1; }
-            }
-          } else if (mode === 1) {
-            if (H[i] > hiP) { hiP = H[i]; hiIdx = i; }
-            else if (((hiP - L[i]) / hiP) * 100 >= dev) { pivots.push([hiIdx, hiP]); mode = -1; loP = L[i]; loIdx = i; }
-          } else if (L[i] < loP) { loP = L[i]; loIdx = i; }
-          else if (loP > 0 && ((H[i] - loP) / loP) * 100 >= dev) { pivots.push([loIdx, loP]); mode = 1; hiP = H[i]; hiIdx = i; }
-        }
-        if (mode === 1) pivots.push([hiIdx, hiP]); else if (mode === -1) pivots.push([loIdx, loP]);
+        const n = bars.length, pivots = zigzagPivots(bars, p.deviation);
         const zz = new Array(n).fill(null);
         for (let k = 0; k < pivots.length - 1; k++) {
           const [i0, p0] = pivots[k], [i1, p1] = pivots[k + 1];

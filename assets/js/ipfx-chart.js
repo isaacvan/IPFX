@@ -271,7 +271,7 @@
       const prec = ind.def.precision != null ? ind.def.precision : 2;
       const base = {
         // Axis labels only for indicators with a few lines; ribbons, clouds and pivots would bury the axis.
-        priceLineVisible: false, lastValueVisible: !plot.scale && plot.type !== "dots" && (ind.def.pane !== "overlay" || ind.def.plots.length <= 3), crosshairMarkerVisible: false,
+        priceLineVisible: false, lastValueVisible: !plot.scale && !plot.hideValue && plot.type !== "dots" && (ind.def.pane !== "overlay" || ind.def.plots.length <= 3), crosshairMarkerVisible: false,
         priceFormat: ind.def.format === "volume" ? { type: "volume" }
           : ind.def.pane === "overlay" || ind.def.priceUnits ? { type: "price", precision: digits, minMove: 1 / Math.pow(10, digits) }
           : { type: "price", precision: prec, minMove: 1 / Math.pow(10, prec) },
@@ -293,7 +293,7 @@
         api = chart.addSeries(LWC.LineSeries, { ...base, color: plot.color, lineWidth: plot.width || (ind.def.pane === "overlay" ? 2 : 1.5),
           lineStyle: plot.dashed ? LWC.LineStyle.Dashed : LWC.LineStyle.Solid }, paneIndex);
       }
-      if (plot.scale) chart.priceScale(plot.scale, paneIndex).applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+      if (plot.scale) chart.priceScale(plot.scale, paneIndex).applyOptions({ scaleMargins: plot.scaleMargins || { top: 0.8, bottom: 0 } });
       return api;
     }
     function mountIndicator(ind) {
@@ -378,11 +378,16 @@
           else {
             const pts = pointsFor(ind, plot, vals, colors, times, 0);
             api.setData(pts);
-            if (api._dots) api._dots.setMarkers(pts.filter((q) => q.value !== undefined).map((q) => ({ time: q.time, position: "inBar", shape: "circle", color: plot.color, size: 0.4 })));
+            if (api._dots) api._dots.setMarkers(pts.filter((q) => q.value !== undefined).map((q) => ({ time: q.time, position: "inBar", shape: "circle", color: plot.color, size: plot.markerText ? 0.7 : 0.4, ...(plot.markerText ? { text: plot.markerText } : {}) })));
           }
         }
       }
       chart.timeScale().applyOptions({ rightOffset: Math.max(6, ahead) });
+      // candle recolouring (Bollinger Bars): the last indicator asking for it wins
+      const recolour = [...indicators].reverse().find((ind) => ind.def.candleColors && ind.out && ind.out.candleColors);
+      const map = new Map();
+      if (recolour) recolour.out.candleColors.forEach((c, i) => { if (c) map.set(raw[i].time, c); });
+      if (map.size || candleOverride.size) setCandleColors(map);
       drawIndLegends();
     }
     // One legend row per indicator: name + inputs, live values, settings and remove.
@@ -406,7 +411,7 @@
         }
         html += `<div class="ipc-ind-group" style="top:${Math.round(top)}px">`;
         for (const ind of list) {
-          const vals = ind.def.plots.filter((p) => p.type !== "dots").map((p) => {
+          const vals = ind.def.plots.filter((p) => p.type !== "dots" && !p.hideValue).map((p) => {
             const src = ind.out && ind.out[p.key], k = i - plotShift(ind, p);
             const v = src && i >= 0 && k >= 0 && k < raw.length ? src[k] : null;
             if (v == null || !isFinite(v)) return "";
@@ -490,10 +495,22 @@
       if (hooks.scaleChanged) hooks.scaleChanged({ mode: o.mode, auto: !!o.autoScale });
     }
     setInterval(() => { if (!document.hidden) { checkScale(); if (indicators.length) drawIndLegends(); } }, 400);
+    // Indicators such as Bollinger Bars recolour candles: time -> colour.
+    let candleOverride = new Map();
+    const coloured = (b) => { const c = candleOverride.get(b.time); return c ? { ...b, color: c, borderColor: c, wickColor: c } : b; };
     function view() {
       if (style === 2) return raw.map((b) => ({ time: b.time, value: b.close }));
       if (style === 8) return heikinAshi(raw);
-      return raw;
+      return candleOverride.size ? raw.map(coloured) : raw;
+    }
+    function setCandleColors(map) {
+      // Only the newest candles changing (a live tick) -> update those; anything else -> redraw.
+      const changed = [];
+      for (let i = 0; i < raw.length; i++) if (candleOverride.get(raw[i].time) !== map.get(raw[i].time)) changed.push(i);
+      const old = candleOverride; candleOverride = map;
+      if (!changed.length || !series || style === 2 || style === 8) return;
+      if (changed.length <= 2 && changed[0] >= raw.length - 2 && old.size) changed.forEach((i) => series.update(coloured(raw[i])));
+      else series.setData(view());
     }
     let indFull = true; // history changed (new load, price alignment, style): indicators redraw whole
     function pushAll() { if (series) series.setData(view()); indFull = true; scheduleIndicators(); }
@@ -501,7 +518,7 @@
       if (!series || !raw.length) return;
       if (style === 8) { pushAll(); return; } // HA depends on the previous bar
       const b = raw[raw.length - 1];
-      series.update(style === 2 ? { time: b.time, value: b.close } : b);
+      series.update(style === 2 ? { time: b.time, value: b.close } : coloured(b));
     }
 
     function applyTheme() {
