@@ -42,6 +42,7 @@ window.__loadTv=function(){
 try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch(_){}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="/assets/js/ipfx-indicators.js"></script>
 <script src="/assets/js/ipfx-chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -1513,6 +1514,36 @@ body.chart-classic .cf-snap{visibility:hidden}
 .sym-row .px.sell{color:#ff7a7a}
 .sym-row .px.buy{color:#34d399}
 .sym-row .px.spr{color:var(--muted);font-size:12px}
+.sym-row .px.st{grid-column:2 / span 3;color:var(--muted2);font-size:12px;font-weight:500}
+/* native indicator legends + settings */
+.ipc-ind-legends{position:absolute;inset:0;z-index:4;pointer-events:none}
+.ipc-ind-group{position:absolute;left:10px;display:flex;flex-direction:column;gap:2px;max-width:calc(100% - 100px)}
+.ipc-ind-row{display:flex;align-items:center;gap:8px;height:20px;font:500 .72rem var(--font-ui);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ipc-ind-name{color:var(--fg);opacity:.85}
+.ipc-ind-vals b{font-weight:600;margin-right:4px}
+.ipc-ind-btn{pointer-events:auto;display:none;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:4px;background:rgba(255,255,255,.08);color:var(--muted);font:600 10px var(--font-ui);cursor:pointer}
+.ipc-ind-btn svg{width:11px;height:11px}
+.ipc-ind-btn:hover{background:rgba(37,99,235,.35);color:#fff}
+.ipc-ind-row:hover .ipc-ind-btn,.ipc-ind-legends:hover .ipc-ind-btn{display:inline-grid}
+.ipc-ind-row{pointer-events:auto}
+.ind-classic{margin-left:6px;padding:0 5px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--muted2);font:600 9.5px var(--font-ui);vertical-align:1px}
+.ind-settings{position:fixed;inset:0;z-index:9000;display:flex;align-items:flex-start;justify-content:center;padding-top:14vh;background:rgba(0,0,0,.35)}
+.ind-settings[hidden]{display:none}
+.ind-set-card{width:min(400px,calc(100vw - 32px));padding:18px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(22,22,26,.98);box-shadow:0 30px 80px rgba(0,0,0,.55);font-family:var(--font-ui)}
+.ind-set-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.ind-set-title{font-size:17px;font-weight:650;color:var(--fg)}
+.ind-set-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.ind-set-x{width:26px;height:26px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:var(--muted);cursor:pointer}
+.ind-set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07);font-size:13px;color:var(--fg)}
+.ind-set-row input,.ind-set-row select{width:110px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.05);color:var(--fg);font:500 13px var(--font-ui);text-align:right}
+.ind-set-row input:focus,.ind-set-row select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.25)}
+.ind-set-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+.ind-set-gap{flex:1}
+.ind-set-link{padding:0;border:0;background:none;color:#4d8dff;font:500 12px var(--font-ui);cursor:pointer}
+.ind-set-pri,.ind-set-sec{height:32px;padding:0 14px;border-radius:8px;font:650 12.5px var(--font-ui);cursor:pointer}
+.ind-set-pri{border:0;background:#2563eb;color:#fff}
+.ind-set-sec{border:1px solid rgba(239,68,68,.45);background:none;color:#ff8d99}
+body.light .ind-set-card{background:#fff;border-color:rgba(0,0,0,.1)}
 .sym-empty{padding:28px 16px;text-align:center;color:var(--muted);font:500 13px var(--font-ui)}
 .sym-foot{display:flex;gap:18px;padding:10px 16px;border-top:1px solid rgba(255,255,255,.08);color:var(--muted2);font:500 11px var(--font-ui)}
 .sym-foot kbd{margin-right:3px}
@@ -1566,6 +1597,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
   </div>
 </div>
 
+<div class="ind-settings" id="indSettings" role="dialog" aria-modal="true" aria-label="Indicator settings" hidden onclick="if(event.target===this)closeIndSettings()"></div>
 <div class="sym-picker" id="symPicker" role="dialog" aria-modal="true" aria-label="Choose an instrument" hidden>
   <div class="sym-sheet">
     <div class="sym-search">
@@ -2461,7 +2493,7 @@ function buildIndList(){
         <div class="ind-check"></div>
         <div class="ind-dot" style="background:${ind.color}"></div>
         <div class="ind-info">
-          <div class="ind-name">${ind.name}<span class="ind-tag">${ind.full}</span></div>
+          <div class="ind-name">${ind.name}<span class="ind-tag">${ind.full}</span>${hasNativeInd(ind.id)?'':'<span class="ind-classic" title="Draws on the classic TradingView chart for now">Classic chart</span>'}</div>
           <div class="ind-brief">${ind.brief}</div>
           <div class="ind-explain">${ind.explain}</div>
         </div>
@@ -2835,7 +2867,9 @@ let ipfxChartProxy=false;
 let ipfxChartClosesOnly=false;
 function pxDigits(symbol){
   const clean=execSymbol(symbol||activeSym);
-  const digitsBySymbol={DJI:0,JPN225:0,SPXUSD:1,NSXUSD:1,UK100:1,GER40:1,FRA40:1,US2000:1,XAUUSD:2,XPTUSD:2,XPDUSD:2,XAGUSD:3,USDJPY:3,GBPJPY:3,EURJPY:3};
+  // Must match INSTRUMENTS digits in trading-engine/index.ts.
+  const digitsBySymbol={DJI:0,JPN225:0,SPXUSD:1,NSXUSD:1,UK100:1,GER40:1,FRA40:1,US2000:1,XAUUSD:2,XPTUSD:2,XPDUSD:2,XAGUSD:3,USDJPY:3,GBPJPY:3,EURJPY:3,
+    BTCUSD:2,ETHUSD:2,LTCUSD:2,ADAUSD:4,SOLUSD:2,DOTUSD:3};
   return FUT_SPECS[clean]?FUT_SPECS[clean][2]:(digitsBySymbol[clean]??5);
 }
 // USD value of one unit of price movement on a position (null until the conversion quote is known).
@@ -2891,6 +2925,8 @@ function ipfxChartHooks(){
       return inst?inst.name:sym;
     },
     scaleChanged:syncScaleUi,
+    editIndicator(uid){openIndSettings(uid);},
+    removeIndicator(uid){removeIndicatorInstance(uid);},
     pickSymbol(){openSymbolPicker();},
     legendExtra(){const m=marketStatus();return '<span class="mkt '+m.cls+'">'+m.txt+'</span>';},
   };
@@ -2912,6 +2948,7 @@ function buildIpfxChart(){
   const sym=execSymbol(activeSym);
   if(ipfxChart.symbol!==sym||ipfxChart.tf!==currentTf){ipfxChartProxy=false;ipfxChartClosesOnly=false;syncChartEngineUi();ipfxChart.load(sym,currentTf);}
   syncIpfxTrades();
+  syncNativeIndicators();
 }
 function syncIpfxTrades(){
   if(!ipfxChart)return;
@@ -2957,7 +2994,7 @@ function syncChartEngineUi(){
   const note=document.getElementById('indEngineNote');
   if(note)note.innerHTML=tv
     ?'<span>Indicators are showing on the classic chart. Switch back to drag your stop loss and take profit on the chart.</span><button type="button" onclick="setChartEngine(\'ipfx\')">IPFX chart</button>'
-    :'<span>Indicators draw on the classic chart — picking one switches to it. Draggable SL/TP stays on the IPFX chart.</span><button type="button" onclick="setChartEngine(\'tv\')">Open classic</button>';
+    :'<span>Indicators draw on the IPFX chart. Use the ⚙ next to one on the chart to change its settings. Ones marked Classic chart open the TradingView chart for now.</span><button type="button" onclick="setChartEngine(\'tv\')">Open classic</button>';
 }
 function setChartEngine(mode,why){
   mode=mode==='tv'?'tv':'ipfx';
@@ -3022,6 +3059,7 @@ window.addEventListener('load',()=>{
 // Spotlight-style: type to filter, arrows to move, Enter to open the chart.
 const SYM_CAT_LABEL={forex:'Forex',metals:'Metals',indices:'Indices',crypto:'Crypto',futures:'Futures'};
 let symCat='all', symHl=0, symRows=[], symPollTimer=0;
+const symStatus={};
 function symEntries(){
   const q=(document.getElementById('symSearch').value||'').trim().toLowerCase();
   const cats=symCat==='all'?wlAllowedCats():[symCat];
@@ -3046,7 +3084,8 @@ function renderSymList(){
     const cur=execSymbol(activeSym)===short?'<span class="cur">CURRENT</span>':'';
     return '<div class="sym-row'+(k===symHl?' hl':'')+'" role="option" aria-selected="'+(k===symHl)+'" data-k="'+k+'">'
       +'<span class="nm"><b>'+esc(i.name)+cur+'</b><small>'+esc(short)+' · '+(SYM_CAT_LABEL[i.cat]||i.cat)+'</small></span>'
-      +'<span class="px sell">'+px(q&&q.bid)+'</span><span class="px buy">'+px(q&&q.ask)+'</span><span class="px spr">'+spr+'</span></div>';
+      +(q?'<span class="px sell">'+px(q.bid)+'</span><span class="px buy">'+px(q.ask)+'</span><span class="px spr">'+spr+'</span>'
+          :'<span class="px st">'+({closed:'Market closed',no_feed:'No price feed',stale:'Delayed'}[symStatus[short]]||(hasSession()?'…':'Sign in for prices'))+'</span>')+'</div>';
   }).join('');
   const hl=list.querySelector('.sym-row.hl');if(hl)hl.scrollIntoView({block:'nearest'});
 }
@@ -3056,7 +3095,7 @@ async function pollSymPrices(){
     const tok=await freshToken();if(!tok)return;
     const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'prices',symbols:symEntries().map(i=>i.sym)})});
     const j=await r.json().catch(()=>null);
-    if(j&&j.ok&&Array.isArray(j.quotes)){j.quotes.forEach(q=>cacheLiveQuote(q));renderSymList();}
+    if(j&&j.ok&&Array.isArray(j.quotes)){j.quotes.forEach(q=>{symStatus[execSymbol(q.symbol)]=q.status;cacheLiveQuote(q);});renderSymList();}
   }catch(_){}
 }
 function openSymbolPicker(){
@@ -3153,8 +3192,80 @@ function syncIpfxMarkers(sym){
 // chart, so switch to it rather than leave the pick silently invisible.
 // Returns true when the switch already rebuilt the chart.
 function indicatorsChanged(){
-  if(selectedStudies.size&&chartEngine!=='tv'){setChartEngine('tv','indicators');return true;}
+  // Native indicators draw on the IPFX chart (with draggable SL/TP); only an
+  // indicator without a native version still needs the classic chart.
+  const missing=[...selectedStudies].filter(id=>!hasNativeInd(id));
+  if(missing.length&&chartEngine!=='tv'){setChartEngine('tv','indicators');return true;}
+  syncNativeIndicators();
   return false;
+}
+
+// ── NATIVE INDICATORS (IPFX chart) ──
+// selectedStudies (TradingView ids) says which are on; this store adds each
+// one's settings and any extra copies (e.g. EMA 20 and EMA 50).
+const IND_STORE_KEY='ipfx_indicators_v1';
+let indInstances=(function(){try{const v=JSON.parse(localStorage.getItem(IND_STORE_KEY)||'[]');return Array.isArray(v)?v:[];}catch(_){return[];}})();
+function hasNativeInd(id){return !!(window.IPFX_INDICATORS&&IPFX_INDICATORS.defs[id]);}
+function saveIndInstances(){try{localStorage.setItem(IND_STORE_KEY,JSON.stringify(indInstances));}catch(_){}}
+function nativeIndicatorList(){
+  const out=[];
+  for(const id of selectedStudies){
+    if(!hasNativeInd(id))continue;
+    let mine=indInstances.filter(x=>x.id===id);
+    if(!mine.length){mine=[{uid:id,id,inputs:IPFX_INDICATORS.defaults(id)}];indInstances.push(...mine);}
+    out.push(...mine);
+  }
+  // forget copies of indicators that were switched off
+  indInstances=indInstances.filter(x=>selectedStudies.has(x.id));
+  saveIndInstances();
+  return out;
+}
+function syncNativeIndicators(){
+  if(!ipfxChart||chartEngine==='tv')return;
+  ipfxChart.setIndicators(nativeIndicatorList());
+}
+function removeIndicatorInstance(uid){
+  const inst=indInstances.find(x=>x.uid===uid);if(!inst)return;
+  indInstances=indInstances.filter(x=>x.uid!==uid);
+  if(!indInstances.some(x=>x.id===inst.id))selectedStudies.delete(inst.id);
+  saveIndInstances();buildIndList();saveChartLayout();syncNativeIndicators();closeIndSettings();
+}
+function closeIndSettings(){const d=document.getElementById('indSettings');if(d)d.hidden=true;}
+function openIndSettings(uid){
+  const inst=indInstances.find(x=>x.uid===uid);if(!inst||!hasNativeInd(inst.id))return;
+  const def=IPFX_INDICATORS.defs[inst.id], cat=INDS.find(i=>i.id===inst.id);
+  const vals=IPFX_INDICATORS.cleanInputs(inst.id,inst.inputs);
+  const srcOpts=['close','open','high','low','hl2','hlc3','ohlc4'];
+  const d=document.getElementById('indSettings');
+  d.innerHTML='<form class="ind-set-card" id="indSetForm">'
+    +'<div class="ind-set-hd"><div><div class="ind-set-title">'+esc(def.name)+'</div><div class="ind-set-sub">'+esc(cat?cat.brief:'Settings')+'</div></div>'
+    +'<button type="button" class="ind-set-x" data-act="close" aria-label="Close">✕</button></div>'
+    +def.inputs.map(i=>'<label class="ind-set-row"><span>'+esc(i.label)+'</span>'
+      +(i.type==='source'
+        ?'<select name="'+i.key+'">'+srcOpts.map(o=>'<option'+(o===vals[i.key]?' selected':'')+'>'+o+'</option>').join('')+'</select>'
+        :'<input name="'+i.key+'" type="number" inputmode="decimal" value="'+vals[i.key]+'"'+(i.min!=null?' min="'+i.min+'"':'')+(i.max!=null?' max="'+i.max+'"':'')+' step="'+(i.step||(i.type==='int'?1:'any'))+'">')
+      +'</label>').join('')
+    +'<div class="ind-set-actions"><button type="button" class="ind-set-link" data-act="defaults">Reset to defaults</button>'
+    +'<button type="button" class="ind-set-link" data-act="copy">Add another '+esc(def.short||def.name)+'</button>'
+    +'<span class="ind-set-gap"></span><button type="button" class="ind-set-sec" data-act="remove">Remove</button><button type="submit" class="ind-set-pri">Done</button></div></form>';
+  d.hidden=false;
+  const form=document.getElementById('indSetForm');
+  // querySelector, not form.elements[key]: an input named "length" would collide with elements.length
+  const read=()=>Object.fromEntries(def.inputs.map(i=>[i.key,form.querySelector('[name="'+i.key+'"]').value]));
+  // apply as the trader types, so the chart answers "what does 50 look like" immediately
+  form.addEventListener('input',()=>{inst.inputs=IPFX_INDICATORS.cleanInputs(inst.id,read());saveIndInstances();syncNativeIndicators();});
+  form.addEventListener('submit',e=>{e.preventDefault();closeIndSettings();});
+  form.addEventListener('click',e=>{
+    const act=e.target.closest('[data-act]');if(!act)return;
+    if(act.dataset.act==='close')closeIndSettings();
+    else if(act.dataset.act==='remove')removeIndicatorInstance(uid);
+    else if(act.dataset.act==='defaults'){inst.inputs=IPFX_INDICATORS.defaults(inst.id);saveIndInstances();syncNativeIndicators();openIndSettings(uid);}
+    else if(act.dataset.act==='copy'){
+      const copy={uid:inst.id+'#'+Date.now().toString(36),id:inst.id,inputs:{...inst.inputs}};
+      indInstances.push(copy);saveIndInstances();syncNativeIndicators();openIndSettings(copy.uid);
+    }
+  });
+  form.querySelector('input,select')?.focus();
 }
 
 // ── TIMEFRAME CONTROLS ──
@@ -4976,6 +5087,7 @@ async function pollTicketPrice(){
     try{
       const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym,enforce_risk:true})});
       const j=await r.json().catch(()=>null);
+      if(polledSym!==activeSym){priceFetchBusy=false;pollTicketPrice();return;}
       if(j&&j.risk_status&&j.risk_status.status==='breached'&&!engineBusy){
         engineCall({action:'state'});
       }
@@ -5316,7 +5428,15 @@ const WL_DATA={
   ]
 };
 
+// The Buy/Sell buttons must never show the previous instrument's price.
+function clearOrdPrices(){
+  ['ord-ask-price','ord-bid-price','op-ask-val','op-bid-val'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+  const m=document.getElementById('op-margin');if(m)m.textContent='—';
+  ordMidPrice=0;lastQuoteTs=0;
+  applyFeedGate();
+}
 function changeInstrument(sym){
+  if(sym!==activeSym)clearOrdPrices();
   activeSym=sym;
   if(futSym(sym)){ // futures trade in whole contracts
     ordLots=Math.min(FUT_SPECS[futSym(sym)][1],Math.max(1,Math.round(ordLots)));

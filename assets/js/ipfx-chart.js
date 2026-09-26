@@ -74,6 +74,7 @@
    *   label(symbol)                 -> optional display name for the legend (e.g. "EUR/USD")
    *   pickSymbol()                  -> optional; the legend's symbol name was clicked
    *   legendExtra()                 -> optional HTML appended to the legend (e.g. market status)
+   *   editIndicator(uid) / removeIndicator(uid) -> optional; legend buttons on an indicator
    *   scaleChanged({mode, auto})    -> optional; price scale mode (0 normal, 1 log, 2 %) or auto-fit changed
    */
   function createIpfxChart(container, overlay, hooks) {
@@ -249,6 +250,155 @@
       markersApi.setMarkers(out);
     }
 
+    // ---------------------------------------------------------------- indicators
+    // Definitions and maths live in ipfx-indicators.js; this renders them.
+    // Overlays share the price pane; each oscillator gets its own pane.
+    const IND = window.IPFX_INDICATORS;
+    let indicators = [];          // [{uid, id, inputs, def, series:{key:api}, pane, lines:[]}]
+    let indRaf = 0;
+    const indLegend = document.createElement("div");
+    indLegend.className = "ipc-ind-legends";
+    container.appendChild(indLegend);
+
+    function scheduleIndicators() {
+      if (!indicators.length || indRaf) return;
+      indRaf = requestAnimationFrame(() => { indRaf = 0; computeIndicators(); });
+    }
+    function mkSeries(ind, plot, paneIndex, first) {
+      const digits = symbol ? hooks.digits(symbol) : 5;
+      const base = {
+        priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false,
+        priceFormat: ind.def.pane === "overlay" || ind.def.priceUnits ? { type: "price", precision: digits, minMove: 1 / Math.pow(10, digits) }
+          : { type: "price", precision: ind.def.precision != null ? ind.def.precision : 2, minMove: 0.01 },
+      };
+      if (first && ind.def.range) {
+        const [lo, hi] = ind.def.range;
+        base.autoscaleInfoProvider = () => ({ priceRange: { minValue: lo, maxValue: hi } });
+      }
+      if (plot.type === "histogram") return chart.addSeries(LWC.HistogramSeries, { ...base, color: plot.upColor || "#26a69a" }, paneIndex);
+      return chart.addSeries(LWC.LineSeries, { ...base, color: plot.color, lineWidth: plot.width || (ind.def.pane === "overlay" ? 2 : 1.5) }, paneIndex);
+    }
+    function mountIndicator(ind) {
+      ind.pane = ind.def.pane === "overlay" ? 0 : chart.panes().length;
+      ind.series = {};
+      ind.def.plots.forEach((plot, k) => { ind.series[plot.key] = mkSeries(ind, plot, ind.pane, k === 0); });
+      ind.lines = [];
+      const firstSeries = ind.series[ind.def.plots[0].key];
+      for (const lv of ind.def.levels || []) {
+        ind.lines.push(firstSeries.createPriceLine({ price: lv.value, color: "rgba(140,140,150,0.55)", lineWidth: 1,
+          lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: "" }));
+      }
+      sizePanes();
+    }
+    function unmountIndicator(ind) {
+      for (const k in ind.series) { try { chart.removeSeries(ind.series[k]); } catch (_) { /* already gone */ } }
+      ind.series = {};
+    }
+    function dropEmptyPanes() {
+      const panes = chart.panes();
+      for (let i = panes.length - 1; i > 0; i--) if (!panes[i].getSeries().length) chart.removePane(i);
+      sizePanes();
+    }
+    // Panes share the height by proportion: price keeps the most, each
+    // indicator pane gets about a quarter of it (a little less when stacked).
+    function sizePanes() {
+      const panes = chart.panes();
+      if (panes.length < 2) return;
+      const each = panes.length > 3 ? 0.22 : 0.3;
+      panes.forEach((pane, i) => pane.setStretchFactor(i === 0 ? 1 : each));
+    }
+    function computeIndicators() {
+      if (!raw.length) return;
+      for (const ind of indicators) {
+        let out;
+        try { out = ind.def.calc(raw, ind.inputs); } catch (e) { out = null; }
+        ind.out = out;
+        for (const plot of ind.def.plots) {
+          const api = ind.series[plot.key], vals = out && out[plot.key];
+          if (!api || !vals) continue;
+          api.setData(raw.map((b, i) => {
+            const v = vals[i];
+            if (v == null || !isFinite(v)) return { time: b.time };
+            if (plot.type === "histogram") return { time: b.time, value: v, color: v >= 0 ? (plot.upColor || UP) : (plot.downColor || DOWN) };
+            return { time: b.time, value: v };
+          }));
+        }
+      }
+      drawIndLegends();
+    }
+    // One legend row per indicator: name + inputs, live values, settings and remove.
+    function drawIndLegends() {
+      const panes = chart.panes();
+      const cTop = container.getBoundingClientRect().top;
+      const i = hoverTime == null ? raw.length - 1 : barAt(hoverTime);
+      const groups = new Map();
+      for (const ind of indicators) {
+        const key = ind.pane;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(ind);
+      }
+      let html = "";
+      for (const [paneIdx, list] of groups) {
+        let top = 30; // price pane: under the main legend
+        if (paneIdx > 0) {
+          const el = panes[paneIdx] && panes[paneIdx].getHTMLElement();
+          if (!el) continue;
+          top = el.getBoundingClientRect().top - cTop + 4;
+        }
+        html += `<div class="ipc-ind-group" style="top:${Math.round(top)}px">`;
+        for (const ind of list) {
+          const vals = ind.def.plots.map((p) => {
+            const v = ind.out && ind.out[p.key] ? ind.out[p.key][i] : null;
+            if (v == null || !isFinite(v)) return "";
+            const d = ind.def.pane === "overlay" || ind.def.priceUnits ? hooks.digits(symbol) : (ind.def.precision != null ? ind.def.precision : 2);
+            const col = p.type === "histogram" ? (v >= 0 ? (p.upColor || UP) : (p.downColor || DOWN)) : p.color;
+            return `<b style="color:${col}">${v.toFixed(d)}</b>`;
+          }).join(" ");
+          html += `<div class="ipc-ind-row" data-uid="${esc(ind.uid)}"><span class="ipc-ind-name">${esc(IND.label(ind.id, ind.inputs))}</span>` +
+            `<span class="ipc-ind-vals">${vals}</span>` +
+            `<button type="button" class="ipc-ind-btn" data-act="edit" title="Settings" aria-label="Indicator settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>` +
+            `<button type="button" class="ipc-ind-btn" data-act="remove" title="Remove" aria-label="Remove indicator">✕</button></div>`;
+        }
+        html += "</div>";
+      }
+      indLegend.innerHTML = html;
+    }
+    indLegend.addEventListener("click", (e) => {
+      const btn = e.target.closest(".ipc-ind-btn"), row = e.target.closest(".ipc-ind-row");
+      if (!btn || !row) return;
+      if (btn.dataset.act === "edit" && hooks.editIndicator) hooks.editIndicator(row.dataset.uid);
+      if (btn.dataset.act === "remove" && hooks.removeIndicator) hooks.removeIndicator(row.dataset.uid);
+    });
+    chart.subscribeCrosshairMove(() => { if (indicators.length) drawIndLegends(); });
+
+    // list: [{uid, id, inputs}] — the full set to show; unchanged ones are kept.
+    function setIndicators(list) {
+      if (!IND) return;
+      const next = (list || []).filter((x) => IND.defs[x.id]);
+      const sig = (x) => x.uid + "|" + x.id + "|" + JSON.stringify(x.inputs || {});
+      const keep = new Map(indicators.map((x) => [sig(x), x]));
+      const nextSigs = new Set(next.map((x) => sig({ ...x, inputs: IND.cleanInputs(x.id, x.inputs) })));
+      for (const ind of indicators) if (!nextSigs.has(sig(ind))) unmountIndicator(ind);
+      dropEmptyPanes();
+      // pane indexes shift when a pane goes away, so rebuild the order
+      const built = [];
+      for (const x of next) {
+        const inputs = IND.cleanInputs(x.id, x.inputs);
+        const existing = keep.get(sig({ ...x, inputs }));
+        if (existing && Object.keys(existing.series).length) { built.push(existing); continue; }
+        const ind = { uid: x.uid, id: x.id, inputs, def: IND.defs[x.id] };
+        mountIndicator(ind);
+        built.push(ind);
+      }
+      indicators = built;
+      for (const ind of indicators) {
+        const first = ind.series[ind.def.plots[0].key];
+        if (first) { try { ind.pane = first.getPane().paneIndex(); } catch (_) { /* older API */ } }
+      }
+      computeIndicators();
+      if (!indicators.length) indLegend.innerHTML = "";
+    }
+
     // ---------------------------------------------------------------- range + scale
     function applyRange() {
       if (pendingRange == null || !raw.length) return;
@@ -278,13 +428,13 @@
       lastScale = key;
       if (hooks.scaleChanged) hooks.scaleChanged({ mode: o.mode, auto: !!o.autoScale });
     }
-    setInterval(() => { if (!document.hidden) checkScale(); }, 400);
+    setInterval(() => { if (!document.hidden) { checkScale(); if (indicators.length) drawIndLegends(); } }, 400);
     function view() {
       if (style === 2) return raw.map((b) => ({ time: b.time, value: b.close }));
       if (style === 8) return heikinAshi(raw);
       return raw;
     }
-    function pushAll() { if (series) series.setData(view()); }
+    function pushAll() { if (series) series.setData(view()); scheduleIndicators(); }
     function pushLast() {
       if (!series || !raw.length) return;
       if (style === 8) { pushAll(); return; } // HA depends on the previous bar
@@ -311,7 +461,11 @@
       symbol = newSymbol; tf = newTf; seconds = TF_SECONDS[tf] || 3600;
       raw = []; aligned = false; proxy = false; pendingMid = null; loadingHistory = true;
       bid = ask = null; hoverTime = null;
-      if (symbolChanged) { trades = []; draft.clear(); render(true); }
+      if (symbolChanged) {
+        trades = []; draft.clear(); render(true);
+        // price precision of overlay indicators follows the instrument
+        if (indicators.length) { const l = indicators.map((x) => ({ uid: x.uid, id: x.id, inputs: x.inputs })); indicators.forEach(unmountIndicator); indicators = []; dropEmptyPanes(); setIndicators(l); }
+      }
       makeSeries();
       hooks.loading(true);
       try {
@@ -321,7 +475,7 @@
         if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || "Chart history unavailable");
         proxy = !!j.proxy;
         closesOnly = !!j.closes_only;
-        raw = j.bars.map((b) => ({ time: b.t, open: b.o, high: b.h, low: b.l, close: b.c }));
+        raw = j.bars.map((b) => ({ time: b.t, open: b.o, high: b.h, low: b.l, close: b.c, volume: b.v || 0 }));
         pushAll();
         chart.timeScale().scrollToRealTime();
         applyRange();
@@ -366,12 +520,13 @@
       let newBar = false;
       if (!last || (intraday && bucket > last.time)) {
         raw.push({ time: intraday ? bucket : now, open: last ? last.close : mid, high: Math.max(mid, last ? last.close : mid),
-          low: Math.min(mid, last ? last.close : mid), close: mid });
+          low: Math.min(mid, last ? last.close : mid), close: mid, volume: 0 });
         newBar = true;
       } else {
         last.close = mid; last.high = Math.max(last.high, mid); last.low = Math.min(last.low, mid);
       }
       pushLast();
+      scheduleIndicators();
       syncQuoteLines();
       if (newBar) applyMarkers();
       if (hoverTime == null) drawLegend();
@@ -666,6 +821,8 @@
       get tf() { return tf; },
       setStyle(s) { if (s === style) return; style = s; makeSeries(); },
       refreshLegend() { drawLegend(); },
+      setIndicators,
+      get indicators() { return indicators.map((x) => ({ uid: x.uid, id: x.id, inputs: x.inputs, pane: x.pane })); },
       // [{time (unix s), side, volume, kind: "entry"|"exit", pnl}]
       setMarkers(list) { tradeMarks = Array.isArray(list) ? list : []; applyMarkers(); },
       // Show the last `spanSeconds` of history (applied after the next load if one is pending).
