@@ -193,6 +193,7 @@
       pushAll();
       syncQuoteLines();
       applyMarkers();
+      attachDrawings();
     }
 
     // ---------------------------------------------------------------- bid / ask lines
@@ -257,6 +258,87 @@
     // Definitions and maths live in ipfx-indicators.js; this renders them.
     // Overlays share the price pane; each oscillator gets its own pane.
     const IND = window.IPFX_INDICATORS;
+    // ---------------------------------------------------------------- drawings
+    // Indicators such as Fair Value Gaps return `out.draw = { boxes, lines, texts, hbars }` in bar
+    // indexes and prices. One primitive on the candle series paints them for every indicator.
+    //   boxes: { a, b|null, top, bottom, fill, stroke, label, labelColor, dash }   b null = to the right edge
+    //   lines: { a, pa, b|null, pb|null, color, width, dash, label }  b null = horizontal ray at pa
+    //   texts: { i, price, text, color, pos: "above"|"below"|"mid", size }
+    //   hbars: { top, bottom, frac (0-1), fill, side: "right"|"left" }  volume-profile style bars
+    let drawPrim = null;
+    function attachDrawings() {
+      drawPrim = null;
+      if (!series || !series.attachPrimitive) return;
+      const MAXN = 4000;
+      const gather = (kind) => {
+        const out = [];
+        for (const ind of indicators) {
+          const d = ind.out && ind.out.draw;
+          if (d && d[kind]) for (const it of d[kind]) { if (out.length < MAXN) out.push(it); }
+          if (kind === "lines" && ind.segs) for (const k in ind.segs) for (const it of ind.segs[k]) { if (out.length < MAXN) out.push(it); }
+        }
+        return out;
+      };
+      const xOf = (i) => chart.timeScale().logicalToCoordinate(i);
+      const yOf = (v) => series.priceToCoordinate(v);
+      const half = () => { const sp = chart.timeScale().options().barSpacing; return (sp || 6) / 2; };
+      const dashOf = (d) => (d === "dashed" ? [6, 4] : d === "dotted" ? [2, 3] : []);
+      const layer = (z, paint) => ({ zOrder: () => z, renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace((sc) => paint(sc.context, sc.mediaSize)) }) });
+      const under = layer("bottom", (ctx, size) => {
+        const h = half();
+        for (const b of gather("boxes")) {
+          const xa = xOf(b.a), xb = b.b == null ? size.width : xOf(b.b), y1 = yOf(b.top), y2 = yOf(b.bottom);
+          if (xa == null || xb == null || y1 == null || y2 == null) continue;
+          const x1 = xa - h, x2 = b.b == null ? size.width : xb + h;
+          if (x2 < 0 || x1 > size.width) continue;
+          const top = Math.min(y1, y2), ht = Math.max(1, Math.abs(y2 - y1));
+          ctx.fillStyle = b.fill || "rgba(59,130,246,0.18)";
+          ctx.fillRect(x1, top, x2 - x1, ht);
+          if (b.stroke) { ctx.strokeStyle = b.stroke; ctx.lineWidth = 1; ctx.setLineDash(dashOf(b.dash)); ctx.strokeRect(x1 + 0.5, top + 0.5, x2 - x1 - 1, ht - 1); ctx.setLineDash([]); }
+          if (b.label && ht >= 11 && x2 - x1 > 26) {
+            ctx.font = "600 10px system-ui, sans-serif"; ctx.fillStyle = b.labelColor || "rgba(200,205,215,0.9)";
+            ctx.textBaseline = "middle"; ctx.textAlign = "left";
+            ctx.fillText(b.label, Math.max(x1, 0) + 4, top + ht / 2);
+          }
+        }
+        const bars = gather("hbars");
+        for (const r of bars) {
+          const y1 = yOf(r.top), y2 = yOf(r.bottom);
+          if (y1 == null || y2 == null) continue;
+          const w = size.width * 0.32 * Math.max(0, Math.min(1, r.frac)), top = Math.min(y1, y2), ht = Math.max(1, Math.abs(y2 - y1) - 1);
+          ctx.fillStyle = r.fill || "rgba(100,116,139,0.35)";
+          if (r.side === "left") ctx.fillRect(0, top, w, ht); else ctx.fillRect(size.width - w, top, w, ht);
+        }
+      });
+      const over = layer("top", (ctx, size) => {
+        for (const l of gather("lines")) {
+          const xa = xOf(l.a), ya = yOf(l.pa);
+          if (xa == null || ya == null) continue;
+          let xb, yb;
+          if (l.b == null) { xb = size.width; yb = l.pb == null ? ya : yOf(l.pb); } else { xb = xOf(l.b); yb = yOf(l.pb); }
+          if (xb == null || yb == null) continue;
+          if (Math.max(xa, xb) < 0 || Math.min(xa, xb) > size.width) continue;
+          ctx.strokeStyle = l.color || "#94a3b8"; ctx.lineWidth = l.width || 1; ctx.setLineDash(dashOf(l.dash));
+          ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb, yb); ctx.stroke(); ctx.setLineDash([]);
+          if (l.label) {
+            ctx.font = "600 10px system-ui, sans-serif"; ctx.fillStyle = l.labelColor || l.color || "#94a3b8"; ctx.textAlign = l.b == null ? "right" : "center"; ctx.textBaseline = "bottom";
+            ctx.fillText(l.label, l.b == null ? size.width - 6 : (xa + xb) / 2, (l.b == null ? ya : (ya + yb) / 2) - 2);
+          }
+        }
+        for (const t of gather("texts")) {
+          const x = xOf(t.i), y = yOf(t.price);
+          if (x == null || y == null || x < -20 || x > size.width + 20) continue;
+          ctx.font = `600 ${t.size || 10}px system-ui, sans-serif`; ctx.fillStyle = t.color || "#e5e7eb"; ctx.textAlign = "center";
+          ctx.textBaseline = t.pos === "below" ? "top" : t.pos === "mid" ? "middle" : "bottom";
+          ctx.fillText(t.text, x, y + (t.pos === "below" ? 4 : t.pos === "mid" ? 0 : -4));
+        }
+      });
+      let update = null;
+      const prim = { paneViews: () => [under, over], attached: (p) => { update = p.requestUpdate; }, detached: () => { update = null; } };
+      series.attachPrimitive(prim);
+      drawPrim = { update: () => { if (update) update(); } };
+    }
+
     let indicators = [];          // [{uid, id, inputs, def, series:{key:api}, pane, lines:[]}]
     let indRaf = 0;
     const indLegend = document.createElement("div");
@@ -277,6 +359,7 @@
           : ind.def.pane === "overlay" || ind.def.priceUnits ? { type: "price", precision: digits, minMove: 1 / Math.pow(10, digits) }
           : { type: "price", precision: prec, minMove: 1 / Math.pow(10, prec) },
       };
+      if (plot.noScale) base.autoscaleInfoProvider = () => null; // far-away levels (month open) must not squash the candles
       if (plot.scale) base.priceScaleId = plot.scale; // own scale inside the price pane (volume bars)
       if (first && ind.def.range) {
         const [lo, hi] = ind.def.range;
@@ -291,8 +374,11 @@
         api = chart.addSeries(LWC.LineSeries, { ...base, color: plot.color, lineVisible: false, pointMarkersVisible: false }, paneIndex);
         api._dots = LWC.createSeriesMarkers(api, []);
       } else {
+        // A line that jumps between levels (pivots, previous-day levels) cannot be broken into pieces by
+        // the chart library, which would join the steps with slanted lines; those are drawn as
+        // horizontal segments instead (see attachDrawings) and this series only carries the axis label.
         api = chart.addSeries(LWC.LineSeries, { ...base, color: plot.color, lineWidth: plot.width || (ind.def.pane === "overlay" ? 2 : 1.5),
-          lineStyle: plot.dashed ? LWC.LineStyle.Dashed : LWC.LineStyle.Solid }, paneIndex);
+          lineStyle: plot.dashed ? LWC.LineStyle.Dashed : LWC.LineStyle.Solid, ...(plot.breakOnChange ? { lineVisible: false } : {}) }, paneIndex);
       }
       if (plot.scale) chart.priceScale(plot.scale, paneIndex).applyOptions({ scaleMargins: plot.scaleMargins || { top: 0.8, bottom: 0 } });
       return api;
@@ -338,6 +424,20 @@
     }
     // One chart point per bar (whitespace where the value is missing). Plots shifted into the
     // future extend past the last candle on extrapolated times.
+    // Runs of the same value become one horizontal segment each, from the first bar of the run to the last.
+    function levelSegments(ind, plot, vals) {
+      const segs = [], shift = plotShift(ind, plot), dash = plot.dashed ? "dashed" : undefined;
+      let start = -1, level = null;
+      const close = (end) => { if (start >= 0) segs.push({ a: start + shift, pa: level, b: end + shift, pb: level, color: plot.color, width: plot.width || 1, dash }); start = -1; };
+      for (let i = 0; i < vals.length; i++) {
+        const v = vals[i];
+        if (v == null || !isFinite(v)) { close(i - 1); level = null; continue; }
+        if (start >= 0 && v === level) continue;
+        close(i - 1); start = i; level = v;
+      }
+      close(vals.length - 1);
+      return segs;
+    }
     function pointsFor(ind, plot, vals, colors, times, from) {
       const shift = plotShift(ind, plot), n = raw.length, pts = [];
       let prev;
@@ -411,6 +511,7 @@
           const api = ind.series[plot.key], vals = out && out[plot.key];
           if (!api || !vals) continue;
           const colors = out.colors && out.colors[plot.key];
+          if (plot.breakOnChange && plot.type === "line") { (ind.segs || (ind.segs = {}))[plot.key] = levelSegments(ind, plot, vals); }
           if (live) { for (const pt of pointsFor(ind, plot, vals, colors, times, Math.max(0, raw.length - 2))) api.update(pt); }
           else {
             const pts = pointsFor(ind, plot, vals, colors, times, 0);
@@ -426,6 +527,7 @@
       if (recolour) recolour.out.candleColors.forEach((c, i) => { if (c) map.set(raw[i].time, c); });
       if (map.size || candleOverride.size) setCandleColors(map);
       drawIndLegends();
+      if (drawPrim) drawPrim.update();
     }
     // One legend row per indicator: name + inputs, live values, settings and remove.
     function drawIndLegends() {

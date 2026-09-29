@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const IND = require('../assets/js/ipfx-indicators.js');
-for (const family of ['trend', 'volatility', 'momentum', 'volume', 'structure', 'more']) require(`../assets/js/ipfx-indicators-${family}.js`);
+for (const family of ['trend', 'volatility', 'momentum', 'volume', 'structure', 'more', 'smc', 'extra', 'plus']) require(`../assets/js/ipfx-indicators-${family}.js`);
 const { defs, ta, defaults, cleanInputs, label } = IND;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tradingHtml = fs.readFileSync(path.join(root, 'trading.html'), 'utf8');
@@ -91,7 +91,7 @@ test('every registered indicator is well formed and returns aligned plots', () =
   const closes = [...Array(300)].map((_, i) => 100 + Math.sin(i / 7) * 4 + i * 0.02);
   const bars = barsOf(closes, 0.4);
   for (const [id, d] of Object.entries(defs)) {
-    assert.match(id, /^[A-Za-z0-9_]+@tv-basicstudies$/, `${id}: TradingView study id`);
+    assert.match(id, /^[A-Za-z0-9_]+@(tv-basicstudies|ipfx)$/, `${id}: study id`);
     assert.ok(d.name && ['overlay', 'separate'].includes(d.pane), `${id}: name and pane`);
     assert.ok(Array.isArray(d.inputs) && Array.isArray(d.plots) && d.plots.length, `${id}: inputs and plots`);
     const out = d.calc(bars, defaults(id));
@@ -118,7 +118,7 @@ test('every catalog entry in trading.html has a native version', () => {
 });
 
 test('every native definition is listed: in the static catalog, or through its own meta', () => {
-  const cats = new Set(['trend', 'volatility', 'momentum', 'volume', 'structure']);
+  const cats = new Set(['trend', 'volatility', 'momentum', 'volume', 'structure', 'smc']);
   const seen = new Set(), names = new Set();
   for (const [id, d] of Object.entries(defs)) {
     if (staticIds.includes(id)) continue;

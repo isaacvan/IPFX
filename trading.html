@@ -49,6 +49,9 @@ try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch
 <script src="/assets/js/ipfx-indicators-volume.js"></script>
 <script src="/assets/js/ipfx-indicators-structure.js"></script>
 <script src="/assets/js/ipfx-indicators-more.js"></script>
+<script src="/assets/js/ipfx-indicators-smc.js"></script>
+<script src="/assets/js/ipfx-indicators-extra.js"></script>
+<script src="/assets/js/ipfx-indicators-plus.js"></script>
 <script src="/assets/js/ipfx-chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -2560,7 +2563,7 @@ let indFilterQuery='';
 let indKbdIndex=-1;
 function matchesIndQuery(ind,q){
   if(!q)return true;
-  const hay=(ind.name+' '+ind.full+' '+ind.brief+' '+ind.explain).toLowerCase();
+  const hay=(ind.name+' '+ind.full+' '+ind.brief+' '+ind.explain+(ind.cat==='smc'?' smc ict smart money concepts price action':'')).toLowerCase();
   return q.toLowerCase().split(/\s+/).filter(Boolean).every(term=>hay.includes(term));
 }
 function filterInds(q){
@@ -2589,8 +2592,8 @@ function indSearchKeydown(e){
 function buildIndList(){
   const listEl=document.getElementById('indList');
   if(!listEl)return;
-  const cats=['trend','volatility','momentum','volume','structure'];
-  const labels={trend:'Trend',volatility:'Volatility & Bands',momentum:'Momentum & Oscillators',volume:'Volume',structure:'Structure & Levels'};
+  const cats=['trend','volatility','momentum','volume','structure','smc'];
+  const labels={trend:'Trend',volatility:'Volatility & Bands',momentum:'Momentum & Oscillators',volume:'Volume',structure:'Structure & Levels',smc:'Smart Money & Price Action'};
   const q=indFilterQuery;
   let html='';
   let totalShown=0;
