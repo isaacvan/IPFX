@@ -2962,6 +2962,7 @@ function renderChallenge(){
   if(a.challenge_type==='infinity'&&a.stage===2)notes.push('Stage 2 earnings are visible but held until full Stage 3 completion. Minimum withdrawal: $500.');
   if(a.challenge_type==='infinity'&&a.stage===3)notes.push('Stage 3 payout requests unlock only after full completion and the $500 minimum; Stage 4 allocation requires separate review.');
   if(a.challenge_type==='infinity'&&a.stage===4)notes.push('Stage 4 allocation is reviewed between $25K and $500K based on performance; no live capital is automatic.');
+  if(L.payout_min_hold_seconds) notes.push('Trades must be held for at least 1 minute to be eligible for payouts. Profit from a trade closed sooner is excluded from your payout (losses still count).');
   if(L.drawdown_mode==='trailing_eod') notes.push('Your drawdown floor only moves up at the end of a trading day — an intraday spike you give back does not tighten it.');
   if(L.drawdown_mode==='trailing_intraday') notes.push('Your drawdown floor follows your highest equity as it happens.');
   document.getElementById('ch-note').innerHTML=notes.join('<br>');
@@ -4778,7 +4779,7 @@ document.addEventListener('keydown',e=>{
   if(!hotkeysOn||!e.shiftKey||e.ctrlKey||e.altKey||e.metaKey||e.repeat)return;
   const t=e.target,tag=t&&t.tagName;
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable))return;
-  if(document.querySelector('.omdlg.open'))return;
+  if(document.querySelector('.omdlg.open'))return; // includes the 1-minute warning
   const k=e.key.toLowerCase();
   if(k!=='b'&&k!=='s'&&k!=='x')return;
   e.preventDefault();
@@ -4991,9 +4992,56 @@ function renderPendingTable(){
   body.innerHTML=rows||'<tr><td colspan="12"><div class="postbl-empty">'+(hasSession()?'No pending orders':'Log in to trade')+'</div></td></tr>';
 }
 function joinSide(side){placeOrder(side==='bid'?'sell':'buy');}
+// ---- Infinity: 1-minute minimum hold for payout eligibility ----
+// Closing earlier is allowed, but the trader is warned first because the profit won't count toward payouts.
+function payoutMinHold(){
+  const L=engineState&&engineState.account&&engineState.account.limits;
+  return L&&+L.payout_min_hold_seconds>0?+L.payout_min_hold_seconds:0;
+}
+function heldSeconds(t){const o=Date.parse(t&&t.opened_at);return isFinite(o)?(Date.now()-o)/1000:Infinity;}
+function quickCloseConfirm(trades){
+  const min=payoutMinHold();
+  const quick=min?(trades||[]).filter(t=>t&&heldSeconds(t)<min):[];
+  if(!quick.length)return Promise.resolve(true);
+  let dlg=document.getElementById('mhDlg');
+  if(!dlg){
+    dlg=document.createElement('div');dlg.id='mhDlg';dlg.className='omdlg';
+    dlg.innerHTML='<div class="ombox" role="alertdialog" aria-labelledby="mhTitle" aria-describedby="mhText">'
+      +'<h4 id="mhTitle">Trades must be longer than 1 minute</h4>'
+      +'<div class="omsub" id="mhText"></div>'
+      +'<div class="omhint" id="mhCount" style="margin-top:.5rem"></div>'
+      +'<div class="omacts" style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.9rem">'
+      +'<button type="button" class="fx-btn pri" id="mhKeep">Keep trade open</button>'
+      +'<button type="button" class="fx-btn" id="mhClose">Close anyway</button></div></div>';
+    document.body.appendChild(dlg);
+  }
+  const n=quick.length;
+  document.getElementById('mhText').textContent=
+    'Trades must be held for at least 1 minute to be eligible for payouts on the Infinity Challenge. '
+    +(n>1?n+' of these positions have':'This position has')+' been open for less than a minute, so any profit from '
+    +(n>1?'them':'it')+' will not count toward your payout. Losses still count.';
+  return new Promise(resolve=>{
+    const count=document.getElementById('mhCount');
+    const tick=()=>{
+      const left=Math.ceil(Math.max(0,...quick.map(t=>min-heldSeconds(t))));
+      count.textContent=left>0?`Eligible in ${left}s.`:'Now eligible — closing will not affect payout eligibility.';
+    };
+    tick();const timer=setInterval(tick,500);
+    const done=v=>{clearInterval(timer);dlg.classList.remove('open');document.removeEventListener('keydown',onKey,true);resolve(v);};
+    const onKey=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();done(false);}};
+    document.getElementById('mhKeep').onclick=()=>done(false);
+    document.getElementById('mhClose').onclick=()=>done(true);
+    dlg.onclick=e=>{if(e.target===dlg)done(false);};
+    document.addEventListener('keydown',onKey,true);
+    dlg.classList.add('open');
+    document.getElementById('mhKeep').focus();
+  });
+}
 async function closeTradeById(id){
-  if(engineBusy)return;
+  if(engineBusy)return false;
   const before=omFindTrade(id);
+  if(before&&!(await quickCloseConfirm([before])))return false;
+  if(engineBusy)return false;
   engineBusy=true;
   const r=await engineCall({action:'close',trade_id:id});
   engineBusy=false;
@@ -5003,6 +5051,7 @@ async function closeTradeById(id){
     const details=closed?' @ '+fmtPx(closed.close_price)+' ('+signedMoney(+closed.pnl||0)+')':'';
     engineMsg((symbol?symbol+' ':'')+'position closed'+details,true);
   }
+  return !!r;
 }
 function closePosition(){
   const o=engineState&&engineState.open_trades;
@@ -5084,6 +5133,7 @@ async function omSubmit(){
     if(vol>=+t.volume){omError('That is the whole position — use Close instead.');return;}
     if(+(+t.volume-vol).toFixed(2)<0.01){omError('The remainder would be under 0.01 lots.');return;}
     payload={action:'partial_close',trade_id:omTradeId,volume:vol};
+    if(!(await quickCloseConfirm([t])))return;
   }else{
     if(v1===''&&v2===''){omError('Set a stop loss or a take profit.');return;}
     payload={action:'modify',trade_id:omTradeId,sl:v1===''?null:parseFloat(v1),tp:v2===''?null:parseFloat(v2)};
@@ -5124,7 +5174,7 @@ async function reversePosition(){
   const o=engineState&&engineState.open_trades;
   if(!o||!o.length){placeOrder('buy');return;}
   const last=o[o.length-1];
-  await closeTradeById(last.id);
+  if(!(await closeTradeById(last.id)))return;
   placeOrder(last.side==='buy'?'sell':'buy');
 }
 function cancelAll(){flattenAll();}
@@ -5138,6 +5188,8 @@ function confirmCloseAll(btn){
   btn._t=setTimeout(()=>{btn.classList.remove('confirming');try{renderPositions();}catch(_){}},4000);
 }
 async function flattenAll(){
+  if(engineBusy)return;
+  if(!(await quickCloseConfirm((engineState&&engineState.open_trades)||[])))return;
   if(engineBusy)return;engineBusy=true;
   const r=await engineCall({action:'close_all'});
   engineBusy=false;

@@ -1663,6 +1663,9 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         daily_profit_cap_usd: acct.daily_profit_cap_pct == null ? null
           : round2(start * Number(acct.daily_profit_cap_pct) / 100),
         require_stop_loss: !!acct.require_stop_loss,
+        // Infinity Challenge: profit from winning trades held under this many seconds is not payout-eligible
+        // (enforced in the payout functions; the platform warns before an early close).
+        payout_min_hold_seconds: (acct.challenge_type ?? "") === "infinity" ? 60 : null,
       },
       // Everything still standing between this account and a pass.
       progress: {

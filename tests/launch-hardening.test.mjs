@@ -110,3 +110,20 @@ test('low-latency quote path: pump, batch warm, realtime push, region pinning, a
   assert.match(platform, /j\.received_ts<quoteAppliedRt/);
   assert.match(read('assets/js/ipfx-chart.js'), /forceFunctionRegion=eu-west-1&symbol=/);
 });
+
+test('Infinity: winning trades held under 1 minute are excluded from payouts, with a warning before closing early', () => {
+  const m = read('supabase/migrations/20260930150000_infinity_min_hold_payouts.sql');
+  assert.match(m, /t\.pnl > 0/);
+  assert.match(m, /interval '60 seconds'/);
+  assert.match(m, /opened_at >= timestamptz '2026-09-30 23:00:00\+00'/);
+  assert.match(m, /v_acct\.challenge_type = 'infinity'/);
+  assert.match(m, /s2_profit := s2_profit - public\.fn_infinity_quick_trade_profit/);
+  assert.match(m, /s3_profit := s3_profit - public\.fn_infinity_quick_trade_profit/);
+  assert.match(m, /raise exception 'payout_pending'/);
+  assert.match(m, /raise exception 'period_already_paid'/);
+  assert.match(engine, /payout_min_hold_seconds: \(acct\.challenge_type \?\? ""\) === "infinity" \? 60 : null/);
+  assert.match(platform, /Trades must be longer than 1 minute/);
+  assert.match(platform, /if\(before&&!\(await quickCloseConfirm\(\[before\]\)\)\)return false;/);
+  assert.match(platform, /if\(!\(await quickCloseConfirm\(\(engineState&&engineState\.open_trades\)\|\|\[\]\)\)\)return;/);
+  assert.match(platform, /if\(!\(await closeTradeById\(last\.id\)\)\)return;/);
+});
