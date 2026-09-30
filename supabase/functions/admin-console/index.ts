@@ -572,9 +572,15 @@ Deno.serve(async (req) => {
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
   const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
-  const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log"]);
-  if (sensitiveActions.has(String(action)) && tokenAal(bearerToken) !== "aal2") {
-    return err("Multi-factor authentication is required to access personal information.", 403);
+  // Money movement is owner-only; resuming trading after a halt is owner-only (any admin may HALT).
+  const ownerMoneyActions = new Set(["payout_approve", "payout_mark_paid"]);
+  if (ownerMoneyActions.has(String(action)) && !isOwner) return err("Owner approval required for payouts", 403);
+  if (action === "set_platform_halt" && body.halted !== true && !isOwner) return err("Only the owner can resume trading", 403);
+  const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log",
+    "payout_create", "payout_approve", "payout_mark_paid", "payout_void", "set_split", "set_investigation_hold", "grant_challenge", "reset_account", "close_account", "set_mirror"]);
+  const needsMfa = sensitiveActions.has(String(action)) || (action === "set_platform_halt" && body.halted !== true);
+  if (needsMfa && tokenAal(bearerToken) !== "aal2") {
+    return err("Multi-factor authentication is required for this action.", 403);
   }
 
   // Every state-changing action below logs here: who, what, on whom,
@@ -588,6 +594,15 @@ Deno.serve(async (req) => {
         detail: opts.detail ?? null,
       });
     } catch (_) { /* audit logging must never block the underlying action */ }
+  }
+  // Money actions write their audit row BEFORE acting and refuse to act if the audit write fails.
+  async function logAdminStrict(actionName: string, opts: { targetUser?: string; targetAccount?: string; detail?: Record<string, unknown> } = {}): Promise<boolean> {
+    const { error } = await db.from("admin_audit_log").insert({
+      actor_id: user!.id, action: actionName,
+      target_user_id: opts.targetUser ?? null, target_account_id: opts.targetAccount ?? null,
+      detail: opts.detail ?? null,
+    });
+    return !error;
   }
 
   if (action === "overview") {
@@ -810,6 +825,7 @@ Deno.serve(async (req) => {
   if (action === "payout_create") {
     const account_id = String(body.account_id ?? "");
     if (!account_id) return err("account_id required");
+    if (!(await logAdminStrict("payout_create_intent", { targetAccount: account_id }))) return err("Audit log unavailable — action refused", 503);
     const idem = `admin_${user.id}_${account_id}_${Date.now()}`;
     const { data, error } = await db.rpc("fn_request_payout", {
       p_account_id: account_id, p_requested_by: user.id, p_is_admin: true,
@@ -823,6 +839,7 @@ Deno.serve(async (req) => {
   if (action === "payout_approve") {
     const payout_id = String(body.payout_id ?? "");
     if (!payout_id) return err("payout_id required");
+    if (!(await logAdminStrict("payout_approve_intent", { detail: { payout_id } }))) return err("Audit log unavailable — action refused", 503);
     const { data, error } = await db.rpc("fn_approve_payout", { p_payout_id: payout_id, p_admin_id: user.id });
     if (error) return err(cleanRpc(error.message), 409);
     await logAdmin("payout_approve", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share } });
@@ -833,6 +850,7 @@ Deno.serve(async (req) => {
   if (action === "payout_mark_paid") {
     const payout_id = String(body.payout_id ?? "");
     if (!payout_id) return err("payout_id required");
+    if (!(await logAdminStrict("payout_mark_paid_intent", { detail: { payout_id } }))) return err("Audit log unavailable — action refused", 503);
     const { data, error } = await db.rpc("fn_mark_paid", { p_payout_id: payout_id, p_admin_id: user.id });
     if (error) return err(cleanRpc(error.message), 409);
     await logAdmin("payout_mark_paid", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share } });
@@ -849,6 +867,7 @@ Deno.serve(async (req) => {
     const reason = String(body.reason ?? "").trim().slice(0, 300);
     if (!payout_id) return err("payout_id required");
     if (!reason) return err("A reason is required to void a payout");
+    if (!(await logAdminStrict("payout_void_intent", { detail: { payout_id } }))) return err("Audit log unavailable — action refused", 503);
     const { data, error } = await db.rpc("fn_void_payout", { p_payout_id: payout_id, p_admin_id: user.id, p_reason: reason });
     if (error) return err(cleanRpc(error.message), 409);
     await logAdmin("payout_void", { targetAccount: data?.account_id, detail: { payout_id, reason } });

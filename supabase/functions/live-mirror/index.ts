@@ -40,6 +40,27 @@ function brokerSymbol(sym: string): string {
 // deno-lint-ignore no-explicit-any
 type Db = any;
 
+function constantTimeEqual(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a), eb = new TextEncoder().encode(b);
+  let diff = ea.length ^ eb.length;
+  for (let i = 0; i < Math.max(ea.length, eb.length); i++) diff |= (ea[i] ?? 0) ^ (eb[i] ?? 0);
+  return diff === 0;
+}
+
+// Kill switches for NEW mirrored risk. Closes are never blocked so exposure can always be flattened.
+//  - IPFX_MIRROR_HALT=true            -> no new mirror opens anywhere.
+//  - platform_config.trading_halted   -> the platform-wide halt also stops mirror opens.
+//  - IPFX_LIVE_CAPITAL_MIRROR!=true   -> only demo destinations may receive opens (real capital is off by default).
+async function mirrorOpenBlocked(db: Db, target: Record<string, unknown>): Promise<string | null> {
+  if (String(Deno.env.get("IPFX_MIRROR_HALT") ?? "").toLowerCase() === "true") return "mirror halted (IPFX_MIRROR_HALT)";
+  const { data: cfg, error } = await db.from("platform_config").select("trading_halted").limit(1).maybeSingle();
+  if (error) return "platform halt state unavailable; fail closed";
+  if (cfg?.trading_halted) return "platform trading halted";
+  const isDemo = String(target.environment ?? "") === "demo";
+  if (!isDemo && String(Deno.env.get("IPFX_LIVE_CAPITAL_MIRROR") ?? "").toLowerCase() !== "true") return "live-capital mirroring disabled (IPFX_LIVE_CAPITAL_MIRROR)";
+  return null;
+}
+
 async function log(db: Db, row: Record<string, unknown>) {
   try { await db.from("mirror_orders").insert(row); } catch (_) { /* best effort */ }
 }
@@ -48,7 +69,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("POST only", { status: 405 });
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supplied = req.headers.get("authorization");
-  if (!serviceKey || supplied !== `Bearer ${serviceKey}`) return new Response("unauthorised", { status: 401 });
+  if (!serviceKey || !constantTimeEqual(supplied ?? "", `Bearer ${serviceKey}`)) return new Response("unauthorised", { status: 401 });
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return new Response("bad json", { status: 400 }); }
@@ -97,6 +118,13 @@ Deno.serve(async (req) => {
   if (!target) {
     await log(db, { ...base, status: "skipped", error: event === "open" ? "no enabled mirror target" : "no mirror target for close" });
     return new Response(JSON.stringify({ ok: true, skipped: "no target" }), { status: 200 });
+  }
+  if (event === "open") {
+    const blocked = await mirrorOpenBlocked(db, target);
+    if (blocked) {
+      await log(db, { ...base, target_id: target.id, status: "skipped", error: blocked });
+      return new Response(JSON.stringify({ ok: true, skipped: "kill_switch", reason: blocked }), { status: 200 });
+    }
   }
 
   // Copy control: decide how much of an OPEN IPFX should copy to its own account. This

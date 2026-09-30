@@ -1288,8 +1288,22 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
         p_breach_floor: breachFloor,
       });
       if (claim.error) {
-        console.error("[breach] freeze claim failed", { account_id: acct.id, code: claim.error.code });
-        throw new Error("BREACH_FREEZE_FAILED");
+        // Fail safe, not open: if the atomic claim function is broken (e.g. a missing table, which
+        // happened in production until 2026-09-30), still freeze the account with a conditional
+        // update so exactly one request wins, then flatten below. Only if that also fails do we throw.
+        console.error("[breach] freeze claim failed; using fallback", { account_id: acct.id, code: claim.error.code, message: claim.error.message });
+        const { data: frozen, error: fbErr } = await db.from("trading_accounts").update({
+          status: "breached", breach_reason: breach, access_revoked_at: new Date().toISOString(),
+          access_revoked_reason: "challenge_rule_breach:" + breach, mirror_enabled: false,
+        }).eq("id", acct.id).eq("status", "active").select("id");
+        if (fbErr) {
+          console.error("[breach] fallback freeze failed", { account_id: acct.id, code: fbErr.code });
+          throw new Error("BREACH_FREEZE_FAILED");
+        }
+        await db.from("pending_orders").update({ status: "cancelled", resolved_at: new Date().toISOString() })
+          .eq("account_id", acct.id).eq("status", "pending");
+        (claim as { data: unknown }).data = Array.isArray(frozen) && frozen.length > 0;
+        await logFeedEvent(db, "outage", null, `breach_claim_fallback account=${acct.id} code=${claim.error.code ?? "?"}`);
       }
 
       // Only the request that won the active -> breached transition performs
@@ -1492,6 +1506,8 @@ const RPC_ERROR_MESSAGES: Record<string, string> = {
   kyc_not_verified: "Identity verification (KYC) must be completed before you can request a payout.",
   nothing_owed: "There's no payable profit yet on this account.",
   consistency_check_failed: "One trade accounts for too much of this period's profit — this needs manual review before payout.",
+  payout_pending: "You already have a payout request under review — wait for it to be processed before requesting another.",
+  period_already_paid: "This period has already been paid out.",
   payout_not_found: "Payout not found.",
   not_requested: "This payout has already moved past the requested stage.",
   not_approved: "This payout hasn't been approved yet.",
@@ -2209,6 +2225,18 @@ Deno.serve(async (req) => {
       if (await orderBurstExceeded(db, (acct as Acct).id)) {
         return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
       }
+      // Idempotent opens: a retried or double-submitted request with the same client_order_id
+      // returns the current state instead of opening a second position.
+      const clientOrderId = typeof body.client_order_id === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(body.client_order_id) ? body.client_order_id : null;
+      const duplicateState = async () => {
+        const now = await enforce(db, acct as Acct);
+        return new Response(JSON.stringify({ ...(await statePayload(db, acct as Acct, now.open, now.equity, now.floating)), duplicate_order: true }),
+          { headers: { ...CORS, "Content-Type": "application/json" } });
+      };
+      if (clientOrderId) {
+        const { data: dup } = await db.from("trades").select("id").eq("account_id", (acct as Acct).id).eq("client_order_id", clientOrderId).maybeSingle();
+        if (dup) return await duplicateState();
+      }
       if (state.unpriced > 0) {
         return err("Pricing is unavailable for one of your open positions — new orders are paused until it returns.", 503);
       }
@@ -2344,8 +2372,9 @@ Deno.serve(async (req) => {
 
       const { data: inserted, error } = await db.from("trades").insert({
         account_id: (acct as Acct).id, user_id: user.id, symbol, side, volume,
-        open_price: openPrice, sl, tp, ...execInfo,
+        open_price: openPrice, sl, tp, ...execInfo, ...(clientOrderId ? { client_order_id: clientOrderId } : {}),
       }).select("id").single();
+      if (error && error.code === "23505" && clientOrderId) return await duplicateState();
       if (error) return reject("Order failed", q);
 
       // The source trade is committed. Start audit and copy dispatch together.

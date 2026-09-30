@@ -4623,7 +4623,7 @@ async function placeOrder(side){
   }
 
   engineBusy=true;
-  const payload={action:'open',symbol:activeSym,side,volume:ordLots};
+  const payload={action:'open',symbol:activeSym,side,volume:ordLots,client_order_id:(crypto.randomUUID?crypto.randomUUID():('o'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)))};
   if(isFinite(sl))payload.sl=sl;
   if(isFinite(tp))payload.tp=tp;
   const res=await engineCall(payload);
