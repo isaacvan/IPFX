@@ -127,3 +127,13 @@ test('Infinity: winning trades held under 1 minute are excluded from payouts, wi
   assert.match(platform, /if\(!\(await quickCloseConfirm\(\(engineState&&engineState\.open_trades\)\|\|\[\]\)\)\)return;/);
   assert.match(platform, /if\(!\(await closeTradeById\(last\.id\)\)\)return;/);
 });
+
+test('a quiet FXCM symbol on a live feed is not stale; a dead feed or long-silent symbol still is', () => {
+  const m = read('supabase/migrations/20260930160000_live_quotes_feed_heartbeat.sql');
+  assert.match(m, /add column if not exists feed_ts timestamptz/);
+  assert.match(engine, /function fxcmFeedHeartbeat\(xml: string, receivedTs: number\)/);
+  assert.match(engine, /if \(now - q\.feedTs > limit\) return true;/);
+  assert.match(engine, /return now - refTs > Math\.max\(limit, SYMBOL_QUIET_MAX_MS\);/);
+  assert.match(engine, /const SYMBOL_QUIET_MAX_MS = 60_000;/);
+  assert.match(engine, /feed_ts: feedTs \? new Date\(feedTs\)\.toISOString\(\) : null/);
+});

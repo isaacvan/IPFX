@@ -264,7 +264,7 @@ function cleanSymbol(raw: unknown): string | null {
 // ---------- price feed (server-side, cached, fail-closed) ----------
 // FXCM basic live feed: genuine broker bid/ask, sampled through the public XML endpoint.
 // Provider timestamps drive staleness so a cached-but-dead feed fails closed.
-type Quote = { symbol: string; mid: number; bid: number; ask: number; spread: number; providerTs: number | null; receivedTs: number; source: string };
+type Quote = { symbol: string; mid: number; bid: number; ask: number; spread: number; providerTs: number | null; receivedTs: number; source: string; feedTs?: number | null };
 const quoteCache = new Map<string, Quote>();
 const CACHE_TTL_MS = 750;
 // Staleness is judged on the provider's own timestamp. Calibrated against the
@@ -287,7 +287,21 @@ function fxcmTimestamp(last: string, receivedTs: number): number | null {
   return ts;
 }
 
-async function fetchFxcmRaw(symKey: string): Promise<{ bid: number; ask: number; ts: number | null } | null> {
+// FXCM's <Last> is when that symbol's price last CHANGED, not when it was last confirmed. A quiet pair can
+// go 10-20s without a change while the feed is perfectly alive, so liveness is judged on the newest <Last>
+// across the whole feed (the heartbeat), and a single symbol only counts as stale once it has been silent
+// for longer than SYMBOL_QUIET_MAX_MS (daily breaks, frozen instruments).
+const SYMBOL_QUIET_MAX_MS = 60_000;
+function fxcmFeedHeartbeat(xml: string, receivedTs: number): number | null {
+  let newest: number | null = null;
+  for (const m of xml.matchAll(/<Last>([^<]+)<\/Last>/g)) {
+    const ts = fxcmTimestamp(m[1], receivedTs);
+    if (ts !== null && (newest === null || ts > newest)) newest = ts;
+  }
+  return newest;
+}
+
+async function fetchFxcmRaw(symKey: string): Promise<{ bid: number; ask: number; ts: number | null; feedTs: number | null } | null> {
   const providerSymbol = FXCM_SYMBOLS[symKey];
   if (!providerSymbol) return null;
   try {
@@ -306,7 +320,7 @@ async function fetchFxcmRaw(symKey: string): Promise<{ bid: number; ask: number;
     if (!isFinite(bid) || !isFinite(ask) || bid <= 0 || ask <= bid) return null;
     const receivedTs = Date.now();
     const last = /<Last>([^<]+)<\/Last>/.exec(block)?.[1] ?? "";
-    return { bid, ask, ts: fxcmTimestamp(last, receivedTs) };
+    return { bid, ask, ts: fxcmTimestamp(last, receivedTs), feedTs: fxcmFeedHeartbeat(xml, receivedTs) };
   } catch (_) { return null; }
 }
 
@@ -358,6 +372,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
           symbol: symKey, mid: Number(cached.mid), bid: Number(cached.bid), ask: Number(cached.ask),
           spread: Number(cached.spread),
           providerTs: cached.provider_ts ? new Date(cached.provider_ts).getTime() : null,
+          feedTs: cached.feed_ts ? Date.parse(cached.feed_ts) : null,
           receivedTs: new Date(cached.received_at).getTime(),
           source: FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo",
         };
@@ -375,7 +390,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
     q = {
       symbol: symKey, mid: round6((raw.bid + raw.ask) / 2),
       bid: round6(raw.bid), ask: round6(raw.ask),
-      spread: round6(raw.ask - raw.bid), providerTs: raw.ts, receivedTs, source: "fxcm-basic",
+      spread: round6(raw.ask - raw.bid), providerTs: raw.ts, feedTs: raw.feedTs, receivedTs, source: "fxcm-basic",
     };
   } else {
     let raw = await fetchYahooRaw(inst.code);
@@ -402,6 +417,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
     await db2.from("live_quotes").upsert({
       symbol: symKey, mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
       provider_ts: q.providerTs ? new Date(q.providerTs).toISOString() : null,
+      feed_ts: q.feedTs ? new Date(q.feedTs).toISOString() : null,
       received_at: new Date(q.receivedTs).toISOString(),
     });
   } catch (_) { /* best-effort write-through — a failed cache write must never block the quote itself */ }
@@ -429,6 +445,7 @@ async function warmQuotes(force = false): Promise<void> {
       quoteCache.set(row.symbol, {
         symbol: row.symbol, mid: Number(row.mid), bid: Number(row.bid), ask: Number(row.ask), spread: Number(row.spread),
         providerTs: row.provider_ts ? Date.parse(row.provider_ts) : null, receivedTs,
+        feedTs: row.feed_ts ? Date.parse(row.feed_ts) : null, 
         source: FXCM_SYMBOLS[row.symbol] ? "fxcm-basic" : "yahoo-demo",
       });
     }
@@ -450,6 +467,7 @@ async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<st
   if (!r.ok) return { rows: [], changed: [] };
   const xml = await r.text();
   const receivedTs = Date.now();
+  const feedTs = fxcmFeedHeartbeat(xml, receivedTs);
   const rows: Record<string, unknown>[] = [];
   const changed: Quote[] = [];
   for (const m of xml.matchAll(/<Rate\s+Symbol="([^"]+)">([\s\S]*?)<\/Rate>/g)) {
@@ -465,7 +483,7 @@ async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<st
       if (!inst) continue;
       const q: Quote = {
         symbol: symKey, mid: round6((bid + ask) / 2), bid: round6(bid), ask: round6(ask),
-        spread: round6(ask - bid), providerTs, receivedTs, source: "fxcm-basic",
+        spread: round6(ask - bid), providerTs, feedTs, receivedTs, source: "fxcm-basic",
       };
       // Same off-market tick filter as fetchQuote: an implausible jump is dropped until the last
       // accepted price is older than the window (the stale row then makes requests fail closed).
@@ -477,6 +495,7 @@ async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<st
       rows.push({
         symbol: symKey, mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
         provider_ts: providerTs ? new Date(providerTs).toISOString() : null,
+        feed_ts: feedTs ? new Date(feedTs).toISOString() : null,
         received_at: new Date(receivedTs).toISOString(),
       });
     }
@@ -535,7 +554,14 @@ function quoteStale(q: Quote): boolean {
   const refTs = q.providerTs ?? q.receivedTs;
   const cls = INSTRUMENTS[q.symbol]?.cls;
   const limit = cls === "crypto" ? STALE_MS_CRYPTO : cls === "future" ? STALE_MS_FUTURES : STALE_MS;
-  return Date.now() - refTs > limit;
+  const now = Date.now();
+  if (q.source === "fxcm-basic" && q.feedTs != null) {
+    // Feed-level liveness first: if nothing in the whole FXCM feed has moved within the limit, fail closed.
+    if (now - q.feedTs > limit) return true;
+    // Feed alive: an unchanged price is still the current price, until the symbol has been silent too long.
+    return now - refTs > Math.max(limit, SYMBOL_QUIET_MAX_MS);
+  }
+  return now - refTs > limit;
 }
 
 // backward-compatible mid-price accessor for PnL/conversion math
@@ -1065,6 +1091,7 @@ async function lastKnownQuote(symKey: string): Promise<Quote | null> {
       symbol: symKey, mid: Number(data.mid), bid: Number(data.bid), ask: Number(data.ask),
       spread: Number(data.spread),
       providerTs: data.provider_ts ? Date.parse(data.provider_ts) : null,
+      feedTs: data.feed_ts ? Date.parse(data.feed_ts) : null,
       receivedTs: Date.parse(data.received_at),
       source: FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo",
     };
