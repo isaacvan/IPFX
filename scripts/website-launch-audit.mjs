@@ -34,6 +34,26 @@ ok(siteJs.includes('navigator.share')&&siteJs.includes('navigator.clipboard'), '
 const robots=read('robots.txt');ok(robots.includes('Sitemap: https://ipfxcapital.com/sitemap.xml'),'robots.txt missing sitemap');ok(robots.includes('Disallow: /dashboard.html')&&robots.includes('Disallow: /trading.html'),'robots.txt exposes private application routes');
 const sitemap=read('sitemap.xml');for(const file of publicPages)ok(sitemap.includes(file==='index.html'?'https://ipfxcapital.com/':`https://ipfxcapital.com/${file}`),`sitemap missing ${file}`);
 const notFound=read('404.html');ok(/name=["']robots["'][^>]*noindex/i.test(notFound),'404 page must be noindex');
+// Every root-level HTML file is public on the static host, including old
+// copies that are no longer linked in navigation. Catch obsolete promises.
+const allHtml=fs.readdirSync(root).filter(file=>file.endsWith('.html')&&fs.statSync(path.join(root,file)).isFile());
+const staleClaims=[
+  /55%\+? profitable days/i,
+  /(?:unlimited|three|3) attempts(?: per calendar month)?/i,
+  /capital automatically scales/i,
+  /stage 2 earnings become eligible for payout review at [45]%/i,
+  /payout eligibility reviewed at the Stage 3 milestone/i,
+  /payouts from day one of funding/i,
+  /referral 40% discount/i,
+];
+for(const file of allHtml){
+  const html=read(file);
+  for(const claim of staleClaims)ok(!claim.test(html),`${file}: obsolete public claim ${claim}`);
+}
+for(const [file,destination] of [['index-full-site.html','/index.html'],['infinity-new.html','/infinity.html'],['about-backup.html','/about.html']]){
+  const html=read(file);
+  ok(html.includes('content="noindex,follow"')&&html.includes(`content="0; url=${destination}"`),`${file}: legacy public copy must redirect to ${destination}`);
+}
 const all=publicPages.map(read).join('\n');ok(!all.includes("IPFX supports **MT4, MT5 and cTrader**"),'outdated MetaTrader/cTrader support claim remains');ok(!all.includes('evaluations with MT5'),'outdated MT5 evaluation claim remains');ok(!read('privacy.html').includes('MetaApi / broker connections'),'privacy page conflicts with terms on broker mirroring');ok(read('trading.html').includes("https://www.tradingview.com/signin/"),'official TradingView sign-in link missing');
 ok(read('index.html').includes('id="newsletterForm"')&&read('index.html').includes('IPFX_NEWSLETTER_ENDPOINT'),'newsletter form lacks explicit provider state');
 ok(read('backtest.html').includes('async function submitBacktest'),'backtest form handler missing');ok(read('start-challenge.html').includes('payDemoNotice'),'checkout lacks honest unavailable state');

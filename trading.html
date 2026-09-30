@@ -2914,13 +2914,30 @@ function renderChallenge(){
   // ---- requirements ----
   const reqs=[];
   if(L.target_balance) reqs.push({done:+a.balance>=L.target_balance,
-    txt:`Reach <b>${money(L.target_balance)}</b> balance (currently ${money(a.balance)})`});
+    txt:`Reach <b>${money(L.target_balance)}</b> balance (${((L.target_balance/start-1)*100).toFixed(1)}% target; currently ${money(a.balance)})`});
   if(P.min_trading_days>0) reqs.push({done:P.trading_days>=P.min_trading_days,
     txt:`<b>${P.trading_days}/${P.min_trading_days}</b> trading days`});
   if(P.min_trades>0) reqs.push({done:P.trades_closed>=P.min_trades,
     txt:`<b>${P.trades_closed}/${P.min_trades}</b> closed trades`});
   if(P.min_profitable_days_pct!=null) reqs.push({done:(P.profitable_days_pct||0)>=P.min_profitable_days_pct,
     txt:`<b>${P.profitable_days_pct==null?0:P.profitable_days_pct}%</b> profitable days (need ${P.min_profitable_days_pct}%)`});
+  const q=P.qualification;
+  if(q&&q.applies&&q.rules){
+    const rules=q.rules;
+    const elapsed=Number(q.elapsed_days||0), meaningful=Number(q.meaningful_days||0), sessions=Number(q.exposure_sessions||0);
+    const needElapsed=Number(rules.min_elapsed_days||0), needMeaningful=Number(rules.min_trading_days||0), needSessions=Number(rules.min_sessions||0);
+    const best=q.best_day_share==null?null:Number(q.best_day_share);
+    const bestLimit=Number(rules.max_best_day_share||0);
+    reqs.push({done:elapsed>=needElapsed,txt:`<b>${elapsed.toFixed(1)}/${needElapsed}</b> elapsed observation days`});
+    reqs.push({done:meaningful>=needMeaningful,txt:`<b>${meaningful}/${needMeaningful}</b> meaningful trading days`});
+    reqs.push({done:sessions>=needSessions,txt:`<b>${sessions}/${needSessions}</b> independent exposure sessions (split or overlapping tickets do not count separately)`});
+    reqs.push({done:best!==null&&best<=bestLimit,txt:`Best positive day <b>${best===null?'not yet measurable':(best*100).toFixed(1)+'%'}</b> (maximum ${(bestLimit*100).toFixed(0)}%)`});
+  } else if(a.challenge_type==='infinity'&&q==null){
+    reqs.push({done:false,txt:'Qualification evidence unavailable — progress cannot be confirmed yet'});
+  }
+  for(const unmet of P.unmet||[]){
+    if(['OPEN_POSITIONS','ACCOUNT_BREACH'].includes(unmet))reqs.push({done:false,txt:escapeHtml(unmet.replaceAll('_',' ').toLowerCase())});
+  }
   if(!reqs.length) reqs.push({done:true,txt:'No progression requirements on this account'});
 
   document.getElementById('ch-reqs').innerHTML=reqs.map(r=>`
@@ -2942,6 +2959,9 @@ function renderChallenge(){
 
   const notes=[];
   if(L.max_risk_per_trade_usd!=null) notes.push(`Max risk per trade: ${money(L.max_risk_per_trade_usd)} (${L.max_risk_per_trade_pct}% of starting balance), measured from your stop.`);
+  if(a.challenge_type==='infinity'&&a.stage===2)notes.push('Stage 2 earnings are visible but held until full Stage 3 completion. Minimum withdrawal: $500.');
+  if(a.challenge_type==='infinity'&&a.stage===3)notes.push('Stage 3 payout requests unlock only after full completion and the $500 minimum; Stage 4 allocation requires separate review.');
+  if(a.challenge_type==='infinity'&&a.stage===4)notes.push('Stage 4 allocation is reviewed between $25K and $500K based on performance; no live capital is automatic.');
   if(L.drawdown_mode==='trailing_eod') notes.push('Your drawdown floor only moves up at the end of a trading day — an intraday spike you give back does not tighten it.');
   if(L.drawdown_mode==='trailing_intraday') notes.push('Your drawdown floor follows your highest equity as it happens.');
   document.getElementById('ch-note').innerHTML=notes.join('<br>');

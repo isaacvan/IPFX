@@ -1111,7 +1111,9 @@
         <h1 id="challengeLaunchTitle">Launching<br>1 October 2026</h1>
         <div class="challenge-launch-date">Free Infinity applications open at launch</div>
         <p id="challengeLaunchCopy">Infinity is the only programme launching on 1 October. Traditional, Futures and PAC remain on hold.</p>
+        <p class="challenge-launch-status" id="challengePreregisteredNote" hidden>Pre-registration submitted. Please verify your email, then sign in when applications open.</p>
         <a class="challenge-preview-link" id="challengePreviewLogin" href="/team-login.html">Authorised team preview</a>
+        <a class="challenge-preview-link" id="challengeSigninLink" href="/login.html?next=%2Fdashboard.html" hidden>Sign in</a>
         <p class="challenge-launch-status" id="challengeLaunchStatus" role="status" aria-live="polite"></p>
     </div>
 </section>
@@ -1533,7 +1535,7 @@
         </div>
         <ul class="os-perks">
             <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Fee refunded on first payout</li>
-            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Payouts from a $1,000 minimum</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Payouts from a $500 minimum</li>
             <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> 85% profit split when funded</li>
         </ul>
     </aside>
@@ -1589,11 +1591,17 @@
     <script>
     (async function challengeLaunchGate() {
       const launchAt = Date.parse('2026-09-30T23:00:00Z');
-      const programme = new URLSearchParams(location.search).get('type') || 'infinity';
+      const params = new URLSearchParams(location.search);
+      const programme = params.get('type') || 'infinity';
+      const preregistered = params.get('preregistered') === '1';
       const gate = document.getElementById('challengeLaunchGate');
       const app = document.getElementById('challengePreviewApp');
       const status = document.getElementById('challengeLaunchStatus');
       const login = document.getElementById('challengePreviewLogin');
+      if (Date.now() < launchAt && programme === 'infinity' && preregistered) {
+        document.getElementById('challengePreregisteredNote').hidden = false;
+        document.getElementById('challengeSigninLink').hidden = false;
+      }
       const next = location.pathname + location.search + location.hash;
       login.href = '/team-login.html?next=' + encodeURIComponent(next);
       function openPreview() {
@@ -1621,7 +1629,16 @@
         const [{ data: { user } }, { data: { session } }] = await Promise.all([
           db.auth.getUser(), db.auth.getSession(),
         ]);
-        if (!user || !session) return;
+        if (!user || !session) {
+          if (programme === 'infinity' && !preregistered) {
+            let justRegistered = false;
+            try { justRegistered = sessionStorage.getItem('ipfx-infinity-preregistered') === '1'; } catch (_) { /* display-only marker */ }
+            if (!justRegistered) {
+              location.replace('/signup.html?next=' + encodeURIComponent('/start-challenge.html?type=infinity'));
+            }
+          }
+          return;
+        }
         const response = await fetch('https://agulweemteoeagscmppy.supabase.co/functions/v1/team-access', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },

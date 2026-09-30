@@ -809,7 +809,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="stat-card"><div class="sc-label">Total Paid Out</div><div class="sc-val pos" id="pout-total">$0.00</div><div class="sc-sub">All time</div></div>
         <div class="stat-card"><div class="sc-label">Available Now</div><div class="sc-val gold" id="pout-avail">$0.00</div><div class="sc-sub" id="pout-avail-sub">No funded account yet</div></div>
         <div class="stat-card"><div class="sc-label">Last Payout</div><div class="sc-val" id="pout-last">—</div><div class="sc-sub" id="pout-last-sub">No payouts yet</div></div>
-        <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val" id="pout-next">—</div><div class="sc-sub">After first funded week</div></div>
+        <div class="stat-card"><div class="sc-label">Next Eligible</div><div class="sc-val" id="pout-next">—</div><div class="sc-sub" id="pout-next-sub">After first funded week</div></div>
       </div>
       <div id="poutKycNotice" style="display:none;padding:.9rem 1.1rem;border-radius:var(--r);margin-bottom:1rem;font-size:.85rem"></div>
       <div id="kycUpload" style="display:none;padding:1rem 1.1rem;border:1px solid var(--line);border-radius:var(--r);margin-bottom:1rem">
@@ -825,6 +825,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       </div>
       <div class="pout-req">
         <div class="pout-req-title">Request Payout</div>
+        <div class="pout-note" id="poutAmtLabel">Amount available to withdraw</div>
         <div class="pout-amt" id="poutAmtDisplay" style="font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700">$0.00</div>
         <div style="margin:.75rem 0">
           <label style="display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);font-weight:700;margin-bottom:.35rem">Payout method</label>
@@ -2143,10 +2144,30 @@ function renderPayoutStats(kyc){
   document.getElementById('kycUpload').style.display=(kycStatus==='unverified'||kycStatus==='rejected')?'':'none';
 
   const s=PAYOUT_SUMMARY;
+  const note=document.getElementById('poutNote');
+  const amountLabel=document.getElementById('poutAmtLabel');
+  if(s&&s.payout_kind==='infinity_stage3'){
+    const held=Number(s.stage2_held||0),available=Number(s.available_now||0);
+    const complete=s.stage3_status==='passed';
+    document.getElementById('pout-total').textContent='$0.00';
+    document.getElementById('pout-avail').textContent=poutFmt(available);
+    document.getElementById('pout-avail-sub').textContent=complete?'Stage 3 complete · subject to payout checks':'Stage 2 earnings held until Stage 3 completion';
+    document.getElementById('pout-next').textContent=complete?'Now':'Stage 3';
+    document.getElementById('pout-next-sub').textContent=complete?'Minimum withdrawal $500':'Complete the full 6% target and published rules';
+    amountLabel.textContent=complete?'Amount available to withdraw':'Held Stage 2 earnings — not yet withdrawable';
+    document.getElementById('poutAmtDisplay').textContent=poutFmt(complete?available:held);
+    note.textContent=complete
+      ?available<500?'Minimum withdrawal is $500. Your earnings remain on the account until the minimum is reached.':'Stage 2 and Stage 3 earnings combined · $500 minimum withdrawal · subject to identity and payout checks.'
+      :'Minimum withdrawal is $500. Stage 2 earnings stay visible but cannot be withdrawn until Stage 3 is fully completed.';
+    document.getElementById('poutSubmitBtn').disabled=complete?(available<500||kycStatus!=='verified'||!PAYOUT_METHODS.length):held<=0;
+    return;
+  }
   if(!s||!s.has_funded_account){
     document.getElementById('pout-avail').textContent='$0.00';
     document.getElementById('pout-avail-sub').textContent='No funded account yet';
     document.getElementById('poutAmtDisplay').textContent='$0.00';
+    amountLabel.textContent='Amount available to withdraw';
+    note.textContent='The minimum withdrawal is $500. No payout is available yet.';
     document.getElementById('poutSubmitBtn').disabled=true;
     return;
   }
@@ -2154,9 +2175,10 @@ function renderPayoutStats(kyc){
   document.getElementById('pout-avail').textContent=poutFmt(s.available_now);
   document.getElementById('pout-avail-sub').textContent=s.account_status==='active'?'Funded — good standing':'Account '+s.account_status;
   document.getElementById('poutAmtDisplay').textContent=poutFmt(s.available_now);
-  const blocked=s.investigation_hold?'Account under review':kycStatus!=='verified'?'Verify identity first':s.available_now<=0?'Nothing available yet':null;
+  amountLabel.textContent='Amount available to withdraw';
+  const blocked=s.investigation_hold?'Account under review':kycStatus!=='verified'?'Verify identity first':s.available_now<=0?'Nothing available yet':s.available_now<500?'Minimum withdrawal is $500':null;
   document.getElementById('poutSubmitBtn').disabled=!!blocked||!PAYOUT_METHODS.length;
-  document.getElementById('poutNote').textContent=blocked||(!PAYOUT_METHODS.length?'Add a payout method below first.':'Available balance shown above · profit split already applied · full period paid at once.');
+  note.textContent=blocked||(!PAYOUT_METHODS.length?'Add a payout method below first.':'Minimum withdrawal $500 · profit split already applied · full period paid at once.');
 }
 
 function renderPayoutMethods(){
@@ -2212,7 +2234,11 @@ function renderPayoutHistory(rows){
 
 async function doPayout(){
   const s=PAYOUT_SUMMARY;
-  if(!s||!s.has_funded_account){alert('You need a funded account before you can request a payout.');return;}
+  if(!s||(!s.has_funded_account&&s.payout_kind!=='infinity_stage3')){alert('No payout is available yet.');return;}
+  if(s.payout_kind==='infinity_stage3'&&s.stage3_status!=='passed'){
+    alert(Number(s.stage2_held||0)<500?'Minimum withdrawal is $500. Your Stage 2 earnings remain visible and held until you complete Stage 3.':'Complete Stage 3 before you can withdraw your held earnings.');return;
+  }
+  if(Number(s.available_now||0)<500){alert('Minimum withdrawal is $500. Your earnings remain on the account until you reach that amount.');return;}
   const method_id=document.getElementById('poutMethodSelect').value;
   if(!method_id){alert('Add and select a payout method first.');return;}
   if(!confirm(`Request a payout of ${poutFmt(s.available_now)}?`))return;
