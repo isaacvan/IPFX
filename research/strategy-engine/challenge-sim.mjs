@@ -33,7 +33,17 @@ const EPS = 1e-9;
 //   startTime        account start (the contract's accepted_at); trades before it are ignored
 //   maxCalendarDays  give up after this long (an attempt nobody would keep paying for)
 //   riskScale        fraction of the allowed risk the trader uses on each order (1 = the maximum)
-export function runChallenge(trades, preset, { startTime = trades.length ? trades[0].entryTime : 0, maxCalendarDays = 365, riskScale = 1 } = {}) {
+//   milestonePcts    closed-profit milestones (in % of the starting balance) to time-stamp, e.g. the
+//                    Stage 3 level at which held Stage 2 earnings are released. A milestone counts
+//                    only when flat and when the observation gates are met (elapsed days, meaningful
+//                    days, exposure sessions, best-day share), as the published wording says.
+//   keepLog          return every order taken, with the dollar risk and P&L, for evidence analysis
+//   minRiskUsd       the smallest risk a real order can carry (0.01 lot x the trader's stop). The
+//                    trader always sizes at least this much; when even that exceeds the risk the
+//                    engine allows because the DRAWDOWN room is too small, no order can be placed
+//                    again until equity recovers, which it cannot while flat: the attempt is 'stuck'
+//                    (the engine's shrinking risk limit means accounts rarely hit the floor itself).
+export function runChallenge(trades, preset, { startTime = trades.length ? trades[0].entryTime : 0, maxCalendarDays = 365, riskScale = 1, milestonePcts = [], keepLog = false, minRiskUsd = 0 } = {}) {
   const start = preset.balance;
   const endTime = startTime + maxCalendarDays * DAY;
   const ddAmount = (start * preset.ddPct) / 100;
@@ -47,6 +57,8 @@ export function runChallenge(trades, preset, { startTime = trades.length ? trade
   let minEquity = start, maxEquity = start;
   const days = new Map(); // day -> { net, counting }
   const open = []; // { exitTime, risk, t }
+  const milestones = Object.fromEntries(milestonePcts.map((m) => [m, null]));
+  const log = keepLog ? [] : null;
 
   const ddFloor = () => (preset.ddMode === "static" ? start - ddAmount : peak - ddAmount);
   const dailyFloor = () => dayStart - (start * preset.dailyLossPct) / 100;
@@ -62,7 +74,7 @@ export function runChallenge(trades, preset, { startTime = trades.length ? trade
     dayStart = balance;
   }
 
-  function progress(now) {
+  function progress(now, level = target) {
     let tradingDays = 0, profitable = 0, meaningful = 0, sumPos = 0, best = 0;
     for (const v of days.values()) {
       if (v.counting > 0) { tradingDays++; if (v.net > start * ENGINE.profitableDayFraction) profitable++; }
@@ -70,10 +82,10 @@ export function runChallenge(trades, preset, { startTime = trades.length ? trade
       if (v.net > 0) { sumPos += v.net; if (v.net > best) best = v.net; }
     }
     const unmet = [];
-    if (target == null) unmet.push("NO_TARGET");
+    if (level == null) unmet.push("NO_TARGET");
     else {
-      if (balance < target - EPS) unmet.push("PROFIT_TARGET");
-      else if (balance - quickProfit < target - EPS) unmet.push("QUICK_TRADE_PROFIT");
+      if (balance < level - EPS) unmet.push("PROFIT_TARGET");
+      else if (balance - quickProfit < level - EPS) unmet.push("QUICK_TRADE_PROFIT");
     }
     if (tradingDays < preset.minTradingDays) unmet.push("TRADING_DAYS");
     if (tradesClosed < preset.minTrades) unmet.push("TRADES");
@@ -94,18 +106,27 @@ export function runChallenge(trades, preset, { startTime = trades.length ? trade
       outcome, reason, time, calendarDays: (time - startTime) / DAY, balance, returnPct: ((balance - start) / start) * 100,
       tradesTaken: taken, tradesClosed, sessions, tradingDays: p.tradingDays, profitableDays: p.profitableDays,
       meaningfulDays: p.meaningfulDays, bestDayShare: p.bestDayShare, unmet: p.unmet.filter((u) => u !== "OPEN_POSITIONS"),
-      maxDrawdownPct: ((maxEquity - minEquity) / start) * 100, blocked, ...extra,
+      maxDrawdownPct: ((maxEquity - minEquity) / start) * 100, blocked, milestones, log, ...extra,
     };
   }
 
   // Nothing but the observation period changes between trades, so when every other gate is met the
   // engine's next check passes the account as soon as that period ends, which can be between trades.
-  function passTime(now) {
-    if (open.length || target == null || lastFlat == null) return null;
-    const p = progress(now);
-    if (p.unmet.some((u) => u !== "OBSERVATION_PERIOD")) return null;
+  function passTime(now, level = target, ignore = []) {
+    if (open.length || level == null || lastFlat == null) return null;
+    const p = progress(now, level);
+    if (p.unmet.some((u) => u !== "OBSERVATION_PERIOD" && !ignore.includes(u))) return null;
     const at = Math.max(lastFlat, q ? startTime + q.minElapsedDays * DAY : lastFlat);
     return at <= now ? at : null;
+  }
+  function stampMilestones(now) {
+    for (const m of milestonePcts) {
+      if (milestones[m] != null) continue;
+      // the published milestone wording (infinity.html) names only the observation gates:
+      // elapsed days, meaningful days, sessions and best-day share
+      const at = passTime(now, start * (1 + m / 100), ["TRADING_DAYS", "TRADES", "PROFITABLE_DAYS"]);
+      if (at != null) milestones[m] = at;
+    }
   }
 
   function close(pos) {
@@ -118,6 +139,7 @@ export function runChallenge(trades, preset, { startTime = trades.length ? trade
     if (trough <= ddFloor() + EPS) return "max_drawdown";
     if (trough <= dailyFloor() + EPS) return "daily_loss";
     const pnl = t.r * risk, held = t.exitTime - t.entryTime;
+    if (log) log.push({ t, risk, pnl, balanceAfter: balance + pnl });
     if (preset.ddMode === "trailing_intraday") peak = Math.max(peak, balance + (t.mfeR ?? Math.max(0, t.r)) * risk, balance + pnl);
     balance += pnl;
     maxEquity = Math.max(maxEquity, balance);
@@ -139,6 +161,7 @@ export function runChallenge(trades, preset, { startTime = trades.length ? trade
     const nextExit = nextExitIdx >= 0 ? open[nextExitIdx].t.exitTime : Infinity;
     const now = Math.min(nextEntry, nextExit);
 
+    if (milestonePcts.length) stampMilestones(Math.min(now, endTime));
     const passAt = passTime(Math.min(now, endTime));
     if (passAt != null) return result("pass", passAt, null);
     if (now === Infinity) return result("data_end", lastFlat ?? startTime, "ran out of trades", { censored: true });
@@ -157,9 +180,14 @@ export function runChallenge(trades, preset, { startTime = trades.length ? trade
     if (open.length >= ENGINE.maxOpenPositions) { blocked.positions++; continue; }
     if (cap != null && balance - dayStart >= cap - EPS) { blocked.cap++; continue; }
     const limit = allowedRisk();
-    const risk = limit * riskScale;
+    const risk = Math.max(limit * riskScale, minRiskUsd);
     const openRisk = open.reduce((s, p) => s + p.risk, 0);
-    if (risk <= 0.01 || openRisk + risk > limit * ENGINE.maxTotalRiskMultiple + 0.01) { blocked.risk++; continue; }
+    if (risk <= 0.01 || risk > limit + 1e-9 || openRisk + risk > limit * ENGINE.maxTotalRiskMultiple + 0.01) {
+      blocked.risk++;
+      const ddLimit = ENGINE.drawdownBufferRiskFraction * Math.max(0, balance - ddFloor());
+      if (!open.length && minRiskUsd > 0 && ddLimit < minRiskUsd) return result("stuck", t.entryTime, "risk_below_min_lot");
+      continue;
+    }
     // SQL: a new exposure session starts when the entry is over 60 minutes after the latest exit so far
     const gap = (q ? q.sessionFlatGapMinutes : 60) * 60;
     if (lastExitSeen == null || t.entryTime > lastExitSeen + gap) sessions++;
