@@ -52,7 +52,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
 import { insertAccountFromPreset as insertFromPresetShared } from "../_shared/provisioning.ts";
-import { feedConfig, feedQuote, loadFeedInstruments, openFeedSession } from "../_shared/tradelocker-feed.ts";
+import { feedConfig, feedQuote, loadFeedInstruments, openFeedSession, type FeedInstrument, type FeedSession } from "../_shared/tradelocker-feed.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -375,7 +375,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
           providerTs: cached.provider_ts ? new Date(cached.provider_ts).getTime() : null,
           feedTs: cached.feed_ts ? Date.parse(cached.feed_ts) : null,
           receivedTs: new Date(cached.received_at).getTime(),
-          source: FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo",
+          source: cached.source || (FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo"),
         };
         quoteCache.set(symKey, q);
         return q;
@@ -420,6 +420,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
       provider_ts: q.providerTs ? new Date(q.providerTs).toISOString() : null,
       feed_ts: q.feedTs ? new Date(q.feedTs).toISOString() : null,
       received_at: new Date(q.receivedTs).toISOString(),
+      source: q.source,
     });
   } catch (_) { /* best-effort write-through — a failed cache write must never block the quote itself */ }
   return q;
@@ -447,7 +448,7 @@ async function warmQuotes(force = false): Promise<void> {
         symbol: row.symbol, mid: Number(row.mid), bid: Number(row.bid), ask: Number(row.ask), spread: Number(row.spread),
         providerTs: row.provider_ts ? Date.parse(row.provider_ts) : null, receivedTs,
         feedTs: row.feed_ts ? Date.parse(row.feed_ts) : null, 
-        source: FXCM_SYMBOLS[row.symbol] ? "fxcm-basic" : "yahoo-demo",
+        source: row.source || (FXCM_SYMBOLS[row.symbol] ? "fxcm-basic" : "yahoo-demo"),
       });
     }
   } catch (_) { /* optimisation only: fetchQuote still falls back per symbol */ }
@@ -498,6 +499,7 @@ async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<st
         provider_ts: providerTs ? new Date(providerTs).toISOString() : null,
         feed_ts: feedTs ? new Date(feedTs).toISOString() : null,
         received_at: new Date(receivedTs).toISOString(),
+        source: "fxcm-basic",
       });
     }
   }
@@ -522,8 +524,205 @@ async function broadcastQuotes(qs: Quote[]): Promise<void> {
   } catch (_) { /* push is display-only; polling still delivers prices */ }
 }
 
+// ---------- TradeLocker price source ----------
+// Throttled record of which instruments traders are watching (one write per symbol per 5s per isolate).
+const demandNotedAt = new Map<string, number>();
+function noteDemand(symbol: string) {
+  const now = Date.now();
+  if (now - (demandNotedAt.get(symbol) ?? 0) < 5000) return;
+  demandNotedAt.set(symbol, now);
+  getCacheClient().from("quote_demand").upsert({ symbol, last_at: new Date(now).toISOString() }).then(() => {}, () => {});
+}
+
+// Most-traded first: when the request budget can't cover everything, these get TradeLocker prices first.
+const TL_PRIORITY = ["EURUSD", "XAUUSD", "GBPUSD", "NSXUSD", "DJI", "USDJPY", "BTCUSD", "SPXUSD", "GER40", "ETHUSD",
+  "AUDUSD", "USDCAD", "GBPJPY", "EURJPY", "XAGUSD", "USDCHF", "NZDUSD", "EURGBP", "UK100", "US2000", "JPN225",
+  "FRA40", "EURCAD", "AUDCAD", "XPTUSD", "XPDUSD", "ADAUSD"];
+const TL_FRESH_MS = 8_000;        // a TradeLocker price older than this is not served (FXCM takes over)
+const TL_COVER_S = 5;             // every served instrument is re-fetched at least this often
+const TL_MIN_RATE = 0.5, TL_START_RATE = 2;
+type TlQuote = { bid: number; ask: number; changedAt: number; fetchedAt: number };
+
+class TradeLockerFeed {
+  rate = TL_START_RATE; maxRate = 8; tokens = 0; lastRefill = Date.now(); pausedUntil = 0; inFlight = 0; successes = 0;
+  quotes = new Map<string, TlQuote>(); lastFetch = new Map<string, number>(); pending: Quote[] = [];
+  hot = new Set<string>(); hotAt = 0; served: string[] = [];
+  stats = { fetches: 0, ok: 0, r429: 0, errors: 0, tlChanges: {} as Record<string, number>, fxChanges: {} as Record<string, number>, maxDiffBps: {} as Record<string, number> };
+  constructor(public db: Db, public mode: "shadow" | "tradelocker", public sess: FeedSession, public instruments: FeedInstrument[], public runId: string, public leaseUntil: number) {}
+
+  static async start(db: Db, mode: "shadow" | "tradelocker", connectionId: string | null, runId: string, until: number): Promise<TradeLockerFeed | null> {
+    const nowIso = new Date().toISOString();
+    const { data: got } = await db.from("price_feed_state").update({ lease_until: new Date(until + 1000).toISOString(), lease_owner: runId, updated_at: nowIso })
+      .eq("id", true).or(`lease_until.is.null,lease_until.lt.${nowIso}`).select("*");
+    if (!got || !got.length) return null;                          // another pump run holds the TradeLocker lease
+    const st = got[0];
+    try {
+      const sess = await openFeedSession(db, connectionId);
+      let instruments: FeedInstrument[] | null = Array.isArray(st.instruments) && st.instruments.length && st.instruments_at &&
+        Date.now() - Date.parse(st.instruments_at) < 6 * 3600_000 ? st.instruments : null;
+      let maxRate = Number(st.max_rate) || 0;
+      if (!instruments) {
+        instruments = await loadFeedInstruments(sess);
+        try {
+          const cfg = await feedConfig(sess) as { rateLimits?: { rateLimitType: string; measure: string; intervalNum: number; limit: number }[] };
+          const q = (cfg.rateLimits ?? []).find((r) => r.rateLimitType === "QUOTES");
+          if (q && q.measure === "SECONDS" && q.intervalNum > 0) maxRate = (q.limit / q.intervalNum) * 0.8;
+        } catch (_) { /* keep the previous ceiling */ }
+        await db.from("price_feed_state").update({ instruments, instruments_at: nowIso, max_rate: maxRate || null }).eq("id", true);
+      }
+      const f = new TradeLockerFeed(db, mode, sess, instruments, runId, until + 1000);
+      f.maxRate = maxRate || 8;
+      f.rate = Math.min(f.maxRate, Math.max(TL_MIN_RATE, Number(st.rate) || TL_START_RATE));
+      // Seed from the cache so a new run continues seamlessly where the previous one stopped.
+      const { data: rows } = await db.from("live_quotes").select("symbol,bid,ask,provider_ts,feed_ts,source").eq("source", "tradelocker");
+      for (const r of rows ?? []) {
+        if (!r.feed_ts) continue;
+        f.quotes.set(r.symbol, { bid: Number(r.bid), ask: Number(r.ask), changedAt: r.provider_ts ? Date.parse(r.provider_ts) : Date.parse(r.feed_ts), fetchedAt: Date.parse(r.feed_ts) });
+        f.lastFetch.set(r.symbol, Date.parse(r.feed_ts));
+      }
+      await f.refreshHot();
+      f.chooseServed(Array.isArray(st.tl_symbols) ? st.tl_symbols : []);
+      return f;
+    } catch (e) {
+      await db.from("price_feed_state").update({ lease_until: nowIso, stats: { error: String(e).slice(0, 200), at: nowIso } }).eq("id", true);
+      await logFeedEvent(db, "outage", null, "tradelocker feed start failed: " + String(e).slice(0, 150));
+      throw e;                                                     // caller falls back to FXCM for this run
+    }
+  }
+
+  // Instruments with open trades, resting orders or recent viewers.
+  async refreshHot() {
+    this.hotAt = Date.now();
+    const since = new Date(Date.now() - 60_000).toISOString();
+    const [t, p, d] = await Promise.all([
+      this.db.from("trades").select("symbol").eq("status", "open").limit(2000),
+      this.db.from("pending_orders").select("symbol").eq("status", "pending").limit(2000),
+      this.db.from("quote_demand").select("symbol").gte("last_at", since),
+    ]);
+    this.hot = new Set([...(t.data ?? []), ...(p.data ?? []), ...(d.data ?? [])].map((r: { symbol: string }) => r.symbol));
+  }
+
+  // Which instruments TradeLocker serves this run. Sticky (no source flip-flopping); sized so every served
+  // instrument is refreshed at least every TL_COVER_S using half the budget, leaving the rest for hot ones.
+  chooseServed(previous: string[]) {
+    const mapped = new Set(this.instruments.map((i) => i.symKey));
+    if (this.mode === "shadow") { this.served = [...mapped]; return; }
+    const cap = Math.max(1, Math.floor(this.rate * 0.5 * TL_COVER_S));
+    const order = [...new Set([...previous.filter((s) => this.hot.has(s)), ...previous, ...TL_PRIORITY.filter((s) => this.hot.has(s)), ...TL_PRIORITY])]
+      .filter((s) => mapped.has(s));
+    this.served = order.slice(0, cap);
+  }
+
+  private pick(): FeedInstrument | null {
+    const now = Date.now();
+    let best: FeedInstrument | null = null, bestScore = -1;
+    for (const i of this.instruments) {
+      if (!this.served.includes(i.symKey)) continue;
+      const age = now - (this.lastFetch.get(i.symKey) ?? 0);
+      const score = age * (this.hot.has(i.symKey) ? 3 : 1);
+      if (score > bestScore) { bestScore = score; best = i; }
+    }
+    return best;
+  }
+
+  private async fetchOne(i: FeedInstrument, fxMid: number | null) {
+    this.stats.fetches++;
+    this.lastFetch.set(i.symKey, Date.now());
+    try {
+      const q = await feedQuote(this.sess, i);
+      if (!q) return;
+      this.stats.ok++;
+      if (++this.successes >= 20) { this.successes = 0; this.rate = Math.min(this.maxRate, this.rate + 0.25); }
+      const now = Date.now();
+      const prev = this.quotes.get(i.symKey);
+      const mid = (q.bid + q.ask) / 2;
+      const inst = INSTRUMENTS[i.symKey];
+      if (prev) {
+        const pm = (prev.bid + prev.ask) / 2;
+        if (pm > 0 && now - prev.fetchedAt < BAD_TICK_WINDOW_MS && Math.abs(mid - pm) / pm > (BAD_TICK_MAX_MOVE[inst?.cls ?? "forex"] ?? 0.03)) return;
+      }
+      const changed = !prev || prev.bid !== q.bid || prev.ask !== q.ask;
+      this.quotes.set(i.symKey, { bid: q.bid, ask: q.ask, changedAt: changed ? now : prev!.changedAt, fetchedAt: now });
+      if (changed) {
+        this.stats.tlChanges[i.symKey] = (this.stats.tlChanges[i.symKey] ?? 0) + 1;
+        this.pending.push({ symbol: i.symKey, mid: round6(mid), bid: round6(q.bid), ask: round6(q.ask), spread: round6(q.ask - q.bid), providerTs: now, feedTs: now, receivedTs: now, source: "tradelocker" });
+      }
+      if (fxMid && fxMid > 0) {
+        const bps = Math.round(Math.abs(mid - fxMid) / fxMid * 1e5) / 10;
+        this.stats.maxDiffBps[i.symKey] = Math.max(this.stats.maxDiffBps[i.symKey] ?? 0, bps);
+      }
+    } catch (e) {
+      if (String(e).includes("TRADELOCKER_HTTP_429")) {
+        this.stats.r429++; this.successes = 0; this.tokens = 0;
+        this.rate = Math.max(TL_MIN_RATE, this.rate * 0.5);
+        this.pausedUntil = Date.now() + 1500;
+      } else this.stats.errors++;
+    }
+  }
+
+  // Called every pump tick: spend the request budget (token bucket), then hand back rows/changes to publish.
+  async tick(fxRows: Record<string, unknown>[], fxChanged: Quote[]): Promise<{ rows: Record<string, unknown>[]; changed: Quote[] }> {
+    const now = Date.now();
+    if (now - this.hotAt > 5000) this.refreshHot().catch(() => {});
+    this.tokens = Math.min(Math.max(1, this.rate), this.tokens + this.rate * (now - this.lastRefill) / 1000);
+    this.lastRefill = now;
+    const fxMid = new Map(fxRows.map((r) => [String(r.symbol), Number(r.mid)]));
+    for (const c of fxChanged) this.stats.fxChanges[c.symbol] = (this.stats.fxChanges[c.symbol] ?? 0) + 1;
+    while (now >= this.pausedUntil && this.tokens >= 1 && this.inFlight < 3) {
+      const i = this.pick();
+      if (!i) break;
+      this.tokens -= 1; this.inFlight++;
+      this.fetchOne(i, fxMid.get(i.symKey) ?? null).finally(() => { this.inFlight--; });
+      this.lastFetch.set(i.symKey, now);
+    }
+    if (this.mode === "shadow") { this.pending = []; return { rows: fxRows, changed: fxChanged }; }
+    // Serve TradeLocker for its instruments while fresh; FXCM (or Yahoo) remains the automatic fallback.
+    const served = new Set(this.served.filter((s) => { const q = this.quotes.get(s); return q && now - q.fetchedAt < TL_FRESH_MS; }));
+    const rows = fxRows.filter((r) => !served.has(String(r.symbol)));
+    for (const s of served) {
+      const q = this.quotes.get(s)!;
+      rows.push({
+        symbol: s, mid: round6((q.bid + q.ask) / 2), bid: round6(q.bid), ask: round6(q.ask), spread: round6(q.ask - q.bid),
+        provider_ts: new Date(q.changedAt).toISOString(), feed_ts: new Date(q.fetchedAt).toISOString(),
+        received_at: new Date(now).toISOString(), source: "tradelocker",
+      });
+    }
+    const changed = [...fxChanged.filter((c) => !served.has(c.symbol)), ...this.pending.filter((c) => served.has(c.symbol))];
+    this.pending = [];
+    return { rows, changed };
+  }
+
+  async finish() {
+    await this.db.from("price_feed_state").update({
+      rate: this.rate, tl_symbols: this.served, lease_until: new Date().toISOString(),
+      last_429_at: this.stats.r429 ? new Date().toISOString() : undefined,
+      stats: { ...this.stats, mode: this.mode, rate: this.rate, max_rate: this.maxRate, served: this.served, hot: [...this.hot], at: new Date().toISOString() },
+      updated_at: new Date().toISOString(),
+    }).eq("id", true).eq("lease_owner", this.runId);
+  }
+}
+
 async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number; pushed: number }> {
   const until = Date.now() + durationMs;
+  const runId = crypto.randomUUID();
+  let feedMode: "fxcm" | "shadow" | "tradelocker" = "fxcm";
+  let feedConn: string | null = null;
+  try {
+    const { data: cfg } = await db.from("platform_config").select("price_feed,price_feed_connection_id").eq("id", true).maybeSingle();
+    if (cfg?.price_feed === "shadow" || cfg?.price_feed === "tradelocker") { feedMode = cfg.price_feed; feedConn = cfg.price_feed_connection_id ?? null; }
+  } catch (_) { /* default: FXCM only */ }
+  let tl: TradeLockerFeed | null = null;
+  let nextLeaseTry = 0;
+  let tlFailed = false;
+  // While another run still holds the TradeLocker lease, don't overwrite its instruments with FXCM prices
+  // (that would flip the source back and forth at every hand-over).
+  let reserved = new Set<string>();
+  if (feedMode === "tradelocker") {
+    try {
+      const { data: st } = await db.from("price_feed_state").select("tl_symbols").eq("id", true).maybeSingle();
+      reserved = new Set(st?.tl_symbols ?? []);
+    } catch (_) { /* nothing reserved */ }
+  }
   const prev = new Map<string, Quote>();
   try {
     const { data: seed } = await db.from("live_quotes").select("*");
@@ -539,7 +738,17 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
   while (Date.now() < until) {
     const t0 = Date.now();
     try {
-      const { rows, changed } = await pumpFxcmOnce(prev);
+      if (feedMode !== "fxcm" && !tl && !tlFailed && Date.now() >= nextLeaseTry) {
+        nextLeaseTry = Date.now() + 1000;               // the previous run releases its lease as it ends
+        try { tl = await TradeLockerFeed.start(db, feedMode, feedConn, runId, until); } catch (_) { tlFailed = true; }
+      }
+      const fx = await pumpFxcmOnce(prev);
+      let out = fx;
+      if (tl) out = await tl.tick(fx.rows, fx.changed);
+      else if (feedMode === "tradelocker" && !tlFailed && reserved.size) {
+        out = { rows: fx.rows.filter((r) => !reserved.has(String(r.symbol))), changed: fx.changed.filter((c) => !reserved.has(c.symbol)) };
+      }
+      const { rows, changed } = out;
       if (rows.length) {
         await Promise.all([
           db.from("live_quotes").upsert(rows),
@@ -554,6 +763,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
     const wait = PUMP_INTERVAL_MS - (Date.now() - t0);
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   }
+  if (tl) await tl.finish().catch(() => {});
   return { ticks, pushed };
 }
 function quoteStale(q: Quote): boolean {
@@ -561,7 +771,7 @@ function quoteStale(q: Quote): boolean {
   const cls = INSTRUMENTS[q.symbol]?.cls;
   const limit = cls === "crypto" ? STALE_MS_CRYPTO : cls === "future" ? STALE_MS_FUTURES : STALE_MS;
   const now = Date.now();
-  if (q.source === "fxcm-basic" && q.feedTs != null) {
+  if ((q.source === "fxcm-basic" || q.source === "tradelocker") && q.feedTs != null) {
     // Feed-level liveness first: if nothing in the whole FXCM feed has moved within the limit, fail closed.
     if (now - q.feedTs > limit) return true;
     // Feed alive: an unchanged price is still the current price, until the symbol has been silent too long.
@@ -1099,7 +1309,7 @@ async function lastKnownQuote(symKey: string): Promise<Quote | null> {
       providerTs: data.provider_ts ? Date.parse(data.provider_ts) : null,
       feedTs: data.feed_ts ? Date.parse(data.feed_ts) : null,
       receivedTs: Date.parse(data.received_at),
-      source: FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo",
+      source: data.source || (FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo"),
     };
   } catch (_) { return null; }
 }
@@ -2218,6 +2428,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
   if (body.action === "price") {
     const symbol = cleanSymbol(body.symbol);
     if (!symbol) return err("Unknown instrument");
+    noteDemand(symbol);
     await warmQuotes();
     const inst = INSTRUMENTS[symbol];
     let risk_status: { status: string; breach_reason: string | null } | null = null;
@@ -2251,7 +2462,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     const stale = quoteStale(q);
     if (stale) await logFeedEvent(db, "stale", symbol, `age_ms=${Date.now() - (q.providerTs ?? q.receivedTs)}`);
     return new Response(JSON.stringify({
-      ok: true, symbol, status: stale ? "stale" : (q.source === "fxcm-basic" ? "live" : "demo"),
+      ok: true, symbol, status: stale ? "stale" : (q.source === "fxcm-basic" || q.source === "tradelocker" ? "live" : "demo"),
       mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
       quote_ts: q.providerTs, received_ts: q.receivedTs,
       digits: inst.digits, source: q.source, risk_status,

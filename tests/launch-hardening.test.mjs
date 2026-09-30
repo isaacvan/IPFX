@@ -158,3 +158,18 @@ test('TradeLocker price source: only prices leave the server; probe is cron-secr
   assert.match(engine, /body\.action === "feed_probe"/);
   assert.match(engine, /if \(!expected \|\| secret !== expected\) return err\("Not authorized", 401\);/);
 });
+
+test('TradeLocker price source: switchable, leased, rate-adaptive, sticky, FXCM fallback', () => {
+  const m = read('supabase/migrations/20261001000000_tradelocker_price_feed.sql');
+  assert.match(m, /price_feed text not null default 'fxcm'/);
+  assert.match(m, /check \(price_feed in \('fxcm','shadow','tradelocker'\)\)/);
+  assert.match(m, /create table if not exists public\.price_feed_state/);
+  assert.match(m, /revoke all on public\.price_feed_state from anon, authenticated/);
+  assert.match(engine, /class TradeLockerFeed/);
+  assert.match(engine, /or\(`lease_until\.is\.null,lease_until\.lt\.\$\{nowIso\}`\)/);
+  assert.match(engine, /this\.rate = Math\.max\(TL_MIN_RATE, this\.rate \* 0\.5\)/);   // back off on 429
+  assert.match(engine, /this\.rate = Math\.min\(this\.maxRate, this\.rate \+ 0\.25\)/); // ramp on success
+  assert.match(engine, /now - q\.fetchedAt < TL_FRESH_MS/);                           // stale TL -> FXCM fallback
+  assert.match(engine, /if \(this\.mode === "shadow"\) \{ this\.pending = \[\]; return \{ rows: fxRows, changed: fxChanged \}; \}/);
+  assert.match(engine, /q\.source === "fxcm-basic" \|\| q\.source === "tradelocker"/);
+});
