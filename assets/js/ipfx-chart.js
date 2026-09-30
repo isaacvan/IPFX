@@ -206,11 +206,10 @@
         series.applyOptions({ lastValueVisible: true, priceLineVisible: true });
         return;
       }
-      const last = raw[raw.length - 1];
-      const color = !last || last.close >= last.open ? UP : DOWN;
-      const opts = (price) => ({ price, color, lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, title: "" });
-      if (bidLine) bidLine.applyOptions(opts(bid)); else bidLine = series.createPriceLine(opts(bid));
-      if (askLine) askLine.applyOptions(opts(ask)); else askLine = series.createPriceLine(opts(ask));
+      // Colours match the ticket: red = Bid (the SELL price), green = Ask (the BUY price).
+      const opts = (price, color, title) => ({ price, color, lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, title });
+      if (bidLine) bidLine.applyOptions(opts(bid, DOWN, "Bid")); else bidLine = series.createPriceLine(opts(bid, DOWN, "Bid"));
+      if (askLine) askLine.applyOptions(opts(ask, UP, "Ask")); else askLine = series.createPriceLine(opts(ask, UP, "Ask"));
       series.applyOptions({ lastValueVisible: false, priceLineVisible: false });
     }
 
