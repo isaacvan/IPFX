@@ -1,0 +1,113 @@
+{
+  "at": "2026-09-30T20:15:27.718Z",
+  "results": [
+    {
+      "traders": 50,
+      "engine": {
+        "name": "engine (auth path)",
+        "n": 1538,
+        "rps": 73.9,
+        "p50": 115,
+        "p95": 507,
+        "p99": 1145,
+        "http5xx": 0,
+        "rate_limited_429": 0,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      },
+      "candles": {
+        "name": "chart-candles",
+        "n": 31,
+        "rps": 1.5,
+        "p50": 398,
+        "p95": 586,
+        "p99": 678,
+        "http5xx": 0,
+        "rate_limited_429": 0,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      }
+    },
+    {
+      "traders": 100,
+      "engine": {
+        "name": "engine (auth path)",
+        "n": 3306,
+        "rps": 157.5,
+        "p50": 82,
+        "p95": 158,
+        "p99": 295,
+        "http5xx": 0,
+        "rate_limited_429": 0,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      },
+      "candles": {
+        "name": "chart-candles",
+        "n": 62,
+        "rps": 3,
+        "p50": 349,
+        "p95": 500,
+        "p99": 546,
+        "http5xx": 0,
+        "rate_limited_429": 6,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      }
+    },
+    {
+      "traders": 200,
+      "engine": {
+        "name": "engine (auth path)",
+        "n": 6753,
+        "rps": 323.5,
+        "p50": 74,
+        "p95": 134,
+        "p99": 235,
+        "http5xx": 0,
+        "rate_limited_429": 0,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      },
+      "candles": {
+        "name": "chart-candles",
+        "n": 140,
+        "rps": 6.7,
+        "p50": 163,
+        "p95": 228,
+        "p99": 296,
+        "http5xx": 0,
+        "rate_limited_429": 140,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      }
+    },
+    {
+      "traders": 300,
+      "engine": {
+        "name": "engine (auth path)",
+        "n": 9337,
+        "rps": 447.6,
+        "p50": 77,
+        "p95": 638,
+        "p99": 1400,
+        "http5xx": 0,
+        "rate_limited_429": 0,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      },
+      "candles": {
+        "name": "chart-candles",
+        "n": 197,
+        "rps": 9.4,
+        "p50": 176,
+        "p95": 1032,
+        "p99": 1639,
+        "http5xx": 0,
+        "rate_limited_429": 137,
+        "transport_errors": 0,
+        "unexpected_status": 0
+      }
+    }
+  ]
+}
