@@ -130,3 +130,23 @@ export function responseIds(value: unknown): { orderId: string | null; positionI
 export async function closePosition(accessToken: string, accNum: string, positionId: string): Promise<unknown> {
   return request(`/trade/positions/${encodeURIComponent(positionId)}`, { method: "DELETE", body: JSON.stringify({ qty: 0 }) }, accessToken, accNum);
 }
+
+// ---- market data (price feed) ----
+// Quotes use the instrument's INFO route; orders use its TRADE route.
+export function infoRoute(instrument: Record<string, unknown>): number | null {
+  const routes = Array.isArray(instrument.routes) ? instrument.routes.map(object) : [];
+  const route = routes.find((r) => String(r.type).toUpperCase() === "INFO") ?? routes.find((r) => String(r.type).toUpperCase() === "TRADE") ?? routes[0];
+  const id = Number(route?.id);
+  return Number.isFinite(id) ? id : null;
+}
+
+export async function tradeConfig(accessToken: string, accNum: string): Promise<Record<string, unknown>> {
+  return unwrap(await request("/trade/config", { method: "GET" }, accessToken, accNum));
+}
+
+// Current executable bid/ask for one instrument. Returns null when the broker has no price.
+export async function quote(accessToken: string, accNum: string, routeId: number, tradableInstrumentId: number | string): Promise<{ bid: number; ask: number } | null> {
+  const d = unwrap(await request(`/trade/quotes?routeId=${routeId}&tradableInstrumentId=${tradableInstrumentId}`, { method: "GET" }, accessToken, accNum));
+  const bid = Number(d.bp ?? d.bid), ask = Number(d.ap ?? d.ask);
+  return Number.isFinite(bid) && Number.isFinite(ask) && bid > 0 && ask >= bid ? { bid, ask } : null;
+}

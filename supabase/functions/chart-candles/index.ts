@@ -64,6 +64,14 @@ const TF: Record<string, { interval: string; range: string; group: number; secon
   "W": { interval: "1wk", range: "10y", group: 1, seconds: 604800, cache: 1800 },
 };
 
+// Second timeframes are built from IPFX's own recorded price changes (quote_ticks), not Yahoo.
+// windowSec bounds how far back they go (ticks are kept for 6 hours).
+const SEC_TF: Record<string, { seconds: number; windowSec: number; cache: number }> = {
+  "1S": { seconds: 1, windowSec: 45 * 60, cache: 1 },
+  "15S": { seconds: 15, windowSec: 6 * 3600, cache: 2 },
+  "30S": { seconds: 30, windowSec: 6 * 3600, cache: 3 },
+};
+
 type Bar = { t: number; o: number; h: number; l: number; c: number; v: number };
 const memo = new Map<string, { at: number; body: unknown }>();
 
@@ -143,7 +151,7 @@ Deno.serve(async (req) => {
   const symbol = cleanSymbol(params.symbol);
   const tf = String(params.tf ?? "60");
   if (!symbol) return json({ ok: false, error: "Unknown instrument" }, 400);
-  if (!TF[tf]) return json({ ok: false, error: "Unknown timeframe" }, 400);
+  if (!TF[tf] && !SEC_TF[tf]) return json({ ok: false, error: "Unknown timeframe" }, 400);
 
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const ip = req.headers.get("cf-connecting-ip") || (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
@@ -153,6 +161,28 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     console.error(JSON.stringify({ event: "chart_candles_rate_limit", code: safeErrorCode(e) }));
+  }
+
+  const sec = SEC_TF[tf];
+  if (sec) {
+    const skey = `${symbol}|${tf}`;
+    const shit = memo.get(skey);
+    if (shit && Date.now() - shit.at < sec.cache * 1000) return json(shit.body, 200, sec.cache);
+    const since = new Date(Date.now() - sec.windowSec * 1000).toISOString();
+    const { data: ticks, error: tickErr } = await db.from("quote_ticks").select("ts,mid")
+      .eq("symbol", symbol).gte("ts", since).order("ts", { ascending: true }).limit(50000);
+    if (tickErr) return json({ ok: false, error: "Chart history is temporarily unavailable" }, 502);
+    const bars: Bar[] = [];
+    for (const t of ticks ?? []) {
+      const time = Math.floor(Date.parse(t.ts) / 1000 / sec.seconds) * sec.seconds;
+      const px = Number(t.mid);
+      const last = bars[bars.length - 1];
+      if (last && last.t === time) { last.h = Math.max(last.h, px); last.l = Math.min(last.l, px); last.c = px; }
+      else bars.push({ t: time, o: last ? last.c : px, h: Math.max(px, last ? last.c : px), l: Math.min(px, last ? last.c : px), c: px, v: 0 });
+    }
+    const body = { ok: true, symbol, tf, source: "ipfx-ticks", proxy: false, volume_source: null, closes_only: false, seconds: sec.seconds, bars: bars.slice(-2000) };
+    memo.set(skey, { at: Date.now(), body });
+    return json(body, 200, sec.cache);
   }
 
   const spec = TF[tf];

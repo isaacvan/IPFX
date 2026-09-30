@@ -16,9 +16,9 @@
   const LWC = window.LightweightCharts;
   const CANDLES_URL = "https://agulweemteoeagscmppy.supabase.co/functions/v1/chart-candles";
   const TZ = "Europe/London";
-  const TF_SECONDS = { "1": 60, "3": 180, "5": 300, "15": 900, "30": 1800, "60": 3600, "240": 14400, D: 86400, W: 604800 };
+  const TF_SECONDS = { "1S": 1, "15S": 15, "30S": 30, "1": 60, "3": 180, "5": 300, "15": 900, "30": 1800, "60": 3600, "240": 14400, D: 86400, W: 604800 };
   const UP = "#10b981", DOWN = "#ef4444", BLUE = "#2563eb";
-  const TF_LABEL = { "1": "1m", "3": "3m", "5": "5m", "15": "15m", "30": "30m", "60": "1H", "240": "4H", D: "1D", W: "1W" };
+  const TF_LABEL = { "1S": "1s", "15S": "15s", "30S": "30s", "1": "1m", "3": "3m", "5": "5m", "15": "15m", "30": "30m", "60": "1H", "240": "4H", D: "1D", W: "1W" };
 
   // ---------------------------------------------------------------- time labels (London)
   const fmtCache = {};

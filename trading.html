@@ -1753,6 +1753,9 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
       <button class="brw-act" onclick="flattenAll()">Close all</button>
     </div>
     <div class="chart-toolbar" id="chartToolbar">
+      <button class="tf-btn" onclick="setTf('1S',this)" title="1 Second — each candle = 1 second. Built from IPFX's own live prices (last 45 minutes).">1s</button>
+      <button class="tf-btn" onclick="setTf('15S',this)" title="15 Seconds — built from IPFX's own live prices (last 6 hours).">15s</button>
+      <button class="tf-btn" onclick="setTf('30S',this)" title="30 Seconds — built from IPFX's own live prices (last 6 hours).">30s</button>
       <button class="tf-btn" onclick="setTf('1',this)" title="1 Minute — each candle = 1 min. Scalping only.">1m</button>
       <button class="tf-btn" onclick="setTf('3',this)" title="3 Minutes — fast scalping timeframe.">3m</button>
       <button class="tf-btn" onclick="setTf('5',this)" title="5 Minutes — popular for news-event scalps.">5m</button>
@@ -6495,7 +6498,7 @@ function renderSetupChips(){
   // (exactly the bug class that had "ADX" pointing at the DMI study).
   const IND_NAMES=Object.fromEntries(INDS.map(i=>[i.id,i.name]));
   IND_NAMES['PivotPointsStandard@tv-basicstudies']=IND_NAMES['PivotPointsStandard@tv-basicstudies']||'Pivots';
-  const TF_DISPLAY={'1':'1M','3':'3M','5':'5M','15':'15M','30':'30M','60':'1H','120':'2H','240':'4H','D':'1D','W':'1W'};
+  const TF_DISPLAY={'1S':'1S','15S':'15S','30S':'30S','1':'1M','3':'3M','5':'5M','15':'15M','30':'30M','60':'1H','120':'2H','240':'4H','D':'1D','W':'1W'};
   const STYLE_DISPLAY={1:'Candles',2:'Line',3:'Bars',8:'Heikin Ashi'};
   let html='';
   inds.forEach(id=>{ html+=`<span class="setup-chip sc-ind">${IND_NAMES[id]||id}</span>`; });

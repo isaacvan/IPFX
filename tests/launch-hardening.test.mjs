@@ -137,3 +137,24 @@ test('a quiet FXCM symbol on a live feed is not stale; a dead feed or long-silen
   assert.match(engine, /const SYMBOL_QUIET_MAX_MS = 60_000;/);
   assert.match(engine, /feed_ts: feedTs \? new Date\(feedTs\)\.toISOString\(\) : null/);
 });
+
+test('1s / 15s / 30s timeframes are built from IPFX recorded price changes', () => {
+  const m = read('supabase/migrations/20260930170000_quote_ticks_seconds_candles.sql');
+  assert.match(m, /create table if not exists public\.quote_ticks/);
+  assert.match(m, /interval '6 hours'/);
+  assert.match(engine, /db\.from\("quote_ticks"\)\.insert\(/);
+  const candles = read('supabase/functions/chart-candles/index.ts');
+  assert.match(candles, /"1S": \{ seconds: 1/);
+  assert.match(candles, /"15S": \{ seconds: 15/);
+  assert.match(candles, /"30S": \{ seconds: 30/);
+  assert.match(candles, /source: "ipfx-ticks"/);
+  assert.match(read('assets/js/ipfx-chart.js'), /TF_SECONDS = \{ "1S": 1, "15S": 15, "30S": 30,/);
+  assert.match(platform, /setTf\('1S',this\)/);
+});
+
+test('TradeLocker price source: only prices leave the server; probe is cron-secret gated', () => {
+  const feed = read('supabase/functions/_shared/tradelocker-feed.ts');
+  assert.match(feed, /Only prices ever leave the\s+\/\/ server/);
+  assert.match(engine, /body\.action === "feed_probe"/);
+  assert.match(engine, /if \(!expected \|\| secret !== expected\) return err\("Not authorized", 401\);/);
+});

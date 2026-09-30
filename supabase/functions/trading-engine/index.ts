@@ -52,6 +52,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
 import { insertAccountFromPreset as insertFromPresetShared } from "../_shared/provisioning.ts";
+import { feedConfig, feedQuote, loadFeedInstruments, openFeedSession } from "../_shared/tradelocker-feed.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -540,7 +541,12 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
     try {
       const { rows, changed } = await pumpFxcmOnce(prev);
       if (rows.length) {
-        await Promise.all([db.from("live_quotes").upsert(rows), broadcastQuotes(changed)]);
+        await Promise.all([
+          db.from("live_quotes").upsert(rows),
+          broadcastQuotes(changed),
+          // every price change, for the 1s / 15s / 30s chart candles (kept 6h)
+          changed.length ? db.from("quote_ticks").insert(changed.map((q) => ({ symbol: q.symbol, ts: new Date(q.receivedTs).toISOString(), mid: q.mid, bid: q.bid, ask: q.ask }))) : null,
+        ]);
         pushed += changed.length;
       }
     } catch (_) { /* one bad tick never stops the pump */ }
@@ -1948,6 +1954,51 @@ const handleRequest = async (req: Request): Promise<Response> => {
   // moved back, silently erasing a breach that should have happened.
   // Called by pg_cron (see setup-drawdown-sweep-cron.sql), not by users:
   // authenticated by a shared secret header, never a user JWT.
+  // Read-only diagnostics for the TradeLocker price feed (cron secret). mode "config": renew the token and read
+  // the account's rate limits + instrument mapping. mode "quotes": time real quote requests, paced by "pace_ms".
+  if (body.action === "feed_probe") {
+    const secret = req.headers.get("x-cron-secret");
+    const expected = Deno.env.get("CRON_SECRET");
+    if (!expected || secret !== expected) return err("Not authorized", 401);
+    const pdb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const out: Record<string, unknown> = { mode: body.mode ?? "config" };
+    try {
+      let t = Date.now();
+      const sess = await openFeedSession(pdb, null);
+      out.session_ms = Date.now() - t;
+      t = Date.now();
+      const inst = await loadFeedInstruments(sess);
+      out.instruments_ms = Date.now() - t;
+      out.mapped = inst.map((i) => i.symKey);
+      if ((body.mode ?? "config") === "config") {
+        const cfg = await feedConfig(sess);
+        out.config = JSON.stringify(cfg).slice(0, 6000);
+      } else {
+        const pace = Math.max(100, Number(body.pace_ms) || 500);
+        const sym = String(body.symbol || "EURUSD");
+        const target = inst.find((i) => i.symKey === sym);
+        if (!target) throw new Error("SYMBOL_NOT_MAPPED");
+        const samples: { ms: number; bid?: number; ask?: number; err?: string }[] = [];
+        const n = Math.min(60, Number(body.count) || 20);
+        for (let k = 0; k < n; k++) {
+          const t1 = Date.now();
+          try { const q = await feedQuote(sess, target); samples.push({ ms: Date.now() - t1, bid: q?.bid, ask: q?.ask }); }
+          catch (e) { samples.push({ ms: Date.now() - t1, err: String(e).slice(0, 100) }); }
+          const wait = pace - (Date.now() - t1);
+          if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+        }
+        let changes = 0;
+        for (let k = 1; k < samples.length; k++) if (samples[k].bid !== samples[k - 1].bid || samples[k].ask !== samples[k - 1].ask) changes++;
+        out.symbol = sym; out.pace_ms = pace; out.count = n; out.changes = changes;
+        out.errors = samples.filter((x) => x.err).length;
+        out.first_error = samples.find((x) => x.err)?.err ?? null;
+        out.latency_ms = samples.map((x) => x.ms);
+        out.last = samples[samples.length - 1];
+      }
+    } catch (e) { out.error = String(e).slice(0, 300); }
+    return new Response(JSON.stringify(out), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+
   if (body.action === "pump") {
     const secret = req.headers.get("x-cron-secret");
     const expected = Deno.env.get("CRON_SECRET");
