@@ -466,6 +466,8 @@ body.light .ipc-lg-sym{color:#111;}
 .op-risk.over .op-risk-val{color:#f98a8a;}
 .op-risk-note{font-size:.66rem;color:#606060;margin-top:.2rem;line-height:1.4;}
 .op-risk.over .op-risk-note{color:#f98a8a;}
+.op-risk-size{margin-top:.35rem;background:transparent;border:1px solid #3a3a3a;color:#d0d0d0;border-radius:6px;font-size:.66rem;padding:.2rem .5rem;cursor:pointer;}
+.op-risk-size:hover{border-color:#6a6a6a;color:#fff;}
 .ord-buy-sell{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
 .ord-buy{padding:.55rem;border-radius:7px;border:none;background:#10b981;color:#fff;font-family:var(--font-ui);font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s;}
 .ord-buy:hover{background:#059669;}
@@ -1881,7 +1883,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
           <button type="button" class="op-signin-btn" onclick="openDesktopAuth()">Sign in</button>
         </div>
         <div class="op-limit-card" id="opLimitCard"><div><span class="op-limit-kicker">Account order limit</span><strong id="opLimitSummary">Sign in to view limits</strong></div><span class="op-limit-state" id="opLimitState">—</span></div>
-        <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Risk on this order</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div></div>
+        <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Risk on this order</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div><button type="button" class="op-risk-size" id="opRiskSize" hidden onclick="sizeToRiskCap()">Size to risk cap</button></div>
         <div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
         <div class="op-presets" aria-label="Quick lot sizes"><button type="button" class="op-preset active" onclick="setLots(0.01,this)">0.01</button><button type="button" class="op-preset" onclick="setLots(0.1,this)">0.10</button><button type="button" class="op-preset" onclick="setLots(0.5,this)">0.50</button><button type="button" class="op-preset" onclick="setLots(1,this)">1.00</button><button type="button" class="op-preset" onclick="setLots(2,this)">2.00</button></div>
@@ -2704,6 +2706,7 @@ function updateRiskPreview(){
 
   const risk=Math.abs(entry-slVal)*contractSizeFor(activeSym)*ordLots;
   const cap=L.max_risk_per_trade_usd;
+  const sizeBtn=document.getElementById('opRiskSize');if(sizeBtn)sizeBtn.hidden=!(cap!=null&&isFinite(+cap)&&+cap>0);
   const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
   box.style.display='';
   document.getElementById('opRiskVal').textContent=money(risk);
@@ -4785,6 +4788,25 @@ async function omSubmit(){
   engineMsg(omMode==='partial'?'Partial close filled':'Position updated',true);
   omClose();
 }
+// Break-even: move the stop to the entry price through the normal server-validated modify path.
+// The engine rejects it (with a message) when price hasn't moved far enough in the trade's favour.
+// Largest size whose entry-to-stop risk fits the account's per-trade cap (rounded DOWN so it never exceeds it).
+function sizeToRiskCap(){
+  const a=engineState&&engineState.account, cap=a&&a.limits&&+a.limits.max_risk_per_trade_usd;
+  const slVal=parseFloat((document.getElementById('slPrice')||{}).value), entry=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
+  const perLot=Math.abs(entry-slVal)*contractSizeFor(activeSym);
+  if(!cap||!isFinite(perLot)||perLot<=0){engineMsg('Set a stop loss first',false);return;}
+  const fut=futSym(activeSym);
+  const lots=fut?Math.floor(cap/perLot):Math.floor((cap/perLot)*100+1e-9)/100;
+  if(lots<(fut?1:0.01)){engineMsg('Stop is too wide for your risk cap at the minimum size',false);return;}
+  setLots(lots,null);
+}
+async function moveToBreakEven(id){
+  const t=((engineState&&engineState.open_trades)||[]).find(x=>x.id===id);
+  if(!t||engineBusy)return;
+  const r=await engineCall({action:'modify',trade_id:t.id,sl:Number(t.open_price),tp:t.tp==null?null:Number(t.tp)});
+  if(r)engineMsg('Stop moved to break-even',true);
+}
 async function reversePosition(){
   const o=engineState&&engineState.open_trades;
   if(!o||!o.length){placeOrder('buy');return;}
@@ -4989,6 +5011,7 @@ function renderPosTable(o){
       <td class="postbl-id">${String(p.id).slice(0,8).toUpperCase()}</td>
       <td><div class="postbl-act">
         <div class="postbl-act-btn act-edit" title="Modify stop loss / take profit" onclick="openModifyDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+        <div class="postbl-act-btn act-be" title="Move stop loss to break-even (entry price)" onclick="moveToBreakEven('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12h16"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/></svg></div>
         <div class="postbl-act-btn act-partial" title="Close part of this position" onclick="openPartialDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12h18"/><path d="M12 3v6"/></svg></div>
         <div class="postbl-act-btn" title="Close" onclick="closeTradeById('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
       </div></td>
@@ -5270,7 +5293,7 @@ if(hasSession()){
   engineCall({action:'state'});
   loadJournalEntries().then(renderJournal);
 }
-setInterval(()=>{if(!engineBusy&&hasSession())engineCall({action:'state'});},4000);
+setInterval(()=>{if(!engineBusy&&hasSession()&&!pollsPaused())engineCall({action:'state'});},4000);
 function updateOrdPrices(value){
   const q=(value&&typeof value==='object')?value:{mid:+value};
   const mid=+q.mid;
@@ -5342,9 +5365,26 @@ function applyFeedGate(){
     b.setAttribute('aria-disabled',stale?'true':'false');
   });
 }
+// Load shaping (300+ concurrent traders): hidden tabs don't poll, idle tabs and closed markets poll slowly.
+// Visible + active keeps the full 750ms cadence so execution prices stay fresh.
+let lastUserActivity=Date.now(), lastTicketPoll=0;
+['pointerdown','keydown','wheel','mousemove'].forEach(ev=>addEventListener(ev,()=>{lastUserActivity=Date.now();},{passive:true}));
+function pollsPaused(){return document.hidden===true;}
+function ticketPollDue(){
+  const since=Date.now()-lastTicketPoll;
+  if(typeof feedState!=='undefined'&&feedState==='closed')return since>=10000;
+  if(Date.now()-lastUserActivity>300000)return since>=3000;
+  return true;
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||!hasSession())return;
+  lastTicketPoll=0;pollTicketPrice();
+  if(!engineBusy)engineCall({action:'state'});
+  if(typeof pollWatchlist==='function')pollWatchlist();
+});
 async function pollTicketPrice(){
-  if(priceFetchBusy||!activeSym||!hasSession())return;
-  priceFetchBusy=true;
+  if(priceFetchBusy||!activeSym||!hasSession()||pollsPaused()||!ticketPollDue())return;
+  priceFetchBusy=true;lastTicketPoll=Date.now();
   const polledSym=activeSym;
   const tok=await freshToken();
   if(tok){
@@ -5796,7 +5836,7 @@ function flashWlCell(el,newText){
   }
 }
 async function pollWatchlist(){
-  if(wlCollapsed||wlPollBusy||typeof hasSession!=='function'||!hasSession())return;
+  if(wlCollapsed||wlPollBusy||typeof hasSession!=='function'||!hasSession()||document.hidden)return;
   const list=document.getElementById('wlList');
   if(!list||!list.children.length)return;
   wlPollBusy=true;

@@ -34,3 +34,27 @@ jobs:
           check_page 'https://ipfxcapital.com/' 'IPFX'
           check_page 'https://ipfxcapital.com/trading.html' 'IPFX Markets'
 
+
+      - name: Check trading engine and price feed health
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://agulweemteoeagscmppy.supabase.co/functions/v1'
+          # Engine must be up and must refuse unauthenticated calls (401), never 5xx.
+          code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 15 -X POST "$base/trading-engine" -H 'Content-Type: application/json' -d '{"action":"state"}')"
+          echo "trading-engine unauthenticated -> $code"
+          test "$code" = "401"
+          # Crypto trades 24/7: the newest 1-minute BTCUSD candle must be under 5 minutes old.
+          curl --silent --show-error --max-time 20 "$base/chart-candles?symbol=BTCUSD&tf=1" | python3 -c '
+          import sys, json, time
+          j = json.load(sys.stdin)
+          assert j.get("ok") and j.get("bars"), "no candles"
+          t = j["bars"][-1]["t"]; t = t / 1000 if t > 1e11 else t
+          age = time.time() - t
+          print(f"BTCUSD last candle age {age:.0f}s")
+          assert age < 300, f"price feed stale: {age:.0f}s"
+          '
+
+      - uses: actions/checkout@v4
+      - name: Anonymous RLS exposure probe
+        run: node scripts/anon-rls-probe.mjs
