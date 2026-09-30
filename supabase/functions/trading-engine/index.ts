@@ -57,6 +57,8 @@ const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-ipfx-bot-token",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Expose-Headers": "Server-Timing",
+  "Timing-Allow-Origin": "*",
 };
 
 // The one official quote source. Must match a row in market_data_sources.
@@ -406,6 +408,129 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
   return q;
 }
 function round6(n: number) { return Math.round(n * 1e6) / 1e6; }
+
+// ---------- low-latency quote path ----------
+// warmQuotes(): ONE query loads every fresh row of the shared quote cache into this isolate's Map,
+// so the rest of the request (enforce, marks, conversions, fills) never waits on a per-symbol read.
+// The quote pump below keeps that cache no more than ~250ms behind the upstream feed.
+const WARM_EVERY_MS = 150;
+let lastWarmAt = 0;
+async function warmQuotes(force = false): Promise<void> {
+  if (!force && Date.now() - lastWarmAt < WARM_EVERY_MS) return;
+  lastWarmAt = Date.now();
+  try {
+    const { data } = await getCacheClient().from("live_quotes").select("*");
+    const now = Date.now();
+    for (const row of data ?? []) {
+      const receivedTs = Date.parse(row.received_at);
+      if (!isFinite(receivedTs) || now - receivedTs >= CACHE_TTL_MS) continue;
+      const cur = quoteCache.get(row.symbol);
+      if (cur && cur.receivedTs >= receivedTs) continue;
+      quoteCache.set(row.symbol, {
+        symbol: row.symbol, mid: Number(row.mid), bid: Number(row.bid), ask: Number(row.ask), spread: Number(row.spread),
+        providerTs: row.provider_ts ? Date.parse(row.provider_ts) : null, receivedTs,
+        source: FXCM_SYMBOLS[row.symbol] ? "fxcm-basic" : "yahoo-demo",
+      });
+    }
+  } catch (_) { /* optimisation only: fetchQuote still falls back per symbol */ }
+}
+
+// Quote pump: one FXCM download per tick covers every FXCM symbol. Runs as a background loop started by
+// pg_cron every 30s (action "pump"), writes the shared cache in one upsert and pushes changed prices to
+// the platform over private Realtime channels ("quotes:<SYMBOL>"). Trader requests never wait on FXCM.
+const PUMP_INTERVAL_MS = 250;
+const FXCM_REVERSE: Record<string, string[]> = {};
+for (const [k, v] of Object.entries(FXCM_SYMBOLS)) (FXCM_REVERSE[v] ??= []).push(k);
+
+async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<string, unknown>[]; changed: Quote[] }> {
+  const r = await fetch("https://rates.fxcm.com/RatesXML?ts=" + Date.now(), {
+    headers: { "Accept": "application/xml", "Cache-Control": "no-cache", "User-Agent": "IPFXEngine/2.0" },
+    signal: AbortSignal.timeout(2000),
+  });
+  if (!r.ok) return { rows: [], changed: [] };
+  const xml = await r.text();
+  const receivedTs = Date.now();
+  const rows: Record<string, unknown>[] = [];
+  const changed: Quote[] = [];
+  for (const m of xml.matchAll(/<Rate\s+Symbol="([^"]+)">([\s\S]*?)<\/Rate>/g)) {
+    const keys = FXCM_REVERSE[m[1]];
+    if (!keys) continue;
+    const block = m[2];
+    const bid = Number(/<Bid>([^<]+)<\/Bid>/.exec(block)?.[1]);
+    const ask = Number(/<Ask>([^<]+)<\/Ask>/.exec(block)?.[1]);
+    if (!isFinite(bid) || !isFinite(ask) || bid <= 0 || ask <= bid) continue;
+    const providerTs = fxcmTimestamp(/<Last>([^<]+)<\/Last>/.exec(block)?.[1] ?? "", receivedTs);
+    for (const symKey of keys) {
+      const inst = INSTRUMENTS[symKey];
+      if (!inst) continue;
+      const q: Quote = {
+        symbol: symKey, mid: round6((bid + ask) / 2), bid: round6(bid), ask: round6(ask),
+        spread: round6(ask - bid), providerTs, receivedTs, source: "fxcm-basic",
+      };
+      // Same off-market tick filter as fetchQuote: an implausible jump is dropped until the last
+      // accepted price is older than the window (the stale row then makes requests fail closed).
+      const p = prev.get(symKey);
+      if (p && p.mid > 0 && receivedTs - p.receivedTs < BAD_TICK_WINDOW_MS &&
+        Math.abs(q.mid - p.mid) / p.mid > (BAD_TICK_MAX_MOVE[inst.cls] ?? 0.03)) continue;
+      if (!p || p.bid !== q.bid || p.ask !== q.ask || p.providerTs !== q.providerTs) changed.push(q);
+      prev.set(symKey, q);
+      rows.push({
+        symbol: symKey, mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
+        provider_ts: providerTs ? new Date(providerTs).toISOString() : null,
+        received_at: new Date(receivedTs).toISOString(),
+      });
+    }
+  }
+  return { rows, changed };
+}
+
+async function broadcastQuotes(qs: Quote[]): Promise<void> {
+  if (!qs.length) return;
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  try {
+    await fetch(Deno.env.get("SUPABASE_URL") + "/realtime/v1/api/broadcast", {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: qs.map((q) => ({
+          topic: "quotes:" + q.symbol, event: "q", private: true,
+          payload: { s: q.symbol, b: q.bid, a: q.ask, m: q.mid, sp: q.spread, pt: q.providerTs, rt: q.receivedTs, d: INSTRUMENTS[q.symbol]?.digits },
+        })),
+      }),
+      signal: AbortSignal.timeout(2000),
+    });
+  } catch (_) { /* push is display-only; polling still delivers prices */ }
+}
+
+async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number; pushed: number }> {
+  const until = Date.now() + durationMs;
+  const prev = new Map<string, Quote>();
+  try {
+    const { data: seed } = await db.from("live_quotes").select("*");
+    for (const row of seed ?? []) {
+      if (!FXCM_SYMBOLS[row.symbol]) continue;
+      prev.set(row.symbol, {
+        symbol: row.symbol, mid: Number(row.mid), bid: Number(row.bid), ask: Number(row.ask), spread: Number(row.spread),
+        providerTs: row.provider_ts ? Date.parse(row.provider_ts) : null, receivedTs: Date.parse(row.received_at), source: "fxcm-basic",
+      });
+    }
+  } catch (_) { /* no reference yet: the first tick seeds it */ }
+  let ticks = 0, pushed = 0;
+  while (Date.now() < until) {
+    const t0 = Date.now();
+    try {
+      const { rows, changed } = await pumpFxcmOnce(prev);
+      if (rows.length) {
+        await Promise.all([db.from("live_quotes").upsert(rows), broadcastQuotes(changed)]);
+        pushed += changed.length;
+      }
+    } catch (_) { /* one bad tick never stops the pump */ }
+    ticks++;
+    const wait = PUMP_INTERVAL_MS - (Date.now() - t0);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  }
+  return { ticks, pushed };
+}
 function quoteStale(q: Quote): boolean {
   const refTs = q.providerTs ?? q.receivedTs;
   const cls = INSTRUMENTS[q.symbol]?.cls;
@@ -1193,8 +1318,10 @@ async function evaluateAlerts(db: Db, userId: string | null): Promise<number> {
 }
 
 async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number; unpriced: number }> {
-  const { data: openRows } = await db.from("trades")
-    .select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at");
+  const [{ data: openRows }] = await Promise.all([
+    db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at"),
+    warmQuotes(),
+  ]);
   let open: Tr[] = openRows ?? [];
 
   // Recovery path: if a worker stopped after the DB freeze but before every
@@ -1638,6 +1765,7 @@ async function executeAtMarket(
     const delay = EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1));
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
+  await warmQuotes(true);
   let later = await fetchQuote(symKey);
   if (later === null || quoteStale(later)) {
     if (failClosed) return null;
@@ -1771,7 +1899,11 @@ async function logFeedEvent(db: Db, event: "stale" | "outage" | "reconnect" | "s
   try { await db.from("feed_health_events").insert({ source_id: SOURCE_ID, event, symbol, detail }); } catch (_) { /* best effort */ }
 }
 
-Deno.serve(async (req) => {
+// deno-lint-ignore no-explicit-any
+const authCache = new Map<string, { user: any; until: number }>();
+const AUTH_CACHE_MS = 30_000;
+
+const handleRequest = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return err("POST only", 405);
 
@@ -1786,6 +1918,24 @@ Deno.serve(async (req) => {
   // moved back, silently erasing a breach that should have happened.
   // Called by pg_cron (see setup-drawdown-sweep-cron.sql), not by users:
   // authenticated by a shared secret header, never a user JWT.
+  if (body.action === "pump") {
+    const secret = req.headers.get("x-cron-secret");
+    const expected = Deno.env.get("CRON_SECRET");
+    if (!expected || secret !== expected) return err("Not authorized", 401);
+    const pumpDb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const durationMs = Math.min(58_000, Math.max(5_000, Number(body.duration_ms) || 29_000));
+    const job = runQuotePump(pumpDb, durationMs);
+    // Respond immediately and keep pumping in the background so pg_net never holds a connection open.
+    // deno-lint-ignore no-explicit-any
+    const rt = (globalThis as any).EdgeRuntime;
+    if (rt && typeof rt.waitUntil === "function") {
+      rt.waitUntil(job);
+      return new Response(JSON.stringify({ ok: true, pumping_ms: durationMs }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+    const res = await job;
+    return new Response(JSON.stringify({ ok: true, ...res }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+
   if (body.action === "sweep") {
     const secret = req.headers.get("x-cron-secret");
     const expected = Deno.env.get("CRON_SECRET");
@@ -1876,12 +2026,31 @@ Deno.serve(async (req) => {
     if (adminErr || !adminUser?.user) return err("Invalid or revoked API token", 401);
     user = adminUser.user;
   } else {
-    const authClient = createClient(
-      Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: { user: sessionUser } } = await authClient.auth.getUser();
-    user = sessionUser;
+    // The platform polls every 750ms with the same session token. Verify it with Supabase Auth once, then
+    // reuse the verified user for up to AUTH_CACHE_MS (never past the token's own expiry) in this isolate.
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const cacheKey = token.split(".").length === 3 ? await sha256Hex(token) : "";
+    const cached = cacheKey ? authCache.get(cacheKey) : undefined;
+    if (cached && cached.until > Date.now()) {
+      user = cached.user;
+    } else {
+      const authClient = createClient(
+        Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: { user: sessionUser } } = await authClient.auth.getUser();
+      user = sessionUser;
+      if (sessionUser && cacheKey) {
+        let until = Date.now() + AUTH_CACHE_MS;
+        try {
+          const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          const claims = JSON.parse(atob(part + "=".repeat((4 - part.length % 4) % 4)));
+          if (typeof claims.exp === "number") until = Math.min(until, claims.exp * 1000);
+        } catch (_) { /* keep the short default */ }
+        if (authCache.size > 5000) authCache.clear();
+        authCache.set(cacheKey, { user: sessionUser, until });
+      }
+    }
   }
   if (!user) return err("Not signed in", 401);
 
@@ -1968,6 +2137,7 @@ Deno.serve(async (req) => {
   if (body.action === "price") {
     const symbol = cleanSymbol(body.symbol);
     if (!symbol) return err("Unknown instrument");
+    await warmQuotes();
     const inst = INSTRUMENTS[symbol];
     let risk_status: { status: string; breach_reason: string | null } | null = null;
     // The connected terminal asks for a quote every 750ms. Use that same
@@ -2015,6 +2185,7 @@ Deno.serve(async (req) => {
   // Fetched in parallel, capped at 40 symbols/request so one call can't
   // be used to hammer the upstream feed.
   if (body.action === "prices") {
+    await warmQuotes();
     const raw = Array.isArray(body.symbols) ? body.symbols : [];
     const symbols = [...new Set(raw.map((s: unknown) => cleanSymbol(s)).filter((s): s is string => !!s))].slice(0, 40);
     if (!symbols.length) return err("No valid instruments requested");
@@ -2868,4 +3039,11 @@ Deno.serve(async (req) => {
   }
   return new Response(JSON.stringify(await statePayload(db, acct as Acct, after.open, after.equity, after.floating)),
     { headers: { ...CORS, "Content-Type": "application/json" } });
+};
+
+Deno.serve(async (req) => {
+  const t0 = performance.now();
+  const res = await handleRequest(req);
+  try { res.headers.set("Server-Timing", `engine;dur=${(performance.now() - t0).toFixed(1)}`); } catch (_) { /* immutable headers */ }
+  return res;
 });

@@ -464,7 +464,7 @@
       const key = sym + "|" + tf, hit = otherCache.get(key);
       if (!hit || (!hit.pending && Date.now() - hit.at > 300000)) {
         otherCache.set(key, { ...(hit || {}), pending: true });
-        fetch(`${CANDLES_URL}?symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(tf)}`).then((r) => r.json()).then((j) => {
+        fetch(`${CANDLES_URL}?forceFunctionRegion=eu-west-1&symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(tf)}`).then((r) => r.json()).then((j) => {
           if (!j || !j.ok) throw new Error("no data");
           otherCache.set(key, { at: Date.now(), closes: new Map(j.bars.map((b) => [b.t, b.c])) });
           indFull = true; scheduleIndicators();
@@ -610,7 +610,7 @@
       if (!symbol || loadingHistory || !raw.some((b) => b.volume > 0)) return;
       const sym = symbol, timeframe = tf;
       try {
-        const j = await (await fetch(`${CANDLES_URL}?symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(timeframe)}`)).json();
+        const j = await (await fetch(`${CANDLES_URL}?forceFunctionRegion=eu-west-1&symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(timeframe)}`)).json();
         if (!j || !j.ok || sym !== symbol || timeframe !== tf) return;
         const m = new Map(j.bars.map((b) => [b.t, b.v || 0]));
         let changed = false;
@@ -703,7 +703,7 @@
       makeSeries();
       hooks.loading(true);
       try {
-        const r = await fetch(`${CANDLES_URL}?symbol=${encodeURIComponent(symbol)}&tf=${encodeURIComponent(tf)}`);
+        const r = await fetch(`${CANDLES_URL}?forceFunctionRegion=eu-west-1&symbol=${encodeURIComponent(symbol)}&tf=${encodeURIComponent(tf)}`);
         const j = await r.json().catch(() => null);
         if (seq !== loadSeq) return; // a newer symbol/timeframe won the race
         if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || "Chart history unavailable");

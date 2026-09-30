@@ -92,3 +92,21 @@ test('keyboard trading is opt-in and guarded', () => {
   assert.match(platform, /tag==='INPUT'\|\|tag==='TEXTAREA'/);
   assert.match(platform, /Press Shift\+X again/);
 });
+
+test('low-latency quote path: pump, batch warm, realtime push, region pinning, auth cache', () => {
+  const m = read('supabase/migrations/20260930140000_quote_pump_realtime.sql');
+  assert.match(m, /cron\.schedule\(\s*'ipfx-quote-pump', '10 seconds'/);
+  assert.doesNotMatch(m, /[0-9a-f]{64}/, 'cron secret must never be written to the repo');
+  assert.match(m, /for select to anon, authenticated/);
+  assert.doesNotMatch(m, /for insert/i, 'clients must not be able to publish prices');
+  assert.match(engine, /body\.action === "pump"/);
+  assert.match(engine, /xml\.matchAll\(/);
+  assert.match(engine, /await warmQuotes\(true\);\s*let later = await fetchQuote/);
+  assert.match(engine, /authCache\.set\(cacheKey/);
+  assert.match(engine, /claims\.exp \* 1000/);
+  assert.match(engine, /"Server-Timing"/);
+  assert.match(platform, /ENGINE_URL='[^']+\?forceFunctionRegion=eu-west-1'/);
+  assert.match(platform, /channel\('quotes:'\+key,\{config:\{private:true\}\}\)/);
+  assert.match(platform, /j\.received_ts<quoteAppliedRt/);
+  assert.match(read('assets/js/ipfx-chart.js'), /forceFunctionRegion=eu-west-1&symbol=/);
+});

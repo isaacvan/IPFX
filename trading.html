@@ -4416,7 +4416,9 @@ setInterval(animateDom,600);
 // placed without touching the size buttons went out as a full lot while the screen said 0.01.
 let ordLots=0.01,ordMidPrice=1.0850;
 
-const ENGINE_URL='https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine';
+// forceFunctionRegion pins execution next to the database (eu-west-1): every request makes several
+// sequential DB calls, so running at a far-away edge would add a cross-region round trip to each one.
+const ENGINE_URL='https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine?forceFunctionRegion=eu-west-1';
 let engineState=null,engineBusy=false;
 let selectedAccountMode=localStorage.getItem('ipfx-account-mode')==='demo'?'demo':'challenge';
 const SB_AUTH_KEY='sb-agulweemteoeagscmppy-auth-token';
@@ -5694,7 +5696,41 @@ document.addEventListener('visibilitychange',()=>{
   if(!engineBusy)engineCall({action:'state'});
   if(typeof pollWatchlist==='function')pollWatchlist();
 });
+// ---- realtime quote push ----
+// The server's quote pump broadcasts every price change on a private channel per symbol. The platform
+// subscribes to the active symbol only, so a new price reaches the ticket and chart ~instantly instead
+// of waiting for the next poll. Polling continues as the fallback and still drives risk checks.
+let rtQuoteChan=null,rtQuoteSym=null,rtQuoteBusy=false,quoteAppliedRt=0;
+async function ensureQuoteStream(){
+  const c=getSbEngine();
+  if(!c||!hasSession()||rtQuoteBusy)return;
+  const key=execSymbol(activeSym);
+  if(rtQuoteChan&&rtQuoteSym===key)return;
+  rtQuoteBusy=true;
+  try{
+    if(rtQuoteChan){try{await c.removeChannel(rtQuoteChan);}catch(_){}rtQuoteChan=null;}
+    const tok=await freshToken();if(!tok)return;
+    try{await c.realtime.setAuth(tok);}catch(_){}
+    rtQuoteSym=key;quoteAppliedRt=0;
+    rtQuoteChan=c.channel('quotes:'+key,{config:{private:true}})
+      .on('broadcast',{event:'q'},msg=>onPushedQuote(msg&&msg.payload))
+      .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){rtQuoteChan=null;rtQuoteSym=null;}});
+  }finally{rtQuoteBusy=false;}
+}
+function onPushedQuote(p){
+  if(!p||p.s!==execSymbol(activeSym)||!isFinite(p.m)||!isFinite(p.b)||!isFinite(p.a))return;
+  if(feedState==='closed'||pollsPaused())return;
+  if(p.rt&&p.rt<=quoteAppliedRt)return;
+  quoteAppliedRt=p.rt||Date.now();
+  if(Number.isInteger(p.d))domDigits=p.d;
+  domPrice=p.m;lastQuoteTs=Date.now();
+  const q={symbol:p.s,mid:p.m,bid:p.b,ask:p.a,spread:p.sp,digits:p.d,status:'live'};
+  updateOrdPrices(q);
+  if(ipfxChart)ipfxChart.onQuote(p.m,p.b,p.a);
+  if(typeof cacheLiveQuote==='function')cacheLiveQuote(q);
+}
 async function pollTicketPrice(){
+  ensureQuoteStream();
   if(priceFetchBusy||!activeSym||!hasSession()||pollsPaused()||!ticketPollDue())return;
   priceFetchBusy=true;lastTicketPoll=Date.now();
   const polledSym=activeSym;
@@ -5714,10 +5750,13 @@ async function pollTicketPrice(){
         setFeed('closed','NO FEED');
       }else if(j&&j.ok&&isFinite(j.mid)){
         domDigits=j.digits;
-        domPrice=j.mid;
         lastQuoteTs=Date.now();
-        updateOrdPrices(j);
-        if(ipfxChart&&polledSym===activeSym&&j.status!=='stale')ipfxChart.onQuote(j.mid,j.bid,j.ask);
+        if(!(j.received_ts&&j.received_ts<quoteAppliedRt)){
+          quoteAppliedRt=j.received_ts||quoteAppliedRt;
+          domPrice=j.mid;
+          updateOrdPrices(j);
+          if(ipfxChart&&polledSym===activeSym&&j.status!=='stale')ipfxChart.onQuote(j.mid,j.bid,j.ask);
+        }
         // engine reports its own status ('live', 'demo', or 'stale') based on the
         // provider tick age — trust that over our own poll cadence.
         setFeed(j.status==='stale'?'stale':j.status==='live'?'live':'demo');
