@@ -448,6 +448,11 @@ async function tradePnl(t: Tr, exit: number): Promise<number | null> {
 // deno-lint-ignore no-explicit-any
 declare const EdgeRuntime: any;
 // Lifecycle emails never delay or fail the request that triggered them.
+// Keep mirror delivery alive after returning the source close response.
+function mirrorLater(p: Promise<unknown>) {
+  const guarded = p.catch((error) => console.error(JSON.stringify({ event: "mirror_background_failed", error: String(error).slice(0, 160) })));
+  try { EdgeRuntime.waitUntil(guarded); } catch (_) { /* local fallback: guarded promise is already running */ }
+}
 function emailLater(p: Promise<unknown>) {
   try { EdgeRuntime.waitUntil(p); } catch (_) { p.catch(() => {}); }
 }
@@ -457,21 +462,42 @@ const BREACH_TEXT: Record<string, string> = {
   daily_loss: "the daily loss limit was reached",
 };
 
-function fireMirror(acct: Acct, t: Tr, event: "open" | "close") {
+async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close") {
   // deno-lint-ignore no-explicit-any
-  if (!(acct as any).mirror_enabled) return;
-  const p = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/live-mirror`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-    },
-    body: JSON.stringify({
+  if (!(acct as any).mirror_enabled) {
+    // Disarming blocks new opens, but a copied position must still be closable.
+    let targetQuery = db.from("mirror_targets").select("id").eq("source_account_id", acct.id);
+    if (event === "open") targetQuery = targetQuery.eq("enabled", true);
+    const { data: approvedTarget } = await targetQuery.limit(1).maybeSingle();
+    if (!approvedTarget) return;
+  }
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  try {
+    const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/live-mirror`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({
+        source_trade_id: t.id, user_id: acct.user_id, event,
+        symbol: t.symbol, side: t.side, volume: Number(t.volume),
+        sl: t.sl, tp: t.tp, open_price: t.open_price,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 240)}`);
+    }
+  } catch (error) {
+    const detail = `dispatch: ${String(error).slice(0, 280)}`;
+    console.error(JSON.stringify({ event: "mirror_dispatch_failed", source_trade_id: t.id, detail }));
+    await db.from("mirror_orders").insert({
       source_trade_id: t.id, user_id: acct.user_id, event,
       symbol: t.symbol, side: t.side, volume: Number(t.volume),
-    }),
-  }).catch(() => {});
-  try { EdgeRuntime.waitUntil(p); } catch (_) { /* local/dev: fetch still fired */ }
+      status: "error", error: detail,
+    });
+  }
 }
 
 // ---------- types ----------
@@ -836,7 +862,7 @@ async function processPendingOrders(
       symbol, side: String(o.side), requested_volume: Number(o.volume),
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
-    fireMirror(acct, inserted as Tr, "open");
+    await fireMirror(db, acct, inserted as Tr, "open");
     working.push(inserted as Tr);
   }
   return working;
@@ -1091,13 +1117,15 @@ async function closeTrade(
   }).eq("id", t.id).eq("status", "open").select("id");
   if (e1 || !closedRow || closedRow.length === 0) return false; // already closed elsewhere — no-op, not an error
   acct.balance = round2(Number(acct.balance) + pnl);
+  // The source close is committed. Broker copying must not hold up the UI;
+  // EdgeRuntime.waitUntil keeps the exact-ID mirror dispatch alive.
+  mirrorLater(fireMirror(db, acct, t, "close"));
   await logAudit(db, {
     trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "close",
     symbol: t.symbol, side: t.side, requested_volume: Number(t.volume),
     requested_price: exit, fill_price: exit, quote: q ?? null,
     client_ip: reason === "manual" ? (clientIp ?? null) : null, // system-initiated closes (sl/tp/breach) have no human to attribute an IP to
   });
-  fireMirror(acct, t, "close"); // mirror the close to the live account (if enabled)
   return true;
 }
 
@@ -1764,10 +1792,9 @@ Deno.serve(async (req) => {
   if (!user) return err("Not signed in", 401);
 
   const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
-  const ownerPreviewAllowed = String(user.email || "").trim().toLowerCase() ===
-    String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
   const challengePreviewAllowed = Date.now() >= challengePublicLaunchAt ||
-    ownerPreviewAllowed;
+    String(user.email || "").trim().toLowerCase() ===
+      String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
 
   // A bot token is scoped to trading only (api_token.scope_text:
   // 'trade:own_account') — a leaked key can move positions on that one
@@ -1949,7 +1976,7 @@ Deno.serve(async (req) => {
     } else if (last && last.status === "breached") {
       breachSource = last as Acct;
       acct = await ensureDemoAccount(db, user.id);
-    } else if (!last && ownerPreviewAllowed) {
+    } else if (!last && challengePreviewAllowed) {
       // Preserve the verified promo-winner provisioning path. Everyone else
       // still receives a demo account rather than an unusable terminal.
       const provisioned = await provisionFromPromoClaim(db, user);
@@ -2319,15 +2346,14 @@ Deno.serve(async (req) => {
       }).select("id").single();
       if (error) return reject("Order failed", q);
 
-      await logAudit(db, {
-        trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
-        symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPrice, quote: q, client_ip: clientIp,
-      });
-
-      // mirror the open to the live account (fire-and-forget, if enabled)
-      if (inserted?.id) {
-        fireMirror(acct as Acct, { id: inserted.id, symbol, side, volume } as Tr, "open");
-      }
+      // The source trade is committed. Start audit and copy dispatch together.
+      await Promise.all([
+        logAudit(db, {
+          trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
+          symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPrice, quote: q, client_ip: clientIp,
+        }),
+        inserted?.id ? fireMirror(db, acct as Acct, { id: inserted.id, symbol, side, volume, open_price: openPrice, sl, tp } as Tr, "open") : Promise.resolve(),
+      ]);
 
       await db.from("equity_snapshots").insert({
         account_id: (acct as Acct).id, user_id: user.id, balance: (acct as Acct).balance, equity: state.equity,

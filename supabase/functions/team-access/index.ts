@@ -36,3 +36,4 @@ Deno.serve(async (req) => {
   if (adminError) return json({ ok: false, team_access: false }, 503);
   return json({ ok: true, team_access: !!admin });
 });
+
