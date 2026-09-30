@@ -3,7 +3,6 @@
 
   const SUPABASE_URL = 'https://agulweemteoeagscmppy.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-  const AUTHORIZED_USER_ID = 'f77286ef-8b51-47f3-b6b7-a62f541a4239';
   const BUCKET = 'desktop-releases';
   const RELEASE = 'v0.1.0-preview.3';
   const MAX_PARTS = 16;
@@ -11,19 +10,19 @@
   const RELEASES = {
     windows: {
       sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-win-x64.exe',
-      filename: 'IPFX-Markets-0.1.0-preview.3-Windows-x64.exe',
+      filename: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-Windows-x64.exe',
       contentType: 'application/vnd.microsoft.portable-executable',
       label: 'Download Windows preview'
     },
     'mac-arm64': {
       sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-mac-arm64.dmg',
-      filename: 'IPFX-Markets-0.1.0-preview.3-Apple-Silicon.dmg',
+      filename: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-Apple-Silicon.dmg',
       contentType: 'application/x-apple-diskimage',
       label: 'Download Apple Silicon preview'
     },
     'mac-x64': {
       sourceName: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-mac-x64.dmg',
-      filename: 'IPFX-Markets-0.1.0-preview.3-Intel-Mac.dmg',
+      filename: 'IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-Intel-Mac.dmg',
       contentType: 'application/x-apple-diskimage',
       label: 'Download Intel Mac preview'
     }
@@ -43,11 +42,11 @@
   }
 
   function requireSignIn() {
-    status.innerHTML = 'Sign in to your authorized IPFX account in this browser to download the private preview.';
+    status.textContent = 'Sign in to your IPFX account in this browser to download the unsigned preview.';
     for (const button of buttons) {
       button.disabled = false;
       button.textContent = 'Sign in to download';
-      setAvailability(button.dataset.desktopDownload, 'Private owner preview · sign in first');
+      setAvailability(button.dataset.desktopDownload, 'IPFX account required · unsigned preview');
       button.addEventListener('click', () => {
         window.location.assign('/login.html?next=' + encodeURIComponent('/downloads.html'));
       }, { once: true });
@@ -72,7 +71,7 @@
 
   async function requireAuthorizedUser() {
     const { data: { user }, error } = await client.auth.getUser();
-    if (error || !user || user.id !== AUTHORIZED_USER_ID) throw new Error('Owner session required');
+    if (error || !user) throw new Error('IPFX sign-in required');
   }
 
   async function startDownload(key, button) {
@@ -82,7 +81,7 @@
     const original = button.textContent;
     try {
       await requireAuthorizedUser();
-      button.textContent = 'Preparing private download…';
+      button.textContent = 'Preparing preview download…';
       const { data: manifestBlob, error: manifestError } = await client.storage.from(BUCKET).download(release.manifestPath);
       if (manifestError || !manifestBlob) throw manifestError || new Error('Release manifest unavailable');
       const manifest = validateManifest(JSON.parse(await manifestBlob.text()), release);
@@ -106,7 +105,7 @@
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
       status.textContent = 'Installer download requested. Check your browser downloads for the file.';
     } catch (_) {
-      status.textContent = 'The private download could not be prepared. Confirm you are signed in as the authorized account, then refresh and try again.';
+      status.textContent = 'The download could not be prepared. Confirm you are signed in to IPFX in this browser, then refresh and try again.';
     } finally {
       button.textContent = original;
       button.disabled = false;
@@ -124,14 +123,9 @@
       requireSignIn();
       return;
     }
-    if (user.id !== AUTHORIZED_USER_ID) {
-      status.textContent = 'This account is not authorized. Sign out, then sign in as the authorized IPFX owner in this browser.';
-      return;
-    }
-
     const { data: objects, error: listError } = await client.storage.from(BUCKET).list(RELEASE, { limit: 100 });
     if (listError) {
-      status.textContent = 'Your account is authorized, but release availability could not be checked.';
+      status.textContent = 'You are signed in, but release availability could not be checked. Please retry.';
       return;
     }
 
@@ -142,19 +136,19 @@
       const release = RELEASES[key];
       const manifestName = release.manifestPath.slice(RELEASE.length + 1);
       if (!names.has(manifestName)) {
-        setAvailability(key, 'Private build is still being transferred');
+        setAvailability(key, 'Preview build is still being transferred');
         continue;
       }
       availableCount += 1;
       button.disabled = false;
       button.textContent = release.label;
-      setAvailability(key, 'Authorized account only · unsigned preview');
+      setAvailability(key, 'IPFX account required · unsigned preview');
       button.addEventListener('click', () => startDownload(key, button));
     }
 
     status.textContent = availableCount
-      ? 'Private preview access confirmed. Downloads require your active owner session.'
-      : 'Private preview access confirmed. Installers are still being transferred.';
+      ? 'Signed-in access confirmed. These installers are unsigned previews, not production releases.'
+      : 'Signed-in access confirmed. Installers are still being transferred.';
   }
 
   initialize().catch(() => {

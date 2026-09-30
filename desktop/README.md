@@ -4,18 +4,18 @@
 
 This is a real Electron desktop client for the existing HTTPS IPFX Markets platform, not a replacement trading engine.
 Windows NSIS and macOS Apple Silicon/Intel DMG targets are configured.
-Preview installers are unsigned and are for internal testing only. Never label them production-ready.
+Preview installers are unsigned test builds available only to signed-in IPFX users. Never label them production-ready.
 No signing keys, broker tokens, Supabase service keys or payment credentials are included.
 
-The public download page intentionally has no installer links until signed artifacts exist.
+The download page requires an IPFX sign-in for preview installers; anonymous visitors cannot fetch them.
 Do not claim the desktop wrapper reduces quote latency or changes execution quality.
 
 ## Verified Windows preview
 
-- Artifact: `dist/IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.2-win-x64.exe`
-- Size: 111,763,592 bytes
-- SHA-256: `B41CF2087187DA13C9D5CAA0298FED56A63BE1D2EAEE8704562477C48E86345B`
-- Status: unsigned internal preview; do not publish as a customer release
+- Artifact: `IPFX-Markets-UNSIGNED-PREVIEW-0.1.0-preview.3-win-x64.exe`
+- Downloaded size: 111,833,914 bytes
+- Downloaded SHA-256: `FD9759B615A444F23EEF82C203E2DE6DE20DA1432F82A916E1BCB9C1647C7A0A`
+- Status: unsigned preview, not a signed customer release
 - Verified: twelve policy/release tests, Electron runtime isolation and offline behavior, package allowlist, and Electron security fuses
 
 The Windows checksum changes whenever the installer is rebuilt. Recalculate and update it before distributing any later artifact.
@@ -46,7 +46,7 @@ Close and reload commands require confirmation and never submit close/cancel ord
 5. Test open positions during disconnect, quit, reload and machine sleep. The desktop client never queues offline orders, but the current website/server must also be tested for retries and duplicate execution.
 6. Test third-party chart licensing and all embedded origins. Popups and native permissions are denied by default; OAuth/popups/native notifications are not claimed supported in this preview.
 7. Publish installers over HTTPS with version, architecture, sizes, SHA-256 checksums, release notes and minimum OS requirements verified against the actual build.
-8. Replace disabled download controls only after those artifacts and tests exist.
+8. Replace preview warnings with customer-release messaging only after signed artifacts and release tests exist.
 
 ## Security and updates
 
