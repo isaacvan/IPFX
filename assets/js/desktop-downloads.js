@@ -43,7 +43,15 @@
   }
 
   function requireSignIn() {
-    status.innerHTML = 'Private preview access requires the authorized IPFX account. <a href="/login.html">Sign in</a>, then return to this page.';
+    status.innerHTML = 'Sign in to your authorized IPFX account in this browser to download the private preview.';
+    for (const button of buttons) {
+      button.disabled = false;
+      button.textContent = 'Sign in to download';
+      setAvailability(button.dataset.desktopDownload, 'Private owner preview · sign in first');
+      button.addEventListener('click', () => {
+        window.location.assign('/login.html?next=' + encodeURIComponent('/downloads.html'));
+      }, { once: true });
+    }
   }
 
   function validateManifest(manifest, release) {
@@ -96,7 +104,7 @@
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-      status.textContent = 'Private preview download prepared for the authorized account.';
+      status.textContent = 'Installer download requested. Check your browser downloads for the file.';
     } catch (_) {
       status.textContent = 'The private download could not be prepared. Confirm you are signed in as the authorized account, then refresh and try again.';
     } finally {
@@ -117,7 +125,7 @@
       return;
     }
     if (user.id !== AUTHORIZED_USER_ID) {
-      status.textContent = 'This account is not authorized for the private desktop preview.';
+      status.textContent = 'This account is not authorized. Sign out, then sign in as the authorized IPFX owner in this browser.';
       return;
     }
 
