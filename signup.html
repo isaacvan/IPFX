@@ -744,10 +744,10 @@
                 <img src="/desktop/build/icon.png" alt="IPFX Capital">
             </div>
 
-            <div class="launch-badge">Launching October 2026</div>
-            <h1>Create Your Account</h1>
-            <p class="subtitle">Get started ahead of our October 2026 launch</p>
-            <p class="pre-register-info">Create your account and verify your email — then start the free Infinity Challenge from your dashboard.</p>
+            <div class="launch-badge">Infinity launches 1 October 2026</div>
+            <h1 id="signupHeading">Pre-register for Infinity</h1>
+            <p class="subtitle" id="signupSubtitle">Create your free account ahead of the launch</p>
+            <p class="pre-register-info" id="signupInfo">Submit this form first. We will then show you the launch date and ask you to verify your email. Pre-registration does not start a challenge.</p>
 
             <div id="alertBox" class="alert"></div>
 
@@ -826,7 +826,7 @@
                     <div class="error-message" id="consentError">Please confirm you are 18 or older and accept the terms</div>
                 </div>
 
-                <button type="submit" class="btn-signup" id="submitBtn">Create Account</button>
+                <button type="submit" class="btn-signup" id="submitBtn">Pre-register free</button>
             </form>
 
             <div class="divider">or</div>
@@ -892,6 +892,15 @@
         const requestedNext = urlParams.get('next') || '/dashboard.html';
         const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
             ? requestedNext : '/dashboard.html';
+        const beforeInfinityLaunch = Date.now() < Date.parse('2026-09-30T23:00:00Z');
+        const launchAfterSignup = beforeInfinityLaunch &&
+            (!urlParams.has('next') || /^\/start-challenge\.html(?:\?|$)/.test(safeNext));
+        if (!beforeInfinityLaunch) {
+            document.getElementById('signupHeading').textContent = 'Create Your Account';
+            document.getElementById('signupSubtitle').textContent = 'Get started with IPFX Capital';
+            document.getElementById('signupInfo').textContent = 'Create your account and verify your email before applying for an available challenge.';
+            document.getElementById('submitBtn').textContent = 'Create Account';
+        }
         if (urlReferralCode) {
             referralCodeInput.value = urlReferralCode.toUpperCase();
             referralCodeInput.readOnly = true;
@@ -1236,7 +1245,9 @@
 
                 // The promo is redeemed server-side on the dashboard after the
                 // email is verified (redeem_promo_code), never inserted from here.
-                alertBox.textContent = validatedPromo
+                alertBox.textContent = launchAfterSignup
+                    ? 'Pre-registration submitted. Check your email to verify your account. Showing the Infinity launch announcement…'
+                    : validatedPromo
                     ? `Account created! Verify your email, then log in — your ${validatedPromo.challenge_name} will be added to your dashboard. Redirecting to login…`
                     : 'Account created! Redirecting to login…';
                 alertBox.className = 'alert alert-success show';
@@ -1244,9 +1255,15 @@
                     alertBox.classList.remove('show');
                 }, 5000);
 
-                // Redirect to login after 2 seconds
+                // During pre-launch, show the announcement only after this
+                // successful sign-up response. This marker has no auth power.
                 setTimeout(() => {
-                    window.location.href = 'login.html?next=' + encodeURIComponent(safeNext);
+                    if (launchAfterSignup) {
+                        try { sessionStorage.setItem('ipfx-infinity-preregistered', '1'); } catch (_) { /* optional display marker */ }
+                        window.location.href = '/start-challenge.html?type=infinity&preregistered=1';
+                    } else {
+                        window.location.href = 'login.html?next=' + encodeURIComponent(safeNext);
+                    }
                 }, 2000);
 
             } catch (error) {
@@ -1258,7 +1275,7 @@
                     : error.message || 'An error occurred creating your account. Please try again.';
                 showAlert(errMsg, 'error');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Create Account';
+                submitBtn.textContent = beforeInfinityLaunch ? 'Pre-register free' : 'Create Account';
             }
         });
     </script>

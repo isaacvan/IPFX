@@ -797,15 +797,19 @@ function renderPayouts(){
   if(!PAYOUTS.length){document.getElementById('payoutsWrap').innerHTML='';return;}
   const stCls={requested:'active',approved:'active',paid:'passed',void:'breached'};
   document.getElementById('payoutsWrap').innerHTML=`
-    <h3 style="font-size:.9rem;margin-bottom:.75rem">Payouts</h3>
+    <h3 style="font-size:.9rem;margin-bottom:.75rem">Manual payout queue — no transfer is sent by this page</h3>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Created</th><th>Period</th><th>Gross profit</th><th>Split</th><th>Trader share</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Trader</th><th>Account / review</th><th>Created</th><th>Period</th><th>Gross profit</th><th>Split</th><th>Amount due</th><th>Status</th><th></th></tr></thead>
       <tbody>${PAYOUTS.map(p=>{
+        const trader=TRADERS.find(t=>t.account_id===p.account_id)||TRADERS.find(t=>t.user_id===p.user_id);
+        const review=trader?`${trader.challenge_type||'—'} · stage ${trader.stage||'—'} · KYC ${trader.kyc_status||'unknown'}${trader.investigation_hold?' · HOLD':''}`:'Account details unavailable';
         const period=p.period_start?`${new Date(p.period_start).toLocaleDateString()} → ${new Date(p.period_end).toLocaleDateString()}`:new Date(p.period_end).toLocaleDateString();
         let actions='';
         if(p.status==='requested')actions=`<button class="btn btn-b" onclick="approvePayoutRow('${p.id}')">Approve</button> <button class="btn btn-o" onclick="voidPayoutRow('${p.id}')">Void</button>`;
         else if(p.status==='approved')actions=`<button class="btn btn-g" onclick="markPaid('${p.id}')">Mark paid</button> <button class="btn btn-o" onclick="voidPayoutRow('${p.id}')">Void</button>`;
         return `<tr>
+        <td><strong>${esc(trader?.full_name||'Unknown trader')}</strong><br><span class="mono" style="font-size:.72rem">${esc(trader?.email||p.user_id||'')}</span></td>
+        <td style="font-size:.72rem">${esc(review)}<br><span class="mono">${esc(p.account_id||'')}</span></td>
         <td class="mono" style="font-size:.76rem">${new Date(p.created_at).toLocaleDateString()}</td>
         <td class="mono" style="font-size:.72rem">${period}</td>
         <td class="mono">${fmt(p.gross_profit)}</td>
@@ -817,8 +821,9 @@ function renderPayouts(){
     </table></div>`;
 }
 async function approvePayoutRow(id){
+  if(!confirm('Approve this eligible payout for manual payment? This does not send money. Check the trader, amount, identity and review flags first.'))return;
   const j=await call({action:'payout_approve',payout_id:id});
-  if(j){toast('Payout approved — balance deducted',true);load();}
+  if(j){toast('Approved for manual payment — no transfer sent',true);load();}
 }
 async function voidPayoutRow(id){
   const reason=prompt('Reason for voiding this payout (required):');
@@ -862,13 +867,16 @@ async function saveMirror(enable){
   if(j){toast(enable?'Mirroring enabled':'Mirroring disabled',true);closeModal();load();}
 }
 async function payout(account_id){
-  if(!confirm('Record a payout for the current owed amount? Amounts under $5,000 are auto-approved; larger amounts land as "requested" for review.'))return;
+  if(!confirm('Create a payout request for review? Nothing is approved or sent automatically.'))return;
   const j=await call({action:'payout_create',account_id});
-  if(j){toast('Payout '+(j.payout&&j.payout.status==='approved'?'approved':'requested')+': '+fmt(j.trader_share),true);load();}
+  if(j){toast('Payout requested for manual review: '+fmt(j.trader_share),true);load();}
 }
 async function markPaid(id){
-  const j=await call({action:'payout_mark_paid',payout_id:id});
-  if(j){toast('Marked paid',true);load();}
+  const external_reference=prompt('Only after you personally sent the money: enter the completed transfer reference (not bank details).');
+  if(!external_reference||external_reference.trim().length<4)return;
+  if(!confirm('Confirm the transfer has actually completed. Mark this payout paid?'))return;
+  const j=await call({action:'payout_mark_paid',payout_id:id,external_reference:external_reference.trim()});
+  if(j){toast('Recorded as manually paid',true);load();}
 }
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
