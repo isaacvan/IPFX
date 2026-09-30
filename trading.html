@@ -641,6 +641,25 @@ body.light .postbl tbody td{color:#0c0c16;}
 .rc-field input,.rc-field select{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:.3rem .5rem;font-size:.78rem;color:var(--fg);font-family:var(--font-ui);outline:none;width:100%;}
 .rc-field input:focus,.rc-field select:focus{border-color:rgba(37,99,235,.45);}
 .rc-field select option{background:var(--bg2);}
+/* Alerts + statements tabs */
+.fx-bar{display:flex;align-items:flex-end;gap:.7rem;flex-wrap:wrap;padding:.7rem .9rem;border-bottom:1px solid var(--line);}
+.fx-btn{background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:.36rem .8rem;font-size:.74rem;font-weight:600;cursor:pointer;font-family:var(--font-ui);}
+.fx-btn:hover{border-color:rgba(255,255,255,.28);}
+.fx-btn.pri{background:#2563eb;border-color:#2563eb;color:#fff;}
+.fx-btn:disabled{opacity:.45;cursor:default;}
+.fx-note{font-size:.7rem;color:var(--muted2);padding:.5rem .9rem;}
+.fx-sum{display:flex;gap:1.4rem;flex-wrap:wrap;padding:.7rem .9rem;}
+.fx-sum div{display:flex;flex-direction:column;gap:.15rem;}
+.fx-sum b{font-size:.92rem;}
+.fx-sum span{font-size:.58rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:700;}
+.fx-trig{color:#f5c542;font-weight:700;}
+.op-pend-extra{display:flex;gap:.5rem;margin-top:.45rem;}
+.op-pend-extra label{display:flex;flex-direction:column;gap:.2rem;flex:1;font-size:.6rem;color:#8a8a8a;text-transform:uppercase;letter-spacing:.6px;font-weight:700;}
+.op-pend-extra select,.op-pend-extra input{background:rgba(255,255,255,.05);border:1px solid #2a2a2a;border-radius:6px;color:#e8e8e8;padding:.3rem .4rem;font-size:.74rem;text-transform:none;letter-spacing:0;font-weight:500;}
+.op-pend-extra select option{background:#111;}
+.hk-chip{background:transparent;border:1px solid #3a3a3a;color:#9a9a9a;border-radius:6px;font-size:.64rem;padding:.2rem .5rem;cursor:pointer;margin-top:.4rem;}
+.hk-chip.on{border-color:#f5c542;color:#f5c542;}
+.trail-tag{font-size:.6rem;color:#f5c542;margin-left:.25rem;font-weight:700;}
 .rc-divider{width:1px;background:var(--line);height:75%;flex-shrink:0;align-self:center;}
 .rc-out{display:flex;align-items:center;gap:1.3rem;flex-shrink:0;}
 .rc-stat{display:flex;flex-direction:column;gap:.22rem;}
@@ -1876,7 +1895,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         <div class="op-ticket-head"><div><div class="op-eyebrow">New order</div><div class="op-sym-hd"><button type="button" class="op-sym-name op-sym-btn" id="op-sym" onclick="openSymbolPicker()" title="Change instrument (/)">EUR/USD</button><svg class="op-sym-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span class="op-live-dot"></span><span class="op-live-label">Live</span></div></div><div class="op-feed-label">Practice account</div></div>
         <div class="op-type-bar" role="tablist" aria-label="Order timing"><button type="button" class="op-type-btn active" onclick="setOrdType('market',this)" aria-selected="true">Market</button><button type="button" class="op-type-btn" onclick="setOrdType('pending',this)" aria-selected="false">Pending</button></div>
         <div class="op-quickbar" aria-label="Order protection"><button type="button" class="op-quick" onclick="toggleRisk()"><span class="op-chk" id="opRiskChk"></span><span>Risk</span></button><button type="button" class="op-quick" onclick="toggleSLTP('sl')"><span class="op-chk" id="slToggle"></span><span>Stop loss</span></button><button type="button" class="op-quick" onclick="toggleSLTP('tp')"><span class="op-chk" id="tpToggle"></span><span>Take profit</span></button><button type="button" class="op-quick" onclick="toggleTrail()"><span class="op-chk" id="opTrailChk"></span><span>Trail</span></button></div>
-        <div class="op-pending-fields" id="opPendingFields" hidden><div class="op-field-label">Pending order type</div><div class="op-otype" id="opOtype"><button type="button" class="op-ot on" data-t="limit" onclick="setOrderType('limit',this)" title="Rests below market for a buy, above for a sell">Limit</button><button type="button" class="op-ot" data-t="stop" onclick="setOrderType('stop',this)" title="Rests above market for a buy, below for a sell">Stop</button></div><label class="op-field-label" for="triggerPrice">Trigger price</label><div class="op-trigger" id="opTriggerWrap"><input type="number" class="op-sltp-inp" id="triggerPrice" placeholder="Enter trigger price" step="0.0001" oninput="updateTriggerHint()"><div class="op-trigger-hint" id="opTriggerHint"></div></div></div>
+        <div class="op-pending-fields" id="opPendingFields" hidden><div class="op-field-label">Pending order type</div><div class="op-otype" id="opOtype"><button type="button" class="op-ot on" data-t="limit" onclick="setOrderType('limit',this)" title="Rests below market for a buy, above for a sell">Limit</button><button type="button" class="op-ot" data-t="stop" onclick="setOrderType('stop',this)" title="Rests above market for a buy, below for a sell">Stop</button></div><label class="op-field-label" for="triggerPrice">Trigger price</label><div class="op-trigger" id="opTriggerWrap"><input type="number" class="op-sltp-inp" id="triggerPrice" placeholder="Enter trigger price" step="0.0001" oninput="updateTriggerHint()"><div class="op-trigger-hint" id="opTriggerHint"></div></div><div class="op-pend-extra"><label>Expires<select id="pendExpiry"><option value="">Good till cancelled</option><option value="eod">End of day (22:00 UTC)</option><option value="24h">24 hours</option><option value="1w">1 week</option></select></label><label>OCO with<select id="pendOco" title="One-cancels-other: when either order fills, the other is cancelled"><option value="">None</option></select></label></div></div>
         <div class="op-sltp-inputs" id="sltpFields"><div class="op-sltp-row"><div class="op-sltp-grp"><label class="op-field-label" for="slPrice">Stop loss price</label><div class="op-sltp-stepper"><button type="button" class="op-sltp-step" onclick="adjSltp('sl',-1)" tabindex="-1">−</button><input type="number" class="op-sltp-inp" id="slPrice" placeholder="Not set" step="0.0001" oninput="updatePnlPreview();updateRiskPreview();updateSltpReadouts()"><button type="button" class="op-sltp-step" onclick="adjSltp('sl',1)" tabindex="-1">+</button></div><div class="op-sltp-pnl" id="slPnlReadout">—</div></div><div class="op-sltp-grp"><label class="op-field-label" for="tpPrice">Take profit price</label><div class="op-sltp-stepper"><button type="button" class="op-sltp-step" onclick="adjSltp('tp',-1)" tabindex="-1">−</button><input type="number" class="op-sltp-inp" id="tpPrice" placeholder="Not set" step="0.0001" oninput="updatePnlPreview();updateRiskPreview();updateSltpReadouts()"><button type="button" class="op-sltp-step" onclick="adjSltp('tp',1)" tabindex="-1">+</button></div><div class="op-sltp-pnl" id="tpPnlReadout">—</div></div></div></div>
         <div class="op-signin" id="opSignin">
           <div class="op-signin-txt"><strong>Sign in to trade</strong><span>See live prices, place orders and track your challenge.</span></div>
@@ -1886,6 +1905,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Risk on this order</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div><button type="button" class="op-risk-size" id="opRiskSize" hidden onclick="sizeToRiskCap()">Size to risk cap</button></div>
         <div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
+        <button type="button" class="hk-chip" id="hkChip" onclick="toggleHotkeys()" title="Keyboard trading shortcuts"></button>
         <div class="op-presets" aria-label="Quick lot sizes"><button type="button" class="op-preset active" onclick="setLots(0.01,this)">0.01</button><button type="button" class="op-preset" onclick="setLots(0.1,this)">0.10</button><button type="button" class="op-preset" onclick="setLots(0.5,this)">0.50</button><button type="button" class="op-preset" onclick="setLots(1,this)">1.00</button><button type="button" class="op-preset" onclick="setLots(2,this)">2.00</button></div>
         <details class="op-advanced"><summary>Price impact and position tools</summary><div class="op-price-grid"><div class="op-pg-col op-pg-left"><div class="op-pg-cell op-pg-price op-sell-price" id="op-bid-val">—</div><div class="op-pg-cell op-pg-val" id="op-ticks-l">—</div><div class="op-pg-cell op-pg-val" id="pnl-sell">—<span class="op-pg-sfx">$</span></div><div class="op-pg-cell op-pg-val" id="op-bal-sell">—<span class="op-pg-sfx">%</span></div></div><div class="op-pg-col op-pg-center"><div class="op-pg-cell op-pg-lbl">Price</div><div class="op-pg-cell op-pg-lbl">Ticks</div><div class="op-pg-cell op-pg-lbl">P&amp;L</div><div class="op-pg-cell op-pg-lbl">Balance</div></div><div class="op-pg-col op-pg-right"><div class="op-pg-cell op-pg-price op-buy-price" id="op-ask-val">—</div><div class="op-pg-cell op-pg-val" id="op-ticks-r">—</div><div class="op-pg-cell op-pg-val" id="pnl-buy">—<span class="op-pg-sfx">$</span></div><div class="op-pg-cell op-pg-val" id="op-bal-buy">—<span class="op-pg-sfx">%</span></div></div></div><div class="op-actions"><button type="button" class="op-act" onclick="closePosition()">Close latest trade</button><button type="button" class="op-act danger" onclick="flattenAll()">Close all positions</button></div><div class="op-pos-hd">Open positions</div><div id="ord-pos-list"><div class="of-pos-empty">No open positions</div></div></details>
         <div class="of-note">Practice mode · simulated trading, no real money. IPFX does not hold client deposits, provide brokerage services or give investment advice.</div>
@@ -2224,6 +2244,8 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
     <div class="btab" onclick="switchBtab('account',this)">Account</div>
     <div class="btab" onclick="switchBtab('risk',this)">Risk Calculator</div>
     <div class="btab" onclick="switchBtab('journal',this)">Journal</div>
+    <div class="btab" onclick="switchBtab('alerts',this)">Alerts <span class="btab-badge" id="alertBadge">0</span></div>
+    <div class="btab" onclick="switchBtab('statement',this)">Statement</div>
     <div class="btm-gap"></div>
     <button type="button" class="btm-closeall" id="btmCloseAll" onclick="confirmCloseAll(this)" hidden>Close all</button>
     <button type="button" class="btm-tog" id="btmTogBtn" onclick="toggleBtm()" title="Hide the positions panel to give the chart more room" aria-expanded="true">
@@ -2232,6 +2254,43 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
     </button>
   </div>
   <div class="btm-body">
+
+    <!-- ALERTS TAB -->
+    <div class="bpanel postbl-panel" id="bp-alerts">
+      <div class="fx-bar">
+        <div class="rc-field" style="width:120px"><div class="rc-lbl">Instrument</div><input type="text" id="alSym" readonly></div>
+        <div class="rc-field" style="width:120px"><div class="rc-lbl">When price is</div><select id="alCond"><option value="above">Above</option><option value="below">Below</option></select></div>
+        <div class="rc-field" style="width:130px"><div class="rc-lbl">Price</div><input type="number" id="alPrice" step="any" placeholder="Price" onkeydown="if(event.key==='Enter')createAlert()"></div>
+        <div class="rc-field" style="width:200px"><div class="rc-lbl">Note (optional)</div><input type="text" id="alNote" maxlength="140" placeholder="e.g. retest of range high"></div>
+        <button type="button" class="fx-btn pri" id="alAdd" onclick="createAlert()">Add alert</button>
+        <button type="button" class="fx-btn" id="alNotify" onclick="enableAlertNotifications()" hidden>Enable desktop notifications</button>
+      </div>
+      <div class="fx-note">Alerts are checked on the server, so they trigger even when IPFX Markets is closed — you'll see them next time you open it. Uses the mid price shown on the chart.</div>
+      <div class="postbl-wrap">
+        <table class="postbl">
+          <thead><tr><th>Instrument</th><th>Condition</th><th>Price</th><th>Note</th><th>Status</th><th>Created (UTC)</th><th>Triggered (UTC)</th><th></th></tr></thead>
+          <tbody id="alertTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STATEMENT TAB -->
+    <div class="bpanel postbl-panel" id="bp-statement">
+      <div class="fx-bar">
+        <div class="rc-field" style="width:150px"><div class="rc-lbl">From</div><input type="date" id="stFrom"></div>
+        <div class="rc-field" style="width:150px"><div class="rc-lbl">To (inclusive)</div><input type="date" id="stTo"></div>
+        <button type="button" class="fx-btn pri" id="stGo" onclick="loadStatement()">Generate statement</button>
+        <button type="button" class="fx-btn" id="stCsv" onclick="downloadStatementCsv()" disabled>Download CSV</button>
+        <button type="button" class="fx-btn" id="stPrint" onclick="printStatement()" disabled>Print / save PDF</button>
+      </div>
+      <div class="fx-sum" id="stSummary"></div>
+      <div class="postbl-wrap">
+        <table class="postbl">
+          <thead><tr><th>Closed (UTC)</th><th>Instrument</th><th>Side</th><th>Lots</th><th>Open</th><th>Close</th><th>Reason</th><th>P&amp;L</th></tr></thead>
+          <tbody id="stTableBody"><tr><td colspan="8"><div class="postbl-empty">Choose a period and generate your statement</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- POSITIONS TAB -->
     <div class="bpanel postbl-panel active" id="bp-positions">
@@ -3766,6 +3825,8 @@ function switchBtab(id,el){
   el.classList.add('active');
   document.getElementById('bp-'+id).classList.add('active');
   if(id==='orders')loadOrderHistory();
+  if(id==='alerts')openAlertsTab();
+  if(id==='statement')initStatementTab();
 }
 // ── ORDER HISTORY ── full order-event audit trail (open/close/modify/
 // reject), not just completed round-trips. Read directly via the
@@ -4497,6 +4558,7 @@ async function engineCall(body){
       localStorage.setItem('ipfx-account-mode','demo');
     }
     announceAutoClosedTrades(j);
+    if(Array.isArray(j.alerts))handleAlerts(j.alerts);
     const prevType=engineState&&engineState.account&&engineState.account.challenge_type;
     engineState=j;
     if(prevType!==(j.account&&j.account.challenge_type)&&typeof renderWatchlist==='function'){
@@ -4519,6 +4581,196 @@ async function engineCall(body){
     clearTimeout(killer);
   }
 }
+// Non-trading engine calls (alerts, statements). Unlike engineCall these never replace engineState.
+async function engineRequest(body){
+  const tok=await freshToken();
+  if(!tok){engineMsg('Log in to use this.');return null;}
+  try{
+    const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({...body,account_mode:selectedAccountMode}),signal:AbortSignal.timeout(15000)});
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j||j.ok===false){engineMsg((j&&j.error)||'Request failed');return null;}
+    return j;
+  }catch(_){engineMsg('Network error — try again');return null;}
+}
+
+// ---- price alerts ----
+let alertRows=[];
+const alertAnnounced=new Set();
+function handleAlerts(list){
+  alertRows=list;
+  const badge=document.getElementById('alertBadge');
+  if(badge)badge.textContent=list.filter(a=>a.status==='active').length;
+  const fresh=list.filter(a=>a.status==='triggered'&&!a.seen_at&&!alertAnnounced.has(a.id));
+  if(fresh.length){
+    fresh.forEach(a=>{
+      alertAnnounced.add(a.id);
+      const msg=`Alert: ${execSymbol(a.symbol)} ${a.condition} ${fmtPx(a.price)}${a.note?' — '+a.note:''}`;
+      engineMsg(msg,true);
+      try{if('Notification' in window&&Notification.permission==='granted')new Notification('IPFX Markets',{body:msg,tag:'ipfx-alert-'+a.id});}catch(_){}
+    });
+    alertBeep();
+    engineRequest({action:'alerts_seen',alert_ids:fresh.map(a=>a.id)});
+  }
+  renderAlertTable();
+}
+function alertBeep(){
+  try{
+    const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+    const ctx=new C(),o=ctx.createOscillator(),g=ctx.createGain();
+    o.frequency.value=880;g.gain.setValueAtTime(0.08,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.35);
+    o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.36);
+  }catch(_){}
+}
+function renderAlertTable(){
+  const body=document.getElementById('alertTableBody');if(!body)return;
+  body.innerHTML=alertRows.length?alertRows.map(a=>`<tr>
+      <td>${esc(execSymbol(a.symbol))}</td>
+      <td>${a.condition==='above'?'Crosses above':'Crosses below'}</td>
+      <td>${fmtPx(a.price)}</td>
+      <td>${esc(a.note||'')}</td>
+      <td>${a.status==='triggered'?'<span class="fx-trig">TRIGGERED'+(a.triggered_price!=null?' @ '+fmtPx(a.triggered_price):'')+'</span>':esc(String(a.status).toUpperCase())}</td>
+      <td>${utcStamp(a.created_at)}</td>
+      <td>${a.triggered_at?utcStamp(a.triggered_at):'—'}</td>
+      <td>${a.status==='active'?`<div class="postbl-act"><div class="postbl-act-btn" title="Delete alert" onclick="cancelAlert('${a.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div></div>`:''}</td>
+    </tr>`).join(''):'<tr><td colspan="8"><div class="postbl-empty">'+(hasSession()?'No alerts yet — add one above':'Log in to set alerts')+'</div></td></tr>';
+}
+async function openAlertsTab(){
+  const sym=document.getElementById('alSym');if(sym)sym.value=execSymbol(activeSym);
+  const pr=document.getElementById('alPrice');
+  if(pr&&!pr.value&&typeof ordMidPrice==='number'&&ordMidPrice)pr.placeholder=fmtPx(ordMidPrice);
+  const nb=document.getElementById('alNotify');
+  if(nb)nb.hidden=!('Notification' in window)||Notification.permission!=='default';
+  const j=await engineRequest({action:'list_alerts'});
+  if(j){alertRows=j.alerts.filter(a=>a.status!=='cancelled');renderAlertTable();}
+}
+function enableAlertNotifications(){
+  if(!('Notification' in window))return;
+  Notification.requestPermission().then(()=>{const nb=document.getElementById('alNotify');if(nb)nb.hidden=true;});
+}
+async function createAlert(){
+  const price=parseFloat(document.getElementById('alPrice').value);
+  if(!isFinite(price)||price<=0){engineMsg('Enter an alert price');return;}
+  let cond=document.getElementById('alCond').value;
+  const btn=document.getElementById('alAdd');btn.disabled=true;
+  const j=await engineRequest({action:'create_alert',symbol:activeSym,condition:cond,price,note:document.getElementById('alNote').value.trim()||null});
+  btn.disabled=false;
+  if(j){
+    engineMsg(`Alert set: ${execSymbol(activeSym)} ${cond} ${fmtPx(price)}`,true);
+    document.getElementById('alPrice').value='';document.getElementById('alNote').value='';
+    openAlertsTab();
+  }
+}
+async function cancelAlert(id){
+  const j=await engineRequest({action:'cancel_alert',alert_id:id});
+  if(j)openAlertsTab();
+}
+// Pre-pick "above"/"below" from where the typed price sits relative to the market.
+document.addEventListener('input',e=>{
+  if(!e.target||e.target.id!=='alPrice')return;
+  const v=parseFloat(e.target.value),m=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
+  if(isFinite(v)&&m)document.getElementById('alCond').value=v>=m?'above':'below';
+});
+
+// ---- account statement ----
+let lastStatement=null;
+function initStatementTab(){
+  const f=document.getElementById('stFrom'),t=document.getElementById('stTo');
+  if(f&&!f.value){const d=new Date();t.value=d.toISOString().slice(0,10);d.setUTCDate(d.getUTCDate()-30);f.value=d.toISOString().slice(0,10);}
+}
+async function loadStatement(){
+  const f=document.getElementById('stFrom').value,t=document.getElementById('stTo').value;
+  if(!f||!t){engineMsg('Choose a period');return;}
+  const to=new Date(t+'T00:00:00Z');to.setUTCDate(to.getUTCDate()+1);
+  const btn=document.getElementById('stGo');btn.disabled=true;btn.textContent='Generating…';
+  const j=await engineRequest({action:'statement',from:f+'T00:00:00Z',to:to.toISOString()});
+  btn.disabled=false;btn.textContent='Generate statement';
+  if(!j)return;
+  lastStatement=j.statement;
+  const S=lastStatement.summary,m=v=>(v<0?'-$':'$')+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('stSummary').innerHTML=[
+    ['Opening balance',m(S.opening_balance)],['Net P&L',m(S.net_pnl)],['Payouts',m(S.payouts)],['Closing balance',m(S.closing_balance)],
+    ['Trades',S.trades],['Win rate',S.win_rate_pct==null?'—':S.win_rate_pct+'%'],['Gross profit',m(S.gross_profit)],['Gross loss',m(S.gross_loss)],
+  ].map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join('');
+  const rows=lastStatement.trades;
+  document.getElementById('stTableBody').innerHTML=rows.length?rows.map(r=>`<tr>
+      <td>${utcStamp(r.closed_at)}</td><td>${esc(execSymbol(r.symbol))}</td>
+      <td><span class="postbl-side ${esc(r.side)}">${esc(String(r.side).toUpperCase())}</span></td>
+      <td>${(+r.volume).toFixed(2)}</td><td>${fmtPx(r.open_price)}</td><td>${fmtPx(r.close_price)}</td>
+      <td>${esc(r.close_reason||'manual')}</td><td style="color:${+r.pnl>=0?'#22c55e':'#ef4444'}">${m(+r.pnl||0)}</td></tr>`).join('')
+    :'<tr><td colspan="8"><div class="postbl-empty">No closed trades in this period</div></td></tr>';
+  document.getElementById('stCsv').disabled=false;document.getElementById('stPrint').disabled=false;
+}
+function downloadStatementCsv(){
+  if(!lastStatement)return;
+  const q=v=>{const s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const S=lastStatement.summary,A=lastStatement.account;
+  const lines=[
+    ['IPFX Markets account statement'],['Account',A.label||A.id],['Period (UTC)',lastStatement.from,lastStatement.to],
+    ['Opening balance',S.opening_balance],['Net P&L',S.net_pnl],['Payouts',S.payouts],['Closing balance',S.closing_balance],[],
+    ['Closed (UTC)','Opened (UTC)','Instrument','Side','Lots','Open price','Close price','Stop loss','Take profit','Close reason','P&L','Position ID'],
+    ...lastStatement.trades.map(r=>[r.closed_at,r.opened_at,r.symbol,r.side,r.volume,r.open_price,r.close_price,r.sl,r.tp,r.close_reason,r.pnl,r.id]),
+  ];
+  const blob=new Blob([lines.map(l=>l.map(q).join(',')).join('\r\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`ipfx-statement-${lastStatement.from.slice(0,10)}-to-${lastStatement.to.slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},0);
+}
+function printStatement(){
+  if(!lastStatement)return;
+  const S=lastStatement.summary,A=lastStatement.account,m=v=>(v<0?'-$':'$')+Math.abs(+v).toFixed(2);
+  const w=window.open('','_blank');if(!w){engineMsg('Allow pop-ups to print the statement');return;}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>IPFX Markets statement</title><style>
+    body{font:12px -apple-system,Segoe UI,Arial,sans-serif;color:#111;margin:32px}h1{font-size:18px;margin:0 0 4px}
+    .meta{color:#555;margin-bottom:16px}.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 18px}
+    .sum div{border:1px solid #ddd;border-radius:6px;padding:8px}.sum span{display:block;color:#666;font-size:10px;text-transform:uppercase}
+    table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e5e5e5;padding:5px 6px;text-align:left}th{background:#f6f6f6}
+    .pos{color:#15803d}.neg{color:#b91c1c}@media print{button{display:none}}</style></head><body>
+    <button onclick="print()" style="float:right">Print / Save as PDF</button>
+    <h1>IPFX Markets — Account statement</h1>
+    <div class="meta">${esc(A.label||'Account')} · ${esc(A.id)} · ${A.is_demo?'Demo':esc(A.phase)} · ${esc(lastStatement.from.slice(0,10))} to ${esc(lastStatement.to.slice(0,10))} (UTC, end exclusive) · generated ${esc(lastStatement.generated_at.replace('T',' ').slice(0,16))} UTC</div>
+    <div class="sum"><div><span>Opening balance</span>${m(S.opening_balance)}</div><div><span>Net P&amp;L</span>${m(S.net_pnl)}</div><div><span>Payouts</span>${m(S.payouts)}</div><div><span>Closing balance</span>${m(S.closing_balance)}</div>
+    <div><span>Trades</span>${S.trades}</div><div><span>Win rate</span>${S.win_rate_pct==null?'—':S.win_rate_pct+'%'}</div><div><span>Gross profit</span>${m(S.gross_profit)}</div><div><span>Gross loss</span>${m(S.gross_loss)}</div></div>
+    <table><thead><tr><th>Closed (UTC)</th><th>Instrument</th><th>Side</th><th>Lots</th><th>Open</th><th>Close</th><th>Reason</th><th>P&amp;L</th></tr></thead><tbody>
+    ${lastStatement.trades.map(r=>`<tr><td>${esc(String(r.closed_at).replace('T',' ').slice(0,19))}</td><td>${esc(r.symbol)}</td><td>${esc(r.side)}</td><td>${(+r.volume).toFixed(2)}</td><td>${esc(r.open_price)}</td><td>${esc(r.close_price)}</td><td>${esc(r.close_reason||'manual')}</td><td class="${+r.pnl>=0?'pos':'neg'}">${m(+r.pnl||0)}</td></tr>`).join('')||'<tr><td colspan="8">No closed trades in this period</td></tr>'}
+    </tbody></table><p class="meta" style="margin-top:16px">Simulated trading account. Figures are in USD and exclude open positions.</p></body></html>`);
+  w.document.close();
+}
+
+// ---- keyboard trading (opt-in) ----
+// Shift+B buy · Shift+S sell · Shift+X close all (press twice within 1.5s).
+// Off by default; ignored while typing, while a dialog is open, and on key auto-repeat.
+let hotkeysOn=false,lastHotkeyOrder=0,flattenArmedAt=0;
+try{hotkeysOn=localStorage.getItem('ipfx-hotkeys')==='on';}catch(_){}
+function renderHotkeyChip(){
+  const c=document.getElementById('hkChip');if(!c)return;
+  c.classList.toggle('on',hotkeysOn);
+  c.textContent=hotkeysOn?'⌨ Hotkeys ON — Shift+B buy · Shift+S sell · Shift+X×2 close all':'⌨ Keyboard trading: off';
+}
+function toggleHotkeys(){
+  if(!hotkeysOn&&!confirm('Turn on keyboard trading?\n\nShift+B = BUY market, Shift+S = SELL market at the lot size in the ticket — instantly, with no confirmation.\nShift+X twice = close ALL positions.\n\nOnly turn this on if you trade from the keyboard.'))return;
+  hotkeysOn=!hotkeysOn;
+  try{localStorage.setItem('ipfx-hotkeys',hotkeysOn?'on':'off');}catch(_){}
+  renderHotkeyChip();
+}
+document.addEventListener('keydown',e=>{
+  if(!hotkeysOn||!e.shiftKey||e.ctrlKey||e.altKey||e.metaKey||e.repeat)return;
+  const t=e.target,tag=t&&t.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable))return;
+  if(document.querySelector('.omdlg.open'))return;
+  const k=e.key.toLowerCase();
+  if(k!=='b'&&k!=='s'&&k!=='x')return;
+  e.preventDefault();
+  if(k==='x'){
+    if(Date.now()-flattenArmedAt<1500){flattenArmedAt=0;flattenAll();}
+    else{flattenArmedAt=Date.now();engineMsg('Press Shift+X again to close ALL positions');}
+    return;
+  }
+  if(Date.now()-lastHotkeyOrder<700)return; // guard against accidental double-taps
+  lastHotkeyOrder=Date.now();
+  if(orderType!=='market'){engineMsg('Hotkeys place market orders — switch the ticket to Market first');return;}
+  placeOrder(k==='b'?'buy':'sell');
+});
+
 function adjLots(d){
   if(futSym(activeSym)){
     ordLots=Math.min(FUT_SPECS[futSym(activeSym)][1],Math.max(1,Math.round(ordLots)+(d>0?1:-1)));
@@ -4615,11 +4867,14 @@ async function placeOrder(side){
              volume:ordLots,trigger_price:trig};
     if(isFinite(sl))p.sl=sl;
     if(isFinite(tp))p.tp=tp;
+    const exp=pendingExpiryIso();if(exp)p.expires_at=exp;
+    const oco=(document.getElementById('pendOco')||{}).value;if(oco)p.oco_with=oco;
     const r=await engineCall(p);
     engineBusy=false;
     if(r){
       engineMsg(`${side.toUpperCase()} ${orderType} ${ordLots.toFixed(2)} lots resting at ${fmtPx(trig)}`,true);
       document.getElementById('triggerPrice').value='';
+      const ocoSel=document.getElementById('pendOco');if(ocoSel)ocoSel.value='';
       engineCall({action:'state'});
     }
     return;
@@ -4658,7 +4913,7 @@ function renderPending(){
   box.id='pendWrap';
   box.innerHTML=p.map(o=>`
     <div class="pend-row">
-      <span class="pend-type">${esc(String(o.side).toUpperCase())} ${esc(o.order_type)}</span>
+      <span class="pend-type">${esc(String(o.side).toUpperCase())} ${esc(o.order_type)}${o.oco_group?' · OCO':''}</span>
       <span>${esc(o.symbol)} ${(+o.volume).toFixed(2)}</span>
       <span style="color:#606060">@ ${fmtPx(o.trigger_price)}</span>
       <span class="pend-x" title="Cancel" onclick="cancelPending('${o.id}')">✕</span>
@@ -4671,7 +4926,25 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 // list above (renderPending) stays for an at-a-glance view next to the
 // order ticket; this is the detailed table with every field, matching
 // the Positions / Closed Positions tabs next to it.
+// Pending-order extras: expiry presets and the OCO partner picker (resting orders on this instrument).
+function pendingExpiryIso(){
+  const v=(document.getElementById('pendExpiry')||{}).value;
+  if(!v)return null;
+  const now=new Date();
+  if(v==='24h')return new Date(now.getTime()+86400000).toISOString();
+  if(v==='1w')return new Date(now.getTime()+7*86400000).toISOString();
+  if(v==='eod'){const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate(),22,0,0));if(d.getTime()-now.getTime()<120000)d.setUTCDate(d.getUTCDate()+1);return d.toISOString();}
+  return null;
+}
+function refreshOcoOptions(){
+  const sel=document.getElementById('pendOco');if(!sel)return;
+  const cur=sel.value;
+  const list=((engineState&&engineState.pending_orders)||[]).filter(o=>execSymbol(o.symbol)===execSymbol(activeSym));
+  sel.innerHTML='<option value="">None</option>'+list.map(o=>`<option value="${esc(o.id)}">${esc(String(o.side).toUpperCase())} ${esc(o.order_type)} @ ${fmtPx(o.trigger_price)}</option>`).join('');
+  if(list.some(o=>o.id===cur))sel.value=cur;
+}
 function renderPendingTable(){
+  refreshOcoOptions();
   const body=document.getElementById('pendTableBody');
   const badge=document.getElementById('pendBadge');
   const p=(engineState&&engineState.pending_orders)||[];
@@ -4679,7 +4952,7 @@ function renderPendingTable(){
   if(!body)return;
   const rows=p.map(o=>`<tr>
       <td>${esc(o.symbol)}</td>
-      <td>${esc((o.order_type||'').toUpperCase())}</td>
+      <td>${esc((o.order_type||'').toUpperCase())}${o.oco_group?' <span class="trail-tag" title="One-cancels-other group">OCO</span>':''}</td>
       <td><span class="postbl-side ${o.side}">${esc((o.side||'').toUpperCase())}</span></td>
       <td>${(+o.volume).toFixed(2)}</td>
       <td>${fmtPx(o.trigger_price)}</td>
@@ -4757,6 +5030,20 @@ function openPartialDialog(id){
   document.getElementById('omDlg').classList.add('open');
   document.getElementById('omF1').select();
 }
+function openTrailDialog(id){
+  const t=omFindTrade(id); if(!t)return;
+  omTradeId=id; omMode='trail';
+  document.getElementById('omTitle').textContent='Trailing stop';
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price)}`;
+  document.getElementById('omF1Label').textContent='Trail distance (price units)';
+  document.getElementById('omF1').value=t.trail_distance==null?'':t.trail_distance;
+  document.getElementById('omF2Wrap').style.display='none';
+  document.getElementById('omHint').textContent='The stop follows price at this distance and only ever moves in your favour. Example: 0.0020 on EURUSD = 20 pips. Leave blank to switch trailing off (the current stop stays where it is).';
+  document.getElementById('omGo').textContent='Save';
+  omError(null);
+  document.getElementById('omDlg').classList.add('open');
+  document.getElementById('omF1').select();
+}
 async function omSubmit(){
   if(!omTradeId||engineBusy)return;
   const t=omFindTrade(omTradeId);
@@ -4765,7 +5052,11 @@ async function omSubmit(){
   const v2=document.getElementById('omF2').value.trim();
   let payload;
 
-  if(omMode==='partial'){
+  if(omMode==='trail'){
+    const d=v1===''?null:parseFloat(v1);
+    if(d!==null&&(!isFinite(d)||d<=0)){omError('Enter a positive distance, or leave it blank to switch trailing off.');return;}
+    payload={action:'set_trailing',trade_id:omTradeId,distance:d};
+  }else if(omMode==='partial'){
     const vol=parseFloat(v1);
     if(!isFinite(vol)||vol<0.01){omError('Enter at least 0.01 lots.');return;}
     if(vol>=+t.volume){omError('That is the whole position — use Close instead.');return;}
@@ -4785,7 +5076,7 @@ async function omSubmit(){
 
   // engineCall surfaces engine errors itself; a null result means it failed.
   if(!r){omError('The engine rejected that — see the message above the chart.');return;}
-  engineMsg(omMode==='partial'?'Partial close filled':'Position updated',true);
+  engineMsg(omMode==='partial'?'Partial close filled':omMode==='trail'?(payload.distance==null?'Trailing stop off':'Trailing stop on'):'Position updated',true);
   omClose();
 }
 // Break-even: move the stop to the entry price through the normal server-validated modify path.
@@ -5000,7 +5291,7 @@ function renderPosTable(o){
       <td><span class="postbl-side ${p.side}">${p.side.toUpperCase()}</span></td>
       <td>${(+p.volume).toFixed(2)}</td>
       <td>${fmtPx(p.open_price)} → ${fmtPx(p.mark!=null?p.mark:p.open_price)}</td>
-      <td>${p.sl!=null?fmtPx(p.sl):'—'}</td>
+      <td>${p.sl!=null?fmtPx(p.sl):'—'}${p.trail_distance!=null?'<span class="trail-tag" title="Trailing stop: '+esc(p.trail_distance)+' behind price">TRAIL</span>':''}</td>
       <td>${p.tp!=null?fmtPx(p.tp):'—'}</td>
       <td>${money(margin)}</td>
       <td>${money(exposure)}</td>
@@ -5011,6 +5302,7 @@ function renderPosTable(o){
       <td class="postbl-id">${String(p.id).slice(0,8).toUpperCase()}</td>
       <td><div class="postbl-act">
         <div class="postbl-act-btn act-edit" title="Modify stop loss / take profit" onclick="openModifyDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+        <div class="postbl-act-btn act-trail" title="Trailing stop" onclick="openTrailDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
         <div class="postbl-act-btn act-be" title="Move stop loss to break-even (entry price)" onclick="moveToBreakEven('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12h16"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/></svg></div>
         <div class="postbl-act-btn act-partial" title="Close part of this position" onclick="openPartialDialog('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12h18"/><path d="M12 3v6"/></svg></div>
         <div class="postbl-act-btn" title="Close" onclick="closeTradeById('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
@@ -5862,6 +6154,7 @@ async function pollWatchlist(){
   wlPollBusy=false;
 }
 if(document.getElementById('wlList'))renderWatchlist();
+if(typeof renderHotkeyChip==='function')renderHotkeyChip();
 setInterval(pollWatchlist,4000);
 
 // ── SL/TP ──

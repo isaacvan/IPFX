@@ -35,18 +35,30 @@ Deno.serve(async (req) => {
   if (!source) return json({ ok: false, error: "Source account not found" }, 404, origin);
 
   const status = async () => {
+    const { data: currentSource } = await db.from("trading_accounts").select("mirror_enabled").eq("id", sourceAccountId).maybeSingle();
     const { data: target } = await db.from("mirror_targets").select("enabled,provider,environment,tradelocker_connection_id").eq("source_account_id", sourceAccountId).maybeSingle();
     const { data: connection } = target?.tradelocker_connection_id
       ? await db.from("tradelocker_demo_connections").select("id,environment,server,tradelocker_account_id,acc_num,account_name,status,last_health_at,last_error_code,updated_at").eq("id", target.tradelocker_connection_id).maybeSingle()
       : { data: null };
     const { data: shared } = await db.from("tradelocker_demo_connections").select("id,account_name,status").eq("created_by", user.id).eq("source_user_id", user.id).eq("status", "connected").order("created_at", { ascending: false }).limit(2);
-    return json({ ok: true, connection, connected: connection?.status === "connected", armed: target?.enabled === true && connection?.status === "connected", provider: target?.provider ?? null, shared_demo_ready: (shared ?? []).length === 1, shared_demo_name: (shared ?? []).length === 1 ? shared![0].account_name : null, owner_source: sourceUserId === user.id }, 200, origin);
+    const { data: delivery } = await db.from("demo_mirror_outbox").select("id,source_trade_id,event,status,attempts,last_error,created_at,updated_at")
+      .eq("source_account_id", sourceAccountId).order("id", { ascending: false }).limit(1).maybeSingle();
+    const { data: brokerDelivery } = delivery
+      ? await db.from("mirror_orders").select("event,status,error,latency_ms,provider_status,created_at")
+        .eq("source_trade_id", delivery.source_trade_id).eq("event", delivery.event)
+        .eq("provider", "tradelocker").order("created_at", { ascending: false }).limit(1).maybeSingle()
+      : { data: null };
+    const armed = target?.enabled === true && currentSource?.mirror_enabled === true && target.provider === "tradelocker" && target.environment === "demo" && connection?.status === "connected";
+    return json({ ok: true, connection, connected: connection?.status === "connected", armed,
+      delivery: delivery ?? null, broker_delivery: brokerDelivery ?? null, provider: target?.provider ?? null,
+      shared_demo_ready: (shared ?? []).length === 1, shared_demo_name: (shared ?? []).length === 1 ? shared![0].account_name : null, owner_source: sourceUserId === user.id }, 200, origin);
   };
   if (action === "status") return status();
   if (action === "disconnect") {
     // Disarm only this trader. Other approved traders may share the destination.
-    await db.from("mirror_targets").update({ enabled: false, updated_at: new Date().toISOString() }).eq("source_account_id", sourceAccountId);
-    await db.from("trading_accounts").update({ mirror_enabled: false }).eq("id", sourceAccountId);
+    const { error: targetError } = await db.from("mirror_targets").update({ enabled: false, updated_at: new Date().toISOString() }).eq("source_account_id", sourceAccountId);
+    const { error: sourceError } = await db.from("trading_accounts").update({ mirror_enabled: false }).eq("id", sourceAccountId);
+    if (targetError || sourceError) return json({ ok: false, error: "Could not confirm disconnect; inspect the copier route" }, 503, origin);
     await db.from("admin_audit_log").insert({ actor_id: user.id, action: "tradelocker_demo_disconnect", target_user_id: sourceUserId, target_account_id: sourceAccountId });
     return status();
   }
@@ -98,6 +110,12 @@ Deno.serve(async (req) => {
       await db.from("mirror_targets").update({ enabled: false }).eq("source_account_id", sourceAccountId);
       return json({ ok: false, error: "Could not arm source account" }, 503, origin);
     }
+    const [{ data: verifiedTarget }, { data: verifiedSource }] = await Promise.all([
+      db.from("mirror_targets").select("id,enabled,tradelocker_connection_id").eq("source_account_id", sourceAccountId).maybeSingle(),
+      db.from("trading_accounts").select("mirror_enabled").eq("id", sourceAccountId).maybeSingle(),
+    ]);
+    if (verifiedTarget?.enabled !== true || verifiedTarget.tradelocker_connection_id !== connection.id || verifiedSource?.mirror_enabled !== true)
+      return json({ ok: false, error: "Approval could not be verified; copier route may not be armed" }, 503, origin);
     await db.from("admin_audit_log").insert({ actor_id: user.id, action: "tradelocker_demo_approve", target_user_id: sourceUserId, target_account_id: sourceAccountId, detail: { destination_connection_id: connection.id, demo_only: true } });
     return json({ ok: true, connected: true, armed: true, account_name: connection.account_name, message: "Trader approved for the shared TradeLocker demo." }, 200, origin);
   }  if (action !== "connect") return json({ ok: false, error: "Unknown action" }, 400, origin);

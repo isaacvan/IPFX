@@ -262,7 +262,7 @@ const FIELD_FMT = {
   risk: (r) => (r.max_risk_per_trade_pct == null ? "no fixed per-trade risk cap" : `${withAmt(r, r.max_risk_per_trade_pct)} max per trade`),
   stoploss: (r) => (r.require_stop_loss ? "stop-loss required on every order" : "stop-loss not mandatory"),
   split: (r) => (n(r.profit_split_pct) > 0 ? pct(r.profit_split_pct) : "no profit split at this stage (evaluation only)"),
-  attempts: (r) => (r.max_attempts_per_month ? `up to ${r.max_attempts_per_month} per calendar month` : null),
+  attempts: (r) => (r.max_attempts_per_month ? (Number(r.max_attempts_per_month) === 1 ? "one per calendar month" : `up to ${r.max_attempts_per_month} per calendar month`) : null),
   cap: (r) => (r.daily_profit_cap_pct == null ? null : `${withAmt(r, r.daily_profit_cap_pct)} max profit counted per day`),
   profitable_days: (r) => (r.min_profitable_days_pct == null ? null : `at least ${pct(r.min_profitable_days_pct)} of trading days must be profitable`),
   balance: (r) => money(r.starting_balance),
@@ -323,7 +323,7 @@ export function rulesText(K, type) {
         r.require_stop_loss ? "stop-loss required" : null,
         r.daily_profit_cap_pct == null ? null : `daily profit cap ${withAmt(r, r.daily_profit_cap_pct)}`,
         r.min_profitable_days_pct == null ? null : `${pct(r.min_profitable_days_pct)}+ profitable days`,
-        r.max_attempts_per_month ? `up to ${r.max_attempts_per_month} attempts per month` : null,
+        r.max_attempts_per_month ? (Number(r.max_attempts_per_month) === 1 ? "one attempt per calendar month" : `up to ${r.max_attempts_per_month} attempts per month`) : null,
         n(r.profit_split_pct) > 0 ? `${pct(r.profit_split_pct)} profit split` : "free evaluation",
       ].filter(Boolean);
       lines.push(`- **Stage ${i + 1}:** ${bits.join(" · ")}`);

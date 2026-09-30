@@ -212,6 +212,36 @@ function buildStrategyProfile(allTrades: Trade[]) {
   };
 }
 
+function dailyPerformance(allTrades: Trade[], startingBalance: number) {
+  const byDay = new Map<string, number>();
+  for (const trade of allTrades) {
+    if (trade.status !== "closed" || !trade.closed_at || trade.pnl === null) continue;
+    const day = new Date(trade.closed_at).toISOString().slice(0, 10);
+    byDay.set(day, (byDay.get(day) || 0) + Number(trade.pnl));
+  }
+  const dates = [...byDay.keys()].sort();
+  if (!dates.length || !(startingBalance > 0)) return { points: [], sharpe_ratio: null, calendar_days: 0 };
+  const first = new Date(`${dates[0]}T00:00:00Z`).getTime();
+  const last = new Date(`${dates.at(-1)}T00:00:00Z`).getTime();
+  const points: { day: string; pnl: number; cumulative_pnl: number }[] = [];
+  const returns: number[] = [];
+  let cumulative = 0;
+  for (let t = first; t <= last && points.length < 366; t += 86_400_000) {
+    const day = new Date(t).toISOString().slice(0, 10);
+    const pnl = byDay.get(day) || 0;
+    const before = startingBalance + cumulative;
+    if (!(before > 0)) break;
+    returns.push(pnl / before);
+    cumulative += pnl;
+    points.push({ day, pnl: r2(pnl), cumulative_pnl: r2(cumulative) });
+  }
+  const avg = mean(returns);
+  const volatility = stddev(returns);
+  const sharpe = points.length >= 30 && byDay.size >= 20 && volatility > 0
+    ? r2(Math.sqrt(365) * avg / volatility) : null;
+  return { points, sharpe_ratio: sharpe, calendar_days: points.length };
+}
+
 // ============================================================
 // computeReadiness — deterministic, fail-closed scoring of whether a
 // trader's history is statistically solid enough to trust with mirrored
@@ -818,8 +848,9 @@ Deno.serve(async (req) => {
   }
 
   // Admin-initiated payout: same gated, transactional path a trader's own
-  // request goes through (fn_request_payout), just with p_is_admin=true so
-  // small amounts can auto-approve. Every compliance gate (funded, good
+  // request goes through. Every amount enters the manual review queue;
+  // p_is_admin identifies the initiator and cannot auto-approve. The
+  // compliance gates (funded, good
   // standing, KYC, min days, consistency) is re-checked inside the
   // function itself — nothing here can bypass them.
   if (action === "payout_create") {
@@ -850,10 +881,12 @@ Deno.serve(async (req) => {
   if (action === "payout_mark_paid") {
     const payout_id = String(body.payout_id ?? "");
     if (!payout_id) return err("payout_id required");
-    if (!(await logAdminStrict("payout_mark_paid_intent", { detail: { payout_id } }))) return err("Audit log unavailable — action refused", 503);
+    const external_reference = String(body.external_reference ?? "").trim().slice(0, 120);
+    if (external_reference.length < 4) return err("Enter the reference from your completed manual transfer before marking paid", 400);
+    if (!(await logAdminStrict("payout_mark_paid_intent", { detail: { payout_id, external_reference } }))) return err("Audit log unavailable — action refused", 503);
     const { data, error } = await db.rpc("fn_mark_paid", { p_payout_id: payout_id, p_admin_id: user.id });
     if (error) return err(cleanRpc(error.message), 409);
-    await logAdmin("payout_mark_paid", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share } });
+    await logAdmin("payout_mark_paid", { targetAccount: data?.account_id, detail: { payout_id, trader_share: data?.trader_share, external_reference } });
     if (data?.user_id) await sendLifecycleEmail(db, "payout_paid", data.user_id, { amount: Number(data.trader_share ?? 0).toFixed(2), currency: data.currency ?? "USD", payout_method: "your registered payout method" });
     // Referral commission (if any) fires only once a payout is actually
     // paid, per "10% ... within 30 days of their first payout" — never
@@ -1532,7 +1565,7 @@ Deno.serve(async (req) => {
   if (action === "risk_analytics") {
     const since = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000).toISOString();
     const until = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-    const [{ data: accounts }, { data: profiles }, { data: trades }, { data: macroEvents }, { data: policies }, { data: decisions }, { data: flags }] = await Promise.all([
+    const [{ data: accounts }, { data: profiles }, { data: trades }, { data: macroEvents }, { data: policies }, { data: decisions }, { data: flags }, { data: assessments }] = await Promise.all([
       db.from("trading_accounts").select("*").neq("phase", "demo").order("created_at", { ascending: false }),
       db.from("user_profiles").select("user_id,full_name"),
       db.from("trades").select("id,account_id,user_id,symbol,side,volume,open_price,close_price,sl,tp,status,close_reason,pnl,opened_at,closed_at").gte("opened_at", since).order("opened_at", { ascending: false }).limit(20000),
@@ -1540,9 +1573,15 @@ Deno.serve(async (req) => {
       db.from("mirror_risk_policies").select("*"),
       db.from("mirror_risk_decisions").select("*").order("created_at", { ascending: false }).limit(5000),
       db.from("trade_safety_flags").select("account_id,user_id,reason,status,created_at").eq("status", "open").order("created_at", { ascending: false }).limit(5000),
+      db.from("trader_detector_assessments").select("trading_account_id,as_of_at,state,forecast_id,calibrated_future_probability,independent_idea_count,effective_sample_size,active_trading_days,data_quality,copyability_score").order("as_of_at", { ascending: false }).limit(5000),
     ]);
     const names = new Map((profiles ?? []).map((p: Record<string, unknown>) => [p.user_id, p.full_name || "—"]));
     const policyByUser = new Map((policies ?? []).map((p: Record<string, unknown>) => [p.user_id, p]));
+    const assessmentByAccount = new Map<string, Record<string, unknown>>();
+    for (const assessment of assessments ?? []) {
+      const key = String(assessment.trading_account_id);
+      if (!assessmentByAccount.has(key)) assessmentByAccount.set(key, assessment);
+    }
     const emailByUser = new Map<string, string>();
     try {
       for (let page = 1; page <= 10; page++) {
@@ -1557,6 +1596,10 @@ Deno.serve(async (req) => {
       const accountTrades = (trades ?? []).filter((t: Record<string, unknown>) => t.account_id === account.id);
       const style = classifyTrader(accountTrades, macroEvents ?? []);
       const profile = buildStrategyProfile(accountTrades);
+      const daily = dailyPerformance(accountTrades, Number(account.starting_balance));
+      const assessment = assessmentByAccount.get(String(account.id));
+      const calibratedProbability = assessment?.forecast_id && assessment.calibrated_future_probability != null
+        ? Number(assessment.calibrated_future_probability) : null;
       const accountDecisions = (decisions ?? []).filter((d: Record<string, unknown>) => d.account_id === account.id);
       const accountFlags = (flags ?? []).filter((f: Record<string, unknown>) => f.account_id === account.id);
       const policy = policyByUser.get(account.user_id) ?? { mode: "observe", min_multiplier: 0.1, unusual_size_multiple: 3, news_multiplier: 0.25 };
@@ -1567,7 +1610,14 @@ Deno.serve(async (req) => {
         phase: account.phase, challenge_type: account.challenge_type, balance: Number(account.balance),
         starting_balance: Number(account.starting_balance), category: style.category,
         category_confidence: style.confidence, category_evidence: style.evidence,
-        profile, policy, open_flags: accountFlags,
+        profile, daily_performance: daily, assessment: assessment ? {
+          state: assessment.state, as_of_at: assessment.as_of_at,
+          profitability_probability: calibratedProbability,
+          independent_idea_count: assessment.independent_idea_count,
+          effective_sample_size: assessment.effective_sample_size,
+          active_trading_days: assessment.active_trading_days,
+          data_quality: assessment.data_quality, copyability_score: assessment.copyability_score,
+        } : null, policy, open_flags: accountFlags,
         last_decision: accountDecisions[0] ?? null,
         risk_decisions: accountDecisions.slice(0, 30),
       });
@@ -1846,4 +1896,3 @@ Deno.serve(async (req) => {
 
   return err("unknown action");
 });
-

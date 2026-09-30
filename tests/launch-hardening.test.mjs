@@ -58,3 +58,37 @@ test('anon has no grants on trader analytics views', () => {
   assert.match(m, /revoke all on public\.trader_risk\s+from anon/);
   assert.match(m, /revoke all on public\.trader_stats from anon/);
 });
+
+test('trailing stops only ever tighten and respect the risk cap', () => {
+  const m = read('supabase/migrations/20260930130000_trailing_oco_alerts.sql');
+  assert.match(m, /trail_distance numeric/);
+  assert.match(engine, /upd\.lt\("sl", cand\) : upd\.gt\("sl", cand\)/);
+  assert.match(engine, /action === "set_trailing"/);
+  assert.match(engine, /That trailing stop would start/);
+  assert.match(platform, /action:'set_trailing'/);
+});
+
+test('OCO legs cancel each other and can never both fill', () => {
+  const m = read('supabase/migrations/20260930130000_trailing_oco_alerts.sql');
+  assert.match(m, /pending_orders_one_fill_per_oco[\s\S]*status = 'filled'/);
+  assert.match(engine, /OCO: other leg filled/);
+  assert.match(engine, /body\.oco_with/);
+  assert.match(platform, /p\.oco_with=oco/);
+});
+
+test('price alerts are server-evaluated (sweep + state) and statements never replace trading state', () => {
+  const m = read('supabase/migrations/20260930130000_trailing_oco_alerts.sql');
+  assert.match(m, /create table if not exists public\.price_alerts/);
+  assert.match(m, /enable row level security/);
+  assert.match(engine, /alertsFired = await evaluateAlerts\(db, null\)/);
+  assert.match(engine, /action === "statement"/);
+  assert.match(platform, /engineRequest\(\{action:'statement'/);
+  assert.doesNotMatch(platform, /engineCall\(\{action:'(statement|list_alerts|create_alert)'/);
+});
+
+test('keyboard trading is opt-in and guarded', () => {
+  assert.match(platform, /localStorage\.getItem\('ipfx-hotkeys'\)==='on'/);
+  assert.match(platform, /e\.repeat\)return/);
+  assert.match(platform, /tag==='INPUT'\|\|tag==='TEXTAREA'/);
+  assert.match(platform, /Press Shift\+X again/);
+});

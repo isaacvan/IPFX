@@ -5,7 +5,7 @@ import {
 } from "../_shared/trader-detector.ts";
 import { canonicalEvidence, isFreshEvidence, readAllPages, requiredNumber, tradeStage, resolveAccountLineage, verifiedRuleSnapshot, verifyRiskEvidence, verifyCopyEvidence } from "../_shared/trader-detector-input.ts";
 
-const WORKER_VERSION = "challenge-detector-2.1.0";
+const WORKER_VERSION = "challenge-detector-2.2.0";
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
 });

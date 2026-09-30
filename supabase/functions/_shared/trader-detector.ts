@@ -244,7 +244,8 @@ export function collapseTradeIdeas(trades: RawDetectorTrade[], cooldownHours = 8
     const cluster = riskCluster(trade.symbol);
     if (ideas.some((idea) => idea.accountId === trade.accountId && idea.sourceTradeIds.includes(trade.id))) continue;
     const previous = [...ideas].reverse().find((idea) => idea.accountId === trade.accountId && idea.stage === trade.stage && idea.cluster === cluster);
-    const canMerge = previous && trade.openedAt.getTime() <= previous.closedAt.getTime() + cooldownMs;
+    // A sign reversal is a new economic thesis; never hide it inside the prior idea.
+    const canMerge = previous && previous.side === trade.side && trade.openedAt.getTime() <= previous.closedAt.getTime() + cooldownMs;
     // Cost fields are signed cashflows: a charge is negative, a rebate positive.
     // Unknown legacy basis remains descriptive and cannot confirm profitability.
     const accountingVerified = trade.pnlBasis === "NET_AFTER_COSTS" ||
@@ -281,18 +282,20 @@ export function collapseTradeIdeas(trades: RawDetectorTrade[], cooldownHours = 8
   return ideas;
 }
 
-export function effectiveSampleSize(values: number[], maxLag = 10): number {
-  if (values.length < 3) return values.length;
+export function effectiveSampleSize(values: number[], maxLag = 20): number {
+  if (values.length < 4) return values.length;
   const m = mean(values);
   const c0 = values.reduce((sum, value) => sum + (value - m) ** 2, 0) / values.length;
   if (c0 <= 1e-12) return values.length;
+  // Conservative Newey-West-style positive-autocorrelation adjustment. The
+  // lag window grows with the record and cannot stop at an arbitrary lag 10.
+  const kMax = Math.min(maxLag, Math.floor(values.length / 4), values.length - 2);
   let sumPositiveRho = 0;
-  for (let lag = 1; lag <= Math.min(maxLag, values.length - 2); lag++) {
+  for (let lag = 1; lag <= kMax; lag++) {
     let covariance = 0;
     for (let i = 0; i < values.length - lag; i++) covariance += (values[i]! - m) * (values[i + lag]! - m);
     const rho = covariance / ((values.length - lag) * c0);
-    // Alternating returns may hide dependence at lag 2 or later.
-    sumPositiveRho += Math.max(0, rho) * (1 - lag / (maxLag + 1));
+    sumPositiveRho += Math.max(0, rho) * (1 - lag / values.length);
   }
   return Math.max(1, Math.min(values.length, values.length / (1 + 2 * sumPositiveRho)));
 }
@@ -560,12 +563,12 @@ export function deriveAlerts(previous: DetectorState | null, current: DetectorAs
   const rank: Record<DetectorState, number> = { INSUFFICIENT_EVIDENCE: 0, OBSERVE: 1, HIGH_POTENTIAL: 2, PROFITABILITY_CONFIRMED: 3, LIVE_REVIEW_REQUIRED: 4, RISK_NO_GO: -1 };
   const promotion = previous === null || rank[current.state] > rank[previous];
   if (current.state === "HIGH_POTENTIAL" && promotion) alerts.push({
-    type: "HIGH_POTENTIAL", severity: "medium", title: "High-potential trader detected",
-    body: `${current.challengeType} trader crossed the provisional evidence gate. This is not yet a calibrated profitability confirmation.`,
+    type: "HIGH_POTENTIAL", severity: "medium", title: "Research watchlist candidate",
+    body: `${current.challengeType} trader crossed a provisional evidence gate. Continue shadow observation; this is not approval to copy or proof of future profit.`,
   });
   if (current.state === "PROFITABILITY_CONFIRMED" && promotion) alerts.push({
-    type: "PROFITABILITY_CONFIRMED", severity: "high", title: "Trader profitability confirmed",
-    body: `${current.challengeType} trader passed the calibrated skill and tail-risk gates. Live execution gates remain pending.`,
+    type: "PROFITABILITY_CONFIRMED", severity: "high", title: "Calibrated evidence gate passed",
+    body: `${current.challengeType} trader passed calibrated statistical and tail-risk gates. This does not guarantee future copied profit; live execution gates remain pending.`,
   });
   if (current.state === "LIVE_REVIEW_REQUIRED") alerts.push({
     type: "LIVE_REVIEW_REQUIRED", severity: "critical", title: "Live-model review required",

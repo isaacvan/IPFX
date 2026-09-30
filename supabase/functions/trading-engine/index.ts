@@ -462,7 +462,7 @@ const BREACH_TEXT: Record<string, string> = {
   daily_loss: "the daily loss limit was reached",
 };
 
-async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close") {
+async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close", sourceRiskUsd: number | null = null) {
   // deno-lint-ignore no-explicit-any
   if (!(acct as any).mirror_enabled) {
     // Disarming blocks new opens, but a copied position must still be closable.
@@ -483,11 +483,31 @@ async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close") {
       body: JSON.stringify({
         source_trade_id: t.id, user_id: acct.user_id, event,
         symbol: t.symbol, side: t.side, volume: Number(t.volume),
-        sl: t.sl, tp: t.tp, open_price: t.open_price,
+        sl: t.sl, tp: t.tp, open_price: t.open_price, source_risk_usd: sourceRiskUsd,
       }),
     });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 240)}`);
+    }
+    const result = await response.json().catch(() => null);
+    if (result?.ok === false) {
+      await db.from("demo_mirror_outbox").update({ status: "needs_review", last_error: String(result.error || "broker outcome unknown").slice(0, 300), updated_at: new Date().toISOString() })
+        .eq("source_trade_id", t.id).eq("event", event).eq("status", "pending");
+      return;
+    }
+    if (result?.ok === true && result.skipped !== "duplicate event") {
+      // An accepted close is not proof that the exact position disappeared.
+      // Opens without a mapped position likewise need broker reconciliation.
+      const brokerConfirmedOpen = event === "open" && Boolean(result.positionId);
+      const status = result.skipped ? "skipped" : brokerConfirmedOpen ? "acknowledged" : "pending";
+      await db.from("demo_mirror_outbox").update({
+        status,
+        last_error: result.skipped ? String(result.skipped).slice(0, 300) :
+          status === "pending" ? "waiting for exact broker position reconciliation" : null,
+        next_attempt_at: status === "pending" ? new Date(Date.now() + 20_000).toISOString() : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+        .eq("source_trade_id", t.id).eq("event", event).eq("status", "pending");
     }
   } catch (error) {
     const detail = `dispatch: ${String(error).slice(0, 280)}`;
@@ -856,13 +876,21 @@ async function processPendingOrders(
       continue;
     }
     await db.from("pending_orders").update({ filled_trade_id: inserted.id }).eq("id", o.id);
+    // One-cancels-other: the first leg of an OCO group to fill cancels the rest.
+    // (A unique index allows only one 'filled' row per group, so a racing leg can't also fill.)
+    if (o.oco_group) {
+      await db.from("pending_orders").update({
+        status: "cancelled", reject_reason: "OCO: other leg filled", resolved_at: new Date().toISOString(),
+      }).eq("oco_group", o.oco_group).eq("status", "pending").neq("id", o.id);
+    }
 
     await logAudit(db, {
       trade_id: inserted.id, user_id: acct.user_id, account_id: acct.id, event: "open",
       symbol, side: String(o.side), requested_volume: Number(o.volume),
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
-    await fireMirror(db, acct, inserted as Tr, "open");
+    const sourceRiskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * Number(o.volume) * conv;
+    mirrorLater(fireMirror(db, acct, inserted as Tr, "open", sourceRiskUsd));
     working.push(inserted as Tr);
   }
   return working;
@@ -954,7 +982,7 @@ async function infinityStatus(db: Db, user: any) {
   const used = list.filter((a: { preset_id: string | null; created_at: string }) =>
     a.preset_id === "infinity_s1" && a.created_at >= monthStart).length;
   const { data: preset } = await db.from("challenge_presets").select("*").eq("id", "infinity_s1").maybeSingle();
-  const cap = Number(preset?.max_attempts_per_month ?? 3);
+  const cap = Number(preset?.max_attempts_per_month ?? 1);
   const [{ data: profile }, { data: identity }, { data: application }, { data: kyc }] = await Promise.all([
     db.from("user_profiles").select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle(),
     db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle(),
@@ -1045,7 +1073,7 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
 // The requirements that must ALL hold, alongside the profit target,
 // before an evaluation account is allowed to pass. Returns the unmet
 // items so the trader can be shown exactly what is left.
-async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress }> {
+async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null }> {
   const p = await fetchProgress(db, acct.id);
   const unmet: string[] = [];
   const needDays = Number(acct.min_trading_days ?? 0);
@@ -1054,7 +1082,8 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
 
   if (p.trading_days < needDays) unmet.push(`${p.trading_days}/${needDays} trading days`);
   if (p.trades_closed < needTrades) unmet.push(`${p.trades_closed}/${needTrades} trades`);
-  // Only explicitly accepted v2 contracts apply; legacy terms remain intact.
+  // Each Infinity account has a versioned qualification contract; the
+  // pre-launch alignment also attaches v4 to existing test accounts.
   const qualification = await db.rpc("qualification_progress_v2", { p_account: acct.id });
   if (qualification.error || !qualification.data) unmet.push("Qualification verification unavailable");
   else if (qualification.data.applies && !qualification.data.eligible) {
@@ -1070,11 +1099,11 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
       unmet.push(`$${quick.toFixed(2)} of profit came from trades held under ${MIN_HOLD_SECONDS}s and does not count toward the target`);
     }
   }
-  return { ok: unmet.length === 0, unmet, progress: p };
+  return { ok: unmet.length === 0, unmet, progress: p, qualification: qualification.error ? null : qualification.data as Record<string, unknown> | null };
 }
 
-// Realized + floating P&L for the current UTC day. Used by the daily
-// profit cap (Infinity: 3%), which blocks NEW orders once hit rather
+// Realized + floating P&L for the current UTC day. Used by each account's
+// accepted daily profit cap, which blocks NEW orders once hit rather
 // than breaching the account — hitting a profit cap is not a failure.
 async function todayGain(db: Db, acct: Acct, equity: number): Promise<number> {
   return round2(equity - Number(acct.day_start_equity));
@@ -1083,6 +1112,7 @@ type Tr = {
   id: string; account_id: string; user_id: string; symbol: string;
   side: string; volume: number; open_price: number; close_price: number | null;
   sl: number | null; tp: number | null; status: string; pnl: number | null;
+  trail_distance?: number | null;
 };
 
 // deno-lint-ignore no-explicit-any
@@ -1131,6 +1161,37 @@ async function closeTrade(
 
 // Marks positions, applies SL/TP, daily rollover, breach/pass rules.
 // Mutates acct in memory; persists account changes at the end.
+// ---------- price alerts ----------
+// Evaluated against the mid price (what the chart draws). userId=null evaluates every active alert (sweep).
+async function evaluateAlerts(db: Db, userId: string | null): Promise<number> {
+  let qy = db.from("price_alerts").select("id,symbol,condition,price").eq("status", "active").limit(5000);
+  if (userId) qy = qy.eq("user_id", userId);
+  const { data } = await qy;
+  if (!data || !data.length) return 0;
+  const bySym = new Map<string, { id: string; condition: string; price: number }[]>();
+  for (const a of data) {
+    const list = bySym.get(a.symbol) ?? [];
+    list.push(a);
+    bySym.set(a.symbol, list);
+  }
+  let fired = 0;
+  for (const [sym, rows] of bySym) {
+    if (!INSTRUMENTS[sym]) continue;
+    const q = await fetchQuote(sym);
+    if (q === null || quoteStale(q)) continue;
+    const m = round6((q.bid + q.ask) / 2);
+    for (const a of rows) {
+      const hit = a.condition === "above" ? m >= Number(a.price) : m <= Number(a.price);
+      if (!hit) continue;
+      const { data: upd } = await db.from("price_alerts").update({
+        status: "triggered", triggered_at: new Date().toISOString(), triggered_price: m,
+      }).eq("id", a.id).eq("status", "active").select("id");
+      if (upd && upd.length) fired++;
+    }
+  }
+  return fired;
+}
+
 async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number; unpriced: number }> {
   const { data: openRows } = await db.from("trades")
     .select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at");
@@ -1166,6 +1227,19 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const q = await fetchQuote(t.symbol);
       if (q === null || quoteStale(q)) { still.push(t); continue; }
       const ex = t.side === "buy" ? q.bid : q.ask; // the price that would actually fill a close
+      // Trailing stop: pull the stop toward the market by trail_distance. It only ever TIGHTENS
+      // (the conditional update refuses to loosen it, even if two passes race).
+      const trail = t.trail_distance == null ? null : Number(t.trail_distance);
+      if (trail !== null && trail > 0) {
+        const cand = roundPrice(t.symbol, t.side === "buy" ? ex - trail : ex + trail);
+        const cur = t.sl === null ? null : Number(t.sl);
+        if (cur === null || (t.side === "buy" ? cand > cur : cand < cur)) {
+          let upd = db.from("trades").update({ sl: cand }).eq("id", t.id).eq("status", "open");
+          upd = cur === null ? upd.is("sl", null) : (t.side === "buy" ? upd.lt("sl", cand) : upd.gt("sl", cand));
+          const { data: moved } = await upd.select("id");
+          if (moved && moved.length) t.sl = cand;
+        }
+      }
       const sl = t.sl === null ? null : Number(t.sl);
       const tp = t.tp === null ? null : Number(t.tp);
       let done = false;
@@ -1473,6 +1547,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         min_profitable_days_pct: acct.min_profitable_days_pct ?? null,
         requirements_met: gate.ok,
         unmet: gate.unmet,
+        qualification: gate.qualification,
       },
     },
     open_trades: open.map(withOrderId),
@@ -1517,6 +1592,7 @@ const RPC_ERROR_MESSAGES: Record<string, string> = {
 };
 function cleanRpcError(raw: string): string {
   const code = raw.split(":")[0].trim();
+  if (code === "BELOW_MINIMUM") return "Minimum withdrawal is $500. Your earnings remain held until the minimum is reached.";
   if (code === "too_soon") return "Too soon since your last payout — " + raw.split(":")[1]?.trim();
   if (code === "below_minimum") return raw.split(":")[1]?.trim() ?? "Amount is below the minimum withdrawal.";
   return RPC_ERROR_MESSAGES[code] ?? raw;
@@ -1735,6 +1811,8 @@ Deno.serve(async (req) => {
       for (const r of page) ids.add(r.account_id);
       if (page.length < 1000) break;
     }
+    let alertsFired = 0;
+    try { alertsFired = await evaluateAlerts(db, null); } catch (_) { /* alerts never block enforcement */ }
     const queue = [...ids].sort(() => Math.random() - 0.5);
     const deadline = Date.now() + 40_000;
     let visited = 0;
@@ -1753,7 +1831,7 @@ Deno.serve(async (req) => {
       }
     }
     if (!lease.error) await db.rpc("release_engine_sweep");
-    return new Response(JSON.stringify({ ok: true, swept: visited, unvisited: queue.length - visited, breached }),
+    return new Response(JSON.stringify({ ok: true, swept: visited, unvisited: queue.length - visited, breached, alerts_fired: alertsFired }),
       { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
@@ -1821,7 +1899,7 @@ Deno.serve(async (req) => {
   // local declared further down — both read the same request body).
   const BOT_ALLOWED_ACTIONS = new Set([
     "state", "price", "prices", "open", "close", "close_all", "modify",
-    "partial_close", "place_pending", "cancel_pending",
+    "partial_close", "place_pending", "cancel_pending", "set_trailing",
   ]);
   if (authMethod === "bot" && !BOT_ALLOWED_ACTIONS.has(body.action)) {
     return err("This API key is trade-only — it cannot access payouts, KYC, or account settings", 403);
@@ -2025,8 +2103,16 @@ Deno.serve(async (req) => {
 
   if (action === "state") {
     const payload = await statePayload(db, acct as Acct, state.open, state.equity, state.floating);
+    let alerts: unknown[] = [];
+    try {
+      await evaluateAlerts(db, user.id);
+      const { data: al } = await db.from("price_alerts").select("*").eq("user_id", user.id)
+        .or("status.eq.active,and(status.eq.triggered,seen_at.is.null)").order("created_at", { ascending: false }).limit(100);
+      alerts = al ?? [];
+    } catch (_) { /* alerts are best-effort; never block state */ }
     return new Response(JSON.stringify({
       ...payload,
+      alerts,
       ...(breachSource ? { breach_notice: await breachNotice(db, breachSource), switched_to_demo: true } : {}),
     }),
       { headers: { ...CORS, "Content-Type": "application/json" } });
@@ -2093,14 +2179,27 @@ Deno.serve(async (req) => {
   }
 
   if (action === "payout_summary") {
+    const { data: infinityPreview, error: infinityPreviewError } = await db.rpc("fn_infinity_payout_preview", { p_user_id: user.id });
+    if (infinityPreviewError) return err(cleanRpcError(infinityPreviewError.message), 503);
+    if (infinityPreview?.has_infinity && !infinityPreview?.completion_requested) {
+      const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle();
+      return jsonOk({
+        has_funded_account: false, payout_kind: "infinity_stage3",
+        stage3_status: infinityPreview.stage3_status,
+        stage2_held: Number(infinityPreview.stage2_held ?? 0),
+        available_now: Number(infinityPreview.available_now ?? 0),
+        minimum_withdrawal: 500, kyc_status: kyc?.status ?? "unverified",
+      });
+    }
     const { data: funded } = await db.from("trading_accounts")
       .select("*").eq("user_id", user.id).eq("phase", "funded")
+      .or("challenge_type.neq.infinity,stage.gte.4")
       .is("access_revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!funded) return jsonOk({ has_funded_account: false });
+    if (!funded) return jsonOk({ has_funded_account: false, minimum_withdrawal: 500, payout_kind: infinityPreview?.has_infinity ? "infinity_completed" : null });
     const { data: summary } = await db.from("trader_payout_summary").select("*").eq("account_id", funded.id).maybeSingle();
     const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle();
     return jsonOk({
-      has_funded_account: true, account_status: funded.status, total_paid_out: Number(funded.total_paid_out ?? 0),
+      has_funded_account: true, account_status: funded.status, total_paid_out: Number(funded.total_paid_out ?? 0), minimum_withdrawal: 500,
       available_now: summary ? Number(summary.trader_share_owed) : 0,
       kyc_status: kyc?.status ?? "unverified", investigation_hold: !!funded.investigation_hold,
     });
@@ -2108,14 +2207,33 @@ Deno.serve(async (req) => {
 
   if (action === "request_payout") {
     if (await rateLimited("request_payout", 5, 60)) return err("Too many payout requests — try again later.", 429);
-    const { data: funded } = await db.from("trading_accounts")
-      .select("*").eq("user_id", user.id).eq("phase", "funded")
-      .is("access_revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!funded) return err("No funded account yet", 404);
     const payout_method_id = body.payout_method_id ? String(body.payout_method_id) : null;
     if (!payout_method_id) return err("Select a payout method first");
+    const { data: infinityStage3 } = await db.from("trading_accounts")
+      .select("*").eq("user_id", user.id).eq("challenge_type", "infinity").eq("stage", 3)
+      .in("status", ["active", "passed"]).is("access_revoked_at", null)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (infinityStage3?.status === "active") return err("Stage 2 earnings are held. Complete Stage 3 before requesting a payout; the minimum withdrawal is $500.", 409);
+    const stage3Complete = infinityStage3?.status === "passed" && Number(infinityStage3.balance) >= Number(infinityStage3.starting_balance) * 1.06;
+    const { data: stage3Payout } = stage3Complete ? await db.from("payouts").select("id")
+      .eq("account_id", infinityStage3!.id).eq("programme_event", "INFINITY_STAGE3_COMPLETION_PAYOUT")
+      .neq("status", "void").limit(1).maybeSingle() : { data: null };
+    if (stage3Complete && !stage3Payout) {
+      const idem = typeof body.idempotency_key === "string" && body.idempotency_key ? body.idempotency_key : `infinity_s3_${user.id}_${infinityStage3.id}_${Date.now()}`;
+      const { data: result, error } = await db.rpc("fn_request_infinity_stage3_payout", {
+        p_account_id: infinityStage3.id, p_requested_by: user.id,
+        p_idempotency_key: idem, p_payout_method_id: payout_method_id,
+      });
+      if (error) return err(cleanRpcError(error.message), 409);
+      return jsonOk({ payout: result, programme_event: result?.programme_event ?? "INFINITY_STAGE3_PAYOUT" });
+    }
+    if (infinityStage3 && !stage3Complete) return err("Complete Stage 3 before requesting a payout; the minimum withdrawal is $500.", 409);
+    const { data: funded } = await db.from("trading_accounts")
+      .select("*").eq("user_id", user.id).eq("phase", "funded")
+      .or("challenge_type.neq.infinity,stage.gte.4")
+      .is("access_revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!funded) return err(stage3Payout ? "The Stage 3 payout has already been requested." : "No completed Stage 3 or funded account is eligible for a payout yet", 404);
     const idem = typeof body.idempotency_key === "string" && body.idempotency_key ? body.idempotency_key : `req_${user.id}_${funded.id}_${Date.now()}`;
-
     const { data: result, error } = await db.rpc("fn_request_payout", {
       p_account_id: funded.id, p_requested_by: user.id, p_is_admin: false,
       p_idempotency_key: idem, p_payout_method_id: payout_method_id,
@@ -2123,7 +2241,6 @@ Deno.serve(async (req) => {
     if (error) return err(cleanRpcError(error.message), 409);
     return jsonOk({ payout: result });
   }
-
   // ---- pending orders (limit / stop) ----
   if (action === "place_pending") {
     if (!(await claimOrderLock(db, (acct as Acct).id))) {
@@ -2184,12 +2301,40 @@ Deno.serve(async (req) => {
       if ((acct as Acct).require_stop_loss && sl === null)
         return err("This challenge requires a stop-loss on every order.");
 
+      let expiresAt: string | null = null;
+      if (body.expires_at) {
+        const t = Date.parse(String(body.expires_at));
+        if (!isFinite(t) || t <= Date.now() + 60_000) return err("Expiry must be at least a minute in the future");
+        if (t > Date.now() + 90 * 86400_000) return err("Expiry can be at most 90 days ahead");
+        expiresAt = new Date(t).toISOString();
+      }
+
+      // OCO: link this order to an existing resting order; whichever fills first cancels the other.
+      let ocoGroup: string | null = null;
+      let ocoLinkId: string | null = null;
+      if (body.oco_with) {
+        const { data: link } = await db.from("pending_orders").select("id,oco_group,status,symbol")
+          .eq("id", String(body.oco_with)).eq("account_id", (acct as Acct).id).maybeSingle();
+        if (!link || link.status !== "pending") return err("The order you linked is no longer pending", 409);
+        if (link.symbol !== symbol) return err("Both OCO orders must be on the same instrument");
+        ocoGroup = link.oco_group ?? link.id;
+        ocoLinkId = link.oco_group ? null : link.id;
+      }
+
       const { data: created, error: pErr } = await db.from("pending_orders").insert({
         account_id: (acct as Acct).id, user_id: user.id, symbol, side,
         order_type: orderType, volume, trigger_price: trigger, sl, tp,
-        expires_at: body.expires_at ? String(body.expires_at) : null,
+        expires_at: expiresAt, oco_group: ocoGroup,
       }).select("*").single();
       if (pErr) return err("Could not place the order", 500);
+      if (ocoLinkId) {
+        const { data: linked } = await db.from("pending_orders").update({ oco_group: ocoGroup })
+          .eq("id", ocoLinkId).eq("status", "pending").select("id");
+        if (!linked || !linked.length) {
+          await db.from("pending_orders").update({ status: "cancelled", reject_reason: "OCO: linked order filled first", resolved_at: new Date().toISOString() }).eq("id", created.id);
+          return err("The order you linked filled or was cancelled first — the new order was not placed", 409);
+        }
+      }
       const orderId = await logAudit(db, {
         pending_order_id: created.id, user_id: user.id, account_id: (acct as Acct).id, event: "place_pending",
         symbol, side, requested_volume: volume, requested_price: trigger, quote: q, client_ip: clientIp,
@@ -2213,6 +2358,93 @@ Deno.serve(async (req) => {
       requested_price: Number(upd[0].trigger_price), client_ip: clientIp,
     });
     return jsonOk({});
+  }
+
+  // ---- price alerts ----
+  if (action === "list_alerts") {
+    const { data } = await db.from("price_alerts").select("*").eq("user_id", user.id)
+      .order("created_at", { ascending: false }).limit(200);
+    return jsonOk({ alerts: data ?? [] });
+  }
+  if (action === "create_alert") {
+    const symbol = cleanSymbol(body.symbol);
+    if (!symbol) return err("Unknown instrument");
+    const condition = body.condition === "above" || body.condition === "below" ? body.condition : null;
+    if (!condition) return err("Condition must be above or below");
+    const price = Number(body.price);
+    if (!isFinite(price) || price <= 0) return err("Enter a valid alert price");
+    const note = body.note ? String(body.note).slice(0, 140) : null;
+    const { count } = await db.from("price_alerts").select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).eq("status", "active");
+    if ((count ?? 0) >= 50) return err("You can have at most 50 active alerts");
+    const q = await fetchQuote(symbol);
+    if (q !== null && !quoteStale(q)) {
+      const m = (q.bid + q.ask) / 2;
+      if (condition === "above" ? m >= price : m <= price) return err(`Price is already ${condition} ${price}`);
+    }
+    const { data, error } = await db.from("price_alerts").insert({ user_id: user.id, symbol, condition, price, note }).select("*").single();
+    if (error) return err("Could not save the alert", 500);
+    return jsonOk({ alert: data });
+  }
+  if (action === "cancel_alert") {
+    const id = String(body.alert_id ?? "");
+    const { data } = await db.from("price_alerts").update({ status: "cancelled" })
+      .eq("id", id).eq("user_id", user.id).eq("status", "active").select("id");
+    if (!data || !data.length) return err("That alert is no longer active", 409);
+    return jsonOk({});
+  }
+  if (action === "alerts_seen") {
+    const ids = Array.isArray(body.alert_ids) ? body.alert_ids.map(String).slice(0, 200) : [];
+    if (ids.length) {
+      await db.from("price_alerts").update({ seen_at: new Date().toISOString() })
+        .eq("user_id", user.id).eq("status", "triggered").is("seen_at", null).in("id", ids);
+    }
+    return jsonOk({});
+  }
+
+  // ---- account statement (works for breached/closed accounts too) ----
+  if (action === "statement") {
+    const A = acct as Acct;
+    const to = body.to ? new Date(String(body.to)) : new Date();
+    const from = body.from ? new Date(String(body.from)) : new Date(to.getTime() - 30 * 86400_000);
+    if (!isFinite(from.getTime()) || !isFinite(to.getTime()) || from >= to) return err("Invalid statement period");
+    if (to.getTime() - from.getTime() > 366 * 86400_000) return err("A statement can cover at most one year");
+    const fromIso = from.toISOString(), toIso = to.toISOString();
+    const [{ data: trades }, { data: after }, { data: payouts }] = await Promise.all([
+      db.from("trades").select("id,symbol,side,volume,open_price,close_price,sl,tp,opened_at,closed_at,pnl,close_reason")
+        .eq("account_id", A.id).eq("status", "closed").gte("closed_at", fromIso).lt("closed_at", toIso)
+        .order("closed_at", { ascending: true }).limit(5000),
+      db.from("trades").select("pnl").eq("account_id", A.id).eq("status", "closed").gte("closed_at", toIso).limit(20000),
+      db.from("payouts").select("id,trader_share,status,approved_at,paid_at,period_start,period_end")
+        .eq("account_id", A.id).in("status", ["approved", "paid"]).order("approved_at", { ascending: true }),
+    ]);
+    type PnlRow = { pnl: number | null };
+    type PayRow = { trader_share: number; approved_at: string | null };
+    const sum = (rows: PnlRow[] | null) => round2((rows ?? []).reduce((a, r) => a + Number(r.pnl ?? 0), 0));
+    const paidSum = (rows: PayRow[]) => round2(rows.reduce((a, r) => a + Number(r.trader_share ?? 0), 0));
+    const pays = (payouts ?? []) as PayRow[];
+    const payoutsIn = pays.filter((p) => !!p.approved_at && p.approved_at >= fromIso && p.approved_at < toIso);
+    const payoutsAfter = pays.filter((p) => !!p.approved_at && p.approved_at >= toIso);
+    const tr = (trades ?? []) as PnlRow[];
+    const net = sum(tr);
+    // Balance only moves on closed-trade P&L and approved payouts, so walk back from today's balance.
+    const closingBalance = round2(Number(A.balance) - sum(after as PnlRow[]) + paidSum(payoutsAfter));
+    const openingBalance = round2(closingBalance - net + paidSum(payoutsIn));
+    const wins = tr.filter((t) => Number(t.pnl) > 0);
+    const losses = tr.filter((t) => Number(t.pnl) < 0);
+    return jsonOk({
+      statement: {
+        generated_at: new Date().toISOString(), from: fromIso, to: toIso,
+        account: { id: A.id, label: A.label, status: A.status, phase: A.phase ?? "evaluation", starting_balance: Number(A.starting_balance), is_demo: isDemoAccount(A) },
+        summary: {
+          opening_balance: openingBalance, closing_balance: closingBalance, net_pnl: net,
+          payouts: paidSum(payoutsIn), trades: tr.length, wins: wins.length, losses: losses.length,
+          gross_profit: sum(wins), gross_loss: sum(losses),
+          win_rate_pct: tr.length ? round2(wins.length / tr.length * 100) : null,
+        },
+        trades: trades ?? [], payouts: payoutsIn,
+      },
+    });
   }
 
   if (!isTradableAccount(acct as Acct)) return err("Account is " + (acct as Acct).status, 409);
@@ -2378,13 +2610,12 @@ Deno.serve(async (req) => {
       if (error) return reject("Order failed", q);
 
       // The source trade is committed. Start audit and copy dispatch together.
-      await Promise.all([
-        logAudit(db, {
+      const mirrorRiskUsd = sl === null ? null : Math.abs(openPrice - sl) * inst.contract * volume * conv;
+      mirrorLater(fireMirror(db, acct as Acct, { id: inserted.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: openPrice, close_price: null, sl, tp, status: "open", pnl: null } as Tr, "open", mirrorRiskUsd));
+      await logAudit(db, {
           trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
           symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPrice, quote: q, client_ip: clientIp,
-        }),
-        inserted?.id ? fireMirror(db, acct as Acct, { id: inserted.id, symbol, side, volume, open_price: openPrice, sl, tp } as Tr, "open") : Promise.resolve(),
-      ]);
+        });
 
       await db.from("equity_snapshots").insert({
         account_id: (acct as Acct).id, user_id: user.id, balance: (acct as Acct).balance, equity: state.equity,
@@ -2489,6 +2720,41 @@ Deno.serve(async (req) => {
       symbol: target.symbol, side: target.side, requested_volume: Number(target.volume),
       requested_price: mark, quote: q, client_ip: clientIp,
     });
+
+  // ---- trailing stop: set/clear the trail distance; enforce() moves the stop ----
+  } else if (action === "set_trailing") {
+    const id = typeof body.trade_id === "string" ? body.trade_id : null;
+    const target = state.open.find((t) => t.id === id);
+    if (!target) return err("Position not found or already closed", 404);
+    const raw = body.distance;
+    let dist: number | null = null;
+    if (!(raw === null || raw === undefined || raw === "" || Number(raw) === 0)) {
+      dist = Number(raw);
+      const q = await fetchQuote(target.symbol);
+      if (q === null || quoteStale(q)) return err("Price feed is stale — try again", 503);
+      const ex = target.side === "buy" ? q.bid : q.ask;
+      if (!isFinite(dist) || dist <= 0 || dist > ex * 0.2) return err("Trailing distance must be positive and under 20% of price");
+      if (dist <= q.spread) return err("Trailing distance must be wider than the spread");
+      // With no stop yet, the first trailed stop must respect the per-trade risk cap (measured from entry).
+      const A3 = acct as Acct;
+      if (target.sl === null && A3.max_risk_per_trade_pct != null) {
+        const inst3 = INSTRUMENTS[target.symbol];
+        const conv3 = await usdPerQuote(inst3.quote);
+        if (conv3 === null) return err("Could not check this stop against your risk limit — try again", 503);
+        const first = target.side === "buy" ? ex - dist : ex + dist;
+        const riskUsd = Math.abs(Number(target.open_price) - first) * inst3.contract * Number(target.volume) * conv3;
+        const limit = effectiveRiskLimit(A3, state.equity);
+        const maxRisk = limit?.effective ?? round2(Number(A3.starting_balance) * Number(A3.max_risk_per_trade_pct) / 100);
+        if (riskUsd > maxRisk + 0.01) return err(`That trailing stop would start $${riskUsd.toFixed(2)} from entry, above your $${maxRisk.toFixed(2)} risk limit.`);
+      }
+      await logAudit(db, {
+        trade_id: target.id, user_id: user.id, account_id: (acct as Acct).id, event: "modify",
+        symbol: target.symbol, side: target.side, requested_volume: Number(target.volume),
+        requested_price: ex, quote: q, client_ip: clientIp,
+      });
+    }
+    const { error: tErr } = await db.from("trades").update({ trail_distance: dist }).eq("id", target.id).eq("status", "open");
+    if (tErr) return err("Could not update the trailing stop", 500);
 
   // ---- partial close: bank part of a winner, keep the rest running ----
   } else if (action === "partial_close") {

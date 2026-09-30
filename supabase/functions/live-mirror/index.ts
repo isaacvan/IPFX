@@ -22,6 +22,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decideMirrorRisk, matchingMacroEvent } from "../_shared/trader-risk.ts";
+import { brokerCopyEvidenceReady } from "../_shared/broker-copy-evidence.ts";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { closePosition, marketOrder, placeMarketOrder, orderHistoryRows, positionAndOrderRows, refresh, responseIds, strategyId } from "../_shared/tradelocker.ts";
 
@@ -127,6 +128,15 @@ Deno.serve(async (req) => {
     }
   }
 
+  // A partially deployed policy, stale snapshot, or accidental target toggle
+  // must never activate capital copying. This is independent of the evidence
+  // gates below; closes continue to reach their exact mapped position.
+  if (event === "open" && target.environment !== "demo" &&
+      Deno.env.get("IPFX_REAL_COPY_ENABLED") !== "true") {
+    await log(db, { ...base, target_id: target.id, status: "skipped", error: "real-capital copy switch disabled" });
+    return new Response(JSON.stringify({ ok: true, skipped: "real-capital copy disabled" }), { status: 200 });
+  }
+
   // Copy control: decide how much of an OPEN IPFX should copy to its own account. This
   // never changes the trader's challenge trade. CLOSE events bypass every
   // exposure filter so live risk cannot be trapped.
@@ -174,17 +184,22 @@ Deno.serve(async (req) => {
       newsMultiplier: Number(policy?.news_multiplier ?? 0.25),
     });
     if (event === "open") {
-      const [{ data: copyState }, { data: riskSnapshot }, { data: consent }, { data: copyEvidence }, { data: reserve }, { data: sourceAccount }] = await Promise.all([
-        db.from("infinity_copy_states").select("effective_tier,status,risk_per_idea_gbp,max_concurrent_ideas,max_open_risk_gbp,last_evidence_at").eq("trading_account_id", sourceAccountId).maybeSingle(),
+      const [{ data: copyState }, { data: riskSnapshot }, { data: consent }, { data: copyEvidence }, { data: reserve }, { data: sourceAccount }, { data: detectorAssessment }, { data: validatedPolicy }] = await Promise.all([
+        db.from("infinity_copy_states").select("decision_id,effective_tier,status,risk_per_idea_gbp,max_concurrent_ideas,max_open_risk_gbp,last_evidence_at").eq("trading_account_id", sourceAccountId).maybeSingle(),
         db.from("mirror_account_risk_snapshots").select("account_currency,usd_per_account_currency,daily_pnl,drawdown_from_copy_start,gross_open_risk,open_ideas,api_healthy,provider_daily_loss_remaining_gbp,provider_total_drawdown_remaining_gbp,observed_at").eq("target_id", target.id).order("observed_at", { ascending: false }).limit(1).maybeSingle(),
         db.from("trader_copy_consents").select("consented_at,revoked_at").eq("trading_account_id", sourceAccountId).eq("user_id", user_id).is("revoked_at", null).maybeSingle(),
-        db.from("trader_detector_copyability_snapshots").select("provider_authorised,copyability_lower80,downside_capture,as_of_at").eq("trading_account_id", sourceAccountId).order("as_of_at", { ascending: false }).limit(1).maybeSingle(),
+        db.from("trader_detector_copyability_snapshots").select("id,provider_authorised,copyability_lower80,downside_capture,matched_ideas,provenance,as_of_at").eq("trading_account_id", sourceAccountId).order("as_of_at", { ascending: false }).limit(1).maybeSingle(),
         db.from("infinity_payout_reserve_status").select("coverage,fx_observed_at").maybeSingle(),
         db.from("trading_accounts").select("status,access_revoked_at,investigation_hold").eq("id", sourceAccountId).maybeSingle(),
+        db.from("trader_detector_assessments").select("id,copy_review_id,as_of_at,state,probability_status").eq("trading_account_id", sourceAccountId).order("as_of_at", { ascending: false }).limit(1).maybeSingle(),
+        db.from("infinity_copy_policy_versions").select("id").eq("status", "VALIDATED").order("version", { ascending: false }).limit(1).maybeSingle(),
       ]);
+      const { data: tierDecision } = copyState?.decision_id
+        ? await db.from("infinity_copy_tier_decisions").select("policy_id,assessment_id").eq("id", copyState.decision_id).maybeSingle()
+        : { data: null };
       const freshEvidence = copyState?.last_evidence_at && Date.now() - new Date(copyState.last_evidence_at).getTime() <= 15 * 60_000;
       const freshRisk = riskSnapshot?.observed_at && Date.now() - new Date(riskSnapshot.observed_at).getTime() <= 90_000;
-      const freshCopyEvidence = copyEvidence?.as_of_at && Date.now() - new Date(copyEvidence.as_of_at).getTime() <= 5 * 60_000;
+      const brokerCopyEvidence = brokerCopyEvidenceReady(copyEvidence, detectorAssessment, String(copyState?.effective_tier ?? ""), target.id, Date.now());
       const freshReserve = reserve?.fx_observed_at && Date.now() - new Date(reserve.fx_observed_at).getTime() <= 24 * 60 * 60_000;
       const tierActive = copyState?.status === "ACTIVE" && ["MICRO", "PARTIAL", "FULL"].includes(copyState?.effective_tier);
       const budgetGbp = Number(copyState?.risk_per_idea_gbp || 0);
@@ -196,10 +211,10 @@ Deno.serve(async (req) => {
       const providerRoom = Number(riskSnapshot?.provider_daily_loss_remaining_gbp) > 0 && Number(riskSnapshot?.provider_total_drawdown_remaining_gbp) > 0 &&
         2.75 * plannedOpenRisk <= 0.80 * Number(riskSnapshot.provider_daily_loss_remaining_gbp) &&
         2.75 * plannedOpenRisk <= 0.50 * Number(riskSnapshot.provider_total_drawdown_remaining_gbp);
-      const currentAuthority = Boolean(consent) && copyEvidence?.provider_authorised === true && Number(copyEvidence?.copyability_lower80 || 0) >= 0.75 &&
-        Number(copyEvidence?.downside_capture ?? 999) <= 1.20 && Number(reserve?.coverage || 0) >= 1.25 &&
+      const currentAuthority = Boolean(consent) && tierDecision?.policy_id === validatedPolicy?.id &&
+        tierDecision?.assessment_id === detectorAssessment?.id && brokerCopyEvidence && Number(reserve?.coverage || 0) >= 1.25 &&
         sourceAccount && ["active", "passed"].includes(sourceAccount.status) && !sourceAccount.access_revoked_at && sourceAccount.investigation_hold !== true;
-      if (!tierActive || !freshEvidence || !freshRisk || !freshCopyEvidence || !freshReserve || !currentAuthority ||
+      if (!tierActive || !freshEvidence || !freshRisk || !freshReserve || !currentAuthority ||
           !brokerHealthy || !riskRoom || !countRoom || !lossRoom || !providerRoom || !Number.isFinite(sourceRiskUsd) || sourceRiskUsd <= 0) {
         riskDecision = { ...riskDecision, action: "skip", multiplier: 0, reasons: [...riskDecision.reasons, "fresh tier, consent, provider, reserve, destination-risk or source-risk gate failed"] };
       } else if (riskDecision.action !== "skip") {
@@ -225,10 +240,17 @@ Deno.serve(async (req) => {
       });
       try { EdgeRuntime.waitUntil(audit); } catch (_) { await audit; }
     } else {
-      await decisionWrite;
+      const { error: decisionError } = await decisionWrite;
+      if (decisionError) throw new Error(`MIRROR_RISK_AUDIT_FAILED: ${decisionError.message}`);
     }
   } catch (error) {
     console.error(JSON.stringify({ event: "mirror_risk_fallback", source_trade_id, error: String(error).slice(0, 160) }));
+    // A partial allow/reduce decision must never survive a failed risk check.
+    // Closes deliberately bypass open-risk filters so they can reduce exposure.
+    if (event === "open") {
+      riskDecision = { action: "skip", multiplier: 0, reasons: ["risk control unavailable; fail closed"], unusual_size_multiple: null };
+      tierVolumeMultiplier = 0;
+    }
   }
 
   if (event === "open" && riskDecision.action === "skip") {
@@ -371,7 +393,8 @@ Deno.serve(async (req) => {
     if (!pid) {
       const { data: openRow } = await db.from("mirror_orders")
         .select("broker_position_id")
-        .eq("source_trade_id", source_trade_id).eq("event", "open").eq("status", "filled")
+        .eq("source_trade_id", source_trade_id).eq("target_id", target.id)
+        .eq("event", "open").eq("status", "filled")
         .not("broker_position_id", "is", null)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       pid = openRow?.broker_position_id ?? null;
@@ -409,12 +432,19 @@ Deno.serve(async (req) => {
       await db.from("mirror_orders").update({ status: "error", latency_ms: latency, error: `HTTP ${r.status}: ${JSON.stringify(j).slice(0, 300)}` }).eq("id", claim.id);
       return new Response(JSON.stringify({ ok: false, error: j }), { status: 200 });
     }
-    // MetaApi returns positionId / orderId on success
-    const brokerPosId = j.positionId ?? j.orderId ?? null;
-    await db.from("mirror_orders").update({ status: "filled", latency_ms: latency, broker_position_id: brokerPosId ? String(brokerPosId) : null }).eq("id", claim.id);
-    return new Response(JSON.stringify({ ok: true, positionId: brokerPosId, latency_ms: latency }), { status: 200 });
+    // An order ID is not a position ID. If the position ID is absent, keep
+    // the claim for exact reconciliation instead of pretending it can close.
+    const brokerPosId = j.positionId ?? null;
+    await db.from("mirror_orders").update({
+      status: brokerPosId ? "filled" : "reconciliation_required",
+      latency_ms: latency,
+      broker_order_id: j.orderId == null ? null : String(j.orderId),
+      broker_position_id: brokerPosId == null ? null : String(brokerPosId),
+    }).eq("id", claim.id);
+    return new Response(JSON.stringify({ ok: true, positionId: brokerPosId, reconciliation_required: !brokerPosId, latency_ms: latency }), { status: 200 });
   } catch (e) {
-    await db.from("mirror_orders").update({ status: "error", latency_ms: Date.now() - t0, error: String(e).slice(0, 300) }).eq("id", claim.id);
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 200 });
+    // A network failure after submission is ambiguous. Never auto-resubmit.
+    await db.from("mirror_orders").update({ status: "reconciliation_required", latency_ms: Date.now() - t0, error: String(e).slice(0, 300) }).eq("id", claim.id);
+    return new Response(JSON.stringify({ ok: false, error: "broker result requires reconciliation" }), { status: 200 });
   }
 });
