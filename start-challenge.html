@@ -1108,9 +1108,9 @@
     <div class="challenge-launch-card">
         <img class="challenge-launch-logo" src="/desktop/build/icon.png" alt="IPFX Capital">
         <div class="challenge-launch-kicker">Infinity Challenge</div>
-        <h1 id="challengeLaunchTitle">Launching<br>1 October 2026</h1>
+        <h1 id="challengeLaunchTitle">Launching<br>9 October 2026</h1>
         <div class="challenge-launch-date">Free Infinity applications open at launch</div>
-        <p id="challengeLaunchCopy">Infinity is the only programme launching on 1 October. Traditional, Futures and PAC remain on hold.</p>
+        <p id="challengeLaunchCopy">Infinity is the only programme launching on 9 October. Traditional, Futures and PAC remain on hold.</p>
         <p class="challenge-launch-status" id="challengePreregisteredNote" hidden>Pre-registration submitted. Please verify your email, then sign in when applications open.</p>
         <a class="challenge-preview-link" id="challengePreviewLogin" href="/team-login.html">Authorised team preview</a>
         <a class="challenge-preview-link" id="challengeSigninLink" href="/login.html?next=%2Fdashboard.html" hidden>Sign in</a>
@@ -1590,7 +1590,7 @@
 
     <script>
     (async function challengeLaunchGate() {
-      const launchAt = Date.parse('2026-09-30T23:00:00Z');
+      const launchAt = Date.parse('2026-10-08T23:00:00Z');
       const params = new URLSearchParams(location.search);
       const programme = params.get('type') || 'infinity';
       const preregistered = params.get('preregistered') === '1';
@@ -1619,7 +1619,7 @@
         document.getElementById('challengeLaunchTitle').innerHTML = 'Programme<br>on hold';
         document.querySelector('.challenge-launch-date').textContent = 'Infinity is the only open challenge';
         document.getElementById('challengeLaunchCopy').textContent = 'Traditional, Futures and PAC applications and payments remain paused. No replacement launch date has been announced.';
-        status.textContent = 'Choose the Infinity Challenge to apply from 1 October 2026.';
+        status.textContent = 'Choose the Infinity Challenge to apply from 9 October 2026.';
       }
       try {
         const db = window.supabase.createClient(

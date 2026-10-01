@@ -20,7 +20,7 @@ const headers = {
 };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
+const challengePublicLaunchAt = Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026 00:00 UK
 const ownerPreview = (email: string | undefined) =>
   String(email || "").trim().toLowerCase() ===
     String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
@@ -48,7 +48,7 @@ Deno.serve(async req => {
       : data ? json({ order: data }) : json({ error: "Order not found" }, 404);
   }
   if (!challengePreviewAllowed(auth.user.email)) {
-    return json({ error: "Challenges launch 1 October 2026." }, 403);
+    return json({ error: "Challenges launch 9 October 2026." }, 403);
   }
 
   // Deliberately sandbox-only in this release, same rationale as the Stripe

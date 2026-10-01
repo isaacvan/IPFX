@@ -12,7 +12,7 @@ const headers = {
 const json = (value: unknown, status = 200, extraHeaders: Record<string, string> = {}) =>
   new Response(JSON.stringify(value), { status, headers: { ...headers, ...extraHeaders } });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
+const challengePublicLaunchAt = Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026 00:00 UK
 const ownerPreview = (email: string | undefined) =>
   String(email || "").trim().toLowerCase() ===
     String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
@@ -46,7 +46,7 @@ Deno.serve(async req => {
 
   const action = body.action === "status" || body.action === "quote" ? body.action : "create";
   if (action !== "status" && !challengePreviewAllowed(auth.user.email)) {
-    return traced({ error: "Challenges launch 1 October 2026." }, 403);
+    return traced({ error: "Challenges launch 9 October 2026." }, 403);
   }
   const rate = action === "status" ? [60, 60] : action === "quote" ? [30, 60] : [10, 600];
   try {

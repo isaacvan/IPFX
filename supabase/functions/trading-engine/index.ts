@@ -2532,7 +2532,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
   }
   if (!user) return err("Not signed in", 401);
 
-  const challengePublicLaunchAt = Date.parse("2026-09-30T23:00:00Z");
+  const challengePublicLaunchAt = Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026 00:00 UK
   const ownerPreviewAllowed = String(user.email || "").trim().toLowerCase() ===
     String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
   const challengePreviewAllowed = Date.now() >= challengePublicLaunchAt ||
@@ -2560,7 +2560,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({ ok: true, infinity: pub }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
   if (body.action === "claim_infinity") {
-    if (!challengePreviewAllowed) return err("Challenges launch 1 October 2026.", 403);
+    if (!challengePreviewAllowed) return err("Challenges launch 9 October 2026.", 403);
     if (!(await claimOrderLock(db, user.id))) return err("Already processing — try again in a moment.", 429);
     try {
       const st = await infinityStatus(db, user);

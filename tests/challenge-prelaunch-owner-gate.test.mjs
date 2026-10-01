@@ -6,7 +6,7 @@ const read = file => fs.readFileSync(file, 'utf8');
 
 test('public start page is a launch screen and only loads checkout after the gate opens', () => {
   const page = read('start-challenge.html');
-  assert.match(page, /Launching<br>1 October 2026/);
+  assert.match(page, /Launching<br>9 October 2026/);
   assert.match(page, /id="challengePreviewApp" hidden/);
   assert.match(page, /functions\/v1\/team-access/);
   assert.match(page, /currentLevel !== 'aal2'/);
@@ -38,9 +38,9 @@ test('every server activation and checkout path enforces the same pre-launch own
     'supabase/functions/trading-engine/index.ts',
   ]) {
     const source = read(file);
-    assert.match(source, /2026-09-30T23:00:00Z/);
+    assert.match(source, /2026-10-08T23:00:00Z/);
     assert.match(source, /IPFX_OWNER_EMAIL/);
-    assert.match(source, /Challenges launch 1 October 2026\./);
+    assert.match(source, /Challenges launch 9 October 2026\./);
   }
   assert.match(read('supabase/functions/trading-engine/index.ts'), /claim_infinity[\s\S]{0,180}!challengePreviewAllowed/);
 });

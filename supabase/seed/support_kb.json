@@ -72,12 +72,12 @@
   },
   {
    "key": "launch_note",
-    "value": "The free **Infinity Challenge** opens on **1 October 2026**. Traditional, Futures and PAC are on hold with no public application or payment date announced.",
+    "value": "The free **Infinity Challenge** opens on **9 October 2026**. Traditional, Futures and PAC are on hold with no public application or payment date announced.",
     "description": "Public programme launch status."
   },
   {
    "key": "launch_short",
-    "value": "The free **Infinity Challenge** opens on **1 October 2026**. Other programmes remain on hold.",
+    "value": "The free **Infinity Challenge** opens on **9 October 2026**. Other programmes remain on hold.",
     "description": "One-line public programme launch status."
   }
  ],
@@ -170,7 +170,7 @@
     "which one should i choose",
     "what should i start with"
    ],
-    "answer": "The free **Infinity Challenge** is the only programme opening on 1 October 2026. It starts with a $1,000 simulated evaluation and uses staged observation, concentration and risk controls. Traditional, Futures and PAC applications and payments are on hold until a separate public launch notice. Trading is risky and none of this is financial advice.",
+    "answer": "The free **Infinity Challenge** is the only programme opening on 9 October 2026. It starts with a $1,000 simulated evaluation and uses staged observation, concentration and risk controls. Traditional, Futures and PAC applications and payments are on hold until a separate public launch notice. Trading is risky and none of this is financial advice.",
    "follow_ups": [
     "What are the fees?",
     "Compare the drawdown rules",

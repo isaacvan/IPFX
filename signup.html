@@ -744,7 +744,7 @@
                 <img src="/desktop/build/icon.png" alt="IPFX Capital">
             </div>
 
-            <div class="launch-badge">Infinity launches 1 October 2026</div>
+            <div class="launch-badge">Infinity launches 9 October 2026</div>
             <h1 id="signupHeading">Pre-register for Infinity</h1>
             <p class="subtitle" id="signupSubtitle">Create your free account ahead of the launch</p>
             <p class="pre-register-info" id="signupInfo">Submit this form first. We will then show you the launch date and ask you to verify your email. Pre-registration does not start a challenge.</p>
@@ -892,7 +892,7 @@
         const requestedNext = urlParams.get('next') || '/dashboard.html';
         const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
             ? requestedNext : '/dashboard.html';
-        const beforeInfinityLaunch = Date.now() < Date.parse('2026-09-30T23:00:00Z');
+        const beforeInfinityLaunch = Date.now() < Date.parse('2026-10-08T23:00:00Z');
         const launchAfterSignup = beforeInfinityLaunch &&
             (!urlParams.has('next') || /^\/start-challenge\.html(?:\?|$)/.test(safeNext));
         if (!beforeInfinityLaunch) {

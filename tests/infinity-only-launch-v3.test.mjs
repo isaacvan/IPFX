@@ -36,9 +36,9 @@ test('database authority permits only Infinity publicly from 1 October', () => {
 });
 
 test('public pages state the same launch and block paid-programme CTAs', () => {
-  assert.match(start, /Infinity is the only programme launching on 1 October/);
+  assert.match(start, /Infinity is the only programme launching on 9 October/);
   assert.match(home, /Traditional &amp; Futures — On Hold/);
-  assert.match(home, /Infinity Challenge opens 1 October 2026/);
+  assert.match(home, /Infinity Challenge opens 9 October 2026/);
   assert.doesNotMatch(home, /onclick="openPricingModal\('(25k|50k|100k|200k)'\)">Get Started/);
   assert.match(read('futures.html'), /Futures Challenge applications and payments are on hold/);
   assert.match(read('personalised-challenge.html'), /Personalised Application Challenge applications and payments are on hold/);
