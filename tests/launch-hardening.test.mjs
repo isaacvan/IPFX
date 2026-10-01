@@ -169,6 +169,7 @@ test('TradeLocker price source: switchable, leased, rate-adaptive, sticky, FXCM 
   assert.match(engine, /or\(`lease_until\.is\.null,lease_until\.lt\.\$\{nowIso\}`\)/);
   assert.match(engine, /this\.rate = Math\.max\(TL_MIN_RATE, this\.rate \* 0\.5\)/);   // back off on 429
   assert.match(engine, /this\.rate = Math\.min\(this\.maxRate, this\.rate \+ 0\.25\)/); // ramp on success
+  assert.match(engine, /now - this\.lastRampAt >= 5000 && now - this\.last429At >= 10_000/); // ramps after clean time, not a success count
   assert.match(engine, /now - q\.fetchedAt < TL_FRESH_MS/);                           // stale TL -> FXCM fallback
   assert.match(engine, /if \(this\.mode === "shadow"\) \{ this\.pending = \[\]; return \{ rows: fxRows, changed: fxChanged \}; \}/);
   assert.match(engine, /q\.source === "fxcm-basic" \|\| q\.source === "tradelocker"/);

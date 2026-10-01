@@ -544,7 +544,7 @@ const TL_MIN_RATE = 0.5, TL_START_RATE = 2;
 type TlQuote = { bid: number; ask: number; changedAt: number; fetchedAt: number };
 
 class TradeLockerFeed {
-  rate = TL_START_RATE; maxRate = 8; tokens = 0; lastRefill = Date.now(); pausedUntil = 0; inFlight = 0; successes = 0;
+  rate = TL_START_RATE; maxRate = 8; tokens = 0; lastRefill = Date.now(); pausedUntil = 0; inFlight = 0; lastRampAt = 0; last429At = 0;
   quotes = new Map<string, TlQuote>(); lastFetch = new Map<string, number>(); pending: Quote[] = [];
   hot = new Set<string>(); hotAt = 0; served: string[] = [];
   stats = { fetches: 0, ok: 0, r429: 0, errors: 0, tlChanges: {} as Record<string, number>, fxChanges: {} as Record<string, number>, maxDiffBps: {} as Record<string, number> };
@@ -573,6 +573,8 @@ class TradeLockerFeed {
       const f = new TradeLockerFeed(db, mode, sess, instruments, runId, until + 1000);
       f.maxRate = maxRate || 8;
       f.rate = Math.min(f.maxRate, Math.max(TL_MIN_RATE, Number(st.rate) || TL_START_RATE));
+      f.last429At = st.last_429_at ? Date.parse(st.last_429_at) : 0;
+      f.lastRampAt = Date.now();
       // Seed from the cache so a new run continues seamlessly where the previous one stopped.
       const { data: rows } = await db.from("live_quotes").select("symbol,bid,ask,provider_ts,feed_ts,source").eq("source", "tradelocker");
       for (const r of rows ?? []) {
@@ -632,8 +634,9 @@ class TradeLockerFeed {
       const q = await feedQuote(this.sess, i);
       if (!q) return;
       this.stats.ok++;
-      if (++this.successes >= 20) { this.successes = 0; this.rate = Math.min(this.maxRate, this.rate + 0.25); }
       const now = Date.now();
+      // Additive increase: +0.25 req/s for every 5s of clean operation (and 10s clear of the last 429).
+      if (now - this.lastRampAt >= 5000 && now - this.last429At >= 10_000) { this.rate = Math.min(this.maxRate, this.rate + 0.25); this.lastRampAt = now; }
       const prev = this.quotes.get(i.symKey);
       const mid = (q.bid + q.ask) / 2;
       const inst = INSTRUMENTS[i.symKey];
@@ -653,7 +656,7 @@ class TradeLockerFeed {
       }
     } catch (e) {
       if (String(e).includes("TRADELOCKER_HTTP_429")) {
-        this.stats.r429++; this.successes = 0; this.tokens = 0;
+        this.stats.r429++; this.tokens = 0; this.last429At = Date.now();
         this.rate = Math.max(TL_MIN_RATE, this.rate * 0.5);
         this.pausedUntil = Date.now() + 1500;
       } else this.stats.errors++;
@@ -695,7 +698,7 @@ class TradeLockerFeed {
   async finish() {
     await this.db.from("price_feed_state").update({
       rate: this.rate, tl_symbols: this.served, lease_until: new Date().toISOString(),
-      last_429_at: this.stats.r429 ? new Date().toISOString() : undefined,
+      last_429_at: this.last429At ? new Date(this.last429At).toISOString() : undefined,
       stats: { ...this.stats, mode: this.mode, rate: this.rate, max_rate: this.maxRate, served: this.served, hot: [...this.hot], at: new Date().toISOString() },
       updated_at: new Date().toISOString(),
     }).eq("id", true).eq("lease_owner", this.runId);
