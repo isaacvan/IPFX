@@ -2089,7 +2089,7 @@
     "trade data privacy",
     "my strategy confidential"
    ],
-   "answer": "We record the trading data on your accounts (orders, sizes, prices, timings, balance history). It's used to run your account, calculate your results and payouts, enforce the rules and detect prohibited practices, and — in **aggregated, anonymised** form — to calibrate our risk models and improve the platform.\n\nUnder our Terms (section 11) we do **not** place, mirror or copy trades on any live account based on your individual, identifiable trading data. Any future programme that did would be a separate, clearly described opt-in with its own terms and compensation. For the PAC, your strategy disclosure is treated as confidential. See the [Privacy Policy](/privacy.html).",
+   "answer": "We record the trading data on your accounts (orders, sizes, prices, timings, balance history). It's used to run your account, calculate your results and payouts, enforce the rules and detect prohibited practices, and — in **aggregated, anonymised** form — to calibrate our risk models and improve the platform.\n\n For the PAC, your strategy disclosure is treated as confidential. See the [Privacy Policy](/privacy.html).",
    "follow_ups": [
     "Is my ID safe?",
     "How long do you keep my data?"

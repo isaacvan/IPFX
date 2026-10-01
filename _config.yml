@@ -1,0 +1,28 @@
+# GitHub Pages publishes only the website. Internal material stays in the repo but is not served.
+exclude:
+  - docs
+  - research
+  - scripts
+  - tests
+  - server
+  - supabase
+  - internal-control
+  - desktop-app
+  - desktop/scripts
+  - desktop/tests
+  - desktop/main.cjs
+  - desktop/builder.cjs
+  - desktop/builder.preview.cjs
+  - desktop/policy.cjs
+  - desktop/package.json
+  - desktop/package-lock.json
+  - desktop/pnpm-lock.yaml
+  - desktop/pnpm-workspace.yaml
+  - desktop/README.md
+  - "*.sql"
+  - "*.md"
+  - "*.pen"
+  - "WEB PLAN.pdf"
+  - signup-with-referral-code-update.txt
+  - loadtest-results.json
+  - package-lock.json
