@@ -188,3 +188,16 @@ test('cTrader Open API price source: streaming, all instruments, credentials ser
   assert.match(engine, /if \(!this\.alive\(\)\) \{ this\.pending = \[\]; return \{ rows: fxRows, changed: fxChanged \}; \}/);
   assert.match(engine, /q\.source === "ctrader"/);
 });
+
+test('Terms: Company may copy/route (A-book/B-book); traders may copy from outside but not between IPFX accounts', () => {
+  const terms = read('terms.html'), privacy = read('privacy.html');
+  assert.match(terms, /Company trading \(copying, A-book and B-book\)/);
+  assert.match(terms, /may move any account between these models at any time/);
+  assert.match(terms, /takes effect on 15 October 2026, in accordance with Section 18/);
+  assert.doesNotMatch(terms, /does not have any right under these Terms to: place, mirror/);
+  assert.doesNotMatch(terms, /Absolute Prohibition/);
+  assert.match(terms, /You may copy trades onto your Evaluation or Funded Account from outside the Platform/);
+  assert.match(terms, /Copying trades into or between IPFX accounts is prohibited/);
+  assert.match(privacy, /move accounts between A-book and B-book models, as set out in Section 11\.3/);
+  assert.doesNotMatch(privacy, /does not use your identifiable Trading Data to place, mirror/);
+});

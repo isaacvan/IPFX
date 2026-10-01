@@ -95,7 +95,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <div class="hero-meta">
       <span>IPFX Capital Ltd</span>
       <span>Governed by English Law</span>
-      <span>Last updated: 30 September 2026</span>
+      <span>Last updated: 1 October 2026</span>
       <span>Version 1.2</span>
     </div>
   </div>
@@ -363,7 +363,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
       <li>Placing simultaneous long and short positions across two or more accounts (whether held by the same Participant or coordinated with another person) to arbitrage the evaluation environment;</li>
       <li>Deliberately holding positions through high-impact news events to exploit outsized simulated movements that would not be reproducible in live market conditions;</li>
       <li>Reverse-engineering the exact drawdown levels and profit targets to place positions sized to hit the target in the minimum number of trades without demonstrating any repeatable trading methodology;</li>
-      <li>Using copy trading software, signal services, or any form of trade mirroring to reproduce another trader's positions on the Evaluation Account (see Section 8.3).</li>
+      <li>Copying trades between IPFX accounts, or acting as a signal provider for other IPFX Participants (see Section 8.3).</li>
     </ul>
     <p>The Company's determination as to whether a Participant has engaged in exploitation is final and binding. The Company does not provide detailed reasons for account termination on exploitation grounds, and no appeal process is available beyond a written request to enquiries@ipfxcapital.com, which the Company will review at its discretion.</p>
 
@@ -489,21 +489,19 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     </ul>
     <p>Opposing positions on the same instrument held by different Participants trading from the same network or device are automatically flagged and may be investigated under this Section.</p>
 
-    <h3>8.3 Copy Trading, Signal Services, and Third-Party Assistance — Absolute Prohibition</h3>
-    <p>Copy trading is <strong>absolutely prohibited</strong> on all Evaluation Accounts and Funded Accounts without exception. This prohibition exists because the Challenge is an evaluation of <em>your personal trading skill and decision-making</em>. Any trade placed on your account that does not reflect a genuine, independent trading decision made by you personally is a fraudulent representation to the Company.</p>
-    <p>You must not, under any circumstances:</p>
+    <h3>8.3 Copy Trading, Signal Services, and Third-Party Assistance</h3>
+    <p>You may copy trades onto your Evaluation or Funded Account from outside the Platform — for example from your own external trading account, an Expert Advisor you run, or a signal service you subscribe to. You remain fully responsible for every trade on your account, all other rules in these Terms continue to apply (including the risk limits and Section 8.4 on algorithmic trading), and the copying must not be one of the arrangements prohibited below.</p>
+    <p>You must not:</p>
     <ul>
-      <li>Use any copy trading platform, trade mirroring software, signal replication tool, or any automated or semi-automated system that replicates trades from any external source — whether another trader, a signal provider, a trading bot, an algorithmic strategy developed by a third party, or any other external input — onto your Evaluation or Funded Account;</li>
-      <li>Subscribe to, follow, or act upon trade signals, entry/exit alerts, or position notifications from any signal provider, Telegram group, Discord server, social media account, or any other source in a manner where the signal materially determines the trade placed on your account;</li>
+      <li>Copy trades into or between IPFX accounts, whether your own or another person's — including operating as the "master" account with other IPFX accounts as "followers";</li>
+      <li>Act as a signal provider, or sell or supply trade copying, to other IPFX Participants;</li>
       <li>Use any "challenge passing service," account management service, third-party trader, or any individual or company that offers to trade on your account, pass a challenge for you, or manage your funded account on your behalf;</li>
-      <li>Share, sell, rent, lend, or otherwise transfer your account login credentials or API access to any other person for any purpose or for any duration, even temporarily;</li>
-      <li>Place trades on your account while under the direction or instruction of another person in real time, including following live commentary, screen sharing, or voice calls where a third party is directing your trading decisions;</li>
-      <li>Operate a copy trading arrangement whereby your own account is the "master" account and other IPFX accounts (yours or another person's) are configured as "follower" accounts receiving your signals.</li>
+      <li>Share, sell, rent, lend, or otherwise transfer your account login credentials or API access to any other person for any purpose or for any duration, even temporarily.</li>
     </ul>
     <div class="danger-box">
-      <p><strong>Participants may not copy trades into or between Participant accounts, including where they act as the signal provider.</strong> Operating as the "master" or "follower" in a Participant copying arrangement is prohibited. This does not describe the Company's separately consented proprietary hedging under clause 11.7, which never alters the Participant's account. A Participant account found to be involved in a prohibited copying arrangement may be terminated in accordance with these Terms.</p>
+      <p><strong>Copying trades into or between IPFX accounts is prohibited.</strong> A Participant account found to be involved in a prohibited copying arrangement may be terminated in accordance with these Terms. This Section does not restrict the Company's own trading under Section 11.3.</p>
     </div>
-    <p>The Company employs automated pattern-matching analysis, cross-account trade correlation detection, IP address logging, and device fingerprinting to identify copy trading. Detection of correlated trading patterns across two or more accounts — regardless of whether those accounts belong to the same registered user — will trigger an investigation and may result in the termination of all correlated accounts.</p>
+    <p>The Company uses automated pattern-matching analysis, cross-account trade correlation detection, IP address logging, and device fingerprinting to identify prohibited copying between IPFX accounts. Correlated trading across two or more accounts will trigger an investigation. Accounts that independently copy the same permitted outside source are not in breach for that reason alone; accounts found to be part of a prohibited arrangement may be terminated.</p>
 
     <h3>8.4 Algorithmic Trading — Submission and Approval Required</h3>
     <p>All trading on the Platform must be conducted directly through IPFX Markets. Third-party trading software, Expert Advisors (EAs), external bots, or any application that connects to the Platform programmatically without Company authorisation is strictly prohibited. Algorithmic trading strategies may only operate on a Participant's account where all of the following conditions are met:</p>
@@ -647,14 +645,16 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
       <li>Operating, securing, and enforcing the rules of the Platform, including detecting Prohibited Trading Practices, rule violations, and fraudulent or exploitative behaviour;</li>
       <li>Calculating your evaluation results, performance metrics, drawdown, and Profit Split;</li>
       <li>Aggregating and anonymising Trading Data across Participants to calibrate the Company's internal risk models, evaluation parameters, and challenge design (no individual Participant is identifiable in this aggregated use);</li>
-      <li>Improving the Platform's products, pricing, and risk management generally.</li>
+      <li>Improving the Platform's products, pricing, and risk management generally;</li>
+      <li>The Company's own trading, hedging and risk management, as described below.</li>
     </ul>
-    <p>This licence does <strong>not</strong> include, and the Company does not have any right under these Terms to: place, mirror, replicate, or derive trades from your individual, identifiable Trading Data on any live account — whether operated by the Company, held at a third-party broker, or held at any other proprietary trading firm. Any future programme in which the Company would trade real capital based on a specific Participant's trading activity would be a separate, clearly-described, opt-in arrangement with its own terms and its own compensation to that Participant — never a condition of accessing the Challenge, and never bundled into these Terms.</p>
+    <p><strong>Company trading (copying, A-book and B-book).</strong> The Company may, at its sole discretion, use your Trading Data — including your individual, identifiable orders and positions — to place, copy, mirror, replicate, hedge or offset trades in accounts operated by or for the Company, including accounts held with third-party brokers or liquidity providers. The Company may treat the activity on any account as internalised (B-book), as externally routed, copied or hedged (A-book), or as a combination of both, and may move any account between these models at any time without notice. These are the Company's own risk-management and business decisions: they do not change your Challenge rules, results, Profit Split or payout eligibility, and you are not entitled to any share of the profit, nor responsible for any loss, from the Company's own trading.</p>
+    <p>For accounts activated on or after 1 October 2026 this paragraph applies from activation. For accounts activated before that date it takes effect on 15 October 2026, in accordance with Section 18.</p>
 
     <h3>11.4 Participant Warranties Regarding Trading Data</h3>
     <p>By activating any account, you represent and warrant to the Company that:</p>
     <ul>
-      <li>All trading decisions made on your account are your own and are not derived from any third-party signal service or copy trading arrangement prohibited under Section 8.3;</li>
+      <li>You are responsible for every trade placed on your account, and your account is not part of any copying arrangement prohibited under Section 8.3;</li>
       <li>Your Trading Data does not infringe any third-party intellectual property rights;</li>
       <li>You are not subject to any non-compete, non-solicitation, or trading restriction that would prohibit you from trading on the Platform.</li>
     </ul>
@@ -668,7 +668,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <h3>11.7 Strategy Analytics and Demo Validation</h3>
     <p>For internal risk research and platform improvement, the Company may create an explainable hypothesis about a Participant's trading style from observable Platform activity. Inputs may include instruments, order timing and frequency, position size, holding period, stop-loss and take-profit placement, market regime, scheduled-news proximity, and the indicator identifiers, timeframe and chart style the Participant saves in IPFX Markets. A hypothesis is an estimate, not a statement of the Participant's intent, ownership of a method, future performance or misconduct.</p>
     <p>The Company may test a hypothesis through a separate simulated paper plan and compare the plan with later Platform activity to measure whether the hypothesis remains supported. These paper plans do not place or authorise live orders, do not alter the Participant's account, and are not investment advice. Strategy hypotheses and paper-plan scores are decision-support evidence only and do not by themselves determine Challenge approval, pass or fail status, payout eligibility, suspension, termination or any disciplinary outcome.</p>
-    <p><strong>Optional Company hedging.</strong> The Company may separately offer a Participant the option to permit the Company to use that Participant's own Platform orders as inputs to the Company's risk-hedging or proprietary account. This requires separate, specific and recorded consent, may be revoked for future activity, and is subject to provider, legal, treasury and risk approval. The Company may observe or research a Participant without copying them; watchlist status is not an approval to risk capital. It does not permit the Participant to copy another person, does not alter the Participant's execution, and cannot reduce an earned payout or change the published pass and failure rules. The Company's private copy-tier thresholds are internal treasury controls, not hidden Challenge requirements. Past Stage performance, a research score or a Company copying decision does not guarantee future profit.</p>
+    <p><strong>Company trading.</strong> The Company's right to copy, hedge or route trading activity, and to move accounts between A-book and B-book models, is set out in Section 11.3. Those decisions are internal risk-management decisions and are not Challenge requirements.</p>
   </section>
 
   <!-- ─────────────────── SECTION 12 ─────────────────── -->

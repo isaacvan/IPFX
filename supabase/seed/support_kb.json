@@ -1144,7 +1144,7 @@
     "what is allowed",
     "terms of trading"
    ],
-   "answer": "The main prohibited practices (Terms section 8) are:\n- **Arbitrage and latency exploitation** — tick scalping, exploiting price delays or feed differences\n- **Hedging or coordinating across accounts** (yours or anyone else's)\n- **Copy trading and signals** — copying, being copied, or letting anyone else trade your account\n- **Unapproved bots/EAs** — algorithms need written approval first\n- **Martingale, grid and aggressive averaging** (unless agreed for a PAC)\n- **Single-trade gambling** or reverse-engineering the exact targets\n- **Exploiting platform errors** (report them instead) and **VPN/location masking**\n- **Account sharing** and multiple registered accounts\n\nBreaches mean immediate closure with no refund. Read section 8 of the [Terms](/terms.html) for the full wording.",
+   "answer": "The main prohibited practices (Terms section 8) are:\n- **Arbitrage and latency exploitation** — tick scalping, exploiting price delays or feed differences\n- **Hedging or coordinating across accounts** (yours or anyone else's)\n- **Copying between IPFX accounts** — master/follower set-ups, supplying signals to other IPFX traders, or letting anyone else trade your account\n- **Unapproved bots/EAs** — algorithms need written approval first\n- **Martingale, grid and aggressive averaging** (unless agreed for a PAC)\n- **Single-trade gambling** or reverse-engineering the exact targets\n- **Exploiting platform errors** (report them instead) and **VPN/location masking**\n- **Account sharing** and multiple registered accounts\n\nBreaches mean immediate closure with no refund. Read section 8 of the [Terms](/terms.html) for the full wording.",
    "follow_ups": [
     "Can I use an EA or bot?",
     "Is scalping allowed?"
@@ -1242,7 +1242,7 @@
     "signal group",
     "trade with a signal group"
    ],
-   "answer": "No. Copy trading is **prohibited on every evaluation and funded account**, whether you're the follower or the source. It also covers acting on signals from Telegram/Discord/social accounts, using a \"challenge passing\" or account-management service, and having anyone direct your trades in real time. Every trade must be your own independent decision. Breaches lead to termination of all involved accounts with no refund or payout.",
+   "answer": "Yes. You can copy trades onto your account from **outside IPFX** — for example from your own external account, an EA you run, or a signal service you subscribe to. You stay responsible for every trade, and all the usual rules and risk limits still apply.\n\n**Not allowed:** copying trades into or between IPFX accounts (yours or anyone else's), acting as a signal provider for other IPFX traders, using a challenge-passing or account-management service, or sharing your login. See section 8.3 of the [Terms](/terms.html).",
    "follow_ups": []
   },
   {
