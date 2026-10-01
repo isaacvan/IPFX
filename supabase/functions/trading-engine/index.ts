@@ -2183,7 +2183,47 @@ const handleRequest = async (req: Request): Promise<Response> => {
       const inst = await loadFeedInstruments(sess);
       out.instruments_ms = Date.now() - t;
       out.mapped = inst.map((i) => i.symKey);
-      if ((body.mode ?? "config") === "config") {
+      if (body.mode === "limits") {
+        // Raw requests so the 429 response itself (headers + body) can be inspected per endpoint type.
+        const base = "https://demo.tradelocker.com/backend-api";
+        const dev = Deno.env.get("TRADELOCKER_DEVELOPER_API_KEY");
+        const raw = async (path: string) => {
+          const h: Record<string, string> = { Authorization: `Bearer ${sess.accessToken}`, accNum: sess.accNum };
+          if (dev) h["tl-developer-api-key"] = dev;
+          const t1 = Date.now();
+          const r = await fetch(base + path, { headers: h });
+          const text = await r.text();
+          const hdr: Record<string, string> = {};
+          r.headers.forEach((v, k) => { if (/rate|limit|retry|x-|cf-|server|via/i.test(k)) hdr[k] = v; });
+          return { status: r.status, ms: Date.now() - t1, hdr, body: r.status === 200 ? text.slice(0, 160) : text.slice(0, 300) };
+        };
+        const eur = inst.find((i) => i.symKey === "EURUSD")!;
+        const gbp = inst.find((i) => i.symKey === "GBPUSD")!;
+        const run = async (label: string, paths: string[], perSec: number, n: number) => {
+          const res: { status: number }[] = []; let first429: unknown = null; let sample200: unknown = null;
+          for (let k = 0; k < n; k++) {
+            const t1 = Date.now();
+            const r = await raw(paths[k % paths.length]);
+            res.push(r);
+            if (r.status === 429 && !first429) first429 = { at: k, ...r };
+            if (r.status === 200 && !sample200) sample200 = r;
+            const wait = 1000 / perSec - (Date.now() - t1);
+            if (wait > 0) await new Promise((x) => setTimeout(x, wait));
+          }
+          const counts: Record<string, number> = {};
+          for (const r of res) counts[r.status] = (counts[r.status] ?? 0) + 1;
+          return { label, perSec, n, counts, first429, sample200 };
+        };
+        const q = (i: { routeId: number; instrumentId: string }) => `/trade/quotes?routeId=${i.routeId}&tradableInstrumentId=${i.instrumentId}`;
+        const d = (i: { routeId: number; instrumentId: string }) => `/trade/depth?routeId=${i.routeId}&tradableInstrumentId=${i.instrumentId}`;
+        const b = (i: { routeId: number; instrumentId: string }) => `/trade/dailyBar?routeId=${i.routeId}&barType=BID&tradableInstrumentId=${i.instrumentId}`;
+        out.dev_key = !!dev;
+        out.tests = [];
+        for (const [label, paths, rate] of [["quotes_1sym_2ps", [q(eur)], 2], ["depth_1sym_2ps", [d(eur)], 2], ["dailybar_1sym_2ps", [b(eur)], 2], ["quotes_2sym_2ps", [q(eur), q(gbp)], 2], ["quotes_1sym_5ps", [q(eur)], 5]] as [string, string[], number][]) {
+          (out.tests as unknown[]).push(await run(label, paths, rate, 12));
+          await new Promise((x) => setTimeout(x, 3000));
+        }
+      } else if ((body.mode ?? "config") === "config") {
         const cfg = await feedConfig(sess);
         out.config = JSON.stringify(cfg).slice(0, 6000);
       } else {
