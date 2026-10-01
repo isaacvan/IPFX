@@ -11,7 +11,7 @@ test('public start page is a launch screen and only loads checkout after the gat
   assert.match(page, /functions\/v1\/team-access/);
   assert.match(page, /currentLevel !== 'aal2'/);
   assert.match(page, /document\.createElement\('script'\)/);
-  assert.match(page, /script\.src = '\/assets\/js\/checkout-flow\.js'/);
+  assert.match(page, /script\.src = '\/assets\/js\/checkout-flow\.js(\?v=[\w-]+)?'/);
   assert.doesNotMatch(page, /<script src="assets\/js\/checkout-flow\.js"><\/script>/);
 });
 
