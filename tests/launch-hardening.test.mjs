@@ -174,3 +174,17 @@ test('TradeLocker price source: switchable, leased, rate-adaptive, sticky, FXCM 
   assert.match(engine, /if \(this\.mode === "shadow"\) \{ this\.pending = \[\]; return \{ rows: fxRows, changed: fxChanged \}; \}/);
   assert.match(engine, /q\.source === "fxcm-basic" \|\| q\.source === "tradelocker"/);
 });
+
+test('cTrader Open API price source: streaming, all instruments, credentials server-side, FXCM fallback', () => {
+  const ct = read('supabase/functions/_shared/ctrader-feed.ts');
+  assert.match(ct, /SUBSCRIBE_SPOTS_REQ: 2127/);
+  assert.match(ct, /SPOT_EVENT: 2131/);
+  assert.match(ct, /Number\(p\.bid\) \/ 100000/);
+  assert.match(ct, /NSXUSD: \["USTEC", "NAS100"/);
+  assert.match(ct, /REFRESH_TOKEN_REQ/);
+  const m = read('supabase/migrations/20261001010000_ctrader_price_feed.sql');
+  assert.match(m, /'fxcm','shadow','tradelocker','ctrader'/);
+  assert.match(engine, /class CTraderFeed/);
+  assert.match(engine, /if \(!this\.alive\(\)\) \{ this\.pending = \[\]; return \{ rows: fxRows, changed: fxChanged \}; \}/);
+  assert.match(engine, /q\.source === "ctrader"/);
+});

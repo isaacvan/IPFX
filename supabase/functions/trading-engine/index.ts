@@ -53,6 +53,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
 import { insertAccountFromPreset as insertFromPresetShared } from "../_shared/provisioning.ts";
 import { feedConfig, feedQuote, loadFeedInstruments, openFeedSession, type FeedInstrument, type FeedSession } from "../_shared/tradelocker-feed.ts";
+import { CTraderStream, mapSymbols, PT as CT, signIn, type CTraderCreds } from "../_shared/ctrader-feed.ts";
+import { decryptSecret, encryptSecret } from "../_shared/tradelocker-crypto.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -705,15 +707,120 @@ class TradeLockerFeed {
   }
 }
 
+// ---------- cTrader Open API price source (free, streaming) ----------
+async function ctraderCreds(db: Db): Promise<CTraderCreds | null> {
+  const clientId = Deno.env.get("CTRADER_CLIENT_ID"), clientSecret = Deno.env.get("CTRADER_CLIENT_SECRET");
+  const envAccess = Deno.env.get("CTRADER_ACCESS_TOKEN") ?? "", envRefresh = Deno.env.get("CTRADER_REFRESH_TOKEN") ?? "";
+  if (!clientId || !clientSecret || !envAccess) return null;
+  let accessToken = envAccess, refreshToken = envRefresh;
+  const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
+  const { data: st } = await db.from("price_feed_state").select("ctrader_access_ct,ctrader_refresh_ct,ctrader_account_id,ctrader_env_hash").eq("id", true).maybeSingle();
+  // Tokens refreshed by the server win, unless the owner has since set new tokens in the secrets.
+  if (key && st?.ctrader_access_ct && st?.ctrader_refresh_ct && st.ctrader_env_hash === await sha256Hex(envAccess)) {
+    accessToken = await decryptSecret(st.ctrader_access_ct, key);
+    refreshToken = await decryptSecret(st.ctrader_refresh_ct, key);
+  }
+  const envAcc = Number(Deno.env.get("CTRADER_ACCOUNT_ID") || 0) || null;
+  return { clientId, clientSecret, accessToken, refreshToken, accountId: envAcc ?? (st?.ctrader_account_id ? Number(st.ctrader_account_id) : null), host: Deno.env.get("CTRADER_HOST") || "demo.ctraderapi.com" };
+}
+
+class CTraderFeed {
+  stream: CTraderStream; ids: Record<string, number> = {}; byId = new Map<number, string>();
+  quotes = new Map<string, { bid: number; ask: number; changedAt: number }>(); pending: Quote[] = []; ready = false;
+  constructor(host: string) { this.stream = new CTraderStream(host); }
+
+  static async start(db: Db): Promise<CTraderFeed> {
+    const creds = await ctraderCreds(db);
+    if (!creds) throw new Error("CTRADER_NOT_CONFIGURED");
+    const f = new CTraderFeed(creds.host);
+    await f.stream.open();
+    const { accountId, refreshed } = await signIn(f.stream, creds);
+    const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
+    const upd: Record<string, unknown> = { ctrader_account_id: accountId };
+    if (refreshed && key) {
+      upd.ctrader_access_ct = await encryptSecret(refreshed.accessToken, key);
+      upd.ctrader_refresh_ct = await encryptSecret(refreshed.refreshToken, key);
+      upd.ctrader_env_hash = await sha256Hex(Deno.env.get("CTRADER_ACCESS_TOKEN") ?? "");
+    }
+    const { data: st } = await db.from("price_feed_state").select("ctrader_symbols,ctrader_symbols_at").eq("id", true).maybeSingle();
+    let ids: Record<string, number> | null = st?.ctrader_symbols && st.ctrader_symbols_at && Date.now() - Date.parse(st.ctrader_symbols_at) < 6 * 3600_000 ? st.ctrader_symbols : null;
+    if (!ids || !Object.keys(ids).length) {
+      const r = await f.stream.request(CT.SYMBOLS_LIST_REQ, { ctidTraderAccountId: accountId });
+      ids = mapSymbols((r.symbol as { symbolId: number; symbolName?: string; enabled?: boolean }[]) ?? []);
+      upd.ctrader_symbols = ids; upd.ctrader_symbols_at = new Date().toISOString();
+    }
+    await db.from("price_feed_state").update(upd).eq("id", true);
+    f.ids = ids;
+    for (const [k, v] of Object.entries(ids)) f.byId.set(Number(v), k);
+    f.stream.onSpot = (symbolId, bid, ask) => {
+      const k = f.byId.get(symbolId);
+      if (!k) return;
+      const prev = f.quotes.get(k);
+      const b = bid ?? prev?.bid, a = ask ?? prev?.ask;       // spot events may carry only the side that moved
+      if (b == null || a == null || !(a >= b) || b <= 0) return;
+      const now = Date.now();
+      if (prev) {
+        const pm = (prev.bid + prev.ask) / 2, m = (b + a) / 2;
+        if (pm > 0 && Math.abs(m - pm) / pm > (BAD_TICK_MAX_MOVE[INSTRUMENTS[k]?.cls ?? "forex"] ?? 0.03)) return;
+        if (prev.bid === b && prev.ask === a) return;
+      }
+      f.quotes.set(k, { bid: b, ask: a, changedAt: now });
+      f.pending.push({ symbol: k, mid: round6((a + b) / 2), bid: round6(b), ask: round6(a), spread: round6(a - b), providerTs: now, feedTs: now, receivedTs: now, source: "ctrader" });
+    };
+    await f.stream.request(CT.SUBSCRIBE_SPOTS_REQ, { ctidTraderAccountId: accountId, symbolId: Object.values(ids) });
+    f.ready = true;
+    return f;
+  }
+
+  alive(): boolean {
+    return this.ready && this.stream.ws?.readyState === WebSocket.OPEN && Date.now() - this.stream.lastMessageAt < 30_000;
+  }
+
+  // Serve every mapped instrument from the stream while it is alive; FXCM/Yahoo otherwise.
+  tick(fxRows: Record<string, unknown>[], fxChanged: Quote[], writeAll: boolean): { rows: Record<string, unknown>[]; changed: Quote[] } {
+    if (!this.alive()) { this.pending = []; return { rows: fxRows, changed: fxChanged }; }
+    const now = Date.now();
+    const served = new Set([...this.quotes.keys()]);
+    const changedNow = new Set(this.pending.map((q) => q.symbol));
+    const rows = fxRows.filter((r) => !served.has(String(r.symbol)));
+    for (const [k, q] of this.quotes) {
+      if (!writeAll && !changedNow.has(k)) continue;             // unchanged rows are refreshed every 3rd tick
+      rows.push({
+        symbol: k, mid: round6((q.bid + q.ask) / 2), bid: round6(q.bid), ask: round6(q.ask), spread: round6(q.ask - q.bid),
+        provider_ts: new Date(q.changedAt).toISOString(), feed_ts: new Date(now).toISOString(),
+        received_at: new Date(now).toISOString(), source: "ctrader",
+      });
+    }
+    const changed = [...fxChanged.filter((c) => !served.has(c.symbol)), ...this.pending];
+    this.pending = [];
+    return { rows, changed };
+  }
+}
+
 async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number; pushed: number }> {
   const until = Date.now() + durationMs;
   const runId = crypto.randomUUID();
   let feedMode: "fxcm" | "shadow" | "tradelocker" = "fxcm";
+  let ctMode = false;
   let feedConn: string | null = null;
   try {
     const { data: cfg } = await db.from("platform_config").select("price_feed,price_feed_connection_id").eq("id", true).maybeSingle();
     if (cfg?.price_feed === "shadow" || cfg?.price_feed === "tradelocker") { feedMode = cfg.price_feed; feedConn = cfg.price_feed_connection_id ?? null; }
+    if (cfg?.price_feed === "ctrader") ctMode = true;
   } catch (_) { /* default: FXCM only */ }
+  let ct: CTraderFeed | null = null;
+  let ctReserved = new Set<string>();
+  const ctStartedAt = Date.now();
+  if (ctMode) {
+    try {
+      const { data: st } = await db.from("price_feed_state").select("ctrader_symbols").eq("id", true).maybeSingle();
+      ctReserved = new Set(Object.keys(st?.ctrader_symbols ?? {}));
+    } catch (_) { /* nothing reserved */ }
+    CTraderFeed.start(db).then((f) => { ct = f; }).catch(async (e) => {
+      ctReserved = new Set();
+      await logFeedEvent(db, "outage", null, "ctrader feed start failed: " + String(e).slice(0, 150));
+    });
+  }
   let tl: TradeLockerFeed | null = null;
   let nextLeaseTry = 0;
   let tlFailed = false;
@@ -745,9 +852,17 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
         nextLeaseTry = Date.now() + 1000;               // the previous run releases its lease as it ends
         try { tl = await TradeLockerFeed.start(db, feedMode, feedConn, runId, until); } catch (_) { tlFailed = true; }
       }
-      const fx = await pumpFxcmOnce(prev);
+      // cTrader mode ticks every 100ms; FXCM (fallback) is still read every 3rd tick.
+      const fxDue = !ctMode || ticks % 3 === 0;
+      const fx = fxDue ? await pumpFxcmOnce(prev) : { rows: [] as Record<string, unknown>[], changed: [] as Quote[] };
       let out = fx;
-      if (tl) out = await tl.tick(fx.rows, fx.changed);
+      if (ctMode) {
+        const ctNow = ct as CTraderFeed | null;
+        if (ctNow) out = ctNow.tick(fx.rows, fx.changed, fxDue);
+        else if (ctReserved.size && Date.now() - ctStartedAt < 4000) {
+          out = { rows: fx.rows.filter((r) => !ctReserved.has(String(r.symbol))), changed: fx.changed.filter((c) => !ctReserved.has(c.symbol)) };
+        }
+      } else if (tl) out = await tl.tick(fx.rows, fx.changed);
       else if (feedMode === "tradelocker" && !tlFailed && reserved.size) {
         out = { rows: fx.rows.filter((r) => !reserved.has(String(r.symbol))), changed: fx.changed.filter((c) => !reserved.has(c.symbol)) };
       }
@@ -763,10 +878,11 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
       }
     } catch (_) { /* one bad tick never stops the pump */ }
     ticks++;
-    const wait = PUMP_INTERVAL_MS - (Date.now() - t0);
+    const wait = (ctMode && ct ? 100 : PUMP_INTERVAL_MS) - (Date.now() - t0);
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   }
   if (tl) await tl.finish().catch(() => {});
+  if (ct) (ct as CTraderFeed).stream.close();
   return { ticks, pushed };
 }
 function quoteStale(q: Quote): boolean {
@@ -774,7 +890,7 @@ function quoteStale(q: Quote): boolean {
   const cls = INSTRUMENTS[q.symbol]?.cls;
   const limit = cls === "crypto" ? STALE_MS_CRYPTO : cls === "future" ? STALE_MS_FUTURES : STALE_MS;
   const now = Date.now();
-  if ((q.source === "fxcm-basic" || q.source === "tradelocker") && q.feedTs != null) {
+  if ((q.source === "fxcm-basic" || q.source === "tradelocker" || q.source === "ctrader") && q.feedTs != null) {
     // Feed-level liveness first: if nothing in the whole FXCM feed has moved within the limit, fail closed.
     if (now - q.feedTs > limit) return true;
     // Feed alive: an unchanged price is still the current price, until the symbol has been silent too long.
@@ -2183,7 +2299,35 @@ const handleRequest = async (req: Request): Promise<Response> => {
       const inst = await loadFeedInstruments(sess);
       out.instruments_ms = Date.now() - t;
       out.mapped = inst.map((i) => i.symKey);
-      if (body.mode === "limits") {
+      if (body.mode === "ctrader") {
+        // Live check of the cTrader stream. Without credentials it still proves connectivity + protocol by
+        // sending deliberately invalid app credentials (expects a polite auth error back).
+        const creds = await ctraderCreds(pdb);
+        const s2 = new CTraderStream(creds?.host ?? "demo.ctraderapi.com");
+        const t0 = Date.now();
+        await s2.open();
+        out.connect_ms = Date.now() - t0;
+        if (!creds) {
+          try { await s2.request(CT.APP_AUTH_REQ, { clientId: "ipfx-connectivity-check", clientSecret: "invalid" }); out.app_auth = "unexpectedly accepted"; }
+          catch (e) { out.app_auth = String(e).slice(0, 200); }
+          out.configured = false;
+        } else {
+          const { accountId, refreshed } = await signIn(s2, creds);
+          out.account_id = accountId; out.token_refreshed = !!refreshed;
+          const r = await s2.request(CT.SYMBOLS_LIST_REQ, { ctidTraderAccountId: accountId });
+          const ids = mapSymbols((r.symbol as { symbolId: number; symbolName?: string; enabled?: boolean }[]) ?? []);
+          out.mapped = Object.keys(ids);
+          out.missing = Object.keys(INSTRUMENTS).filter((k) => INSTRUMENTS[k].cls !== "future" && !ids[k]);
+          const counts: Record<string, number> = {};
+          const byId = new Map(Object.entries(ids).map(([k, v]) => [Number(v), k]));
+          s2.onSpot = (id) => { const k = byId.get(id); if (k) counts[k] = (counts[k] ?? 0) + 1; };
+          await s2.request(CT.SUBSCRIBE_SPOTS_REQ, { ctidTraderAccountId: accountId, symbolId: Object.values(ids) });
+          await new Promise((x) => setTimeout(x, Math.min(20_000, Number(body.listen_ms) || 10_000)));
+          out.spot_events = counts;
+          out.total_events = Object.values(counts).reduce((a, b) => a + b, 0);
+        }
+        s2.close();
+      } else if (body.mode === "limits") {
         // Raw requests so the 429 response itself (headers + body) can be inspected per endpoint type.
         const base = "https://demo.tradelocker.com/backend-api";
         const dev = Deno.env.get("TRADELOCKER_DEVELOPER_API_KEY");
@@ -2505,7 +2649,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     const stale = quoteStale(q);
     if (stale) await logFeedEvent(db, "stale", symbol, `age_ms=${Date.now() - (q.providerTs ?? q.receivedTs)}`);
     return new Response(JSON.stringify({
-      ok: true, symbol, status: stale ? "stale" : (q.source === "fxcm-basic" || q.source === "tradelocker" ? "live" : "demo"),
+      ok: true, symbol, status: stale ? "stale" : (q.source === "fxcm-basic" || q.source === "tradelocker" || q.source === "ctrader" ? "live" : "demo"),
       mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
       quote_ts: q.providerTs, received_ts: q.receivedTs,
       digits: inst.digits, source: q.source, risk_status,
