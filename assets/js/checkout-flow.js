@@ -51,6 +51,40 @@
     if (error) throw new Error('Your documents uploaded, but verification could not be submitted. Please try again; duplicates are safely ignored.');
     existingKyc = true;
   }
+  // International dialling codes, used to turn a nationally-formatted number (e.g. UK "07700 900123")
+  // into the +E.164 form the identity check requires ("+447700900123").
+  const DIAL = {GB:'44',IE:'353',US:'1',CA:'1',AU:'61',NZ:'64',ZA:'27',NG:'234',GH:'233',KE:'254',UG:'256',TZ:'255',
+    EG:'20',MA:'212',DZ:'213',TN:'216',AE:'971',SA:'966',QA:'974',KW:'965',BH:'973',OM:'968',JO:'962',LB:'961',
+    IL:'972',TR:'90',IN:'91',PK:'92',BD:'880',LK:'94',NP:'977',CN:'86',HK:'852',SG:'65',MY:'60',ID:'62',PH:'63',
+    TH:'66',VN:'84',JP:'81',KR:'82',TW:'886',DE:'49',FR:'33',ES:'34',PT:'351',IT:'39',NL:'31',BE:'32',LU:'352',
+    CH:'41',AT:'43',DK:'45',SE:'46',NO:'47',FI:'358',IS:'354',PL:'48',CZ:'420',SK:'421',HU:'36',RO:'40',BG:'359',
+    GR:'30',CY:'357',MT:'356',HR:'385',SI:'386',RS:'381',UA:'380',LT:'370',LV:'371',EE:'372',BR:'55',MX:'52',
+    AR:'54',CL:'56',CO:'57',PE:'51'};
+  const KEEP_LEADING_ZERO = new Set(['IT']);   // Italian numbers keep their 0 after the country code
+  function normalisePhone(raw, country) {
+    let s = String(raw || '').trim().replace(/[^\d+]/g, '');
+    if (s.startsWith('00')) s = '+' + s.slice(2);
+    if (s.startsWith('+') || !s) return s;
+    const code = DIAL[country];
+    if (!code) return s;
+    if (code === '1') return s.length === 11 && s[0] === '1' ? '+' + s : '+1' + s;
+    if (!KEEP_LEADING_ZERO.has(country)) s = s.replace(/^0+/, '');
+    return '+' + code + s;
+  }
+  // Same limits as the server's identity check, so the trader is told exactly which field to fix.
+  function identityProblem() {
+    const val = id => $(id).value.trim();
+    const phone = normalisePhone($('phone').value, $('country').value);
+    $('phone').value = phone;
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) return ['phone', 'Enter your phone number with your country code, for example +44 7700 900123.'];
+    if (val('firstName').length < 1 || val('firstName').length > 80) return ['firstName', 'Enter your legal first name (up to 80 characters).'];
+    if (val('lastName').length < 1 || val('lastName').length > 80) return ['lastName', 'Enter your legal last name (up to 80 characters).'];
+    if (val('addressLine1').length < 3) return ['addressLine1', 'Enter the first line of your address (at least 3 characters).'];
+    if (val('city').length < 1) return ['city', 'Enter your town or city.'];
+    if (val('postalCode').length < 2 || val('postalCode').length > 24) return ['postalCode', 'Enter a valid postcode or ZIP code.'];
+    if (!/^[A-Z]{2}$/.test($('country').value)) return ['country', 'Select your country of residence.'];
+    return null;
+  }
   async function saveIdentity() {
     const { data:{user}, error: userError } = await db.auth.getUser();
     if (userError || !user) {
@@ -58,6 +92,8 @@
       location.href = '/login.html?next=' + encodeURIComponent(next);
       throw new Error('Sign in or create and verify your account before checkout.');
     }
+    const problem = identityProblem();
+    if (problem) { $(problem[0]).focus(); throw new Error(problem[1]); }
     const dob = $('dateOfBirth').value;
     const adultCutoff = new Date(); adultCutoff.setFullYear(adultCutoff.getFullYear() - 18);
     if (!dob || new Date(dob + 'T12:00:00') > adultCutoff) throw new Error('You must be at least 18 years old.');
@@ -72,7 +108,11 @@
     if (error) {
       const code = String(error.message || '');
       if (code.includes('MUST_BE_18')) throw new Error('You must be at least 18 years old.');
-      throw new Error('We could not securely save your identity details. Check every required field and try again.');
+      if (code.includes('DATE_OF_BIRTH_INVALID')) throw new Error('Enter a valid date of birth.');
+      if (code.includes('IDENTITY_RATE_LIMITED')) throw new Error('Too many attempts in the last hour. Please wait a while and try again.');
+      if (code.includes('NOT_SIGNED_IN')) throw new Error('Your session has expired. Please sign in again and retry.');
+      if (code.includes('IDENTITY_PROFILE_INVALID')) throw new Error('Some details are not in the expected format. Check your phone number includes your country code (e.g. +44), and that your name, address and postcode are complete.');
+      throw new Error('We could not save your details right now. Please try again in a moment.');
     }
   }
   function challengeTypeForSku(sku) {
