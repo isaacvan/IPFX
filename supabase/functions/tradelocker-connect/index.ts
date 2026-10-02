@@ -150,6 +150,17 @@ Deno.serve(async (req) => {
     const resolvedAccNum = account ? String(account.accNum ?? "") : "";
     if (!account) return json({ ok: false, error: requestedAccountId ? "That TradeLocker demo account was not returned for these credentials" : "TradeLocker returned multiple accounts. Enter the account ID shown after # for the HeroFX account." }, 400, origin);
     if (!/^[0-9]{1,10}$/.test(resolvedAccNum)) return json({ ok: false, error: "TradeLocker did not return an account selector for this demo account" }, 400, origin);
+    // This owner connection is shared by approved traders. Upserting a different
+    // broker account here would silently retarget every linked route at once.
+    const { data: current, error: currentError } = await db.from("tradelocker_demo_connections")
+      .select("id,tradelocker_account_id").eq("source_account_id", sourceAccountId).maybeSingle();
+    if (currentError) return json({ ok: false, error: "Could not inspect the existing demo connection" }, 503, origin);
+    if (current && current.tradelocker_account_id !== resolvedAccountId) {
+      const { data: linked, error: linkedError } = await db.from("mirror_targets")
+        .select("id").eq("tradelocker_connection_id", current.id).limit(1);
+      if (linkedError) return json({ ok: false, error: "Could not inspect existing copier routes" }, 503, origin);
+      if (linked?.length) return json({ ok: false, error: "This demo has linked copier routes. A different account cannot replace it through this form; use a controlled handover after broker positions and pending orders are reconciled." }, 409, origin);
+    }
     connectionStage = "instrument_lookup";
     const instrumentRows = await instruments(tokenSet.accessToken, resolvedAccountId, resolvedAccNum);
     const usable = instrumentRows.map((row) => ({ row, routeId: tradeRoute(row), instrumentId: Number(row.tradableInstrumentId ?? row.id), symbol: String(row.name ?? row.symbol ?? "").trim().toUpperCase() })).filter((x) => x.symbol && x.routeId != null && Number.isFinite(x.instrumentId));

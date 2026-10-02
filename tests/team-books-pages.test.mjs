@@ -11,6 +11,7 @@ const login = read('team-login.html');
 const analytics = read('trader-analytics.html');
 const population = read('supabase/functions/team-population/index.ts');
 const connector = read('supabase/functions/team-book-connect/index.ts');
+const sameDirectionConnector = read('supabase/functions/tradelocker-connect/index.ts');
 const schema = read('supabase/migrations/20261002010000_team_book_destinations.sql');
 
 test('Team Analytics inline JavaScript parses', () => {
@@ -68,4 +69,10 @@ test('book login stores encrypted tokens only and cannot arm the existing same-d
   assert.match(schema, /revoke all on public\.team_book_destinations from public, anon, authenticated/);
   assert.match(a, /id="connectAll"[^>]*disabled/);
   assert.match(b, /id="connectAll"[^>]*disabled/);
+});
+
+test('same-direction owner form cannot silently retarget linked copier routes', () => {
+  assert.match(sameDirectionConnector, /current\.tradelocker_account_id !== resolvedAccountId/);
+  assert.match(sameDirectionConnector, /\.eq\("tradelocker_connection_id", current\.id\)/);
+  assert.match(sameDirectionConnector, /A different account cannot replace it through this form/);
 });
