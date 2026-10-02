@@ -205,3 +205,29 @@ test('live-mirror returns the exact broker fill and gives the broker no take-pro
   assert.match(sql, /create or replace view public\.abook_execution_capture/);
   assert.match(sql, /revoke all on public\.abook_execution_capture from anon, authenticated/);
 });
+
+// ---------------------------------------------------------------- market hours
+test('market hours follow New York time, so the close moves with US daylight saving', async () => {
+  const src = read('supabase/functions/trading-engine/index.ts');
+  const body = src.slice(src.indexOf('const NY_FMT'), src.indexOf('function marketOpen('));
+  const { spotMarketOpen } = await import('data:text/javascript,' + encodeURIComponent(
+    body.replace(/: Record<string, number>/g, '').replace(/\(cls: Inst\["cls"\] \| undefined, now = new Date\(\)\): boolean/, '(cls, now = new Date())')
+      .replace(/\(now = new Date\(\)\): \{ dow: number; mins: number \}/, '(now = new Date())') + '\nexport { spotMarketOpen };'));
+  const at = (iso, cls = 'forex') => spotMarketOpen(cls, new Date(iso));
+  // Summer (EDT): Friday close 21:00 UTC, Sunday reopen 21:05 UTC.
+  assert.equal(at('2026-10-02T20:59:00Z'), true);
+  assert.equal(at('2026-10-02T21:00:00Z'), false);   // the hour that showed "DELAYED"
+  assert.equal(at('2026-10-04T21:00:00Z'), false);
+  assert.equal(at('2026-10-04T21:05:00Z'), true);    // previously blocked until 22:00 UTC
+  // Winter (EST): Friday close 22:00 UTC.
+  assert.equal(at('2026-12-04T21:30:00Z'), true);
+  assert.equal(at('2026-12-04T22:00:00Z'), false);
+  assert.equal(at('2026-12-06T22:05:00Z'), true);
+  // Daily rollover break: 5 minutes for FX, an hour for metals and indices.
+  assert.equal(at('2026-10-06T21:02:00Z'), false);
+  assert.equal(at('2026-10-06T21:05:00Z'), true);
+  assert.equal(at('2026-10-06T21:30:00Z', 'metal'), false);
+  assert.equal(at('2026-10-06T22:00:00Z', 'index'), true);
+  assert.equal(at('2026-10-07T12:00:00Z'), true);
+  assert.equal(at('2026-10-03T12:00:00Z'), false);   // Saturday
+});

@@ -240,25 +240,37 @@ function futuresSessionEnforced(acct: Acct): boolean {
 }
 
 // ---------- market session (weekend closure) ----------
-// Forex/metals/indices via this feed: closed Fri 22:00 UTC -> Sun 22:00 UTC
-// (approximates the real FX week close). Coarse but real, fail-closed.
+// Forex/metals/indices: closed Fri 17:00 -> Sun reopen, New York time (see spotMarketOpen).
 // symbol is optional so existing callers that don't have one in scope
 // keep the old forex-week behaviour unchanged. Crypto genuinely trades
 // weekends -- unlike forex, there is no exchange to close -- so a
-// crypto symbol skips the Fri 22:00 UTC -> Sun 22:00 UTC closure
+// crypto symbol skips the weekend closure
 // entirely rather than reporting a market that, for that instrument,
 // was never actually shut.
+// New York wall clock. The spot week runs Sun 17:00 to Fri 17:00 New York time, so it moves by an
+// hour in UTC with US daylight saving (21:00 UTC in summer, 22:00 UTC in winter).
+const NY_FMT = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const NY_DOW: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+function nyClock(now = new Date()): { dow: number; mins: number } {
+  const p = Object.fromEntries(NY_FMT.formatToParts(now).map((x) => [x.type, x.value]));
+  return { dow: NY_DOW[p.weekday] ?? 0, mins: Number(p.hour) * 60 + Number(p.minute) };
+}
+// Spot FX, metals and index CFDs. Closed Fri 17:00 to Sun reopen (NY), plus the daily 17:00 NY
+// rollover break (5 minutes for FX, an hour for metals and indices), when liquidity providers stop
+// quoting. Without the break, the pause showed traders "Prices delayed" instead of "Market closed".
+function spotMarketOpen(cls: Inst["cls"] | undefined, now = new Date()): boolean {
+  const { dow, mins } = nyClock(now);
+  const ROLL = 17 * 60, brk = cls === "metal" || cls === "index" ? 60 : 5;
+  if (dow === 6) return false;
+  if (dow === 5) return mins < ROLL;
+  if (dow === 0) return mins >= ROLL + brk;
+  return mins < ROLL || mins >= ROLL + brk;
+}
 function marketOpen(symbol?: string): boolean {
   if (symbol && INSTRUMENTS[symbol]?.cls === "crypto") return true;
   // CME Globex: Sun 17:00 CT to Fri 16:00 CT with a daily 16:00-17:00 CT break.
   if (symbol && INSTRUMENTS[symbol]?.cls === "future") return futuresSessionOpen();
-  const now = new Date();
-  const day = now.getUTCDay(); // 0=Sun 6=Sat
-  const hour = now.getUTCHours();
-  if (day === 6) return false;                    // all Saturday
-  if (day === 0 && hour < 22) return false;        // Sunday before 22:00 UTC
-  if (day === 5 && hour >= 22) return false;       // Friday from 22:00 UTC
-  return true;
+  return spotMarketOpen(symbol ? INSTRUMENTS[symbol]?.cls : "forex");
 }
 
 function cleanSymbol(raw: unknown): string | null {
