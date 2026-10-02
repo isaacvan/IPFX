@@ -9,7 +9,8 @@
   const escapeHtml = (value) => String(value ?? '—').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
   const usd = (value) => Number(value).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const finite = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
-  const state = { rows: [], loaded: false };
+  const state = { rows: [], loaded: false, registeredUsers: null, noAccount: 0, accountCounts: {} };
+  let loading = false;
 
   // A route has to be an explicit server-side assignment. The trader detector's
   // probability and a same-direction demo mirror are not A-book assignments.
@@ -30,6 +31,34 @@
     const q = $('search').value.trim().toLowerCase();
     return rows.filter((row) => [row.full_name, row.email, row.account_id, row.label].join(' ').toLowerCase().includes(q));
   };
+  async function callBook(action, extra = {}) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Sign in to Team again');
+    const response = await fetch(SB_URL + '/functions/v1/team-book-connect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+      body: JSON.stringify({ action, book: mode, ...extra }), cache: 'no-store',
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body?.ok) throw new Error(body?.error || 'TradeLocker connection unavailable');
+    return body;
+  }
+  async function callPopulation(session) {
+    const response = await fetch(SB_URL + '/functions/v1/team-population', {
+      method: 'GET', headers: { Authorization: 'Bearer ' + session.access_token }, cache: 'no-store',
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body?.ok) throw new Error(body?.error || 'Population unavailable');
+    return body;
+  }
+  async function loadDestination() {
+    try {
+      const result = await callBook('status');
+      const dest = result.destination;
+      $('bookDestinationStatus').textContent = result.connected
+        ? `CONNECTED FOR REVIEW · ${dest.account_name} · ${dest.server} · account #${dest.account_id} · no orders armed`
+        : 'No separate TradeLocker destination connected. No orders armed.';
+    } catch (error) { $('bookDestinationStatus').textContent = error.message; }
+  }
   const card = (row, label) => {
     const p = row.profile || {};
     const prob = probability(row);
@@ -47,7 +76,7 @@
     if (mode === 'a') {
       const candidates = filtered(rows.filter((row) => route(row) === 'B' && (probability(row) ?? -1) >= 90));
       $('candidates').innerHTML = candidates.map((row) => card(row, 'Research candidate only')).join('') || '<div class="empty">No calibrated 90%+ candidates in this view.</div>';
-      $('kpis').innerHTML = `<div class="tile"><span>Explicit A assignments</span><strong>${assigned.length}</strong></div><div class="tile"><span>Review candidates</span><strong>${rows.filter((row) => route(row) === 'B' && (probability(row) ?? -1) >= 90).length}</strong></div><div class="tile"><span>Funded destination</span><strong style="font-size:17px">Not verified</strong></div><div class="tile"><span>Real-money orders from this page</span><strong>0</strong></div>`;
+      $('kpis').innerHTML = `<div class="tile"><span>Registered users</span><strong>${state.registeredUsers ?? '—'}</strong></div><div class="tile"><span>All trading accounts</span><strong>${state.accountCounts.all ?? '—'}</strong></div><div class="tile"><span>Explicit A assignments</span><strong>${assigned.length}</strong></div><div class="tile"><span>Review candidates</span><strong>${rows.filter((row) => route(row) === 'B' && (probability(row) ?? -1) >= 90).length}</strong></div>`;
       return;
     }
     const daily = [];
@@ -65,9 +94,11 @@
     }
     daily.sort((a, b) => b.day.localeCompare(a.day) || a.name.localeCompare(b.name));
     $('daily').innerHTML = daily.map((item) => `<tr><td>${escapeHtml(item.day)}</td><td>${escapeHtml(item.name)}</td><td>${item.trades}</td><td class="${item.pnl >= 0 ? 'positive' : 'negative'}">${usd(item.pnl)}</td><td>${escapeHtml(item.illustration)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No reconciled opposite-direction HeroFX demo closes are available. No hypothetical funded P&amp;L is asserted.</td></tr>';
-    $('kpis').innerHTML = `<div class="tile"><span>B-book accounts</span><strong>${selected.length}</strong></div><div class="tile"><span>Accounts with broker closes</span><strong>${selected.filter((row) => Number(row.reverse_demo_actual?.trades) > 0).length}</strong></div><div class="tile"><span>Intended demo size</span><strong>0.01 lot</strong></div><div class="tile"><span>Hypothetical size</span><strong>0.20 lot</strong></div>`;
+    $('kpis').innerHTML = `<div class="tile"><span>Registered users</span><strong>${state.registeredUsers ?? '—'}</strong></div><div class="tile"><span>All trading accounts</span><strong>${state.accountCounts.all ?? '—'}</strong></div><div class="tile"><span>Demo / challenge</span><strong>${state.accountCounts.demo ?? '—'} / ${state.accountCounts.challenge ?? '—'}</strong></div><div class="tile"><span>Accounts with reverse closes</span><strong>${selected.filter((row) => Number(row.reverse_demo_actual?.trades) > 0).length}</strong></div>`;
   };
   async function load() {
+    if (loading) return;
+    loading = true;
     $('status').textContent = 'Loading owner-only trader data…';
     $('refresh').disabled = true;
     try {
@@ -77,16 +108,49 @@
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.ok) throw new Error(body?.error || 'Owner and MFA verification required');
       state.rows = Array.isArray(body.rows) ? body.rows : [];
+      let populationUnavailable = false;
+      try {
+        const population = await callPopulation(session);
+        state.registeredUsers = population.registered_users_count;
+        state.noAccount = population.registered_without_account.length;
+        state.accountCounts = population.account_counts;
+      } catch (_) {
+        populationUnavailable = true;
+        state.registeredUsers = null;
+        state.noAccount = 0;
+        state.accountCounts = {};
+      }
       state.loaded = true;
-      $('status').textContent = 'Owner-only · MFA protected · updated ' + new Date(body.calculated_at || Date.now()).toLocaleString('en-GB');
+      $('status').textContent = 'Owner-only · MFA protected · updated ' + new Date(body.calculated_at || Date.now()).toLocaleString('en-GB') + (populationUnavailable ? ' · registration counts unavailable' : '');
       render();
     } catch (error) {
       $('status').textContent = 'Could not load protected data';
       $('traders').innerHTML = '<div class="notice error">' + escapeHtml(error.message) + '</div>';
       if ($('daily')) $('daily').innerHTML = '<tr><td colspan="5" class="empty">No result loaded.</td></tr>';
-    } finally { $('refresh').disabled = false; }
+    } finally { $('refresh').disabled = false; loading = false; }
   }
   $('refresh').addEventListener('click', load);
   $('search').addEventListener('input', render);
+  $('bookLogin').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = $('bookConnect');
+    button.disabled = true;
+    $('bookDestinationStatus').textContent = 'Validating the broker demo account…';
+    try {
+      const result = await callBook('connect', { environment: 'demo', email: $('bookEmail').value.trim(),
+        password: $('bookPassword').value, server: $('bookServer').value.trim(), account_id: $('bookAccount').value.trim() });
+      $('bookDestinationStatus').textContent = `${result.account_name} connected for review · ${result.instrument_count} instruments · no trades armed`;
+    } catch (error) { $('bookDestinationStatus').textContent = error.message; }
+    finally { $('bookPassword').value = ''; button.disabled = false; }
+  });
+  $('bookDisconnect').addEventListener('click', async () => {
+    if (!window.confirm('Disconnect this separate book destination?')) return;
+    $('bookDisconnect').disabled = true;
+    try { await callBook('disconnect'); $('bookDestinationStatus').textContent = 'Destination disconnected. No orders armed.'; }
+    catch (error) { $('bookDestinationStatus').textContent = error.message; }
+    finally { $('bookDisconnect').disabled = false; }
+  });
   load();
+  loadDestination();
+  setInterval(() => { if (document.visibilityState === 'visible') load(); }, 30000);
 })();
