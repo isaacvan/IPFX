@@ -96,7 +96,7 @@
     let trades = [];
     const draft = new Map(); // tradeId -> {sl, tp, saving}
     let drag = null;
-    let bid = null, ask = null, bidLine = null, askLine = null, lastLine = null;
+    let bid = null, ask = null, lastLine = null;
     let markersApi = null, tradeMarks = [];
     let pendingRange = null;
     const shield = document.createElement("div");
@@ -188,7 +188,7 @@
           upColor: UP, downColor: DOWN, borderUpColor: UP, borderDownColor: DOWN, wickUpColor: UP, wickDownColor: DOWN,
           priceFormat, autoscaleInfoProvider: autoscale,
         });
-      bidLine = askLine = lastLine = null; // they belonged to the removed series
+      lastLine = null; // it belonged to the removed series
       markersApi = LWC.createSeriesMarkers ? LWC.createSeriesMarkers(series, []) : null;
       pushAll();
       syncQuoteLines();
@@ -217,19 +217,11 @@
     }
     const clock = setInterval(() => { if (raw.length) syncLastLine(); }, 1000);
 
+    // Only the current-price line is drawn; the order ticket shows the bid (SELL) and ask (BUY).
     function syncQuoteLines() {
       if (!series) return;
       series.applyOptions({ lastValueVisible: false, priceLineVisible: false });
       syncLastLine();
-      if (bid == null || ask == null) {
-        if (bidLine) { series.removePriceLine(bidLine); bidLine = null; }
-        if (askLine) { series.removePriceLine(askLine); askLine = null; }
-        return;
-      }
-      // Colours match the ticket: red = Bid (the SELL price), green = Ask (the BUY price).
-      const opts = (price, color, title) => ({ price, color, lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, title });
-      if (bidLine) bidLine.applyOptions(opts(bid, DOWN, "Bid")); else bidLine = series.createPriceLine(opts(bid, DOWN, "Bid"));
-      if (askLine) askLine.applyOptions(opts(ask, UP, "Ask")); else askLine = series.createPriceLine(opts(ask, UP, "Ask"));
     }
 
     // ---------------------------------------------------------------- trade markers
