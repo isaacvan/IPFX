@@ -49,6 +49,9 @@ test('registered users, demo accounts and challenge accounts are distinct and re
   assert.doesNotMatch(population, /\.insert\(|\.update\(|\.delete\(|placeMarketOrder|mirror_targets/);
   assert.match(analytics, /\/functions\/v1\/team-population/);
   assert.match(js, /\/functions\/v1\/team-population/);
+  assert.match(js, /for \(const account of population\.demo_accounts \|\| \[\]\)/);
+  assert.match(js, /present\.has\(String\(account\.id\)\)/);
+  assert.match(js, /Trading accounts in B review/);
   assert.match(analytics, /Registered users without a trading account/);
   assert.match(analytics, /Demo trading accounts/);
   assert.match(js, /setInterval\(\(\) => \{ if \(document\.visibilityState === 'visible'\) load\(\); \}, 30000\)/);

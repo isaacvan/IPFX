@@ -94,7 +94,7 @@
     }
     daily.sort((a, b) => b.day.localeCompare(a.day) || a.name.localeCompare(b.name));
     $('daily').innerHTML = daily.map((item) => `<tr><td>${escapeHtml(item.day)}</td><td>${escapeHtml(item.name)}</td><td>${item.trades}</td><td class="${item.pnl >= 0 ? 'positive' : 'negative'}">${usd(item.pnl)}</td><td>${escapeHtml(item.illustration)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No reconciled opposite-direction HeroFX demo closes are available. No hypothetical funded P&amp;L is asserted.</td></tr>';
-    $('kpis').innerHTML = `<div class="tile"><span>Registered users</span><strong>${state.registeredUsers ?? '—'}</strong></div><div class="tile"><span>All trading accounts</span><strong>${state.accountCounts.all ?? '—'}</strong></div><div class="tile"><span>Demo / challenge</span><strong>${state.accountCounts.demo ?? '—'} / ${state.accountCounts.challenge ?? '—'}</strong></div><div class="tile"><span>Accounts with reverse closes</span><strong>${selected.filter((row) => Number(row.reverse_demo_actual?.trades) > 0).length}</strong></div>`;
+    $('kpis').innerHTML = `<div class="tile"><span>Registered users</span><strong>${state.registeredUsers ?? '—'}</strong></div><div class="tile"><span>Trading accounts in B review</span><strong>${selected.length}</strong></div><div class="tile"><span>Demo / challenge</span><strong>${state.accountCounts.demo ?? '—'} / ${state.accountCounts.challenge ?? '—'}</strong></div><div class="tile"><span>Registered, no account</span><strong>${state.registeredUsers == null ? '—' : state.noAccount}</strong></div><div class="tile"><span>Accounts with reverse closes</span><strong>${selected.filter((row) => Number(row.reverse_demo_actual?.trades) > 0).length}</strong></div>`;
   };
   async function load() {
     if (loading) return;
@@ -114,6 +114,16 @@
         state.registeredUsers = population.registered_users_count;
         state.noAccount = population.registered_without_account.length;
         state.accountCounts = population.account_counts;
+        if (mode === 'b') {
+          const present = new Set(state.rows.map((row) => String(row.account_id)));
+          for (const account of population.demo_accounts || []) {
+            if (!account?.id || present.has(String(account.id))) continue;
+            state.rows.push({ account_id: account.id, user_id: account.user_id,
+              full_name: account.full_name, email: account.email, label: account.label || 'Demo account',
+              challenge_type: 'Demo', profile: { trades_closed: 0 }, phase: 'demo' });
+            present.add(String(account.id));
+          }
+        }
       } catch (_) {
         populationUnavailable = true;
         state.registeredUsers = null;
