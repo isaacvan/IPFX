@@ -5789,10 +5789,12 @@ async function pollTicketPrice(){
   if(priceFetchBusy||!activeSym||!hasSession()||pollsPaused()||!ticketPollDue())return;
   priceFetchBusy=true;lastTicketPoll=Date.now();
   const polledSym=activeSym;
-  const tok=await freshToken();
+  // Never let one slow request freeze the price: give up after 2.5s and poll again (a hung request used to
+  // block polling until it finished, so the ticket flipped STALE then LIVE).
+  const tok=await Promise.race([freshToken(),new Promise(r=>setTimeout(()=>r(null),2500))]);
   if(tok){
     try{
-      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym,enforce_risk:true})});
+      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym,enforce_risk:true}),signal:AbortSignal.timeout(2500)});
       const j=await r.json().catch(()=>null);
       if(polledSym!==activeSym){priceFetchBusy=false;pollTicketPrice();return;}
       if(j&&j.risk_status&&j.risk_status.status==='breached'&&!engineBusy){
@@ -5818,7 +5820,7 @@ async function pollTicketPrice(){
       }else{
         if(!feedFresh())setFeed(lastQuoteTs?'stale':'closed');
       }
-    }catch(_){ if(!feedFresh())setFeed('stale'); }
+    }catch(e){ if(e&&e.name!=='TimeoutError'&&!feedFresh())setFeed('stale'); }
   }
   priceFetchBusy=false;
 }
