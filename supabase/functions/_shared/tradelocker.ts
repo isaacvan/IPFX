@@ -150,3 +150,41 @@ export async function quote(accessToken: string, accNum: string, routeId: number
   const bid = Number(d.bp ?? d.bid), ask = Number(d.ap ?? d.ask);
   return Number.isFinite(bid) && Number.isFinite(ask) && bid > 0 && ask >= bid ? { bid, ask } : null;
 }
+
+// ---- exact broker fill (hedge-first execution) ----
+// The column layout in /trade/config is fixed per server, so it is cached: each fill lookup is
+// then one request, which matters under TradeLocker's per-account rate limit.
+const configCache = new Map<string, { at: number; value: unknown }>();
+async function cachedConfig(accessToken: string, accNum: string): Promise<unknown> {
+  const hit = configCache.get(accNum);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.value;
+  const value = await request("/trade/config", { method: "GET" }, accessToken, accNum);
+  configCache.set(accNum, { at: Date.now(), value });
+  return value;
+}
+export type BrokerFill = { price: number; qty: number; positionId: string | null; orderId: string | null };
+// Finds the broker's executed price for one order (by orderId) or, failing that, the newest
+// filled closing order of a position. Polls briefly because a fill can take a moment to appear.
+export async function orderFill(
+  accessToken: string, accountId: string, accNum: string,
+  want: { orderId?: string | null; positionId?: string | null; closing?: boolean },
+  waitsMs: number[] = [120, 250, 450, 700],
+): Promise<BrokerFill | null> {
+  const config = await cachedConfig(accessToken, accNum);
+  for (const wait of waitsMs) {
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    const data = await request(`/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum);
+    const list = configuredRows(config, data, "ordersHistoryConfig", "ordersHistory")
+      .filter((o) => String(o.status ?? "").toLowerCase() === "filled" && Number(o.filledQty) > 0 && Number(o.avgPrice) > 0);
+    let hit = want.orderId ? list.find((o) => String(o.id ?? o.orderId ?? "") === String(want.orderId)) : undefined;
+    if (!hit && want.positionId && want.closing) {
+      hit = list.filter((o) => String(o.positionId ?? "") === String(want.positionId) && !(o.isOpen === true || String(o.isOpen) === "true"))
+        .sort((a, b) => Number(b.lastModified ?? b.createdDate ?? 0) - Number(a.lastModified ?? a.createdDate ?? 0))[0];
+    }
+    if (hit) {
+      return { price: Number(hit.avgPrice), qty: Number(hit.filledQty), positionId: hit.positionId == null ? null : String(hit.positionId),
+        orderId: hit.id == null ? null : String(hit.id) };
+    }
+  }
+  return null;
+}

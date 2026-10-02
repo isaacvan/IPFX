@@ -24,7 +24,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decideMirrorRisk, matchingMacroEvent } from "../_shared/trader-risk.ts";
 import { brokerCopyEvidenceReady } from "../_shared/broker-copy-evidence.ts";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
-import { closePosition, marketOrder, placeMarketOrder, orderHistoryRows, positionAndOrderRows, refresh, responseIds, strategyId } from "../_shared/tradelocker.ts";
+import { closePosition, marketOrder, orderFill, placeMarketOrder, orderHistoryRows, positionAndOrderRows, refresh, responseIds, strategyId } from "../_shared/tradelocker.ts";
+import { disasterStop } from "../_shared/stp-fill.ts";
 
 // deno-lint-ignore no-explicit-any
 declare const EdgeRuntime: any;
@@ -104,6 +105,12 @@ Deno.serve(async (req) => {
   const stopLoss = body.sl == null ? null : Number(body.sl);
   const takeProfit = body.tp == null ? null : Number(body.tp);
   const sourceRiskUsd = Number(body.source_risk_usd);
+  // sync: the engine is waiting to fill the trader at no better than this hedge's broker price
+  // (hedge-first execution), so resolve the exact fill price before replying.
+  const sync = body.sync === true;
+  // The broker leg gets no take-profit and only a wide disaster stop: IPFX alone decides when a
+  // copied trade closes, so a broker trigger can never flatten the hedge while the trader stays in.
+  const brokerStop = side ? disasterStop(side, Number(body.open_price), stopLoss) : null;
 
   const base = { source_trade_id, user_id, event, symbol, side, volume: isFinite(volumeIn) ? volumeIn : null };
 
@@ -303,7 +310,7 @@ Deno.serve(async (req) => {
       const step = Number(map.lot_step || 0.01), minQty = Number(map.min_qty || step);
       const qty = Math.floor((raw + 1e-12) / step) * step;
       if (!Number.isFinite(qty) || qty < minQty) return new Response(JSON.stringify({ ok: true, skipped: "below minimum" }), { status: 200 });
-      brokerPayload = marketOrder({ qty, routeId: Number(map.trade_route_id), side, tradableInstrumentId: Number(map.tradable_instrument_id), sl: stopLoss, tp: takeProfit, sourceTradeId: source_trade_id });
+      brokerPayload = marketOrder({ qty, routeId: Number(map.trade_route_id), side, tradableInstrumentId: Number(map.tradable_instrument_id), sl: brokerStop, tp: null, sourceTradeId: source_trade_id });
     } else {
       const { data: openRow } = await db.from("mirror_orders").select("id,broker_order_id,broker_position_id,status").eq("source_trade_id", source_trade_id).eq("target_id", target.id).eq("event", "open").in("status", ["filled", "accepted_pending_position"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (!openRow?.broker_order_id && !openRow?.broker_position_id) {
@@ -325,7 +332,11 @@ Deno.serve(async (req) => {
       }
     }
     const { data: claim, error: claimError } = await db.from("mirror_orders").insert({ ...base, target_id: target.id, provider: "tradelocker", volume: Number(brokerPayload?.qty ?? volumeIn), status: "sent", idempotency_key: idempotencyKey, dispatch_latency_ms: Date.now() - dispatchStarted }).select("id").single();
-    if (claimError?.code === "23505") return new Response(JSON.stringify({ ok: true, skipped: "duplicate event" }), { status: 200 });
+    if (claimError?.code === "23505") {
+      // Another request owns this broker event. Hand back its state so a waiting close can use its price.
+      const { data: existing } = await db.from("mirror_orders").select("status,fill_price,created_at").eq("idempotency_key", idempotencyKey).maybeSingle();
+      return new Response(JSON.stringify({ ok: true, skipped: "duplicate event", existing: existing ?? null }), { status: 200 });
+    }
     if (claimError || !claim) return new Response(JSON.stringify({ ok: false, error: "idempotency claim failed" }), { status: 503 });
     const apiStarted = Date.now();
     try {
@@ -334,11 +345,26 @@ Deno.serve(async (req) => {
         : await closePosition(accessToken, String(connection.acc_num), mappedPositionId!);
       const brokerLatencyMs = Date.now() - apiStarted;
       const ids = responseIds(result);
-      const positionId = event === "close" ? mappedPositionId : ids.positionId;
+      let positionId = event === "close" ? mappedPositionId : ids.positionId;
+      // Exact executed price from the broker's order history (one cached-config request per poll).
+      let fillPrice: number | null = null;
+      if (sync) {
+        try {
+          const fill = await orderFill(accessToken, String(connection.tradelocker_account_id), String(connection.acc_num),
+            { orderId: ids.orderId, positionId: mappedPositionId, closing: event === "close" });
+          if (fill) {
+            fillPrice = fill.price;
+            if (event === "open" && !positionId && fill.positionId) positionId = fill.positionId;
+          }
+        } catch (error) {
+          console.error(JSON.stringify({ event: "mirror_fill_lookup_failed", source_trade_id, error: String(error).slice(0, 160) }));
+        }
+      }
       await db.from("mirror_orders").update({
         status: event === "open" ? (positionId ? "filled" : "accepted_pending_position") : "reconciliation_required",
         latency_ms: brokerLatencyMs, broker_order_id: ids.orderId,
         broker_position_id: positionId, provider_status: "accepted",
+        ...(fillPrice != null ? { fill_price: fillPrice, fill_latency_ms: Date.now() - apiStarted } : {}),
       }).eq("id", claim.id);
       if (event === "open" && !positionId && ids.orderId) {
         try {
@@ -366,7 +392,7 @@ Deno.serve(async (req) => {
           })().catch((error) => console.error(JSON.stringify({ event: "mirror_close_verify_failed", source_trade_id, error: String(error).slice(0, 160) }))));
         } catch (_) { /* remains reconciliation_required for manual review */ }
       }
-      return new Response(JSON.stringify({ ok: true, orderId: ids.orderId, positionId, api_latency_ms: brokerLatencyMs }), { status: 200 });
+      return new Response(JSON.stringify({ ok: true, orderId: ids.orderId, positionId, fill_price: fillPrice, api_latency_ms: brokerLatencyMs }), { status: 200 });
     } catch (error) {
       // Never resubmit after an ambiguous network result. Reconcile exactly.
       await db.from("mirror_orders").update({ status: "reconciliation_required", latency_ms: Date.now() - apiStarted, provider_status: "ambiguous", error: String(error).slice(0, 300) }).eq("id", claim.id);
@@ -394,7 +420,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: "below minimum", decision: riskDecision }), { status: 200 });
     }
     const vol = Math.floor((rawVol + 1e-9) * 100) / 100;
-    payload = { actionType: side === "buy" ? "ORDER_TYPE_BUY" : "ORDER_TYPE_SELL", symbol: brokerSymbol(symbol), volume: vol, ...(Number.isFinite(stopLoss) ? { stopLoss } : {}), ...(Number.isFinite(takeProfit) ? { takeProfit } : {}) };
+    payload = { actionType: side === "buy" ? "ORDER_TYPE_BUY" : "ORDER_TYPE_SELL", symbol: brokerSymbol(symbol), volume: vol, ...(brokerStop != null ? { stopLoss: brokerStop } : {}) };
   } else {
     // Find the broker position id from this trade's own OPEN mirror row.
     let pid: string | null = null;

@@ -58,6 +58,7 @@ import { decryptSecret, encryptSecret } from "../_shared/tradelocker-crypto.ts";
 import { closedPositions, instrumentNames, readAccount, refresh as tlRefresh, jwtExpiresAt as tlJwtExpiresAt } from "../_shared/venue-tradelocker.ts";
 import { closePosition as tlClosePosition } from "../_shared/tradelocker.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
+import { closeClaimAction, worseFill } from "../_shared/stp-fill.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -951,14 +952,19 @@ const BREACH_TEXT: Record<string, string> = {
   daily_loss: "the daily loss limit was reached",
 };
 
-async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close", sourceRiskUsd: number | null = null) {
+// deno-lint-ignore no-explicit-any
+type MirrorResult = Record<string, any> | null;
+async function fireMirror(
+  db: any, acct: Acct, t: Tr, event: "open" | "close", sourceRiskUsd: number | null = null,
+  opts: { sync?: boolean; armed?: boolean } = {},
+): Promise<MirrorResult> {
   // deno-lint-ignore no-explicit-any
-  if (!(acct as any).mirror_enabled) {
+  if (!opts.armed && !(acct as any).mirror_enabled) {
     // Disarming blocks new opens, but a copied position must still be closable.
     let targetQuery = db.from("mirror_targets").select("id").eq("source_account_id", acct.id);
     if (event === "open") targetQuery = targetQuery.eq("enabled", true);
     const { data: approvedTarget } = await targetQuery.limit(1).maybeSingle();
-    if (!approvedTarget) return;
+    if (!approvedTarget) return null;
   }
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   try {
@@ -973,6 +979,7 @@ async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close", s
         source_trade_id: t.id, user_id: acct.user_id, event,
         symbol: t.symbol, side: t.side, volume: Number(t.volume),
         sl: t.sl, tp: t.tp, open_price: t.open_price, source_risk_usd: sourceRiskUsd,
+        ...(opts.sync ? { sync: true } : {}),
       }),
     });
     if (!response.ok) {
@@ -982,7 +989,7 @@ async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close", s
     if (result?.ok === false) {
       await db.from("demo_mirror_outbox").update({ status: "needs_review", last_error: String(result.error || "broker outcome unknown").slice(0, 300), updated_at: new Date().toISOString() })
         .eq("source_trade_id", t.id).eq("event", event).eq("status", "pending");
-      return;
+      return result;
     }
     if (result?.ok === true && result.skipped !== "duplicate event") {
       // An accepted close is not proof that the exact position disappeared.
@@ -998,6 +1005,7 @@ async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close", s
       })
         .eq("source_trade_id", t.id).eq("event", event).eq("status", "pending");
     }
+    return result;
   } catch (error) {
     const detail = `dispatch: ${String(error).slice(0, 280)}`;
     console.error(JSON.stringify({ event: "mirror_dispatch_failed", source_trade_id: t.id, detail }));
@@ -1006,7 +1014,48 @@ async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close", s
       symbol: t.symbol, side: t.side, volume: Number(t.volume),
       status: "error", error: detail,
     });
+    return null;
   }
+}
+
+// ---------- hedge-first execution (copied / A-book trades) ----------
+// A copied trade's hedge is placed at the broker FIRST, inside the execution delay every order
+// already has, and the trader is filled at the WORSE of the IPFX price and the broker's real fill
+// (see _shared/stp-fill.ts). Per unit, the hedge then earns at least what the trader earns on every
+// open and close. Accounts without a copy target are untouched (instant B-book path).
+const HEDGE_SYNC_TIMEOUT_MS = 4_000;
+// Waits up to timeoutMs for the hedge's broker result, but never aborts the request: a broker order
+// that is already in flight must always finish and be recorded (an aborted call could leave a hedge
+// open at the broker with no record of it). After the timeout the trader is filled at IPFX prices
+// and the hedge completes in the background.
+async function hedgeNow(db: Db, acct: Acct, t: Tr, event: "open" | "close", riskUsd: number | null, timeoutMs = HEDGE_SYNC_TIMEOUT_MS): Promise<MirrorResult> {
+  const call = fireMirror(db, acct, t, event, riskUsd, { sync: true, armed: true });
+  mirrorLater(call);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<MirrorResult>((resolve) => { timer = setTimeout(() => resolve(null), timeoutMs); });
+  try { return await Promise.race([call, timeout]); } finally { clearTimeout(timer); }
+}
+async function hedgeOpenArmed(db: Db, acct: Acct): Promise<boolean> {
+  // deno-lint-ignore no-explicit-any
+  if ((acct as any).venue && (acct as any).venue !== "ipfx") return false;
+  const { data } = await db.from("mirror_targets").select("id").eq("source_account_id", acct.id).eq("enabled", true).limit(1).maybeSingle();
+  return !!data;
+}
+type HedgeClose = { state: "none" } | { state: "busy" } | { state: "unhedged" } | { state: "filled"; price: number };
+async function hedgeCloseFirst(db: Db, acct: Acct, t: Tr): Promise<HedgeClose> {
+  const { data: openLeg } = await db.from("mirror_orders").select("id").eq("source_trade_id", t.id).eq("event", "open")
+    .in("status", ["filled", "accepted_pending_position"]).not("idempotency_key", "is", null).limit(1).maybeSingle();
+  if (!openLeg) return { state: "none" };
+  const r = await hedgeNow(db, acct, t, "close", null);
+  const price = Number(r?.fill_price);
+  if (r?.ok === true && !r.skipped && price > 0) return { state: "filled", price };
+  if (r?.skipped === "duplicate event") {
+    const action = closeClaimAction(r.existing, Date.now());
+    if (action === "use_price") return { state: "filled", price: Number(r.existing.fill_price) };
+    if (action === "busy") return { state: "busy" };
+  }
+  console.error(JSON.stringify({ event: "hedge_close_unpriced", trade_id: t.id, result: r ? JSON.stringify(r).slice(0, 200) : null }));
+  return { state: "unhedged" };
 }
 
 // ---------- types ----------
@@ -1380,7 +1429,26 @@ async function processPendingOrders(
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
     const sourceRiskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * Number(o.volume) * conv;
-    mirrorLater(fireMirror(db, acct, inserted as Tr, "open", sourceRiskUsd));
+    if (await hedgeOpenArmed(db, acct)) {
+      // Copied account: the hedge fills first; the trader's entry is no better than the broker's.
+      const hedge = await hedgeNow(db, acct, inserted as Tr, "open", sourceRiskUsd);
+      const brokerFill = Number(hedge?.fill_price);
+      if (brokerFill > 0) {
+        const px = roundAdverse(symbol, worseFill(takingAsk, fill, brokerFill) ?? fill, takingAsk);
+        if (px !== fill) {
+          await db.from("trades").update({
+            open_price: px,
+            ...(v2 ? { execution_shortfall: await shortfallUsd(symbol, takingAsk, arrivalPx, px, Number(o.volume)) } : {}),
+          }).eq("id", inserted.id).eq("status", "open");
+          await db.from("pending_orders").update({ fill_price: px }).eq("id", o.id);
+          inserted.open_price = px;
+        }
+      } else {
+        console.error(JSON.stringify({ event: "hedge_open_unpriced", trade_id: inserted.id, result: hedge ? JSON.stringify(hedge).slice(0, 200) : null }));
+      }
+    } else {
+      mirrorLater(fireMirror(db, acct, inserted as Tr, "open", sourceRiskUsd));
+    }
     working.push(inserted as Tr);
   }
   return working;
@@ -1614,6 +1682,18 @@ async function closeTrade(
   db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null, clientIp?: string | null,
   exec?: { shortfallUsd?: number },
 ): Promise<boolean> {
+  // Copied trade: close the hedge first and fill the trader no better than the broker did.
+  const hedge = await hedgeCloseFirst(db, acct, t);
+  if (hedge.state === "busy") return false; // another request is closing this hedge right now
+  if (hedge.state === "filled") {
+    const takingAsk = t.side === "sell"; // closing a sell buys at the ask
+    const worse = worseFill(takingAsk, exit, hedge.price) ?? exit;
+    if (worse !== exit && exec) {
+      const extra = await shortfallUsd(t.symbol, takingAsk, exit, worse, Number(t.volume));
+      exec = { ...exec, shortfallUsd: (exec.shortfallUsd ?? 0) + extra };
+    }
+    exit = roundAdverse(t.symbol, worse, takingAsk);
+  }
   const gross = await tradePnl(t, exit);
   if (gross === null) return false;
   const v2 = rulesV2(acct);
@@ -1639,8 +1719,10 @@ async function closeTrade(
   if (e1 || !closedRow || closedRow.length === 0) return false; // already closed elsewhere — no-op, not an error
   acct.balance = round2(Number(acct.balance) + pnl);
   // The source close is committed. Broker copying must not hold up the UI;
-  // EdgeRuntime.waitUntil keeps the exact-ID mirror dispatch alive.
-  mirrorLater(fireMirror(db, acct, t, "close"));
+  // EdgeRuntime.waitUntil keeps the exact-ID mirror dispatch alive. A hedge already closed
+  // above is skipped; after an unpriced attempt it is re-sent (the idempotency key drops a
+  // duplicate) so a hedge can never be left open behind a closed trade.
+  if (hedge.state !== "filled") mirrorLater(fireMirror(db, acct, t, "close"));
   await logAudit(db, {
     trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "close",
     symbol: t.symbol, side: t.side, requested_volume: Number(t.volume),
@@ -2213,6 +2295,13 @@ async function symbolCheck(db: Db, symKey: string): Promise<SymbolCheck> {
 
 function roundPrice(symKey: string, px: number): number {
   return Number(px.toFixed(INSTRUMENTS[symKey]?.digits ?? 5));
+}
+// Rounds against the trader (up when buying, down when selling), so rounding can never make a
+// copied trade's fill better than the hedge's.
+function roundAdverse(symKey: string, px: number, takingAsk: boolean): number {
+  const f = Math.pow(10, INSTRUMENTS[symKey]?.digits ?? 5);
+  const v = takingAsk ? Math.ceil(px * f - 1e-7) : Math.floor(px * f + 1e-7);
+  return Number((v / f).toFixed(INSTRUMENTS[symKey]?.digits ?? 5));
 }
 
 // Moves a price against the trader by `bps` basis points.
@@ -3373,6 +3462,45 @@ const handleRequest = async (req: Request): Promise<Response> => {
 
       await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);
 
+      // Copied (A-book) account: hedge first, then fill the trader no better than the broker.
+      if (await hedgeOpenArmed(db, A)) {
+        const takingAsk = side === "buy";
+        const started = Date.now();
+        const minDelay = v2 ? EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1)) : 0;
+        // The source row must exist before the hedge (live-mirror verifies it); it is re-priced below.
+        const { data: provisional, error: insErr } = await db.from("trades").insert({
+          account_id: A.id, user_id: user.id, symbol, side, volume, open_price: fill, sl, tp,
+          ...(v2 ? { decision_price: fill, pnl_basis: "NET_AFTER_COSTS" } : {}),
+          ...(clientOrderId ? { client_order_id: clientOrderId } : {}),
+        }).select("id").single();
+        if (insErr && insErr.code === "23505" && clientOrderId) return await duplicateState();
+        if (insErr || !provisional) return reject("Order failed", q);
+        const riskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * volume * conv;
+        const srcTrade = { id: provisional.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: fill, close_price: null, sl, tp, status: "open", pnl: null } as Tr;
+        const hedge = await hedgeNow(db, A, srcTrade, "open", riskUsd);
+        // The broker round trip is the execution delay; top it up so timing never differs from other orders.
+        const rest = minDelay - (Date.now() - started);
+        if (rest > 0) await new Promise((resolve) => setTimeout(resolve, rest));
+        let later: Quote | null = null;
+        if (v2) { await warmQuotes(true); later = await fetchQuote(symbol); if (later && quoteStale(later)) later = null; }
+        const brokerFill = Number(hedge?.fill_price) > 0 ? Number(hedge!.fill_price) : null;
+        let px = worseFill(takingAsk, fill, later ? (takingAsk ? later.ask : later.bid) : null, brokerFill) ?? fill;
+        if (v2) px = adverse(px, takingAsk, spec.slippageBps);
+        const openPx = roundAdverse(symbol, px, takingAsk);
+        await db.from("trades").update({
+          open_price: openPx,
+          ...(v2 ? {
+            execution_shortfall: await shortfallUsd(symbol, takingAsk, fill, openPx, volume),
+            execution_latency_ms: Date.now() - started,
+          } : {}),
+        }).eq("id", provisional.id).eq("status", "open");
+        if (!brokerFill) console.error(JSON.stringify({ event: "hedge_open_unpriced", trade_id: provisional.id, result: hedge ? JSON.stringify(hedge).slice(0, 200) : null }));
+        await logAudit(db, {
+          trade_id: provisional.id, user_id: user.id, account_id: A.id, event: "open",
+          symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPx, quote: q, client_ip: clientIp,
+        });
+        await db.from("equity_snapshots").insert({ account_id: A.id, user_id: user.id, balance: A.balance, equity: state.equity });
+      } else {
       let openPrice = fill;
       let execInfo: Record<string, unknown> = {};
       if (v2) {
@@ -3419,6 +3547,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
       await db.from("equity_snapshots").insert({
         account_id: (acct as Acct).id, user_id: user.id, balance: (acct as Acct).balance, equity: state.equity,
       });
+      }
     } finally {
       await releaseOrderLock(db, (acct as Acct).id);
     }
@@ -3434,7 +3563,10 @@ const handleRequest = async (req: Request): Promise<Response> => {
     if (rulesV2(acct as Acct)) {
       const spec = await symbolCheck(db, target.symbol);
       const takingAsk = target.side === "sell";
-      const ex = await executeAtMarket(target.symbol, takingAsk, q, spec.slippageBps, false);
+      // A copied trade's broker close (in closeTrade) is its execution delay.
+      const { data: hedged } = await db.from("mirror_orders").select("id").eq("source_trade_id", target.id).eq("event", "open")
+        .in("status", ["filled", "accepted_pending_position"]).not("idempotency_key", "is", null).limit(1).maybeSingle();
+      const ex = await executeAtMarket(target.symbol, takingAsk, q, spec.slippageBps, false, !!hedged);
       if (ex) {
         exit = ex.price;
         execInfo = { shortfallUsd: await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, Number(target.volume)) };

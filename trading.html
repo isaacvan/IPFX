@@ -5729,8 +5729,8 @@ function setFeed(state,label){
   if(!badge||!lbl)return;
   badge.classList.remove('demo','live','stale','closed');
   if(state==='demo'){badge.classList.add('demo');lbl.textContent=label||'DEMO · testing feed';}
-  else if(state==='live'){badge.classList.add('live');lbl.textContent=label||'LIVE · FXCM';}
-  else if(state==='stale'){badge.classList.add('stale');lbl.textContent=label||'STALE · trading paused';}
+  else if(state==='live'){badge.classList.add('live');lbl.textContent=label||'LIVE';}
+  else if(state==='stale'){badge.classList.add('stale');lbl.textContent=label||'DELAYED';}
   else if(state==='closed'){badge.classList.add('closed');lbl.textContent=label||'NO FEED';}
   else{lbl.textContent=label||'Connecting…';}
   applyFeedGate();
