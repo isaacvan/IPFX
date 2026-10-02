@@ -96,7 +96,7 @@
     let trades = [];
     const draft = new Map(); // tradeId -> {sl, tp, saving}
     let drag = null;
-    let bid = null, ask = null, bidLine = null, askLine = null;
+    let bid = null, ask = null, bidLine = null, askLine = null, lastLine = null;
     let markersApi = null, tradeMarks = [];
     let pendingRange = null;
     const shield = document.createElement("div");
@@ -188,7 +188,7 @@
           upColor: UP, downColor: DOWN, borderUpColor: UP, borderDownColor: DOWN, wickUpColor: UP, wickDownColor: DOWN,
           priceFormat, autoscaleInfoProvider: autoscale,
         });
-      bidLine = askLine = null;       // they belonged to the removed series
+      bidLine = askLine = lastLine = null; // they belonged to the removed series
       markersApi = LWC.createSeriesMarkers ? LWC.createSeriesMarkers(series, []) : null;
       pushAll();
       syncQuoteLines();
@@ -198,19 +198,38 @@
 
     // ---------------------------------------------------------------- bid / ask lines
     // Two labelled lines, like a trading platform: sells fill at the bid, buys at the ask.
+    // Time left in the current candle, like TradingView's label under the price ("00:50").
+    function countdown() {
+      if (seconds >= 86400) return "";
+      const left = Math.max(0, seconds - (Math.floor(Date.now() / 1000) % seconds));
+      const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), sec = left % 60;
+      const p = (n) => String(n).padStart(2, "0");
+      return h ? `${p(h)}:${p(m)}:${p(sec)}` : `${p(m)}:${p(sec)}`;
+    }
+    // Current price: the live candle's close, labelled on the price scale with the countdown beside it.
+    function syncLastLine() {
+      if (!series) return;
+      const b = raw[raw.length - 1];
+      if (!b) { if (lastLine) { series.removePriceLine(lastLine); lastLine = null; } return; }
+      const color = b.close >= b.open ? UP : DOWN;
+      const o = { price: b.close, color, lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: countdown() };
+      if (lastLine) lastLine.applyOptions(o); else lastLine = series.createPriceLine(o);
+    }
+    const clock = setInterval(() => { if (raw.length) syncLastLine(); }, 1000);
+
     function syncQuoteLines() {
       if (!series) return;
+      series.applyOptions({ lastValueVisible: false, priceLineVisible: false });
+      syncLastLine();
       if (bid == null || ask == null) {
         if (bidLine) { series.removePriceLine(bidLine); bidLine = null; }
         if (askLine) { series.removePriceLine(askLine); askLine = null; }
-        series.applyOptions({ lastValueVisible: true, priceLineVisible: true });
         return;
       }
       // Colours match the ticket: red = Bid (the SELL price), green = Ask (the BUY price).
       const opts = (price, color, title) => ({ price, color, lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, title });
       if (bidLine) bidLine.applyOptions(opts(bid, DOWN, "Bid")); else bidLine = series.createPriceLine(opts(bid, DOWN, "Bid"));
       if (askLine) askLine.applyOptions(opts(ask, UP, "Ask")); else askLine = series.createPriceLine(opts(ask, UP, "Ask"));
-      series.applyOptions({ lastValueVisible: false, priceLineVisible: false });
     }
 
     // ---------------------------------------------------------------- trade markers
@@ -1066,7 +1085,7 @@
       setTheme(isDark, alpha) { dark = !!isDark; gridAlpha = alpha || 0; applyTheme(); },
       isDragging() { return !!drag; },
       setVisible(on) { overlay.hidden = !on; if (on) render(true); },
-      destroy() { overlay.innerHTML = ""; shield.remove(); chart.remove(); },
+      destroy() { clearInterval(clock); overlay.innerHTML = ""; shield.remove(); chart.remove(); },
     };
   }
 
