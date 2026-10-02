@@ -610,6 +610,8 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 
   <div class="content">
+    <!-- Broker-demo challenge: connect your own broker TradeLocker demo (hidden unless you have one) -->
+    <div id="venueCard" style="display:none;background:var(--bgcard);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;margin-bottom:1rem"></div>
 
     <!-- OVERVIEW — the personalised landing page. Everything here is
          computed from this trader's OWN trades/accounts/payouts (read
@@ -1069,6 +1071,59 @@ const SUPABASE_URL='https://agulweemteoeagscmppy.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ENGINE_FN=SUPABASE_URL+'/functions/v1/trading-engine';
+// ---- broker-demo challenge connection ----
+const VENUE_FN=SUPABASE_URL+'/functions/v1/venue-connect';
+async function venueCall(body){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session)return{ok:false,error:'Sign in first'};
+  const r=await fetch(VENUE_FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,apikey:SUPABASE_KEY},body:JSON.stringify(body)});
+  return await r.json().catch(()=>({ok:false,error:'Request failed'}));
+}
+function venueEsc(v){return String(v==null?'':v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+async function renderVenueCard(){
+  const card=document.getElementById('venueCard'); if(!card)return;
+  const st=await venueCall({action:'status'}).catch(()=>null);
+  const live=(st&&st.accounts||[]).filter(a=>a.status==='active');
+  if(!st||!st.ok||!live.length){card.style.display='none';return;}
+  const conn=Object.fromEntries((st.connections||[]).map(c=>[c.trading_account_id,c]));
+  const server=st.broker_server||'';
+  card.innerHTML=live.map(a=>{
+    const c=conn[a.id], bal='$'+Number(a.starting_balance).toLocaleString('en-US');
+    if(c&&c.status==='connected'){
+      const ago=c.last_sync_at?Math.max(0,Math.round((Date.now()-Date.parse(c.last_sync_at))/1000))+'s ago':'pending';
+      return `<div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center">
+        <div><div style="font-weight:700">${venueEsc(a.label)}: trading in your ${venueEsc(c.server)} TradeLocker demo</div>
+        <div style="color:var(--muted);font-size:.85rem;margin-top:.25rem">Connected to ${venueEsc(c.account_name||('#'+c.tradelocker_account_id))} · broker balance $${Number(c.broker_balance||0).toLocaleString('en-US',{minimumFractionDigits:2})} · last checked ${ago}${c.last_error?' · <span style="color:#ef4444">'+venueEsc(c.last_error)+'</span>':''}</div></div>
+        <button class="tb-btn" onclick="venueDisconnect('${a.id}')">Disconnect</button></div>`;
+    }
+    return `<div><div style="font-weight:700">${venueEsc(a.label)}: connect your broker demo to start</div>
+      <div style="color:var(--muted);font-size:.85rem;margin:.35rem 0 .8rem">Open a free ${venueEsc(server||'broker')} TradeLocker <strong>demo</strong> with a balance of <strong>${bal}</strong>, then connect it here. You trade in TradeLocker; we track your challenge rules automatically. Your password is only used once to connect and is never stored.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.6rem">
+        <input id="vServer-${a.id}" placeholder="Server" value="${venueEsc(server)}" style="padding:.55rem;border-radius:7px;border:1px solid var(--line);background:transparent;color:inherit">
+        <input id="vEmail-${a.id}" type="email" placeholder="Demo login email" autocomplete="off" style="padding:.55rem;border-radius:7px;border:1px solid var(--line);background:transparent;color:inherit">
+        <input id="vPass-${a.id}" type="password" placeholder="Demo password" autocomplete="off" style="padding:.55rem;border-radius:7px;border:1px solid var(--line);background:transparent;color:inherit">
+        <input id="vAcc-${a.id}" placeholder="Account number (optional)" style="padding:.55rem;border-radius:7px;border:1px solid var(--line);background:transparent;color:inherit">
+      </div>
+      <div style="display:flex;gap:.8rem;align-items:center;margin-top:.7rem"><button class="tb-btn sol" id="vBtn-${a.id}" onclick="venueConnect('${a.id}')">Connect demo</button><span id="vMsg-${a.id}" style="font-size:.85rem;color:var(--muted)"></span></div></div>`;
+  }).join('<hr style="border:none;border-top:1px solid var(--line);margin:1rem 0">');
+  card.style.display='block';
+}
+async function venueConnect(id){
+  const v=k=>document.getElementById(k+'-'+id).value.trim();
+  const btn=document.getElementById('vBtn-'+id), msg=document.getElementById('vMsg-'+id);
+  btn.disabled=true; msg.style.color='var(--muted)'; msg.textContent='Connecting…';
+  const r=await venueCall({action:'connect',trading_account_id:id,server:v('vServer'),email:v('vEmail'),password:document.getElementById('vPass-'+id).value,tradelocker_account_id:v('vAcc')});
+  document.getElementById('vPass-'+id).value='';
+  btn.disabled=false;
+  if(r&&r.ok){msg.style.color='#22c55e';msg.textContent='Connected.';setTimeout(renderVenueCard,800);}
+  else{msg.style.color='#ef4444';msg.textContent=(r&&r.error)||'Could not connect.';}
+}
+async function venueDisconnect(id){
+  if(!confirm('Disconnect this demo? Your challenge stops tracking until you reconnect.'))return;
+  await venueCall({action:'disconnect',trading_account_id:id}); renderVenueCard();
+}
+setTimeout(()=>renderVenueCard().catch(()=>{}),600);
+setInterval(()=>{if(!document.hidden)renderVenueCard().catch(()=>{});},30000);
 async function engineCall(body){
   const{data:{session}}=await sb.auth.getSession();
   if(!session){window.location.href='login.html';return null;}

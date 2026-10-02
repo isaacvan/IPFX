@@ -201,3 +201,20 @@ test('Terms: Company may copy/route (A-book/B-book); traders may copy from outsi
   assert.match(privacy, /move accounts between A-book and B-book models, as set out in Section 11\.3/);
   assert.doesNotMatch(privacy, /does not use your identifiable Trading Data to place, mirror/);
 });
+
+test('broker-demo challenge venue (option 3): off by default, rules reused, positions closed at the broker on breach', () => {
+  const m = read('supabase/migrations/20261002120000_challenge_venue_broker_demo.sql');
+  assert.match(m, /challenge_venue text not null default 'ipfx'/);
+  assert.match(m, /revoke all on public\.venue_connections from anon, authenticated/);
+  assert.match(read('supabase/migrations/20261002124000_venue_no_mirror.sql'), /if new\.venue <> 'ipfx' then new\.mirror_enabled := false/);
+  assert.match(engine, /const venueMode = \(acct\.venue \?\? "ipfx"\) !== "ipfx";/);
+  assert.match(engine, /if \(venueMode\) await flattenVenue\(db, acct\)/);
+  assert.match(engine, /body\.action === "venue_sync"/);
+  assert.match(engine, /This challenge is traded in your broker TradeLocker demo account, not on IPFX Markets\./);
+  assert.match(engine, /pnl_basis: "GROSS_BEFORE_COSTS"/);
+  const connect = read('supabase/functions/venue-connect/index.ts');
+  assert.match(connect, /Close all open positions on the demo account before connecting/);
+  assert.match(connect, /The demo balance must be/);
+  assert.match(read('dashboard.html'), /functions\/v1\/venue-connect/);
+  assert.match(platform, /function showVenueBanner\(account\)/);
+});

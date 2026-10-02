@@ -55,6 +55,9 @@ import { insertAccountFromPreset as insertFromPresetShared } from "../_shared/pr
 import { feedConfig, feedQuote, loadFeedInstruments, openFeedSession, type FeedInstrument, type FeedSession } from "../_shared/tradelocker-feed.ts";
 import { CTraderStream, mapSymbols, PT as CT, signIn, type CTraderCreds } from "../_shared/ctrader-feed.ts";
 import { decryptSecret, encryptSecret } from "../_shared/tradelocker-crypto.ts";
+import { closedPositions, instrumentNames, readAccount, refresh as tlRefresh, jwtExpiresAt as tlJwtExpiresAt } from "../_shared/venue-tradelocker.ts";
+import { closePosition as tlClosePosition } from "../_shared/tradelocker.ts";
+import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -1009,6 +1012,7 @@ async function fireMirror(db: any, acct: Acct, t: Tr, event: "open" | "close", s
 // ---------- types ----------
 type Acct = {
   id: string; user_id: string; label: string;
+  venue?: string; venue_equity?: number | null;
   starting_balance: number; balance: number;
   profit_target_pct: number; max_drawdown_pct: number; daily_loss_pct: number;
   day_start_equity: number; day_start_date: string;
@@ -1679,18 +1683,115 @@ async function evaluateAlerts(db: Db, userId: string | null): Promise<number> {
   return fired;
 }
 
+// ---------- broker-demo challenge venue ----------
+const VENUE_SYMBOL: Record<string, string> = Object.fromEntries(Object.entries(TL_SYMBOLS).map(([k, v]) => [v, k]));
+function venueSymbol(brokerName: string | undefined): string | null {
+  const n = String(brokerName ?? "").toUpperCase().replace(/\.(PRO|RAW|ECN|STD)$/, "");
+  return VENUE_SYMBOL[n] ?? cleanSymbol(n);
+}
+type VenueConn = Record<string, any>; // deno-lint-ignore no-explicit-any
+async function venueToken(db: Db, c: VenueConn): Promise<string> {
+  const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
+  if (!key) throw new Error("VENUE_ENCRYPTION_KEY_MISSING");
+  let token = await decryptSecret(c.access_token_ciphertext, key);
+  if (!c.access_expires_at || Date.parse(c.access_expires_at) - Date.now() < 30 * 60_000) {
+    const next = await tlRefresh(await decryptSecret(c.refresh_token_ciphertext, key));
+    token = next.accessToken;
+    await db.from("venue_connections").update({
+      access_token_ciphertext: await encryptSecret(next.accessToken, key),
+      refresh_token_ciphertext: await encryptSecret(next.refreshToken, key),
+      access_expires_at: tlJwtExpiresAt(next.accessToken), updated_at: new Date().toISOString(),
+    }).eq("id", c.id);
+  }
+  return token;
+}
+// Close every open position on the trader's broker demo (rule breach).
+async function flattenVenue(db: Db, acct: Acct): Promise<number> {
+  const { data: c } = await db.from("venue_connections").select("*").eq("trading_account_id", acct.id).maybeSingle();
+  if (!c) return 0;
+  const token = await venueToken(db, c);
+  const snap = await readAccount(token, String(c.tradelocker_account_id), String(c.acc_num));
+  let closed = 0;
+  for (const p of snap.positions) {
+    try { await tlClosePosition(token, String(c.acc_num), p.id); closed++; } catch (e) { console.error("[venue] close failed", p.id, String(e).slice(0, 120)); }
+  }
+  return closed;
+}
+// One account: read the broker demo, import trades, update balance/equity, then apply the normal challenge rules.
+async function syncVenueConnection(db: Db, c: VenueConn): Promise<void> {
+  const { data: acctRow } = await db.from("trading_accounts").select("*").eq("id", c.trading_account_id).maybeSingle();
+  if (!acctRow) return;
+  const token = await venueToken(db, c);
+  const snap = await readAccount(token, String(c.tradelocker_account_id), String(c.acc_num));
+  let names: Record<string, string> = c.instrument_names ?? {};
+  const unknownIds = [...snap.positions.map((p) => p.instrumentId), ...snap.fills.map((f) => f.instrumentId)].filter((id) => !names[id]);
+  if (unknownIds.length) {
+    names = await instrumentNames(token, String(c.tradelocker_account_id), String(c.acc_num));
+    await db.from("venue_connections").update({ instrument_names: names }).eq("id", c.id);
+  }
+  const since = Date.parse(c.connected_at);
+  const base = { account_id: acctRow.id, user_id: acctRow.user_id, external_source: "tradelocker" };
+  // closed positions
+  for (const cp of closedPositions(snap).filter((x) => x.openedAt >= since)) {
+    const sym = venueSymbol(names[cp.instrumentId]);
+    const inst = sym ? INSTRUMENTS[sym] : null;
+    let pnl = 0, reason = "external";
+    if (inst) {
+      const conv = await usdPerQuote(inst.quote);
+      if (conv !== null) pnl = round2((cp.closePrice - cp.openPrice) * (cp.side === "buy" ? 1 : -1) * cp.qty * inst.contract * conv);
+      else reason = "external_unpriced";
+    } else reason = "external_unknown_instrument";
+    const { error: closedErr } = await db.from("trades").upsert({
+      ...base, external_position_id: cp.positionId, symbol: sym ?? String(names[cp.instrumentId] ?? cp.instrumentId),
+      side: cp.side === "sell" ? "sell" : "buy", volume: cp.qty, open_price: cp.openPrice, close_price: cp.closePrice,
+      status: "closed", close_reason: reason, pnl, pnl_basis: "GROSS_BEFORE_COSTS",
+      opened_at: new Date(cp.openedAt).toISOString(), closed_at: new Date(cp.closedAt).toISOString(),
+    }, { onConflict: "account_id,external_source,external_position_id" });
+    if (closedErr) throw new Error("VENUE_IMPORT_CLOSED:" + closedErr.message);
+  }
+  // open positions
+  for (const p of snap.positions.filter((x) => x.openDate >= since - 5000)) {
+    const sym = venueSymbol(names[p.instrumentId]);
+    const { error: openErr } = await db.from("trades").upsert({
+      ...base, external_position_id: p.id, symbol: sym ?? String(names[p.instrumentId] ?? p.instrumentId),
+      side: p.side === "sell" ? "sell" : "buy", volume: p.qty, open_price: p.avgPrice, status: "open",
+      opened_at: new Date(p.openDate).toISOString(),
+    }, { onConflict: "account_id,external_source,external_position_id" });
+    if (openErr) throw new Error("VENUE_IMPORT_OPEN:" + openErr.message);
+  }
+  // challenge balance = starting balance + broker P&L since connection - payouts already taken
+  const start = Number(acctRow.starting_balance);
+  const paid = Number(acctRow.total_paid_out ?? 0);
+  const chBal = round2(start + (snap.balance - Number(c.baseline_balance)) - paid);
+  const chEq = round2(start + (snap.equity - Number(c.baseline_balance)) - paid);
+  if (acctRow.status === "active") {
+    await db.from("trading_accounts").update({ balance: chBal, venue_equity: chEq, venue_synced_at: new Date().toISOString() })
+      .eq("id", acctRow.id).eq("status", "active");
+    await enforce(db, { ...acctRow, balance: chBal, venue_equity: chEq } as Acct);
+  } else if (acctRow.status === "breached" && snap.positions.length) {
+    await flattenVenue(db, acctRow as Acct);
+  }
+  await db.from("venue_connections").update({
+    status: "connected", last_error: null, last_sync_at: new Date().toISOString(),
+    broker_balance: snap.balance, broker_equity: snap.equity, updated_at: new Date().toISOString(),
+  }).eq("id", c.id);
+}
+
 async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number; unpriced: number }> {
   const [{ data: openRows }] = await Promise.all([
     db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at"),
     warmQuotes(),
   ]);
   let open: Tr[] = openRows ?? [];
+  // Broker-demo challenges: positions live at the broker. Equity comes from the broker (synced by venue_sync), no
+  // IPFX price is used, and a breach closes the positions at the broker instead of filling them here.
+  const venueMode = (acct.venue ?? "ipfx") !== "ipfx";
 
   // Recovery path: if a worker stopped after the DB freeze but before every
   // close completed, the next state call/offline sweep finishes flattening.
   // The account is already immutable and the per-account lease keeps this
   // single-writer.
-  if (acct.status === "breached" && open.length && await claimOrderLock(db, acct.id)) {
+  if (!venueMode && acct.status === "breached" && open.length && await claimOrderLock(db, acct.id)) {
     try {
       for (const t of open) {
         let q = await fetchQuote(t.symbol);
@@ -1710,7 +1811,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   // SL/TP auto-close. A stop fills at the worse of its level and the live price, so a gap
   // through the stop costs what the market cost; a take-profit fills at its level.
-  if (isTradableAccount(acct)) {
+  if (isTradableAccount(acct) && !venueMode) {
     const still: Tr[] = [];
     for (const t of open) {
       const q = await fetchQuote(t.symbol);
@@ -1747,7 +1848,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   // Futures positions must be flat outside the CME session. Closing here
   // rather than breaching the account: an open position at the bell is a
   // session rule, not a drawdown failure.
-  if (isTradableAccount(acct) && open.length && futuresSessionEnforced(acct) && !futuresSessionOpen()) {
+  if (!venueMode && isTradableAccount(acct) && open.length && futuresSessionEnforced(acct) && !futuresSessionOpen()) {
     const remaining: Tr[] = [];
     for (const t of open) {
       const q = await fetchQuote(t.symbol);
@@ -1763,12 +1864,12 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   // Resting limit/stop orders are checked before marking to market, so a
   // fill this tick is included in the equity the rules are judged on.
-  open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)));
+  if (!venueMode) open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)));
 
   // mark to market
   let floating = 0;
   let unpriced = 0;
-  for (const t of open) {
+  for (const t of (venueMode ? [] : open)) {
     let q = await fetchQuote(t.symbol);
     if (q === null || quoteStale(q)) {
       // Never value a position at zero because its price is missing or old:
@@ -1789,6 +1890,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     }
   }
   let equity = round2(Number(acct.balance) + floating);
+  if (venueMode) {
+    equity = round2(Number(acct.venue_equity ?? acct.balance));
+    floating = round2(equity - Number(acct.balance));
+  }
 
   const start = Number(acct.starting_balance);
   const todayUtc = new Date().toISOString().slice(0, 10);
@@ -1873,7 +1978,8 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       // the flatten. The DB insert guards make the freeze immediate, so no new
       // trade or pending order can race in after this point.
       if (claim.data === true) {
-        for (const t of open) {
+        if (venueMode) await flattenVenue(db, acct).catch((e) => console.error("[venue] flatten failed", acct.id, String(e).slice(0, 120)));
+        else for (const t of open) {
           let q = await fetchQuote(t.symbol);
           if (q === null) q = await lastKnownQuote(t.symbol);
           if (q !== null) {
@@ -2005,6 +2111,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       is_demo: isDemoAccount(acct),
+      venue: acct.venue ?? "ipfx",
       starting_balance: start, balance: Number(acct.balance), equity, floating,
       day_start_equity: Number(acct.day_start_equity),
       challenge_type: acct.challenge_type ?? "traditional",
@@ -2299,7 +2406,18 @@ const handleRequest = async (req: Request): Promise<Response> => {
       const inst = await loadFeedInstruments(sess);
       out.instruments_ms = Date.now() - t;
       out.mapped = inst.map((i) => i.symKey);
-      if (body.mode === "ctrader") {
+      if (body.mode === "venue_read") {
+        // Read-only check of the challenge-venue reader against the firm's own demo connection.
+        const t1 = Date.now();
+        const snap = await readAccount(sess.accessToken, sess.accountId, sess.accNum);
+        out.read_ms = Date.now() - t1;
+        const names = await instrumentNames(sess.accessToken, sess.accountId, sess.accNum);
+        const closed = closedPositions(snap);
+        out.balance = snap.balance; out.equity = snap.equity;
+        out.open_positions = snap.positions.length; out.fills = snap.fills.length; out.closed_positions = closed.length;
+        out.sample_open = snap.positions.slice(0, 2).map((p) => ({ ...p, symbol: names[p.instrumentId] }));
+        out.sample_closed = closed.slice(-3).map((c) => ({ ...c, symbol: names[c.instrumentId] }));
+      } else if (body.mode === "ctrader") {
         // Live check of the cTrader stream. Without credentials it still proves connectivity + protocol by
         // sending deliberately invalid app credentials (expects a polite auth error back).
         const creds = await ctraderCreds(pdb);
@@ -2394,6 +2512,36 @@ const handleRequest = async (req: Request): Promise<Response> => {
       }
     } catch (e) { out.error = String(e).slice(0, 300); }
     return new Response(JSON.stringify(out), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+
+  if (body.action === "venue_sync") {
+    const secret = req.headers.get("x-cron-secret");
+    const expected = Deno.env.get("CRON_SECRET");
+    if (!expected || secret !== expected) return err("Not authorized", 401);
+    const vdb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const nowIso = new Date().toISOString();
+    const { data: got } = await vdb.from("venue_sync_lease").update({ lease_until: new Date(Date.now() + 9_500).toISOString(), owner: crypto.randomUUID() })
+      .eq("id", true).or(`lease_until.is.null,lease_until.lt.${nowIso}`).select("id");
+    if (!got?.length) return new Response(JSON.stringify({ ok: true, skipped: "previous sync running" }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    // Least-recently-synced first, so every account is reached even when one run can't cover all of them.
+    const { data: conns } = await vdb.from("venue_connections").select("*").in("status", ["connected", "error"])
+      .order("last_sync_at", { ascending: true, nullsFirst: true }).limit(500);
+    const queue = [...(conns ?? [])];
+    const deadline = Date.now() + 8_000;
+    let synced = 0, failed = 0;
+    const worker = async () => {
+      while (queue.length && Date.now() < deadline) {
+        const c = queue.shift()!;
+        try { await syncVenueConnection(vdb, c); synced++; }
+        catch (e) {
+          failed++;
+          await vdb.from("venue_connections").update({ status: "error", last_error: String(e).slice(0, 200), last_sync_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", c.id);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 10 }, worker));
+    await vdb.from("venue_sync_lease").update({ lease_until: new Date().toISOString() }).eq("id", true);
+    return new Response(JSON.stringify({ ok: true, synced, failed, remaining: queue.length }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
   if (body.action === "pump") {
@@ -2898,6 +3046,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     }
     try {
       if (!isTradableAccount(acct as Acct)) return err("Account is " + (acct as Acct).status, 409);
+      if (((acct as Acct).venue ?? "ipfx") !== "ipfx") return err("This challenge is traded in your broker TradeLocker demo account, not on IPFX Markets.", 409);
       if (await orderBurstExceeded(db, (acct as Acct).id)) {
         return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
       }
@@ -3098,6 +3247,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
   }
 
   if (!isTradableAccount(acct as Acct)) return err("Account is " + (acct as Acct).status, 409);
+  if (((acct as Acct).venue ?? "ipfx") !== "ipfx") return err("This challenge is traded in your broker TradeLocker demo account, not on IPFX Markets.", 409);
 
   if (action === "open") {
     if (!(await claimOrderLock(db, (acct as Acct).id))) {

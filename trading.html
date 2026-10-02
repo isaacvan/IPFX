@@ -4564,6 +4564,18 @@ function initialiseDesktopAccount(){
     .catch(()=>{setFeed('closed','CONNECTION ERROR');openDesktopAuth();});
 }
 document.addEventListener('DOMContentLoaded',initialiseDesktopAccount);
+// Broker-demo challenges are traded in the trader's own TradeLocker demo, not on IPFX Markets.
+function showVenueBanner(account){
+  let b=document.getElementById('venueBanner');
+  const on=!!(account&&account.venue&&account.venue!=='ipfx');
+  if(!on){if(b)b.remove();return;}
+  if(!b){
+    b=document.createElement('div');b.id='venueBanner';
+    b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:58px;z-index:500;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:.55rem 1rem;font-size:.82rem;box-shadow:0 8px 24px rgba(0,0,0,.35)';
+    b.innerHTML='This challenge is traded in your <strong>TradeLocker demo</strong>. IPFX Markets shows your progress; place trades in TradeLocker. <a href="/dashboard.html" style="color:#60a5fa">Connection status</a>';
+    document.body.appendChild(b);
+  }
+}
 async function engineCall(body){
   const tok=await freshToken();
   if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
@@ -4584,6 +4596,7 @@ async function engineCall(body){
       localStorage.setItem('ipfx-account-mode','demo');
     }
     announceAutoClosedTrades(j);
+    showVenueBanner(j.account);
     if(Array.isArray(j.alerts))handleAlerts(j.alerts);
     const prevType=engineState&&engineState.account&&engineState.account.challenge_type;
     engineState=j;
