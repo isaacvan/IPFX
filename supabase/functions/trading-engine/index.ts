@@ -2681,10 +2681,9 @@ const handleRequest = async (req: Request): Promise<Response> => {
   if (!user) return err("Not signed in", 401);
 
   const challengePublicLaunchAt = Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026 00:00 UK
-  const ownerPreviewAllowed = String(user.email || "").trim().toLowerCase() ===
-    String(Deno.env.get("IPFX_OWNER_EMAIL") || "paulade491@gmail.com").trim().toLowerCase();
-  const challengePreviewAllowed = Date.now() >= challengePublicLaunchAt ||
-    ownerPreviewAllowed;
+  // Prelaunch tests belong on demo accounts. Even the owner must not accrue
+  // qualification progress before the published launch date.
+  const challengePreviewAllowed = Date.now() >= challengePublicLaunchAt;
 
   // A bot token is scoped to trading only (api_token.scope_text:
   // 'trade:own_account') — a leaked key can move positions on that one
@@ -2857,6 +2856,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     // continuation source, but never become the selected trading account.
     const { data: last } = await db.from("trading_accounts")
       .select("*").eq("user_id", user.id).neq("phase", "demo")
+      .is("access_revoked_at", null)
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (last && last.status === "passed" && last.phase !== "funded") {
@@ -2869,10 +2869,9 @@ const handleRequest = async (req: Request): Promise<Response> => {
     } else if (last && last.status === "breached") {
       breachSource = last as Acct;
       acct = await ensureDemoAccount(db, user.id);
-    } else if (!last && ownerPreviewAllowed) {
-      // Traditional, Futures and PAC are paused: only the owner's preview reaches the promo path.
-      // Preserve the verified promo-winner provisioning path. Everyone else
-      // still receives a demo account rather than an unusable terminal.
+    } else if (!last && challengePreviewAllowed) {
+      // A redeemed code can provision only after launch and approval.
+      // Everyone else receives a practice account.
       const provisioned = await provisionFromPromoClaim(db, user);
       acct = provisioned.ok ? provisioned.account as Acct : await ensureDemoAccount(db, user.id);
     } else {

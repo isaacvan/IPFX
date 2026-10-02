@@ -1252,15 +1252,19 @@ async function initDashboard(){
   }
   renderReferralTraders(referralRows||[]);
 
-  const hasEnrollments=enrollments&&enrollments.length>0;
-  const hasClaims=claims&&claims.length>0;
+  const redeemedClaims=(claims||[]).filter(c=>c.promo_code&&['traditional','futures'].includes(c.account_type));
+  const hasTraditional100kCode=redeemedClaims.some(c=>c.account_type==='traditional'&&String(c.challenge_type).toLowerCase()==='100k');
+  const visibleEnrollments=(enrollments||[]).filter(a=>!(a.challenge_type==='traditional'&&Number(a.starting_balance)===100000&&!hasTraditional100kCode));
+  const unissuedClaims=redeemedClaims.filter(c=>!visibleEnrollments.some(a=>
+    a.challenge_type===c.account_type&&Number(a.starting_balance)===Number.parseInt(c.challenge_type,10)*1000));
+  const visibleApplications=(applications||[]).filter(a=>a.preset_id!=='trad_100k_p1'||hasTraditional100kCode);
 
   document.getElementById('acList').innerHTML='';
-  // A promo claim becomes a real account the first time the trader opens
-  // IPFX Markets, so only show claims while no account exists yet.
-  if(hasClaims&&!hasEnrollments) renderClaims(claims);
-  if(hasEnrollments) renderAccounts(enrollments);
-  if(applications?.length) renderApplications(applications);
+  // A redeemed code is the only source of a Traditional $100K entitlement.
+  // An unrelated Infinity account must not hide a still-unissued code claim.
+  if(unissuedClaims.length) renderClaims(unissuedClaims);
+  if(visibleEnrollments.length) renderAccounts(visibleEnrollments);
+  if(visibleApplications.length) renderApplications(visibleApplications);
   acLoaded=true;
   applyFilter();
   loadInfinityPanel();
@@ -1301,17 +1305,17 @@ function renderClaims(list){
   const html=list.map(c=>{
     const acType=c.account_type==='futures'?'Futures':'Traditional';
     const acName=c.challenge_name||acType+' Challenge';
-    return`<div class="ac" data-type="${c.account_type||'traditional'}" data-status="pending" style="border-color:rgba(245,158,11,.25)">
+    return`<div class="ac" data-type="${esc(c.account_type||'traditional')}" data-status="pending" style="border-color:rgba(245,158,11,.25)">
       <div class="ac-head">
-        <div><div class="ac-nr"><span class="ac-name">${acName}</span><span class="badge" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)"><span class="bdot" style="background:#f59e0b"></span>Reserved</span></div></div>
-        <div class="ac-id"><span>${acType}</span><span style="color:var(--line)">·</span><span>Free Claim</span></div>
+        <div><div class="ac-nr"><span class="ac-name">${esc(acName)}</span><span class="badge" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)"><span class="bdot" style="background:#f59e0b"></span>Reserved</span></div></div>
+        <div class="ac-id"><span>${esc(acType)}</span><span style="color:var(--line)">·</span><span>Free Claim</span></div>
       </div>
       <div class="ac-body" style="display:block;padding:1.25rem 1.5rem">
         <div style="display:flex;align-items:flex-start;gap:.75rem;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:1rem 1.1rem">
           <svg style="flex-shrink:0;margin-top:2px;color:#f59e0b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <div>
             <div style="font-size:.85rem;font-weight:600;color:#f59e0b;margin-bottom:.25rem">Approval required</div>
-            <div style="font-size:.8rem;color:var(--muted2);line-height:1.5">Your <strong style="color:var(--muted)">${acName}</strong> claim is recorded, but it cannot create a trading account until the IPFX owner approves it.</div>
+            <div style="font-size:.8rem;color:var(--muted2);line-height:1.5">Your <strong style="color:var(--muted)">${esc(acName)}</strong> code claim is recorded. This is not a started challenge; trading requires a separate approval and launch.</div>
           </div>
         </div>
       </div>
@@ -1326,7 +1330,7 @@ function renderApplications(list){
   const names={infinity:'Infinity Challenge',traditional:'Traditional Challenge',futures:'Futures Challenge',pac:'Application Challenge'};
   el.innerHTML+=list.map(a=>`<div class="ac" data-type="application" data-status="${esc(a.status)}" style="border-color:rgba(139,92,246,.3)">
     <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">${esc(names[a.challenge_type]||'Challenge application')}</span><span class="badge" style="background:rgba(139,92,246,.12);color:#a78bfa;border:1px solid rgba(139,92,246,.3)"><span class="bdot" style="background:#8b5cf6"></span>${esc(labels[a.status]||a.status)}</span></div></div><div class="ac-id"><span>${esc(a.preset_id||'Application')}</span><span style="color:var(--line)">·</span><span>${esc(new Date(a.created_at).toLocaleDateString('en-GB'))}</span></div></div>
-    <div class="ac-body" style="display:block;padding:1.25rem 1.5rem"><div style="font-size:.82rem;color:var(--muted2);line-height:1.55">${a.status==='approved'?'Approved. A free account is issued automatically; paid programmes are now unlocked for secure checkout.':a.status==='denied'?esc(a.decision_note||'This challenge request was not approved.'):'Your details are recorded securely. We will review whether you can start this challenge within the next 24 hours.'}</div></div>
+    <div class="ac-body" style="display:block;padding:1.25rem 1.5rem"><div style="font-size:.82rem;color:var(--muted2);line-height:1.55">${a.status==='approved'?'Application approved. Your challenge has not started; trading access begins only when the programme opens and an account is issued.':a.status==='denied'?esc(a.decision_note||'This challenge request was not approved.'):'Your details are recorded securely. We will review whether you can start this challenge within the next 24 hours.'}</div></div>
   </div>`).join('');
 }
 

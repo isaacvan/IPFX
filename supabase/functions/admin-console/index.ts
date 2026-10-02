@@ -599,6 +599,7 @@ Deno.serve(async (req) => {
   const isOwner = String(user.email || "").trim().toLowerCase() === ownerEmail;
 
   const action = body.action;
+  const challengesLaunched = Date.now() >= Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026, 00:00 UK
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
   const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
@@ -638,7 +639,7 @@ Deno.serve(async (req) => {
   if (action === "overview") {
     const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }, { data: claims }, { data: kycRows }, { data: platCfg }, { data: sharedIps }] =
       await Promise.all([
-        db.from("trading_accounts").select("*").neq("phase", "demo").order("created_at", { ascending: false }),
+        db.from("trading_accounts").select("*").neq("phase", "demo").is("access_revoked_at", null).order("created_at", { ascending: false }),
         db.from("user_profiles").select("user_id,full_name,referral_code,restricted_jurisdiction"),
         db.from("mirror_targets").select("*"),
         db.from("trader_payout_summary").select("*"),
@@ -799,7 +800,7 @@ Deno.serve(async (req) => {
     }
 
     // the engine reads trading_accounts.mirror_enabled on the active account
-    await db.from("trading_accounts").update({ mirror_enabled: enabled }).eq("user_id", target_user).eq("status", "active");
+    await db.from("trading_accounts").update({ mirror_enabled: enabled }).eq("user_id", target_user).eq("status", "active").is("access_revoked_at", null);
     await logAdmin("set_mirror", { targetUser: target_user, detail: { enabled, target_type: body.target_type ?? null } });
     return json({ ok: true });
   }
@@ -1475,12 +1476,20 @@ Deno.serve(async (req) => {
   }
 
   if (action === "grant_challenge") {
+    if (!challengesLaunched) return err("Challenges have not launched yet. Use practice accounts for testing.", 403);
     const target_user = String(body.user_id ?? "");
     const preset_id = String(body.preset_id ?? "");
     if (!target_user || !preset_id) return err("user_id and preset_id required");
     const { data: preset } = await db.from("challenge_presets").select("*").eq("id", preset_id).eq("stage", 1).maybeSingle();
     if (!preset) return err("Unknown or non-starting preset");
-    const { data: active } = await db.from("trading_accounts").select("id").eq("user_id", target_user).eq("status", "active").limit(1);
+    if (preset_id === "trad_100k_p1") {
+      const { data: claim } = await db.from("challenge_claims").select("id,promo_code")
+        .eq("user_id", target_user).eq("account_type", "traditional").eq("challenge_type", "100k")
+        .not("promo_code", "is", null).limit(1).maybeSingle();
+      if (!claim) return err("A redeemed Traditional $100K challenge code is required.", 403);
+    }
+    const { data: active } = await db.from("trading_accounts").select("id").eq("user_id", target_user)
+      .eq("status", "active").is("access_revoked_at", null).limit(1);
     if (active && active.length) return err("This trader already has an active account — close or reset it first", 409);
     const fee = body.fee_usd === undefined || body.fee_usd === null ? 0 : Number(body.fee_usd);
     if (!Number.isFinite(fee) || fee < 0) return err("Invalid fee");
@@ -1495,18 +1504,21 @@ Deno.serve(async (req) => {
   }
 
   if (action === "reset_account" || action === "close_account") {
+    if (action === "reset_account" && !challengesLaunched) return err("Challenges have not launched yet. Prelaunch history cannot become a fresh challenge.", 403);
     const account_id = String(body.account_id ?? "");
     if (!account_id) return err("account_id required");
     const reason = String(body.reason ?? "").trim().slice(0, 200);
     const { data: acctRow } = await db.from("trading_accounts").select("*").eq("id", account_id).maybeSingle();
     if (!acctRow) return err("Account not found", 404);
     if (action === "reset_account") {
+      if (acctRow.access_revoked_at) return err("Archived prelaunch history cannot be reset. Use a fresh approved challenge instead.", 409);
       const root = rootPresetId(acctRow.preset_id);
       if (!root) return err("This account has no challenge preset (created by the old free sign-up) — use Grant challenge instead", 409);
       const { data: preset } = await db.from("challenge_presets").select("*").eq("id", root).maybeSingle();
       if (!preset) return err("Starting preset not found", 500);
       const { data: otherActive } = await db.from("trading_accounts").select("id")
-        .eq("user_id", acctRow.user_id).eq("status", "active").neq("id", account_id).limit(1);
+        .eq("user_id", acctRow.user_id).eq("status", "active").is("access_revoked_at", null)
+        .neq("id", account_id).limit(1);
       if (otherActive && otherActive.length) return err("The trader has another active account — close it before resetting", 409);
       const voided = await voidOpenTrades(account_id);
       if (acctRow.status === "active") {
@@ -1566,7 +1578,7 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000).toISOString();
     const until = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const [{ data: accounts }, { data: profiles }, { data: trades }, { data: macroEvents }, { data: policies }, { data: decisions }, { data: flags }, { data: assessments }] = await Promise.all([
-      db.from("trading_accounts").select("*").neq("phase", "demo").order("created_at", { ascending: false }),
+      db.from("trading_accounts").select("*").neq("phase", "demo").is("access_revoked_at", null).order("created_at", { ascending: false }),
       db.from("user_profiles").select("user_id,full_name"),
       db.from("trades").select("id,account_id,user_id,symbol,side,volume,open_price,close_price,sl,tp,status,close_reason,pnl,opened_at,closed_at").gte("opened_at", since).order("opened_at", { ascending: false }).limit(20000),
       db.from("macro_calendar_events").select("provider_event_id,event_at,country,currency,importance,event_name").gte("event_at", since).lte("event_at", until),
@@ -1710,6 +1722,12 @@ Deno.serve(async (req) => {
       .select("user_id,status,challenge_type,preset_id,trading_account_id")
       .eq("id", applicationId).maybeSingle();
     if (!current) return err("Application not found", 404);
+    if (status === "approved" && current.preset_id === "trad_100k_p1") {
+      const { data: claim } = await db.from("challenge_claims").select("id")
+        .eq("user_id", current.user_id).eq("account_type", "traditional").eq("challenge_type", "100k")
+        .not("promo_code", "is", null).limit(1).maybeSingle();
+      if (!claim) return err("A redeemed Traditional $100K challenge code is required.", 403);
+    }
     const decidedAt = new Date().toISOString();
     const retentionReviewAt = new Date(Date.now() + (status === "approved" ? 5 * 365.25 : 1 * 365.25) * 24 * 60 * 60 * 1000).toISOString();
     const { data: kyc } = await db.from("trader_kyc").select("status").eq("user_id", current.user_id).maybeSingle();
@@ -1750,10 +1768,15 @@ Deno.serve(async (req) => {
       }
     }
     let accountId = current.trading_account_id ?? null;
+    if (accountId) {
+      const { data: linked } = await db.from("trading_accounts").select("access_revoked_at")
+        .eq("id", accountId).maybeSingle();
+      if (!linked || linked.access_revoked_at) accountId = null;
+    }
     // Infinity is free: a Yes decision can safely issue the account at once.
     // Paid programmes are only unlocked for checkout by approval; payment
     // remains a separate server-verified step.
-    if (status === "approved" && current.challenge_type === "infinity" && !accountId) {
+    if (status === "approved" && current.challenge_type === "infinity" && !accountId && challengesLaunched) {
       const { data: preset } = await db.from("challenge_presets").select("*").eq("id", current.preset_id).maybeSingle();
       if (!preset) return err("Approved, but the Infinity preset is unavailable", 503);
       const account = await insertAccountFromPreset(db, current.user_id, preset, 0);
@@ -1776,7 +1799,7 @@ Deno.serve(async (req) => {
         access_revoked_at: decidedAt, access_revoked_reason: "manual_challenge_approval_denied",
         updated_at: decidedAt,
       }).eq("id", accountId);
-    } else if (accountId && status === "approved") {
+    } else if (accountId && status === "approved" && challengesLaunched) {
       await db.from("trading_accounts").update({
         access_revoked_at: null, access_revoked_reason: null, updated_at: decidedAt,
       }).eq("id", accountId).eq("approval_request_id", applicationId);

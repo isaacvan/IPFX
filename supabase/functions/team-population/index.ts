@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
     const users: Array<{ id: string; email?: string; created_at?: string; user_metadata?: Record<string, unknown> }> = [];
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await db.from("trading_accounts")
-        .select("id,user_id,phase,label,status,created_at").order("created_at", { ascending: false }).range(offset, offset + 999);
+        .select("id,user_id,phase,label,status,created_at").is("access_revoked_at", null)
+        .order("created_at", { ascending: false }).range(offset, offset + 999);
       if (error) throw error;
       accounts.push(...(data || []));
       if ((data || []).length < 1000) break;

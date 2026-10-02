@@ -73,7 +73,8 @@ Deno.serve(async (request) => {
       db.from("trader_detector_policy_versions").select("*").in("status", ["SHADOW_UNCALIBRATED", "VALIDATED"]),
       readAllPages<Record<string, any> & { id: string }>((after, limit) => {
         let query = db.from("trading_accounts").select("id,user_id,starting_balance,status,challenge_type,stage,phase,funded_from_account_id,created_at")
-          .in("status", ["active", "passed", "breached"]).lte("created_at", asOf).order("id").limit(limit);
+          .in("status", ["active", "passed", "breached"]).is("access_revoked_at", null)
+          .lte("created_at", asOf).order("id").limit(limit);
         if (after) query = query.gt("id", after);
         return query;
       }),

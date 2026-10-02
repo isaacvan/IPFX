@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
 
   if (action === "status") {
     const { data: accts } = await db.from("trading_accounts").select("id,label,starting_balance,status,venue")
-      .eq("user_id", user.id).eq("venue", "tradelocker_demo").order("created_at", { ascending: false }).limit(20);
+      .eq("user_id", user.id).eq("venue", "tradelocker_demo").is("access_revoked_at", null)
+      .order("created_at", { ascending: false }).limit(20);
     const ids = (accts ?? []).map((a) => a.id);
     const { data: conns } = ids.length
       ? await db.from("venue_connections").select("trading_account_id,server,tradelocker_account_id,account_name,status,last_sync_at,last_error,broker_balance,broker_equity,connected_at").in("trading_account_id", ids)
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
 
   const accountId = String(body.trading_account_id || "");
   if (!UUID.test(accountId)) return json({ ok: false, error: "Choose the challenge to connect" }, 400);
-  const { data: acct } = await db.from("trading_accounts").select("id,user_id,status,venue,starting_balance").eq("id", accountId).eq("user_id", user.id).maybeSingle();
+  const { data: acct } = await db.from("trading_accounts").select("id,user_id,status,venue,starting_balance,access_revoked_at").eq("id", accountId).eq("user_id", user.id).maybeSingle();
   if (!acct) return json({ ok: false, error: "Challenge not found" }, 404);
   if (acct.venue !== "tradelocker_demo") return json({ ok: false, error: "This challenge is traded on IPFX Markets" }, 409);
 
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, disconnected: true });
   }
   if (action !== "connect") return json({ ok: false, error: "Unknown action" }, 400);
+  if (acct.access_revoked_at) return json({ ok: false, error: "This prelaunch account is archived; wait for a fresh challenge account" }, 409);
   if (cfg?.challenge_venue !== "tradelocker_demo") return json({ ok: false, error: "Broker-demo challenges are not open yet" }, 409);
   if (acct.status !== "active") return json({ ok: false, error: "This challenge is not active" }, 409);
   const { data: existing } = await db.from("venue_connections").select("id,status").eq("trading_account_id", acct.id).maybeSingle();

@@ -17,7 +17,7 @@ test('public start page is a launch screen and only loads checkout after the gat
 
 test('team preview return path is allowlisted and cannot become an open redirect', () => {
   const page = read('team-login.html');
-  assert.match(page, /\^\\\/start-challenge\\\.html/);
+  assert.match(page, /start-challenge\|trader-analytics\|team-a-book\|team-b-book/);
   assert.match(page, /safeNext/);
   assert.match(page, /location\.replace\(safeNext\)/);
 });
@@ -31,16 +31,18 @@ test('database rejects non-owner applications until the public launch', () => {
   assert.match(migration, /revoke all on function public\.submit_challenge_application\(text,jsonb,text\) from public,anon/);
 });
 
-test('every server activation and checkout path enforces the same pre-launch owner gate', () => {
+test('checkout retains owner preview, while challenge issuance waits for public launch', () => {
   for (const file of [
     'supabase/functions/create-payment-intent/index.ts',
     'supabase/functions/nowpayments-checkout/index.ts',
-    'supabase/functions/trading-engine/index.ts',
   ]) {
     const source = read(file);
     assert.match(source, /2026-10-08T23:00:00Z/);
     assert.match(source, /IPFX_OWNER_EMAIL/);
     assert.match(source, /Challenges launch 9 October 2026\./);
   }
-  assert.match(read('supabase/functions/trading-engine/index.ts'), /claim_infinity[\s\S]{0,180}!challengePreviewAllowed/);
+  const engine = read('supabase/functions/trading-engine/index.ts');
+  assert.match(engine, /challengePreviewAllowed = Date\.now\(\) >= challengePublicLaunchAt/);
+  assert.doesNotMatch(engine, /ownerPreviewAllowed/);
+  assert.match(engine, /claim_infinity[\s\S]{0,180}!challengePreviewAllowed/);
 });

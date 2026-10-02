@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   const sourceAccountId = String(body.source_account_id || "");
   const sourceUserId = String(body.source_user_id || "");
   if (!UUID.test(sourceAccountId) || !UUID.test(sourceUserId)) return json({ ok: false, error: "Valid trader and account are required" }, 400, origin);
-  const { data: source } = await db.from("trading_accounts").select("id,user_id,status,mirror_enabled").eq("id", sourceAccountId).eq("user_id", sourceUserId).maybeSingle();
+  const { data: source } = await db.from("trading_accounts").select("id,user_id,status,mirror_enabled,access_revoked_at").eq("id", sourceAccountId).eq("user_id", sourceUserId).maybeSingle();
   if (!source) return json({ ok: false, error: "Source account not found" }, 404, origin);
 
   const status = async () => {
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         .eq("source_trade_id", delivery.source_trade_id).eq("event", delivery.event)
         .eq("provider", "tradelocker").order("created_at", { ascending: false }).limit(1).maybeSingle()
       : { data: null };
-    const armed = target?.enabled === true && currentSource?.mirror_enabled === true && target.provider === "tradelocker" && target.environment === "demo" && connection?.status === "connected";
+    const armed = !source.access_revoked_at && target?.enabled === true && currentSource?.mirror_enabled === true && target.provider === "tradelocker" && target.environment === "demo" && connection?.status === "connected";
     return json({ ok: true, connection, connected: connection?.status === "connected", armed,
       delivery: delivery ?? null, broker_delivery: brokerDelivery ?? null, provider: target?.provider ?? null,
       shared_demo_ready: (shared ?? []).length === 1, shared_demo_name: (shared ?? []).length === 1 ? shared![0].account_name : null, owner_source: sourceUserId === user.id }, 200, origin);
@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
     await db.from("admin_audit_log").insert({ actor_id: user.id, action: "tradelocker_demo_disconnect", target_user_id: sourceUserId, target_account_id: sourceAccountId });
     return status();
   }
+  if (source.access_revoked_at) return json({ ok: false, error: "This prelaunch account is archived; wait for a fresh challenge account" }, 409, origin);
   if (action === "approve") {
     // Registration adds a candidate, never an armed route. Only owner MFA can arm.
     if (!["active", "demo", "passed"].includes(source.status)) return json({ ok: false, error: "This trading account is not active" }, 409, origin);

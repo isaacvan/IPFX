@@ -113,6 +113,14 @@ Deno.serve(async (req) => {
     .select("id,account_id,user_id,symbol,side,volume,open_price,sl,tp,opened_at,closed_at,pnl,status")
     .eq("id", source_trade_id).eq("user_id", user_id).maybeSingle();
   if (tradeError || !sourceTrade) return new Response(JSON.stringify({ ok: false, error: "source trade not found" }), { status: 404 });
+  if (event === "open") {
+    const { data: sourceAccount } = await db.from("trading_accounts")
+      .select("status,access_revoked_at").eq("id", sourceTrade.account_id).maybeSingle();
+    if (!sourceAccount || sourceAccount.access_revoked_at || !["active", "passed", "demo"].includes(sourceAccount.status)) {
+      await log(db, { ...base, status: "skipped", error: "source challenge inactive or archived" });
+      return new Response(JSON.stringify({ ok: true, skipped: "source challenge inactive or archived" }), { status: 200 });
+    }
+  }
   let targetQuery = db.from("mirror_targets").select("*").eq("user_id", user_id).eq("source_account_id", sourceTrade.account_id);
   if (event === "open") targetQuery = targetQuery.eq("enabled", true);
   const { data: target } = await targetQuery.maybeSingle();

@@ -52,7 +52,8 @@ test('checkout and provisioning paths reject paused programmes', () => {
     assert.match(source, /Traditional, Futures and PAC are on hold/);
     assert.match(source, /ownerPreview/);
   }
-  assert.match(engine, /ownerPreviewAllowed/);
+  assert.doesNotMatch(engine, /ownerPreviewAllowed/);
+  assert.match(engine, /challengePreviewAllowed = Date\.now\(\) >= challengePublicLaunchAt/);
   assert.match(engine, /claim_infinity/);
 });
 
