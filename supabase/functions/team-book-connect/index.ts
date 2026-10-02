@@ -79,6 +79,14 @@ Deno.serve(async (req) => {
     const accNum = String(account.accNum ?? "");
     if (!/^[0-9]{1,20}$/.test(accountId) || !/^[0-9]{1,10}$/.test(accNum))
       return json({ ok: false, error: "TradeLocker did not return a valid account ID and selector" }, 400, allowedOrigin);
+    // Never mix reverse B-book orders with the existing same-direction copier.
+    // The current demo is eligible after same-direction routes move to another account.
+    const { data: shared, error: sharedError } = await db.from("tradelocker_demo_connections")
+      .select("id").eq("environment", "demo").eq("status", "connected")
+      .eq("tradelocker_account_id", accountId).limit(1);
+    if (sharedError) return json({ ok: false, error: "Could not verify destination separation" }, 503, allowedOrigin);
+    if (shared?.length) return json({ ok: false,
+      error: "This HeroFX demo is still assigned to the same-direction copier. Move those routes to a replacement demo before connecting it for B-book." }, 409, allowedOrigin);
     const instrumentRows = await instruments(tokenSet.accessToken, accountId, accNum);
     const mapped = instrumentRows.map((row) => ({
       symbol: String(row.name ?? row.symbol ?? "").trim().toUpperCase(),

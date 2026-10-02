@@ -58,6 +58,8 @@ test('book login stores encrypted tokens only and cannot arm the existing same-d
   assert.match(connector, /aal\(bearer\) !== "aal2"/);
   assert.match(connector, /encryptSecret\(tokenSet\.accessToken/);
   assert.match(connector, /encryptSecret\(tokenSet\.refreshToken/);
+  assert.match(connector, /tradelocker_demo_connections/);
+  assert.match(connector, /still assigned to the same-direction copier/);
   assert.doesNotMatch(connector, /\.from\("mirror_targets"\)|placeMarketOrder|\/functions\/v1\/live-mirror|\.from\("trading_accounts"\)/);
   assert.match(schema, /enable row level security/);
   assert.match(schema, /revoke all on public\.team_book_destinations from public, anon, authenticated/);
