@@ -747,6 +747,8 @@
       if (!symbol || !isFinite(mid) || mid <= 0) return;
       const qb = Number(qBid), qa = Number(qAsk);
       if (isFinite(qb) && isFinite(qa) && qb > 0 && qa >= qb) { bid = qb; ask = qa; }
+      // Candles are drawn at the bid (the SELL price), as TradingView and MetaTrader chart forex.
+      if (bid != null) mid = bid;
       if (loadingHistory) { pendingMid = mid; return; }
       if (!aligned && raw.length) {
         // History is Yahoo's feed (or a futures proxy for spot metals); the
