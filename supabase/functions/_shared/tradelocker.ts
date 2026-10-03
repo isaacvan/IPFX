@@ -188,3 +188,17 @@ export async function orderFill(
   }
   return null;
 }
+
+// Close all (qty 0) or part (qty > 0) of a position by its exact id.
+export async function closePositionQty(accessToken: string, accNum: string, positionId: string, qty: number): Promise<unknown> {
+  return request(`/trade/positions/${encodeURIComponent(positionId)}`, { method: "DELETE", body: JSON.stringify({ qty: qty > 0 ? qty : 0 }) }, accessToken, accNum);
+}
+
+// Every order whose strategyId matches, newest first (used to reconcile an order whose response was lost).
+export async function ordersByStrategy(accessToken: string, accountId: string, accNum: string, strategy: string): Promise<Record<string, unknown>[]> {
+  const config = await cachedConfig(accessToken, accNum);
+  const data = await request(`/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum);
+  return configuredRows(config, data, "ordersHistoryConfig", "ordersHistory")
+    .filter((o) => String(o.strategyId ?? "") === strategy)
+    .sort((a, b) => Number(b.lastModified ?? b.createdDate ?? 0) - Number(a.lastModified ?? a.createdDate ?? 0));
+}

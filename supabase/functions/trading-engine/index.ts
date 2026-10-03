@@ -1070,6 +1070,52 @@ async function hedgeCloseFirst(db: Db, acct: Acct, t: Tr): Promise<HedgeClose> {
   return { state: "unhedged" };
 }
 
+// ---------- A/B-book routing (book-executor) ----------
+// A trader in AB_LIVE is copied (same direction, hedge-first) on the A-book destination; a trader in
+// BB_LIVE is reversed on the B-book destination. The classifier sets the state; ab_route_for_user also
+// requires a connected destination and no halt. Sizing and hard caps live in book-executor / the database.
+async function abRoute(db: Db, userId: string): Promise<"a" | "b" | null> {
+  const { data, error } = await db.rpc("ab_route_for_user", { p_user: userId });
+  if (error) return null;
+  return data === "a" || data === "b" ? data : null;
+}
+async function callBook(body: Record<string, unknown>): Promise<MirrorResult> {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  try {
+    const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/book-executor`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+      body: JSON.stringify(body),
+    });
+    return await r.json().catch(() => null);
+  } catch (error) {
+    console.error(JSON.stringify({ event: "book_executor_call_failed", body: JSON.stringify(body).slice(0, 200), error: String(error).slice(0, 160) }));
+    return null;
+  }
+}
+// Same never-abort rule as hedgeNow: an in-flight broker order always finishes and is recorded.
+async function bookNow(body: Record<string, unknown>, timeoutMs = HEDGE_SYNC_TIMEOUT_MS): Promise<MirrorResult> {
+  const call = callBook(body);
+  mirrorLater(call);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<MirrorResult>((resolve) => { timer = setTimeout(() => resolve(null), timeoutMs); });
+  try { return await Promise.race([call, timeout]); } finally { clearTimeout(timer); }
+}
+function bookLater(body: Record<string, unknown>) { mirrorLater(callBook(body)); }
+async function bookLegs(db: Db, tradeId: string): Promise<{ a: boolean; b: boolean }> {
+  const { data } = await db.from("book_orders").select("book").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "reconciliation_required", "sent"]);
+  const books = new Set((data ?? []).map((r: Record<string, unknown>) => r.book));
+  return { a: books.has("a"), b: books.has("b") };
+}
+
+// Board rule: every trade needs a stop loss within N seconds (ab_settings.sl_deadline_seconds; null = off).
+let slDeadlineCache: { at: number; v: number | null } = { at: 0, v: null };
+async function slDeadlineSeconds(db: Db): Promise<number | null> {
+  if (Date.now() - slDeadlineCache.at < 30_000) return slDeadlineCache.v;
+  const { data } = await db.from("ab_settings").select("sl_deadline_seconds").maybeSingle();
+  slDeadlineCache = { at: Date.now(), v: data?.sl_deadline_seconds == null ? null : Number(data.sl_deadline_seconds) };
+  return slDeadlineCache.v;
+}
+
 // ---------- types ----------
 type Acct = {
   id: string; user_id: string; label: string;
@@ -1441,9 +1487,12 @@ async function processPendingOrders(
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
     const sourceRiskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * Number(o.volume) * conv;
-    if (await hedgeOpenArmed(db, acct)) {
+    const abBook = await abRoute(db, acct.user_id);
+    if (abBook === "a" || await hedgeOpenArmed(db, acct)) {
       // Copied account: the hedge fills first; the trader's entry is no better than the broker's.
-      const hedge = await hedgeNow(db, acct, inserted as Tr, "open", sourceRiskUsd);
+      const hedge = abBook === "a"
+        ? await bookNow({ event: "open", book: "a", source_trade_id: inserted.id, risk_usd: sourceRiskUsd, price_scale_per_lot: inst.contract * conv })
+        : await hedgeNow(db, acct, inserted as Tr, "open", sourceRiskUsd);
       const brokerFill = Number(hedge?.fill_price);
       if (brokerFill > 0) {
         const px = roundAdverse(symbol, worseFill(takingAsk, fill, brokerFill) ?? fill, takingAsk);
@@ -1460,6 +1509,7 @@ async function processPendingOrders(
       }
     } else {
       mirrorLater(fireMirror(db, acct, inserted as Tr, "open", sourceRiskUsd));
+      if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: sourceRiskUsd, price_scale_per_lot: inst.contract * conv });
     }
     working.push(inserted as Tr);
   }
@@ -1695,7 +1745,18 @@ async function closeTrade(
   exec?: { shortfallUsd?: number },
 ): Promise<boolean> {
   // Copied trade: close the hedge first and fill the trader no better than the broker did.
-  const hedge = await hedgeCloseFirst(db, acct, t);
+  const legs = await bookLegs(db, t.id);
+  let hedge: HedgeClose;
+  if (legs.a) {
+    const r = await bookNow({ event: "close", source_trade_id: t.id });
+    // deno-lint-ignore no-explicit-any
+    const aRes = ((r?.results ?? []) as any[]).find((x) => x.book === "a") as Record<string, unknown> | undefined;
+    if (aRes?.skipped === "duplicate event") return false; // another request is closing this hedge right now
+    const px = Number(aRes?.fill_price);
+    hedge = px > 0 ? { state: "filled", price: px } : { state: "unhedged" };
+  } else {
+    hedge = await hedgeCloseFirst(db, acct, t);
+  }
   if (hedge.state === "busy") return false; // another request is closing this hedge right now
   if (hedge.state === "filled") {
     const takingAsk = t.side === "sell"; // closing a sell buys at the ask
@@ -1735,6 +1796,8 @@ async function closeTrade(
   // above is skipped; after an unpriced attempt it is re-sent (the idempotency key drops a
   // duplicate) so a hedge can never be left open behind a closed trade.
   if (hedge.state !== "filled") mirrorLater(fireMirror(db, acct, t, "close"));
+  // B-book reverse legs (and any A-book leg left unpriced) close right after the trader's close.
+  if (legs.b || (legs.a && hedge.state !== "filled")) bookLater({ event: "close", source_trade_id: t.id });
   await logAudit(db, {
     trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "close",
     symbol: t.symbol, side: t.side, requested_volume: Number(t.volume),
@@ -1927,6 +1990,14 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const sl = t.sl === null ? null : Number(t.sl);
       const tp = t.tp === null ? null : Number(t.tp);
       let done = false;
+      const slDeadline = sl === null ? await slDeadlineSeconds(db) : null;
+      // deno-lint-ignore no-explicit-any
+      const openedAtMs = Date.parse(String((t as any).opened_at ?? ""));
+      if (slDeadline != null && Number.isFinite(openedAtMs) && Date.now() - openedAtMs > slDeadline * 1000) {
+        done = await closeTrade(db, acct, t, ex, "no_stop_loss", q);
+        if (!done) still.push(t);
+        continue;
+      }
       if (t.side === "buy") {
         if (sl !== null && ex <= sl) done = await closeTrade(db, acct, t, await stopFill(db, acct, t.symbol, Math.min(sl, ex), false), "sl", q);
         else if (tp !== null && ex >= tp) done = await closeTrade(db, acct, t, tp, "tp", q);
@@ -3475,7 +3546,8 @@ const handleRequest = async (req: Request): Promise<Response> => {
       await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);
 
       // Copied (A-book) account: hedge first, then fill the trader no better than the broker.
-      if (await hedgeOpenArmed(db, A)) {
+      const abBook = await abRoute(db, user.id);
+      if (abBook === "a" || await hedgeOpenArmed(db, A)) {
         const takingAsk = side === "buy";
         const started = Date.now();
         const minDelay = v2 ? EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1)) : 0;
@@ -3489,7 +3561,9 @@ const handleRequest = async (req: Request): Promise<Response> => {
         if (insErr || !provisional) return reject("Order failed", q);
         const riskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * volume * conv;
         const srcTrade = { id: provisional.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: fill, close_price: null, sl, tp, status: "open", pnl: null } as Tr;
-        const hedge = await hedgeNow(db, A, srcTrade, "open", riskUsd);
+        const hedge = abBook === "a"
+          ? await bookNow({ event: "open", book: "a", source_trade_id: provisional.id, risk_usd: riskUsd, price_scale_per_lot: inst.contract * conv })
+          : await hedgeNow(db, A, srcTrade, "open", riskUsd);
         // The broker round trip is the execution delay; top it up so timing never differs from other orders.
         const rest = minDelay - (Date.now() - started);
         if (rest > 0) await new Promise((resolve) => setTimeout(resolve, rest));
@@ -3551,6 +3625,8 @@ const handleRequest = async (req: Request): Promise<Response> => {
       // The source trade is committed. Start audit and copy dispatch together.
       const mirrorRiskUsd = sl === null ? null : Math.abs(openPrice - sl) * inst.contract * volume * conv;
       mirrorLater(fireMirror(db, acct as Acct, { id: inserted.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: openPrice, close_price: null, sl, tp, status: "open", pnl: null } as Tr, "open", mirrorRiskUsd));
+      // B-book live trader: reverse right after the trader's fill.
+      if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: mirrorRiskUsd, price_scale_per_lot: inst.contract * conv });
       await logAudit(db, {
           trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
           symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPrice, quote: q, client_ip: clientIp,
@@ -3783,6 +3859,9 @@ const handleRequest = async (req: Request): Promise<Response> => {
     // not target.id (the original position, which is still open at its
     // reduced volume) — a partial close creates a new closed position,
     // it doesn't mutate the existing open one into a closed one.
+    // Book legs shrink by the same fraction (gap fixed: partial closes used to leave the copy full size).
+    const pLegs = await bookLegs(db, target.id);
+    if (pLegs.a || pLegs.b) bookLater({ event: "partial_close", source_trade_id: target.id, fraction: vol / full, slice_id: closedSlice.id });
     await logAudit(db, {
       trade_id: closedSlice.id, user_id: user.id, account_id: (acct as Acct).id, event: "partial_close",
       symbol: target.symbol, side: target.side, requested_volume: vol,
