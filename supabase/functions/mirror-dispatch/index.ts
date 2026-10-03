@@ -2,9 +2,21 @@
 // Invoked by pg_cron/pg_net, never by the owner's laptop or browser.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function constantTimeEqual(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a), eb = new TextEncoder().encode(b);
+  let diff = ea.length ^ eb.length;
+  for (let i = 0; i < Math.max(ea.length, eb.length); i++) diff |= (ea[i] ?? 0) ^ (eb[i] ?? 0);
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  if (req.method !== "POST" || !serviceKey || req.headers.get("authorization") !== `Bearer ${serviceKey}`)
+  // The pg_cron kicker authenticates with a dedicated secret (Vault: ipfx_mirror_dispatch_secret), so the
+  // service-role key never has to be copied into the database.
+  const dispatchSecret = Deno.env.get("MIRROR_DISPATCH_SECRET") || "";
+  const viaSecret = dispatchSecret.length >= 32 && constantTimeEqual(req.headers.get("x-dispatch-secret") ?? "", dispatchSecret);
+  const viaServiceKey = !!serviceKey && constantTimeEqual(req.headers.get("authorization") ?? "", `Bearer ${serviceKey}`);
+  if (req.method !== "POST" || !(viaSecret || viaServiceKey))
     return new Response("unauthorised", { status: 401 });
   const url = Deno.env.get("SUPABASE_URL") || "";
   const db = createClient(url, serviceKey);

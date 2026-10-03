@@ -92,6 +92,7 @@ Deno.serve(async (request) => {
       (!lease.after_account_id || account.id>lease.after_account_id));
     const targets=eligible.slice(0,50);
     let processed=0;
+    let excludedTrades=0;
     let nextCursor=lease.after_account_id;
 
     for (const account of targets) {
@@ -157,7 +158,11 @@ Deno.serve(async (request) => {
           executionShortfall: trade.execution_shortfall === null ? undefined : requiredNumber(trade.execution_shortfall, "execution_shortfall"),
           regime: trade.market_regime,
         }; });
-        const ideas = collapseTradeIdeas(rawTrades);
+        // A trade with no applicable rule snapshot cannot be placed in a stage. It is left out and counted
+        // (the stage gate below stays unverified), instead of failing the whole account and run.
+        const stagedTrades = rawTrades.filter((trade) => trade.stage > 0);
+        excludedTrades += rawTrades.length - stagedTrades.length;
+        const ideas = collapseTradeIdeas(stagedTrades);
         const sourceCutoff = tradeRows.length ? new Date(Math.max(...tradeRows.map(trade=>Date.parse(trade.closed_at)))).toISOString() : String(account.created_at);
         const inputSha256 = await sha256({workerVersion:WORKER_VERSION,account,lineage,siblings,policy:policyEntry.policy,
           trades:tradeRows,flags,snapshots,contract:contractResult.data,sourceCutoff});
@@ -257,7 +262,7 @@ Deno.serve(async (request) => {
       assessments_written: assessmentsWritten, alerts_queued: alertsQueued, errors,
     }).eq("id", run.id);
     if(completion.error) throw completion.error;
-    return json({ status: finalStatus, accountsSeen: processed, nextAccountCursor:nextCursor, assessmentsWritten, alertsQueued, errors },errors.length?503:200);
+    return json({ status: finalStatus, accountsSeen: processed, nextAccountCursor:nextCursor, assessmentsWritten, alertsQueued, excludedTrades, errors },errors.length?503:200);
   } catch (error) {
     await db.rpc('trader_detector_finish_scan',{p_lease_token:lease.lease_token,p_after_account_id:lease.after_account_id});
     const message = error instanceof Error ? error.message : String(error);
