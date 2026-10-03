@@ -674,6 +674,7 @@
             opacity: 0.75;
             vertical-align: middle;
         }
+        .ts-widget { margin: 0 0 1rem; min-height: 65px; }
         @media (max-width: 480px) {
             .signup-card {
                 padding: 2rem 1.5rem;
@@ -826,6 +827,8 @@
                     <div class="error-message" id="consentError">Please confirm you are 18 or older and accept the terms</div>
                 </div>
 
+                <div id="tsWidget" class="ts-widget" hidden></div>
+
                 <button type="submit" class="btn-signup" id="submitBtn">Pre-register free</button>
             </form>
 
@@ -878,6 +881,30 @@
         const promoStatus = document.getElementById('promoStatus');
         const promoSpinner = document.getElementById('promoSpinner');
         const submitBtn = document.getElementById('submitBtn');
+
+        // Cloudflare Turnstile bot check. An empty site key keeps it off. The secret key lives only in the
+        // signup-guard function (Supabase Auth "before user created" hook), which verifies the token.
+        const TURNSTILE_SITE_KEY = '';
+        let tsToken = '', tsWidgetId = null;
+        if (TURNSTILE_SITE_KEY) {
+            document.getElementById('tsWidget').hidden = false;
+            window.onTurnstileLoad = function() {
+                tsWidgetId = window.turnstile.render('#tsWidget', {
+                    sitekey: TURNSTILE_SITE_KEY, action: 'signup',
+                    callback: function(t) { tsToken = t; },
+                    'expired-callback': function() { tsToken = ''; },
+                    'error-callback': function() { tsToken = ''; }
+                });
+            };
+            const ts = document.createElement('script');
+            ts.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit';
+            ts.async = true; ts.defer = true;
+            document.head.appendChild(ts);
+        }
+        function resetTurnstile() {
+            tsToken = '';
+            if (tsWidgetId !== null && window.turnstile) { try { window.turnstile.reset(tsWidgetId); } catch (_) {} }
+        }
         const alertBox = document.getElementById('alertBox');
         const strengthFill = document.getElementById('strengthFill');
         let validatedPromo = null;
@@ -1216,6 +1243,11 @@
                 return;
             }
 
+            if (TURNSTILE_SITE_KEY && !tsToken) {
+                showAlert('Please complete the security check above the button.', 'error');
+                return;
+            }
+
             // Disable submit button
             submitBtn.disabled = true;
             submitBtn.textContent = 'Creating Account...';
@@ -1236,7 +1268,8 @@
                             privacy_version: '1.0',
                             referral_code: referralCodeInput.value.trim().toUpperCase() || null,
                             promo_code: validatedPromo ? validatedPromo.code : null,
-                            promo_account_type: validatedPromo ? (promoAccountType || 'traditional') : null
+                            promo_account_type: validatedPromo ? (promoAccountType || 'traditional') : null,
+                            captcha_token: tsToken || null
                         }
                     }
                 });
@@ -1274,6 +1307,7 @@
                     ? 'An account with this email already exists. <a href="login.html" style="color:var(--cobalt)">Login here</a>.'
                     : error.message || 'An error occurred creating your account. Please try again.';
                 showAlert(errMsg, 'error');
+                resetTurnstile();
                 submitBtn.disabled = false;
                 submitBtn.textContent = beforeInfinityLaunch ? 'Pre-register free' : 'Create Account';
             }
