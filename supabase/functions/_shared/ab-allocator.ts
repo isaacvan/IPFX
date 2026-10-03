@@ -50,3 +50,28 @@ export function emergencyStop(book: "a" | "b", traderSide: "buy" | "sell", entry
 export function legSide(book: "a" | "b", traderSide: "buy" | "sell"): "buy" | "sell" {
   return book === "a" ? traderSide : (traderSide === "buy" ? "sell" : "buy");
 }
+
+// ---------- funded-account sizing (v2) ----------
+// Risk per copied trade is a share of the destination account's daily risk budget (about 2.5% of a $50K
+// funded account, the simulated profit-maximising line), split across the signals expected per day and
+// weighted by confidence, then held between the per-trade floor and ceiling. It is independent of the
+// trader's own (smaller) account: a Stage 2 trader risking $17.50 is copied at about $125 (~7x).
+export type Progress = "EARLY" | "STAGE2_PASSED" | "STAGE3_COMPLETE";
+export type FundedLimits = { accountSizeUsd: number; dailyBudgetPct: number; perTradeMinPct: number; perTradeMaxPct: number };
+export const PROGRESS_WEIGHT: Record<Progress, number> = { EARLY: 0.5, STAGE2_PASSED: 1.0, STAGE3_COMPLETE: 1.5 };
+
+export function fundedRiskUsd(book: "a" | "b", lim: FundedLimits, expectedSignalsPerDay: number, progress: Progress, sizing: Sizing):
+  { riskUsd: number; weight: number; reason: string } {
+  const base = lim.accountSizeUsd * (lim.dailyBudgetPct / 100) / Math.max(4, expectedSignalsPerDay);
+  const warning = sizing.reason.startsWith("early warning");
+  let weight: number;
+  if (book === "a") {
+    const confirmed = sizing.multiplier >= 6 ? 1.5 : sizing.multiplier >= 3 ? 1.25 : 1;
+    weight = PROGRESS_WEIGHT[progress] * confirmed * (warning ? 1 / 3 : 1);
+  } else {
+    weight = (sizing.multiplier >= 3 ? 1 : sizing.multiplier >= 2 ? 0.75 : 0.5) * (warning ? 1 / 3 : 1);
+  }
+  const floor = lim.accountSizeUsd * lim.perTradeMinPct / 100, ceil = lim.accountSizeUsd * lim.perTradeMaxPct / 100;
+  const riskUsd = Math.round(Math.min(ceil, Math.max(floor, base * weight)) * 100) / 100;
+  return { riskUsd, weight: Number(weight.toFixed(3)), reason: `${progress}; ${sizing.reason}; ${expectedSignalsPerDay.toFixed(1)} signals/day` };
+}

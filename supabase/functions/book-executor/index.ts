@@ -10,7 +10,7 @@ import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelock
 import { closePositionQty, marketOrder, orderFill, ordersByStrategy, placeMarketOrder, refresh, responseIds } from "../_shared/tradelocker.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
 import { POLICY_V1, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
-import { emergencyStop, legSide, lotsFor, sizeMultiplier } from "../_shared/ab-allocator.ts";
+import { emergencyStop, fundedRiskUsd, legSide, lotsFor, sizeMultiplier, type Progress } from "../_shared/ab-allocator.ts";
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -71,7 +71,22 @@ async function open(db: Db, b: Record<string, unknown>) {
   ]);
   const policy: Policy = { ...POLICY_V1, ...(pol?.thresholds ?? {}) };
   const sizing = sizeMultiplier(book, await ledgerPoints(db, person), Date.parse(prof?.state_since ?? new Date().toISOString()), Number(lim?.max_multiplier ?? 1), policy);
-  const wanted = traderRisk * sizing.multiplier * Number(book === "a" ? settings?.a_scale ?? 1 : settings?.b_scale ?? 1);
+  let wanted = traderRisk * sizing.multiplier;
+  let sizeReason = sizing.reason, weight = sizing.multiplier;
+  if (Number(lim?.account_size_usd) > 0) {
+    // Funded-account sizing: a share of the destination's daily risk budget, weighted by confidence.
+    const since = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    const [{ count: routed }, { count: liveTraders }, { data: progress }] = await Promise.all([
+      db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", book).eq("event", "open").gte("created_at", since),
+      db.from("ab_trader_profiles").select("person_id", { count: "exact", head: true }).eq("book_state", book === "a" ? "AB_LIVE" : "BB_LIVE"),
+      db.rpc("ab_person_progress", { p_person: person }),
+    ]);
+    const expected = Math.max(Number(routed ?? 0) / 5, Number(liveTraders ?? 0) * 2);
+    const f = fundedRiskUsd(book, { accountSizeUsd: Number(lim.account_size_usd), dailyBudgetPct: Number(lim.daily_risk_budget_pct),
+      perTradeMinPct: Number(lim.per_trade_min_pct), perTradeMaxPct: Number(lim.per_trade_max_pct) }, expected, (progress ?? "EARLY") as Progress, sizing);
+    wanted = f.riskUsd; sizeReason = f.reason; weight = f.weight;
+  }
+  wanted *= Number(book === "a" ? settings?.a_scale ?? 1 : settings?.b_scale ?? 1);
   const side = legSide(book, t.side);
   const signedLots = (side === "buy" ? 1 : -1) * Number(t.volume) * (wanted / traderRisk);
   const { data: res, error: resErr } = await db.rpc("ab_reserve_risk", { p_book: book, p_trade: tradeId, p_person: person, p_symbol: t.symbol, p_signed_lots: signedLots, p_risk_usd: wanted });
@@ -85,7 +100,7 @@ async function open(db: Db, b: Record<string, unknown>) {
   const key = `${book}:${tradeId}:open`;
   const { data: claim, error: claimErr } = await db.from("book_orders").insert({
     book, source_trade_id: tradeId, person_id: person, event: "open", idempotency_key: key, symbol: t.symbol, side, qty,
-    multiplier: sizing.multiplier, risk_usd: res.allowed_usd, status: "sent", price_scale_per_lot: scale > 0 ? scale : null,
+    multiplier: Number((Number(res.allowed_usd) / traderRisk).toFixed(3)), risk_usd: res.allowed_usd, status: "sent", price_scale_per_lot: scale > 0 ? scale : null,
   }).select("id").single();
   if (claimErr?.code === "23505") return { ok: true, skipped: "duplicate event" };
   if (claimErr || !claim) return { ok: false, error: "claim failed" };
@@ -100,7 +115,7 @@ async function open(db: Db, b: Record<string, unknown>) {
       status: positionId ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
       fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString(),
     }).eq("id", claim.id);
-    return { ok: true, book, qty, multiplier: sizing.multiplier, reason: sizing.reason, fill_price: fill?.price ?? null, positionId };
+    return { ok: true, book, qty, multiple_of_trader: Number((Number(res.allowed_usd) / traderRisk).toFixed(2)), weight, reason: sizeReason, fill_price: fill?.price ?? null, positionId };
   } catch (e) {
     // Never resubmit an ambiguous order: the reconciler finds it by strategy id.
     await db.from("book_orders").update({ status: "reconciliation_required", error: String(e).slice(0, 300), latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);

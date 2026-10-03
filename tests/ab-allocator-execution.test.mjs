@@ -74,3 +74,25 @@ test('engine routes A-book live hedge-first, B-book live reversed after the fill
   assert.match(x, /Never resubmit an ambiguous order/);
   assert.match(x, /db\.rpc\("ab_reserve_risk"/);
 });
+
+test('funded-account sizing: about 0.25% of a $50K account per copied trade, weighted by progress and evidence', async () => {
+  const { fundedRiskUsd } = await import('../supabase/functions/_shared/ab-allocator.ts');
+  const lim = { accountSizeUsd: 50000, dailyBudgetPct: 2.5, perTradeMinPct: 0.1, perTradeMaxPct: 0.5 };
+  const plain = { multiplier: 1, reason: 'new to A-book live' };
+  // 10 signals a day: 2.5% / 10 = 0.25% = $125 at weight 1 (passed Stage 2) - about 7x a Stage 2 trader's $17.50.
+  assert.equal(fundedRiskUsd('a', lim, 10, 'STAGE2_PASSED', plain).riskUsd, 125);
+  assert.equal(fundedRiskUsd('a', lim, 10, 'EARLY', plain).riskUsd, 62.5);           // 2.75% in Stage 2: half weight
+  assert.equal(fundedRiskUsd('a', lim, 10, 'STAGE3_COMPLETE', plain).riskUsd, 187.5); // graduate: 1.5x
+  assert.equal(fundedRiskUsd('a', lim, 10, 'STAGE3_COMPLETE', { multiplier: 6, reason: 'strongly confirmed live edge' }).riskUsd, 250); // capped at 0.5%
+  assert.equal(fundedRiskUsd('a', lim, 40, 'EARLY', { multiplier: 1, reason: 'early warning: x' }).riskUsd, 50); // floor 0.1%
+  assert.ok(fundedRiskUsd('b', lim, 10, 'EARLY', { multiplier: 3, reason: 'very strong reverse evidence' }).riskUsd > fundedRiskUsd('b', lim, 10, 'EARLY', { multiplier: 1, reason: 'reverse evidence at entry level' }).riskUsd);
+});
+
+test('policy v2 starts A-book live at 2.75% in Stage 2; reservations stop at the daily profit cap', () => {
+  const sql = read('supabase/migrations/20261003190000_ab_funded_account_sizing.sql');
+  assert.match(sql, /"stage2AutoTarget":"AB_LIVE"/);
+  assert.match(sql, /update public\.ab_policy_versions set status = 'RETIRED' where version = 1/);
+  assert.match(sql, /'daily profit cap reached: extra profit would be removed'/);
+  assert.match(sql, /\(lim\.daily_loss_stop_usd - day_loss - open_risk\) \/ lim\.room_multiple/);
+  assert.match(sql, /daily_loss_stop_usd = 1000/);
+});
