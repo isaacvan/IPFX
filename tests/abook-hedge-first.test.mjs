@@ -177,17 +177,18 @@ test('stress: racing closes of one copied trade send one broker close and close 
 test('engine fills copied trades hedge-first on market opens, pending fills and every close', () => {
   const engine = read('supabase/functions/trading-engine/index.ts');
   assert.match(engine, /import \{ closeClaimAction, worseFill \} from "\.\.\/_shared\/stp-fill\.ts"/);
-  assert.match(engine, /if \(await hedgeOpenArmed\(db, A\)\) \{/);
-  assert.match(engine, /const hedge = await hedgeNow\(db, A, srcTrade, "open", riskUsd\);/);
+  // A-book live (book-executor) and per-account copy targets share the same hedge-first path.
+  assert.match(engine, /if \(abBook === "a" \|\| await hedgeOpenArmed\(db, A\)\) \{/);
+  assert.match(engine, /: await hedgeNow\(db, A, srcTrade, "open", riskUsd\);/);
   // A slow broker is waited on with a timer, never aborted, so an in-flight order is always recorded.
   assert.match(engine, /const call = fireMirror\(db, acct, t, event, riskUsd, \{ sync: true, armed: true \}\);\s*\n\s*mirrorLater\(call\);/);
   assert.doesNotMatch(engine, /signal: AbortSignal\.timeout\(opts\.timeoutMs\)/);
   assert.match(engine, /worseFill\(takingAsk, fill, later \? \(takingAsk \? later\.ask : later\.bid\) : null, brokerFill\)/);
-  assert.match(engine, /const hedge = await hedgeCloseFirst\(db, acct, t\);\s*\n\s*if \(hedge\.state === "busy"\) return false;/);
+  assert.match(engine, /hedge = await hedgeCloseFirst\(db, acct, t\);\s*\n\s*\}\s*\n\s*if \(hedge\.state === "busy"\) return false;/);
   assert.match(engine, /if \(hedge\.state !== "filled"\) mirrorLater\(fireMirror\(db, acct, t, "close"\)\);/);
   assert.match(engine, /function roundAdverse\(/);
   // Pending (limit/stop) fills on a copied account are re-priced to no better than the broker.
-  assert.match(engine, /if \(await hedgeOpenArmed\(db, acct\)\) \{\s*\n\s*\/\/ Copied account: the hedge fills first/);
+  assert.match(engine, /if \(abBook === "a" \|\| await hedgeOpenArmed\(db, acct\)\) \{\s*\n\s*\/\/ Copied account: the hedge fills first/);
   // B-book accounts keep the instant path.
   assert.match(engine, /\} else \{\s*\n\s*mirrorLater\(fireMirror\(db, acct, inserted as Tr, "open", sourceRiskUsd\)\);/);
 });
