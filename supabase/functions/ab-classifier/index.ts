@@ -3,7 +3,7 @@
 // the pure engine in _shared/ab-classifier.ts, and applies moves through ab_apply_transition (audited,
 // optimistic). It never places an order and never changes size: that is the allocator's job.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decide, POLICY_V1, type BookState, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
+import { decide, herdClusters, POLICY_V1, type BookState, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
 
 function constantTimeEqual(a: string, b: string): boolean {
   const ea = new TextEncoder().encode(a), eb = new TextEncoder().encode(b);
@@ -45,6 +45,10 @@ Deno.serve(async (req) => {
   const { data: signals, error: sigErr } = await db.from("ab_person_signals").select("person_id,investigation_hold,critical_flag,stage2_profit_pct");
   if (sigErr) return json({ error: "integrity signals unavailable: " + sigErr.message }, 503);
   const sig = new Map((signals ?? []).map((s) => [s.person_id, s]));
+  // Herd clusters: people linked by repeated same-trade-within-60s pairs (ab_herd_pairs), joined transitively.
+  const { data: pairs, error: herdErr } = await db.rpc("ab_herd_pairs");
+  if (herdErr) return json({ error: "herd signals unavailable: " + herdErr.message }, 503);
+  const herd = herdClusters((pairs ?? []) as Array<{ person_a: string; person_b: string }>, 3);
 
   const now = Date.now();
   let moved = 0, conflicts = 0;
@@ -57,6 +61,7 @@ Deno.serve(async (req) => {
       lastAbExitAt: p.last_ab_exit_at ? Date.parse(p.last_ab_exit_at) : null, now,
       points: points.get(p.person_id) ?? [], suspend,
       stage2ProfitPct: s?.stage2_profit_pct == null ? null : Number(s.stage2_profit_pct),
+      herd: herd.has(p.person_id),
     }, policy);
     if (!decision) continue;
     const { data: applied, error } = await db.rpc("ab_apply_transition", {
@@ -67,5 +72,5 @@ Deno.serve(async (req) => {
     moved++;
     moves.push({ from: p.book_state, to: decision.to });
   }
-  return json({ ok: true, policy: policy.version, people: profiles?.length ?? 0, withEvidence: points.size, moved, conflicts, moves, ms: Date.now() - started });
+  return json({ ok: true, policy: policy.version, people: profiles?.length ?? 0, withEvidence: points.size, herd: herd.size, moved, conflicts, moves, ms: Date.now() - started });
 });

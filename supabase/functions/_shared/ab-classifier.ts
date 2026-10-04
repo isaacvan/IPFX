@@ -36,6 +36,7 @@ export type Policy = {
   stage2AutoMinTrades: number;  // replayed trades needed before the 2.75% rule may fire (0 = off)
   stage2AutoMinCopyR: number;   // their copy results (after costs) must average at least this (-Infinity = off)
   maxCopyGapR: number;          // feed-lag fingerprint: IPFX result minus copy result, averaged; above this = never promote (Infinity = off)
+  herdBlocksAuto: boolean;      // members of a co-trading cluster (one signal source) need full evidence, not the 2.75% rule
 };
 
 export const POLICY_V1: Policy = {
@@ -43,7 +44,21 @@ export const POLICY_V1: Policy = {
   maxBestTradeShare: 0.30, minMedianHoldSeconds: 60, maxShareUnder60s: 0.50, dwellDays: 5, coolOffDays: 10,
   liveFlipMinTrades: 10, abFailTrades: 80, ewmaAlpha: 0.1, abDemoteEwma: -0.05,
   stage2AutoPct: 2.75, stage2AutoTarget: "AB_DEMO", stage2AutoMinTrades: 0, stage2AutoMinCopyR: -Infinity, maxCopyGapR: Infinity,
+  herdBlocksAuto: false,
 };
+
+// People in a co-trading cluster of at least minSize (pairs joined transitively, union-find).
+export function herdClusters(pairs: Array<{ person_a: string; person_b: string }>, minSize = 3): Set<string> {
+  const parent = new Map<string, string>();
+  const find = (x: string): string => { let r = x; while (parent.get(r) !== r) r = parent.get(r)!; parent.set(x, r); return r; };
+  for (const { person_a: a, person_b: b } of pairs) {
+    if (!parent.has(a)) parent.set(a, a); if (!parent.has(b)) parent.set(b, b);
+    const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb);
+  }
+  const size = new Map<string, number>();
+  for (const x of parent.keys()) size.set(find(x), (size.get(find(x)) ?? 0) + 1);
+  return new Set([...parent.keys()].filter((x) => (size.get(find(x)) ?? 0) >= minSize));
+}
 
 // Mean of (IPFX result - copy result) per trade. Normal traders sit near or below zero (copies pay broker
 // costs, which hedge-first keeps at or under IPFX's); traders profiting from feed lag sit well above it.
@@ -115,6 +130,7 @@ export type ClassifierInput = {
   points: LedgerPoint[];                   // full person history (all accounts, all restarts), oldest first
   suspend?: string | null;                 // integrity reason, if any
   stage2ProfitPct?: number | null;         // best open Infinity Stage 2 progress, if any
+  herd?: boolean;                          // in a cluster of 3+ people who keep opening the same trades together
 };
 export type Decision = { to: BookState; reason: string; evidence: Record<string, unknown> } | null;
 
@@ -149,7 +165,7 @@ export function decide(input: ClassifierInput, p: Policy = POLICY_V1): Decision 
       // opposite accounts of the same person) must not trigger it, so from policy v3 the person's replayed copy
       // results must also be non-negative over a minimum number of trades.
       const copyableOk = same.trades >= p.stage2AutoMinTrades && same.mean >= p.stage2AutoMinCopyR;
-      if (input.stage2ProfitPct != null && input.stage2ProfitPct >= p.stage2AutoPct && hftOk && copyableOk)
+      if (input.stage2ProfitPct != null && input.stage2ProfitPct >= p.stage2AutoPct && hftOk && copyableOk && !(p.herdBlocksAuto && input.herd))
         return { to: p.stage2AutoTarget, reason: `Infinity Stage 2 profit ${input.stage2ProfitPct.toFixed(2)}% >= ${p.stage2AutoPct}% (automatic rule)`, evidence: { same: summary(same) } };
       const coolOk = input.lastAbExitAt == null || now - input.lastAbExitAt >= p.coolOffDays * DAY;
       if (dwellOk && coolOk && strong(rev, p, p.eValueLive) && hftOk)

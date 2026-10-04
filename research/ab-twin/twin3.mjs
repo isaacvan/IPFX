@@ -66,6 +66,8 @@ export function simulate(scName, seed = 1, opts = {}) {
     const shock = r() < sc.shockP;
     herdSignal = r() < 0.5 ? 1 : -1;
     // a real herd: everyone following the service takes the same trade, so the k-th trade of the day has one outcome
+    const bucketU = new Map(); const rho = sc.rho ?? 0.6;
+    const draw = (b) => { if (r() >= rho) return r(); if (!bucketU.has(b)) bucketU.set(b, r()); return bucketU.get(b); };
     const herdOut = [0, 1, 2].map(() => (herdSignal > 0 ? (r() < 0.47 ? WIN : -1) : (r() < 0.43 ? WIN : -1)));
     const copiedToday = [];   // { r (copy R per unit), weight, person }
     const reversedToday = [];
@@ -78,12 +80,12 @@ export function simulate(scName, seed = 1, opts = {}) {
       t.sod = t.bal; let traded = false;
       for (let k = 0; k < 3; k++) {
         if (t.bal - t.sod >= C) break;
-        let o;
+        let o, bucket = `h${k}`;
         // gamerB holds the opposite position to its partner: its raw result is the partner's raw result negated
         // (a win of +1.2R against a loss of -1R is approximated symmetrically), then its own slippage applies.
         if (t.kind === 'gamerB') { const ra = traders[t.pairWith].lastRaw ?? (r() < 0.5 ? WIN : -1); o = -ra - 2 * sc.cIpfx; }  // opposite gross, and it pays its own costs too
         else if (t.kind === 'herd') o = herdOut[k];
-        else { const p = (1 + t.mu) / (1 + WIN); o = (r() < p && (!shock || t.kind === 'gamerA')) ? WIN : -1; }
+        else { const p = (1 + t.mu) / (1 + WIN); bucket = `s${k}_${Math.floor(r() * 16)}`; o = (draw(bucket) < p && (!shock || t.kind === 'gamerA')) ? WIN : -1; }
         t.lastRaw = o;
         if (o < 0 && r() < (shock ? 0.12 : 0.03)) o *= 1.5;
         t.bal += o; t.nTr++; traded = true; t.peak = Math.max(t.peak, t.bal);
@@ -92,7 +94,6 @@ export function simulate(scName, seed = 1, opts = {}) {
         if (r() >= sc.quoteGap) t.points.push({ closedAt: T0 + d * DAY + k * 3_600_000, sameR: o + sc.cIpfx - sc.cB - lag, reverseR: -o - sc.cIpfx - sc.cB + lag, holdSeconds: t.kind === 'latency' ? 90 : 600, traderR: o });
         if (t.state === 'BB_LIVE') reversedToday.push({ r: -o - sc.cIpfx - sc.cB + lag, t });
         // instrument+direction bucket for the crowding cap: herd trades share one; others pick from 8 instruments x 2 sides
-        const bucket = t.kind === 'herd' ? `h${k}` : `s${k}_${Math.floor(r() * 16)}`;
         if (t.state === 'AB_LIVE') copiedToday.push({ bucket, r: o + sc.cIpfx - sc.cB - lag, person: t.id, progress: t.stagesPassed >= 2 ? 'STAGE3_COMPLETE' : t.stagesPassed >= 1 && t.stage >= 3 ? 'STAGE2_PASSED' : 'EARLY', t });
         if (t.bal <= t.peak - D || t.bal <= t.sod - L) { t.stage = 0; t.startDay = r() < 0.5 ? (Math.floor(d / 21) + 1) * 21 : 1e9; break; }
       }
@@ -111,7 +112,7 @@ export function simulate(scName, seed = 1, opts = {}) {
       if (t.points[t.points.length - 1].closedAt < T0 + d * DAY) continue;
       const stage2Pct = t.stage === 2 ? (t.bal * STAGES[2][4] * STAGES[2][0]) / STAGES[2][0] * 100 : null;
       const dec = decide({ state: t.state, stateSince: t.since, lastAbExitAt: t.lastAbExit, now, points: t.points,
-        suspend: null, stage2ProfitPct: stage2Pct }, policy);
+        suspend: null, stage2ProfitPct: stage2Pct, herd: t.kind === 'herd' && t.points.length >= 15 }, policy);
       if (dec) {
         if ((t.state === 'AB_DEMO' || t.state === 'AB_LIVE') && dec.to.startsWith('BB')) t.lastAbExit = now;
         t.state = dec.to; t.since = now;

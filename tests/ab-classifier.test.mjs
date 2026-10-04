@@ -144,3 +144,16 @@ test('policy v3 is the active policy and switches both copyable guards on', () =
   assert.match(sql, /set status = 'RETIRED' where version = 2/);
   assert.match(sql, /"stage2AutoMinTrades":15,"stage2AutoMinCopyR":0,"maxCopyGapR":0.1/);
 });
+
+test('herd: clusters of 3+ co-traders lose the automatic 2.75% rule when the policy says so', async () => {
+  const { herdClusters } = await import('../supabase/functions/_shared/ab-classifier.ts');
+  const h = herdClusters([{ person_a: 'a', person_b: 'b' }, { person_a: 'b', person_b: 'c' }, { person_a: 'x', person_b: 'y' }]);
+  assert.deepEqual([...h].sort(), ['a', 'b', 'c'], 'a pair alone is not a herd; a chain of three is');
+  const pts = Array.from({ length: 20 }, (_, i) => ({ closedAt: T0 + i * DAY, sameR: 0.3, reverseR: -0.5, holdSeconds: 600, traderR: 0.3 }));
+  const input = { state: 'BB_DEMO', stateSince: T0, lastAbExitAt: null, now: T0 + 21 * DAY, points: pts, stage2ProfitPct: 3, herd: true };
+  assert.equal(decide(input, { ...POLICY_V1, herdBlocksAuto: true }), null);
+  assert.equal(decide(input, POLICY_V1)?.to, 'AB_DEMO');
+  const sql = readFileSync(new URL('../supabase/migrations/20261004140000_ab_herd_pairs.sql', import.meta.url), 'utf8');
+  assert.match(sql, /p_window_s int default 60, p_min_shared int default 5, p_min_share numeric default 0.3/);
+  assert.match(sql, /grant execute on function public.ab_herd_pairs\(int, int, int, numeric\) to service_role/);
+});
