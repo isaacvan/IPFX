@@ -138,3 +138,9 @@ test('crowding cap: at most crowd_max copies of one instrument and direction per
   assert.ok(sql.includes("created_at > now() - interval '15 minutes'"));
   assert.ok(sql.includes('crowd_max int not null default 3'));
 });
+
+test('policy v3 is the active policy and switches both copyable guards on', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261004130000_ab_policy_v3_copyable_guards.sql', import.meta.url), 'utf8');
+  assert.match(sql, /set status = 'RETIRED' where version = 2/);
+  assert.match(sql, /"stage2AutoMinTrades":15,"stage2AutoMinCopyR":0,"maxCopyGapR":0.1/);
+});
