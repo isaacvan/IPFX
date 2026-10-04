@@ -246,6 +246,19 @@ async function reconcile(db: Db) {
   return { ok: true, fixed };
 }
 
+// Every copy or reverse that did not happen, with its reason, for the owner's Brain page (best effort:
+// a logging failure never changes what was traded).
+async function logSkips(db: Db, b: Record<string, unknown>, r: Record<string, unknown>) {
+  const reasons: Array<{ book: string; reason: string }> = [];
+  if (typeof r.skipped === "string") reasons.push({ book: String(b.book), reason: r.skipped });
+  for (const leg of (r.legs as Array<Record<string, unknown>> | undefined) ?? [])
+    if (typeof leg.skipped === "string") reasons.push({ book: String(leg.book ?? b.book), reason: leg.skipped });
+  if (!reasons.length) return;
+  const { data: t } = await db.from("trades").select("user_id").eq("id", String(b.source_trade_id)).maybeSingle();
+  const { data: person } = t ? await db.rpc("ab_person_of", { p_user: t.user_id }) : { data: null };
+  await db.from("ab_copy_skips").insert(reasons.map((x) => ({ book: x.book, source_trade_id: String(b.source_trade_id), person_id: person ?? null, reason: x.reason.slice(0, 200) })));
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -259,7 +272,9 @@ Deno.serve(async (req) => {
   if (!viaService) return json({ error: "unauthorised" }, 401);
   if (body.event === "open") {
     if (body.book !== "a" && body.book !== "b") return json({ ok: false, error: "book required" }, 400);
-    return json(await open(db, body));
+    const r = await open(db, body);
+    await logSkips(db, body, r).catch(() => {});
+    return json(r);
   }
   if (body.event === "close" || body.event === "partial_close") return json(await closeLeg(db, body));
   return json({ ok: false, error: "unknown event" }, 400);

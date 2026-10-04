@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><link rel="stylesheet" href="/assets/css/team-brain.css?v=20261004"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
+<body><header class="top"><div><div class="brand">IPFX Team · Brain</div><div class="subtitle" id="status" role="status">Checking secure access…</div></div><nav aria-label="Team pages"><a href="team-brain.html" aria-current="page">Brain</a><a href="trader-analytics.html">Analytics</a><a href="team-b-book.html">B-book</a><a href="team-a-book.html">A-book</a><a href="team-treasury.html">Treasury</a><a href="admin.html">Operations</a></nav></header>
+<main class="brain">
+  <section class="hero" id="hero" aria-live="polite">
+    <div class="hero-icon" id="heroIcon" aria-hidden="true">…</div>
+    <div class="hero-text"><h1 id="heroTitle">Loading the brain…</h1><p class="muted" id="heroSub">Owner-only · MFA protected</p></div>
+    <div class="hero-actions">
+      <button class="button" id="notifyBtn" type="button">Turn on desktop alerts</button>
+      <label class="toggle"><input type="checkbox" id="soundToggle"> Sound for urgent</label>
+      <button class="button" id="helpBtn" type="button">How to read this</button>
+      <button class="button primary" id="refresh" type="button">Refresh</button>
+    </div>
+  </section>
+
+  <section class="tiles" id="tiles" aria-label="Key numbers"></section>
+
+  <div class="cols">
+    <section class="panel alerts-panel" aria-labelledby="alertsH">
+      <div class="panel-head"><h2 id="alertsH">What needs your attention</h2>
+        <div class="chips" role="tablist" id="alertFilter">
+          <button role="tab" data-f="action" aria-selected="true">Needs action <b id="nAction">0</b></button>
+          <button role="tab" data-f="good">Good news <b id="nGood">0</b></button>
+          <button role="tab" data-f="open">All open <b id="nOpen">0</b></button>
+          <button role="tab" data-f="resolved">Resolved today <b id="nResolved">0</b></button>
+        </div></div>
+      <div id="alerts" class="alert-list"></div>
+      <div class="panel-foot"><button class="button small-btn" id="ackAll" type="button">Mark all shown as seen</button><span class="small">Alerts clear themselves when the problem stops. "Seen" only dims them.</span></div>
+    </section>
+
+    <section class="panel books-panel" aria-labelledby="booksH">
+      <div class="panel-head"><h2 id="booksH">How the books are doing</h2>
+        <div class="seg" id="bookMode" role="group" aria-label="Results"><button data-m="live" aria-pressed="true">Real money ($)</button><button data-m="paper" aria-pressed="false">Replay (R)</button></div>
+        <div class="seg" id="bookRange" role="group" aria-label="Period"><button data-d="7" aria-pressed="false">7d</button><button data-d="30" aria-pressed="true">30d</button><button data-d="90" aria-pressed="false">90d</button></div></div>
+      <p class="small" id="bookModeNote"></p>
+      <div class="legend" id="bookLegend"></div>
+      <div class="chart" id="bookChart" role="img" aria-label="Cumulative book results"></div>
+      <div class="book-stats" id="bookStats"></div>
+      <h3 class="sub">Copies that did not happen (24h)</h3>
+      <div id="skips" class="skips"></div>
+    </section>
+  </div>
+
+  <section class="watch" aria-label="Watchlists">
+    <div class="panel"><h2><span class="dot good" aria-hidden="true"></span>Making you money</h2><p class="small">Proven copyable skill (A-book) and proven losers IPFX profits from (B-book).</p><ol class="wl" id="wlGood"></ol></div>
+    <div class="panel"><h2><span class="dot warning" aria-hidden="true"></span>Could cost you money</h2><p class="small">Likely payouts not covered by copying, copied traders getting worse, B-book traders getting better.</p><ol class="wl" id="wlRisk"></ol></div>
+    <div class="panel"><h2><span class="dot critical" aria-hidden="true"></span>Broke the rules / suspicious</h2><p class="small">Breaches, flags, suspensions, no stop loss, very fast trading, price-delay pattern, herds.</p><ol class="wl" id="wlRules"></ol></div>
+  </section>
+
+  <section class="panel" aria-labelledby="boardH">
+    <div class="panel-head"><h2 id="boardH">All traders</h2>
+      <div class="chips" role="tablist" id="boxTabs"></div>
+      <div class="board-tools"><input id="search" type="search" placeholder="Search name or id" aria-label="Search traders"><select id="tagFilter" aria-label="Filter by tag"><option value="">Any tag</option></select></div></div>
+    <div class="table-wrap"><table class="board" id="board"><thead><tr>
+      <th data-k="name">Trader</th><th data-k="box">Box</th><th data-k="trades" class="num">Trades</th><th data-k="win_rate" class="num">Win %</th><th data-k="pnl_usd" class="num">P&amp;L</th>
+      <th data-k="avg_r" class="num" title="Average result per trade in risk units">Avg R</th><th>Trend</th><th data-k="copy_r" class="num" title="What copying each trade made, after costs">Copy edge</th>
+      <th data-k="reverse_r" class="num" title="What betting against each trade made, after costs">Reverse edge</th><th data-k="proof" title="Statistical proof that copying works: 10 = proven">Proof</th>
+      <th data-k="max_dd_r" class="num" title="Worst peak-to-trough fall, in R">Max fall</th><th data-k="expected_payout" class="num" title="Chance of payout x payout size">Likely payout</th><th data-k="last" class="num">Last trade</th></tr></thead><tbody id="boardBody"></tbody></table></div>
+    <div class="panel-foot"><span class="small" id="boardCount"></span><button class="button small-btn" id="more" type="button" hidden>Show more</button></div>
+  </section>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="movesH"><h2 id="movesH">Moves between boxes</h2><ol class="moves" id="moves"></ol></section>
+    <section class="panel" aria-labelledby="healthH"><h2 id="healthH">Is the brain running?</h2><div id="health"></div></section>
+  </div>
+</main>
+
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="dName"><div class="drawer-inner">
+  <div class="drawer-head"><div><div class="label" id="dBox"></div><h2 id="dName">Trader</h2><div id="dTags" class="tags"></div></div><button class="button" id="dClose" type="button" aria-label="Close">Close</button></div>
+  <div id="dBody"></div>
+</div></aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<dialog id="help" aria-labelledby="helpH"><h2 id="helpH">How to read the Brain</h2><div class="help-grid" id="helpBody"></div><form method="dialog"><button class="button primary">Got it</button></form></dialog>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<script src="/assets/js/team-brain.js?v=20261004"></script>
+</body></html>
