@@ -26,20 +26,30 @@ function constantTimeEqual(a: string, b: string): boolean {
 const bookStrategy = (book: string, tradeId: string) => `ipfx${book}_${tradeId.replace(/-/g, "").slice(0, 26)}`;
 
 async function destination(db: Db, book: string) {
-  const { data: d } = await db.from("team_book_destinations").select("*").eq("book", book).eq("status", "connected").eq("environment", "demo").maybeSingle();
-  if (!d) return null;
   const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
   if (!key) return null;
+  const ladder = /^l[0-9]+$/.test(book);
+  const { data: d } = ladder
+    ? await db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("execution_enabled", true).in("status", ["evaluation", "funded"]).maybeSingle()
+    : await db.from("team_book_destinations").select("*").eq("book", book).eq("status", "connected").eq("environment", "demo").maybeSingle();
+  if (!d || !d.access_token_ciphertext) return null;
   let token = await decryptSecret(d.access_token_ciphertext, key);
   if (!d.access_expires_at || Date.parse(d.access_expires_at) - Date.now() < 30 * 60_000) {
     const next = await refresh(await decryptSecret(d.refresh_token_ciphertext, key));
     token = next.accessToken;
-    await db.from("team_book_destinations").update({
-      access_token_ciphertext: await encryptSecret(next.accessToken, key), refresh_token_ciphertext: await encryptSecret(next.refreshToken, key),
-      access_expires_at: jwtExpiresAt(next.accessToken), last_health_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-    }).eq("book", book);
+    const patch = { access_token_ciphertext: await encryptSecret(next.accessToken, key), refresh_token_ciphertext: await encryptSecret(next.refreshToken, key),
+      access_expires_at: jwtExpiresAt(next.accessToken), updated_at: new Date().toISOString() };
+    if (ladder) await db.from("ladder_accounts").update(patch).eq("id", Number(book.slice(1)));
+    else await db.from("team_book_destinations").update({ ...patch, last_health_at: new Date().toISOString() }).eq("book", book);
   }
   return { token, accountId: String(d.account_id), accNum: String(d.acc_num), map: (d.instrument_map ?? []) as Array<Record<string, unknown>> };
+}
+// Deterministic split of traders across ladder accounts (each account copies one group), so one bad trader or
+// one bad day cannot hit every account at once.
+function signalGroup(person: string, groups: number): number {
+  let h = 2166136261;
+  for (const c of person) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  return groups > 0 ? h % groups : 0;
 }
 function instrumentFor(map: Array<Record<string, unknown>>, symbol: string) {
   const want = (TL_SYMBOLS[symbol] ?? symbol).toUpperCase();
@@ -54,6 +64,8 @@ async function ledgerPoints(db: Db, person: string): Promise<LedgerPoint[]> {
   return (data ?? []).map((r: Record<string, unknown>) => ({ closedAt: Date.parse(String(r.closed_at)), sameR: Number(r.same_r), reverseR: Number(r.reverse_r), holdSeconds: Number(r.hold_seconds) }));
 }
 
+type Leg = { book: string; sizeUsd: number };
+
 async function open(db: Db, b: Record<string, unknown>) {
   const tradeId = String(b.source_trade_id), book = String(b.book) as "a" | "b";
   const { data: t } = await db.from("trades").select("id,user_id,symbol,side,volume,open_price,sl,status").eq("id", tradeId).maybeSingle();
@@ -63,68 +75,86 @@ async function open(db: Db, b: Record<string, unknown>) {
   if (route !== book) return { ok: true, skipped: "route changed" };
   const traderRisk = Number(b.risk_usd), scale = Number(b.price_scale_per_lot);
   if (!(traderRisk > 0) || t.sl == null) return { ok: true, skipped: "no stop loss: risk not measurable" };
-  const [{ data: prof }, { data: lim }, { data: settings }, { data: pol }] = await Promise.all([
+  const [{ data: prof }, { data: lim }, { data: settings }, { data: pol }, { data: progress }, { data: treasury }, { data: ls }] = await Promise.all([
     db.from("ab_trader_profiles").select("state_since").eq("person_id", person).maybeSingle(),
     db.from("ab_risk_limits").select("*").eq("book", book).maybeSingle(),
     db.from("ab_settings").select("a_scale,b_scale").maybeSingle(),
     db.from("ab_policy_versions").select("thresholds").eq("status", "ACTIVE").maybeSingle(),
+    db.rpc("ab_person_progress", { p_person: person }),
+    db.rpc("treasury_status"),
+    db.from("ladder_settings").select("signal_groups").maybeSingle(),
   ]);
+  // Cash for payouts short: no new B-book (reverse) risk at all until it recovers.
+  if (book === "b" && treasury === "short") return { ok: true, skipped: "treasury short: B-book paused" };
   const policy: Policy = { ...POLICY_V1, ...(pol?.thresholds ?? {}) };
   const sizing = sizeMultiplier(book, await ledgerPoints(db, person), Date.parse(prof?.state_since ?? new Date().toISOString()), Number(lim?.max_multiplier ?? 1), policy);
-  let wanted = traderRisk * sizing.multiplier;
-  let sizeReason = sizing.reason, weight = sizing.multiplier;
-  if (Number(lim?.account_size_usd) > 0) {
-    // Funded-account sizing: a share of the destination's daily risk budget, weighted by confidence.
-    const since = new Date(Date.now() - 5 * 86_400_000).toISOString();
-    const [{ count: routed }, { count: liveTraders }, { data: progress }, { data: treasury }] = await Promise.all([
-      db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", book).eq("event", "open").gte("created_at", since),
-      db.from("ab_trader_profiles").select("person_id", { count: "exact", head: true }).eq("book_state", book === "a" ? "AB_LIVE" : "BB_LIVE"),
-      db.rpc("ab_person_progress", { p_person: person }),
-      db.rpc("treasury_status"),
-    ]);
-    // Cash for payouts short: no new B-book (reverse) risk at all until it recovers.
-    if (book === "b" && treasury === "short") { return { ok: true, skipped: "treasury short: B-book paused" }; }
-    const expected = Math.max(Number(routed ?? 0) / 5, Number(liveTraders ?? 0) * 2);
-    const f = fundedRiskUsd(book, { accountSizeUsd: Number(lim.account_size_usd), dailyBudgetPct: Number(lim.daily_risk_budget_pct),
-      perTradeMinPct: Number(lim.per_trade_min_pct), perTradeMaxPct: Number(lim.per_trade_max_pct) }, expected, (progress ?? "EARLY") as Progress, sizing,
-      (treasury ?? "unknown") as "unknown" | "healthy" | "tight" | "short");
-    wanted = f.riskUsd; sizeReason = f.reason; weight = f.weight;
+
+  // Destinations for this signal: the book's review account, plus (A-book only) every enabled ladder account
+  // in this trader's signal group.
+  const legs: Leg[] = [];
+  const { data: reviewDest } = await db.from("team_book_destinations").select("book").eq("book", book).eq("status", "connected").maybeSingle();
+  if (reviewDest) legs.push({ book, sizeUsd: Number(lim?.account_size_usd ?? 50000) });
+  if (book === "a") {
+    const groups = Number(ls?.signal_groups ?? 1);
+    const { data: ladders } = await db.from("ladder_accounts").select("id,size_usd,signal_group").eq("execution_enabled", true).in("status", ["evaluation", "funded"]);
+    for (const la of ladders ?? []) if (Number(la.signal_group) % groups === signalGroup(String(person), groups)) legs.push({ book: "l" + la.id, sizeUsd: Number(la.size_usd) });
   }
-  wanted *= Number(book === "a" ? settings?.a_scale ?? 1 : settings?.b_scale ?? 1);
+  if (!legs.length) return { ok: true, skipped: "no connected destination" };
+
   const side = legSide(book, t.side);
-  const signedLots = (side === "buy" ? 1 : -1) * Number(t.volume) * (wanted / traderRisk);
-  const { data: res, error: resErr } = await db.rpc("ab_reserve_risk", { p_book: book, p_trade: tradeId, p_person: person, p_symbol: t.symbol, p_signed_lots: signedLots, p_risk_usd: wanted });
-  if (resErr || !res?.ok) return { ok: true, skipped: "risk: " + (res?.reason ?? resErr?.message ?? "refused") };
-  const dest = await destination(db, book);
-  if (!dest) { await db.rpc("ab_release_risk", { p_book: book, p_trade: tradeId }); return { ok: true, skipped: "destination not connected" }; }
-  const inst = instrumentFor(dest.map, t.symbol);
-  if (!inst) { await db.rpc("ab_release_risk", { p_book: book, p_trade: tradeId }); return { ok: true, skipped: "instrument not available at destination" }; }
-  const qty = lotsFor(Number(t.volume), traderRisk, Number(res.allowed_usd), Number(inst.lot_step ?? 0.01), Number(inst.min_qty ?? 0.01));
-  if (!(qty > 0)) { await db.rpc("ab_release_risk", { p_book: book, p_trade: tradeId }); return { ok: true, skipped: "below broker minimum" }; }
-  const key = `${book}:${tradeId}:open`;
-  const { data: claim, error: claimErr } = await db.from("book_orders").insert({
-    book, source_trade_id: tradeId, person_id: person, event: "open", idempotency_key: key, symbol: t.symbol, side, qty,
-    multiplier: Number((Number(res.allowed_usd) / traderRisk).toFixed(3)), risk_usd: res.allowed_usd, status: "sent", price_scale_per_lot: scale > 0 ? scale : null,
-  }).select("id").single();
-  if (claimErr?.code === "23505") return { ok: true, skipped: "duplicate event" };
-  if (claimErr || !claim) return { ok: false, error: "claim failed" };
-  const started = Date.now();
-  try {
-    const stop = emergencyStop(book, t.side, Number(t.open_price), Number(t.sl));
-    const payload = { ...marketOrder({ qty, routeId: Number(inst.trade_route_id), side, tradableInstrumentId: Number(inst.tradable_instrument_id), sl: stop, tp: null, sourceTradeId: tradeId }), strategyId: bookStrategy(book, tradeId) };
-    const ids = responseIds(await placeMarketOrder(dest.token, dest.accountId, dest.accNum, payload));
-    const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId }).catch(() => null);
-    const positionId = ids.positionId ?? fill?.positionId ?? null;
-    await db.from("book_orders").update({
-      status: positionId ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
-      fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString(),
-    }).eq("id", claim.id);
-    return { ok: true, book, qty, multiple_of_trader: Number((Number(res.allowed_usd) / traderRisk).toFixed(2)), weight, reason: sizeReason, fill_price: fill?.price ?? null, positionId };
-  } catch (e) {
-    // Never resubmit an ambiguous order: the reconciler finds it by strategy id.
-    await db.from("book_orders").update({ status: "reconciliation_required", error: String(e).slice(0, 300), latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
-    return { ok: false, error: "broker result requires reconciliation" };
+  const scaleSetting = Number(book === "a" ? settings?.a_scale ?? 1 : settings?.b_scale ?? 1);
+  const since = new Date(Date.now() - 5 * 86_400_000).toISOString();
+  const { count: liveTraders } = await db.from("ab_trader_profiles").select("person_id", { count: "exact", head: true }).eq("book_state", book === "a" ? "AB_LIVE" : "BB_LIVE");
+  const results: Array<Record<string, unknown>> = [];
+  for (const leg of legs) {
+    let wanted = traderRisk * sizing.multiplier, reason = sizing.reason, weight = sizing.multiplier;
+    if (Number(lim?.account_size_usd) > 0) {
+      const { count: routed } = await db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", leg.book).eq("event", "open").gte("created_at", since);
+      const groupsShare = leg.book.startsWith("l") ? Math.max(1, Number(ls?.signal_groups ?? 1)) : 1;
+      const expected = Math.max(Number(routed ?? 0) / 5, Number(liveTraders ?? 0) * 2 / groupsShare);
+      const f = fundedRiskUsd(book, { accountSizeUsd: leg.sizeUsd, dailyBudgetPct: Number(lim.daily_risk_budget_pct),
+        perTradeMinPct: Number(lim.per_trade_min_pct), perTradeMaxPct: Number(lim.per_trade_max_pct) }, expected, (progress ?? "EARLY") as Progress, sizing,
+        (treasury ?? "unknown") as "unknown" | "healthy" | "tight" | "short");
+      wanted = f.riskUsd; reason = f.reason; weight = f.weight;
+    }
+    wanted *= scaleSetting;
+    const signedLots = (side === "buy" ? 1 : -1) * Number(t.volume) * (wanted / traderRisk);
+    const { data: res, error: resErr } = await db.rpc("ab_reserve_risk", { p_book: leg.book, p_trade: tradeId, p_person: person, p_symbol: t.symbol, p_signed_lots: signedLots, p_risk_usd: wanted });
+    if (resErr || !res?.ok) { results.push({ book: leg.book, skipped: "risk: " + (res?.reason ?? resErr?.message ?? "refused") }); continue; }
+    const dest = await destination(db, leg.book);
+    if (!dest) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); results.push({ book: leg.book, skipped: "destination not connected" }); continue; }
+    const inst = instrumentFor(dest.map, t.symbol);
+    if (!inst) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); results.push({ book: leg.book, skipped: "instrument not available" }); continue; }
+    const qty = lotsFor(Number(t.volume), traderRisk, Number(res.allowed_usd), Number(inst.lot_step ?? 0.01), Number(inst.min_qty ?? 0.01));
+    if (!(qty > 0)) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); results.push({ book: leg.book, skipped: "below broker minimum" }); continue; }
+    const { data: claim, error: claimErr } = await db.from("book_orders").insert({
+      book: leg.book, source_trade_id: tradeId, person_id: person, event: "open", idempotency_key: `${leg.book}:${tradeId}:open`, symbol: t.symbol, side, qty,
+      multiplier: Number((Number(res.allowed_usd) / traderRisk).toFixed(3)), risk_usd: res.allowed_usd, status: "sent", price_scale_per_lot: scale > 0 ? scale : null,
+    }).select("id").single();
+    if (claimErr?.code === "23505") { results.push({ book: leg.book, skipped: "duplicate event" }); continue; }
+    if (claimErr || !claim) { results.push({ book: leg.book, error: "claim failed" }); continue; }
+    const started = Date.now();
+    try {
+      const stop = emergencyStop(book, t.side, Number(t.open_price), Number(t.sl));
+      const payload = { ...marketOrder({ qty, routeId: Number(inst.trade_route_id), side, tradableInstrumentId: Number(inst.tradable_instrument_id), sl: stop, tp: null, sourceTradeId: tradeId }), strategyId: bookStrategy(leg.book, tradeId) };
+      const ids = responseIds(await placeMarketOrder(dest.token, dest.accountId, dest.accNum, payload));
+      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId }).catch(() => null);
+      const positionId = ids.positionId ?? fill?.positionId ?? null;
+      await db.from("book_orders").update({
+        status: positionId ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
+        fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString(),
+      }).eq("id", claim.id);
+      results.push({ book: leg.book, qty, multiple_of_trader: Number((Number(res.allowed_usd) / traderRisk).toFixed(2)), weight, reason, fill_price: fill?.price ?? null, positionId });
+    } catch (e) {
+      // Never resubmit an ambiguous order: the reconciler finds it by strategy id.
+      await db.from("book_orders").update({ status: "reconciliation_required", error: String(e).slice(0, 300), latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
+      results.push({ book: leg.book, error: "broker result requires reconciliation" });
+    }
   }
+  // For hedge-first pricing the trader is filled no better than the WORST same-direction leg.
+  const fills = results.map((r) => Number(r.fill_price)).filter((x) => x > 0);
+  const worst = fills.length ? (side === "buy" ? Math.max(...fills) : Math.min(...fills)) : null;
+  return { ok: true, legs: results, fill_price: book === "a" ? worst : null };
 }
 
 async function closeLeg(db: Db, b: Record<string, unknown>) {
@@ -166,8 +196,13 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
       results.push({ book, error: "broker result requires reconciliation" });
     }
   }
-  const first = results.find((r) => (r as Record<string, unknown>).fill_price != null) as Record<string, unknown> | undefined;
-  return { ok: true, results, fill_price: first?.fill_price ?? null };
+  // Same-direction legs (A-book review + ladder accounts): the trader's close is priced no better than the worst one.
+  const aLegs = (legs ?? []).filter((l: Record<string, unknown>) => String(l.book) !== "b");
+  const traderLong = aLegs.length ? aLegs[0].side === "buy" : true;
+  const aFills = results.filter((r) => String((r as Record<string, unknown>).book) !== "b").map((r) => Number((r as Record<string, unknown>).fill_price)).filter((x) => x > 0);
+  const duplicateA = results.some((r) => String((r as Record<string, unknown>).book) !== "b" && (r as Record<string, unknown>).skipped === "duplicate event");
+  const fillA = aFills.length ? (traderLong ? Math.min(...aFills) : Math.max(...aFills)) : null;
+  return { ok: true, results, fill_price: fillA, duplicate_a: duplicateA };
 }
 
 async function reconcile(db: Db) {

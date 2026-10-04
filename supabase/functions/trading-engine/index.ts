@@ -1127,8 +1127,9 @@ async function bookNow(body: Record<string, unknown>, timeoutMs = HEDGE_SYNC_TIM
 function bookLater(body: Record<string, unknown>) { mirrorLater(callBook(body)); }
 async function bookLegs(db: Db, tradeId: string): Promise<{ a: boolean; b: boolean }> {
   const { data } = await db.from("book_orders").select("book").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "reconciliation_required", "sent"]);
-  const books = new Set((data ?? []).map((r: Record<string, unknown>) => r.book));
-  return { a: books.has("a"), b: books.has("b") };
+  const books = new Set<string>((data ?? []).map((r: Record<string, unknown>) => String(r.book)));
+  // Same-direction legs: the A-book review account and every ladder account ('l<id>').
+  return { a: [...books].some((x) => x === "a" || /^l[0-9]+$/.test(x)), b: books.has("b") };
 }
 
 // Board rule: every trade needs a stop loss within N seconds (ab_settings.sl_deadline_seconds; null = off).
@@ -1773,10 +1774,8 @@ async function closeTrade(
   let hedge: HedgeClose;
   if (legs.a) {
     const r = await bookNow({ event: "close", source_trade_id: t.id });
-    // deno-lint-ignore no-explicit-any
-    const aRes = ((r?.results ?? []) as any[]).find((x) => x.book === "a") as Record<string, unknown> | undefined;
-    if (aRes?.skipped === "duplicate event") return false; // another request is closing this hedge right now
-    const px = Number(aRes?.fill_price);
+    if (r?.duplicate_a === true) return false; // another request is closing this hedge right now
+    const px = Number(r?.fill_price);
     hedge = px > 0 ? { state: "filled", price: px } : { state: "unhedged" };
   } else {
     hedge = await hedgeCloseFirst(db, acct, t);

@@ -4,6 +4,7 @@
 // (ladder_payouts), and realised book P&L on LIVE destinations only (demo P&L is never cash).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { coverageStatus, forecastAccount, liabilityWithin, type AccountState } from "../_shared/treasury.ts";
+import { ladderDecision } from "../_shared/ladder.ts";
 
 function constantTimeEqual(a: string, b: string): boolean {
   const ea = new TextEncoder().encode(a), eb = new TextEncoder().encode(b);
@@ -72,5 +73,22 @@ Deno.serve(async (req) => {
     p_graduate: Number(f.pGraduate.toFixed(5)), expected_days: Number(f.expectedDays.toFixed(1)), payout_if_graduate: r2(f.payoutIfGraduate),
     expected_payout: r2(f.expectedPayout), stage4_monthly: r2(f.s4MonthlyPayout), mu_mean: Number(f.muMean.toFixed(4)), trades: f.trades }));
   for (let i = 0; i < rows.length; i += 500) await db.from("treasury_account_forecasts").insert(rows.slice(i, i + 500));
-  return json({ ok: true, snapshot: snap.id, accounts: accounts.length, liab_30d: r2(h30.expected), liab_90d_p90: r2(h90.p90), status });
+
+  // Evaluation-ladder recommendation (the owner acts on it; nothing is bought automatically).
+  const [{ data: ls }, { data: ev }, { data: activeRows }] = await Promise.all([
+    db.from("ladder_settings").select("*").maybeSingle(),
+    db.rpc("ladder_gate_evidence", { p_days: 30 }),
+    db.from("ladder_accounts").select("id").in("status", ["evaluation", "funded"]),
+  ]);
+  let recommendation = null;
+  if (ls) {
+    const d = ladderDecision({ seed: Number(ls.seed_budget_usd), reinvest: Number(ls.reinvest_fraction), fee: Number(ls.default_fee_usd),
+      maxActive: Number(ls.max_active_accounts), minTrades: Number(ls.gate_min_trades), breakEvenR: Number(ls.gate_break_even_r) },
+      { trades: Number(ev?.trades ?? 0), meanR: ev?.mean_r == null ? null : Number(ev.mean_r), days: Number(ev?.days ?? 0),
+        dayMean: ev?.day_mean == null ? null : Number(ev.day_mean), daySd: ev?.day_sd == null ? null : Number(ev.day_sd) },
+      (activeRows ?? []).length, ladderCash, feesPaid);
+    await db.from("ladder_recommendations").insert({ action: d.action, accounts: d.accounts, budget_usd: r2(d.budget), reason: d.reason, evidence: { ...ev, lower: d.lower, gate: d.gate } });
+    recommendation = d;
+  }
+  return json({ ok: true, snapshot: snap.id, accounts: accounts.length, liab_30d: r2(h30.expected), liab_90d_p90: r2(h90.p90), status, ladder: recommendation });
 });
