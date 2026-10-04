@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Treasury · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
+<body><header class="top"><div><div class="brand">IPFX Team · Treasury</div><div class="subtitle" id="status" role="status">Checking secure access…</div></div><nav aria-label="Team pages"><a href="trader-analytics.html">Analytics</a><a href="team-b-book.html">B-book</a><a href="team-a-book.html">A-book</a><a href="team-treasury.html" aria-current="page">Treasury</a><a href="admin.html">Operations</a></nav></header>
+<main><div class="intro"><div><h1>Treasury, books and ladder</h1><p class="muted">What IPFX is likely to owe traders, the cash that can pay it, where each trader sits in the A/B books, and whether to buy more prop-firm evaluations. Nothing on this page places a trade or makes a payment.</p></div><button class="button" id="refresh" type="button">Refresh</button></div>
+<div class="kpis" id="kpis"><div class="tile"><span>Status</span><strong>—</strong></div></div>
+
+<section class="panel"><h2>Payout forecast</h2><p class="small" id="modelNote">Loading…</p><table><thead><tr><th>Horizon</th><th>Expected payouts</th><th>Bad case (90%)</th><th>Expected graduates</th></tr></thead><tbody id="horizons"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody></table>
+<form id="reserveForm" class="book-login" style="margin-top:12px"><label>Starting cash reserve (USD)<input id="reserveUsd" type="number" min="0" step="100" required></label><div class="book-actions"><button class="button primary" type="submit">Save reserve</button></div></form></section>
+
+<section class="panel"><h2>Evaluation ladder</h2><div class="notice" id="ladderRec">Loading recommendation…</div>
+<table><thead><tr><th>Account</th><th>Size</th><th>Fee</th><th>Status</th><th>Signal group</th><th>Copying</th><th></th></tr></thead><tbody id="ladderRows"><tr><td colspan="7" class="empty">No accounts yet.</td></tr></tbody></table>
+<details style="margin-top:12px"><summary>Add a prop-firm account you have bought</summary><p class="small">Your password is exchanged once for encrypted API tokens and is not saved. New accounts start with copying OFF.</p>
+<form id="ladderAdd"><div class="book-login"><label>Label<input id="laLabel" required></label><label>Size (USD)<input id="laSize" type="number" min="1000" step="1000" value="50000" required></label><label>Fee paid (USD)<input id="laFee" type="number" min="0" step="1" value="300" required></label><label>Signal group<input id="laGroup" type="number" min="0" step="1" value="0"></label><label>Broker email<input id="laEmail" autocomplete="off" required></label><label>Password<input id="laPassword" type="password" autocomplete="new-password" required></label><label>Server<input id="laServer" required></label><label>Account number (optional)<input id="laAccount" inputmode="numeric"></label></div><div class="book-actions"><button class="button primary" type="submit" id="laSubmit">Add account (copying off)</button></div></form></details>
+<form id="payoutForm" class="book-login" style="margin-top:12px"><label>Payout received (USD)<input id="poAmount" type="number" min="1" step="1" required></label><label>From account id (optional)<input id="poAccount" type="number" min="1"></label><div class="book-actions"><button class="button" type="submit">Record payout</button></div></form></section>
+
+<section class="panel"><h2>A/B books</h2><div class="kpis" id="bookStates"></div><table><thead><tr><th>Book</th><th>Open risk now</th><th>Today's closed P&amp;L</th><th>Daily loss stop</th><th>Daily profit cap</th></tr></thead><tbody id="bookRows"></tbody></table>
+<div class="book-actions" style="margin-top:12px"><button class="button" id="haltBtn" type="button">Halt all new book risk</button></div>
+<h2 style="margin-top:18px">Latest moves between books</h2><table><thead><tr><th>When</th><th>From</th><th>To</th><th>Why</th></tr></thead><tbody id="events"><tr><td colspan="4" class="empty">No moves yet.</td></tr></tbody></table></section>
+
+<section class="panel"><h2>Graduates waiting for a funded account</h2><p class="small">Queued automatically when an Infinity trader completes Stage 3. Buy the account in the trader's own name, then mark it here.</p><table><thead><tr><th>Trader</th><th>Since</th><th>Status</th><th></th></tr></thead><tbody id="spons"><tr><td colspan="4" class="empty">No graduates yet.</td></tr></tbody></table></section>
+
+<section class="panel"><h2>Largest expected payouts</h2><table><thead><tr><th>Trader</th><th>Stage</th><th>Chance of reaching payout</th><th>Expected days</th><th>Payout if reached</th><th>Skill estimate</th></tr></thead><tbody id="forecasts"><tr><td colspan="6" class="empty">No open accounts.</td></tr></tbody></table></section>
+</main>
+<script src="/assets/js/team-treasury.js?v=20261004"></script>
+</body></html>
