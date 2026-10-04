@@ -53,3 +53,9 @@ test('owner control: MFA owner only, passwords never stored, every change audite
   assert.match(page, /team-treasury\.js\?v=/);
   assert.match(read('assets/js/team-treasury.js'), /functions\/v1\/ladder-admin/);
 });
+
+test('legs open and close in parallel batches so many ladder accounts do not exceed the hedge-first wait', () => {
+  const x = read('supabase/functions/book-executor/index.ts');
+  assert.ok(x.includes('legs.slice(i, i + 8).map(placeLeg)'));
+  assert.ok(x.includes('all.slice(i, i + 8).map(closeOne)'));
+});

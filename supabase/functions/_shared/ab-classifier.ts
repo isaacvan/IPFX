@@ -33,13 +33,15 @@ export type Policy = {
   abDemoteEwma: number;       // AB_LIVE early-warning threshold on recent same-direction R
   stage2AutoPct: number;      // the board's 2.75% Stage 2 rule
   stage2AutoTarget: "AB_DEMO" | "AB_LIVE";
+  stage2AutoMinTrades: number;  // replayed trades needed before the 2.75% rule may fire (0 = off)
+  stage2AutoMinCopyR: number;   // their copy results (after costs) must average at least this (-Infinity = off)
 };
 
 export const POLICY_V1: Policy = {
   version: 1, minDays: 20, minTrades: 40, minEdgeR: 0.02, zLower: 1.645, eValuePromote: 10, eValueLive: 10,
   maxBestTradeShare: 0.30, minMedianHoldSeconds: 60, maxShareUnder60s: 0.50, dwellDays: 5, coolOffDays: 10,
   liveFlipMinTrades: 10, abFailTrades: 80, ewmaAlpha: 0.1, abDemoteEwma: -0.05,
-  stage2AutoPct: 2.75, stage2AutoTarget: "AB_DEMO",
+  stage2AutoPct: 2.75, stage2AutoTarget: "AB_DEMO", stage2AutoMinTrades: 0, stage2AutoMinCopyR: -Infinity,
 };
 
 export type Evidence = {
@@ -133,7 +135,11 @@ export function decide(input: ClassifierInput, p: Policy = POLICY_V1): Decision 
     case "BB_DEMO": {
       if (dwellOk && strong(same, p, p.eValuePromote) && hftOk)
         return { to: "AB_DEMO", reason: "trader profitable on their own after costs: test copying them directly", evidence: { same: summary(same) } };
-      if (input.stage2ProfitPct != null && input.stage2ProfitPct >= p.stage2AutoPct && hftOk)
+      // The 2.75% rule looks at IPFX profit. A profit that cannot be copied (feed-lag trading, or one of two
+      // opposite accounts of the same person) must not trigger it, so from policy v3 the person's replayed copy
+      // results must also be non-negative over a minimum number of trades.
+      const copyableOk = same.trades >= p.stage2AutoMinTrades && same.mean >= p.stage2AutoMinCopyR;
+      if (input.stage2ProfitPct != null && input.stage2ProfitPct >= p.stage2AutoPct && hftOk && copyableOk)
         return { to: p.stage2AutoTarget, reason: `Infinity Stage 2 profit ${input.stage2ProfitPct.toFixed(2)}% >= ${p.stage2AutoPct}% (automatic rule)`, evidence: { same: summary(same) } };
       const coolOk = input.lastAbExitAt == null || now - input.lastAbExitAt >= p.coolOffDays * DAY;
       if (dwellOk && coolOk && strong(rev, p, p.eValueLive) && hftOk)
