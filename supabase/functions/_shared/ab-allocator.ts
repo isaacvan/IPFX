@@ -60,7 +60,8 @@ export type Progress = "EARLY" | "STAGE2_PASSED" | "STAGE3_COMPLETE";
 export type FundedLimits = { accountSizeUsd: number; dailyBudgetPct: number; perTradeMinPct: number; perTradeMaxPct: number };
 export const PROGRESS_WEIGHT: Record<Progress, number> = { EARLY: 0.5, STAGE2_PASSED: 1.0, STAGE3_COMPLETE: 1.5 };
 
-export function fundedRiskUsd(book: "a" | "b", lim: FundedLimits, expectedSignalsPerDay: number, progress: Progress, sizing: Sizing):
+export function fundedRiskUsd(book: "a" | "b", lim: FundedLimits, expectedSignalsPerDay: number, progress: Progress, sizing: Sizing,
+  treasury: "unknown" | "healthy" | "tight" | "short" = "unknown"):
   { riskUsd: number; weight: number; reason: string } {
   const base = lim.accountSizeUsd * (lim.dailyBudgetPct / 100) / Math.max(4, expectedSignalsPerDay);
   const warning = sizing.reason.startsWith("early warning");
@@ -68,10 +69,13 @@ export function fundedRiskUsd(book: "a" | "b", lim: FundedLimits, expectedSignal
   if (book === "a") {
     const confirmed = sizing.multiplier >= 6 ? 1.5 : sizing.multiplier >= 3 ? 1.25 : 1;
     weight = PROGRESS_WEIGHT[progress] * confirmed * (warning ? 1 / 3 : 1);
+    // Treasury tilt (board rule, bounded): when cash for payouts is tight or short, move risk from the
+    // least proven traders to the most proven ones. The per-trade ceiling and every hard cap still apply.
+    if (treasury === "tight" || treasury === "short") weight *= progress === "EARLY" ? 0.5 : progress === "STAGE3_COMPLETE" ? 1.2 : 1;
   } else {
     weight = (sizing.multiplier >= 3 ? 1 : sizing.multiplier >= 2 ? 0.75 : 0.5) * (warning ? 1 / 3 : 1);
   }
   const floor = lim.accountSizeUsd * lim.perTradeMinPct / 100, ceil = lim.accountSizeUsd * lim.perTradeMaxPct / 100;
   const riskUsd = Math.round(Math.min(ceil, Math.max(floor, base * weight)) * 100) / 100;
-  return { riskUsd, weight: Number(weight.toFixed(3)), reason: `${progress}; ${sizing.reason}; ${expectedSignalsPerDay.toFixed(1)} signals/day` };
+  return { riskUsd, weight: Number(weight.toFixed(3)), reason: `${progress}; ${sizing.reason}; ${expectedSignalsPerDay.toFixed(1)} signals/day; treasury ${treasury}` };
 }

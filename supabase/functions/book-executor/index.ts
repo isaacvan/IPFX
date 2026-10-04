@@ -76,14 +76,18 @@ async function open(db: Db, b: Record<string, unknown>) {
   if (Number(lim?.account_size_usd) > 0) {
     // Funded-account sizing: a share of the destination's daily risk budget, weighted by confidence.
     const since = new Date(Date.now() - 5 * 86_400_000).toISOString();
-    const [{ count: routed }, { count: liveTraders }, { data: progress }] = await Promise.all([
+    const [{ count: routed }, { count: liveTraders }, { data: progress }, { data: treasury }] = await Promise.all([
       db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", book).eq("event", "open").gte("created_at", since),
       db.from("ab_trader_profiles").select("person_id", { count: "exact", head: true }).eq("book_state", book === "a" ? "AB_LIVE" : "BB_LIVE"),
       db.rpc("ab_person_progress", { p_person: person }),
+      db.rpc("treasury_status"),
     ]);
+    // Cash for payouts short: no new B-book (reverse) risk at all until it recovers.
+    if (book === "b" && treasury === "short") { return { ok: true, skipped: "treasury short: B-book paused" }; }
     const expected = Math.max(Number(routed ?? 0) / 5, Number(liveTraders ?? 0) * 2);
     const f = fundedRiskUsd(book, { accountSizeUsd: Number(lim.account_size_usd), dailyBudgetPct: Number(lim.daily_risk_budget_pct),
-      perTradeMinPct: Number(lim.per_trade_min_pct), perTradeMaxPct: Number(lim.per_trade_max_pct) }, expected, (progress ?? "EARLY") as Progress, sizing);
+      perTradeMinPct: Number(lim.per_trade_min_pct), perTradeMaxPct: Number(lim.per_trade_max_pct) }, expected, (progress ?? "EARLY") as Progress, sizing,
+      (treasury ?? "unknown") as "unknown" | "healthy" | "tight" | "short");
     wanted = f.riskUsd; sizeReason = f.reason; weight = f.weight;
   }
   wanted *= Number(book === "a" ? settings?.a_scale ?? 1 : settings?.b_scale ?? 1);

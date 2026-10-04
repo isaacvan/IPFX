@@ -41,7 +41,9 @@ Deno.serve(async (req) => {
     }
     if (!data || data.length < 1000) break;
   }
-  const { data: signals } = await db.from("ab_person_signals").select("person_id,investigation_hold,critical_flag,stage2_profit_pct");
+  // Integrity signals must be read or the run stops: a silent failure here once meant no suspension could fire.
+  const { data: signals, error: sigErr } = await db.from("ab_person_signals").select("person_id,investigation_hold,critical_flag,stage2_profit_pct");
+  if (sigErr) return json({ error: "integrity signals unavailable: " + sigErr.message }, 503);
   const sig = new Map((signals ?? []).map((s) => [s.person_id, s]));
 
   const now = Date.now();
