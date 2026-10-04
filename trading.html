@@ -5756,8 +5756,11 @@ function ticketPollDue(){
   const since=Date.now()-lastTicketPoll;
   if(typeof feedState!=='undefined'&&feedState==='closed')return since>=10000;
   if(Date.now()-lastUserActivity>300000)return since>=3000;
+  // Live pushes arriving: the poll is only a safety net and risk check, so every 2.25s instead of 0.75s.
+  if(rtQuoteChan&&Date.now()-lastPushedQuoteAt<3000)return since>=2250;
   return true;
 }
+let lastPushedQuoteAt=0;
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!hasSession())return;
   lastTicketPoll=0;pollTicketPrice();
@@ -5790,6 +5793,7 @@ function onPushedQuote(p){
   if(feedState==='closed'||pollsPaused())return;
   if(p.rt&&p.rt<=quoteAppliedRt)return;
   quoteAppliedRt=p.rt||Date.now();
+  lastPushedQuoteAt=Date.now();
   if(Number.isInteger(p.d))domDigits=p.d;
   domPrice=p.m;lastQuoteTs=Date.now();
   const q={symbol:p.s,mid:p.m,bid:p.b,ask:p.a,spread:p.sp,digits:p.d,status:'live'};

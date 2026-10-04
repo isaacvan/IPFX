@@ -524,8 +524,31 @@ async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<st
   return { rows, changed };
 }
 
+// Realtime push is billed per message (and per recipient). Push only symbols someone has open in IPFX Markets
+// (quote_watch, refreshed by their price polls) and at most twice a second per symbol. Nobody watching = no
+// messages. Polling still delivers every price, so this only trims duplicate pushes.
+const PUSH_MIN_GAP_MS = 500;
+const lastPushAt = new Map<string, number>();
+let watched = new Set<string>(); let watchedAt = 0;
+async function refreshWatched(db: Db): Promise<void> {
+  if (Date.now() - watchedAt < 5_000) return;
+  watchedAt = Date.now();
+  const { data } = await db.from("quote_watch").select("symbol").gte("last_seen", new Date(Date.now() - 60_000).toISOString());
+  watched = new Set((data ?? []).map((r: Record<string, unknown>) => String(r.symbol)));
+}
+const watchWrittenAt = new Map<string, number>();
+function noteWatched(db: Db, symbol: string): void {
+  const now = Date.now();
+  if (now - (watchWrittenAt.get(symbol) ?? 0) < 20_000) return;
+  watchWrittenAt.set(symbol, now);
+  emailLater(Promise.resolve(db.from("quote_watch").upsert({ symbol, last_seen: new Date(now).toISOString() })).then(() => {}, () => {}));
+}
+
 async function broadcastQuotes(qs: Quote[]): Promise<void> {
+  const now = Date.now();
+  qs = qs.filter((q) => watched.has(q.symbol) && now - (lastPushAt.get(q.symbol) ?? 0) >= PUSH_MIN_GAP_MS);
   if (!qs.length) return;
+  for (const q of qs) lastPushAt.set(q.symbol, now);
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   try {
     await fetch(Deno.env.get("SUPABASE_URL") + "/realtime/v1/api/broadcast", {
@@ -883,6 +906,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
         out = { rows: fx.rows.filter((r) => !reserved.has(String(r.symbol))), changed: fx.changed.filter((c) => !reserved.has(c.symbol)) };
       }
       const { rows, changed } = out;
+      await refreshWatched(db).catch(() => {});
       if (rows.length) {
         await Promise.all([
           db.from("live_quotes").upsert(rows),
@@ -2933,6 +2957,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
   // order buttons instead of pretending the feed is broker-grade.
   if (body.action === "price") {
     const symbol = cleanSymbol(body.symbol);
+    if (symbol) noteWatched(db, symbol);
     if (!symbol) return err("Unknown instrument");
     noteDemand(symbol);
     await warmQuotes();
