@@ -157,3 +157,18 @@ test('herd: clusters of 3+ co-traders lose the automatic 2.75% rule when the pol
   assert.match(sql, /p_window_s int default 60, p_min_shared int default 5, p_min_share numeric default 0.3/);
   assert.match(sql, /grant execute on function public.ab_herd_pairs\(int, int, int, numeric\) to service_role/);
 });
+
+test('policy v4 blocks the automatic rule for herds and the crowding cap is 5', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261004160000_ab_policy_v4_herd_and_crowd5.sql', import.meta.url), 'utf8');
+  assert.match(sql, /set status = 'RETIRED' where version = 3/);
+  assert.match(sql, /"maxCopyGapR":0.1,"herdBlocksAuto":true/);
+  assert.match(sql, /alter column crowd_max set default 5/);
+});
+
+test('ledger: trades without a stop loss are measured against the account risk limit, and say so', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261004150000_ab_ledger_account_risk_unit.sql', import.meta.url), 'utf8');
+  assert.match(sql, /coalesce\(nullif\(a\.max_risk_per_trade_pct, 0\), 1\) \/ 100\.0 \* nullif\(a\.starting_balance, 0\) as acct_risk/);
+  assert.match(sql, /case when pr\.sl_risk is not null then 'STOP_LOSS' when pr\.acct_risk is not null then 'ACCOUNT_RISK_LIMIT' end/);
+  const ex = readFileSync(new URL('../supabase/functions/book-executor/index.ts', import.meta.url), 'utf8');
+  assert.match(ex, /t\.sl == null\) return \{ ok: true, skipped: "no stop loss: risk not measurable" \}/, 'copies still need a real stop loss');
+});
