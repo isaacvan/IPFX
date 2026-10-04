@@ -6,7 +6,7 @@
   // Local design check only: http://localhost:<port>/team-brain.html?fixture loads made-up data from tests/fixtures.
   const FIXTURE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('fixture');
   const sb = FIXTURE ? null : window.supabase.createClient(SB_URL, SB_ANON);
-  const REFRESH_MS = 30000;
+  const REFRESH_MS = 10000, FULL_MS = 60000;   // light pulse every 10s; traders, moves and replay series every minute
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const fin = (v) => v != null && v !== '' && Number.isFinite(Number(v));
@@ -59,13 +59,15 @@
   ];
 
   let data = null, busy = false, filter = 'action', tab = 'ALL', sortKey = store.get('sort', 'last'), sortDir = store.get('dir', 'desc'), shown = 100;
-  let mode = store.get('mode', 'live'), range = store.get('range', 30), knownAlerts = null, lastLoad = 0;
+  let mode = store.get('mode', 'live'), range = store.get('range', 30), knownAlerts = null, lastLoad = 0, lastFull = 0;
 
   async function call(action, extra = {}) {
     if (FIXTURE) {
       const f = action === 'trader' ? 'brain-trader.json' : 'brain-overview.json';
       if (action === 'ack') return { ok: true };
-      const r = await fetch('/tests/fixtures/' + f, { cache: 'no-store' }); return r.json();
+      const r = await fetch('/tests/fixtures/' + f, { cache: 'no-store' }); const j = await r.json();
+      if (action === 'pulse') { delete j.traders; delete j.events; delete j.books.paper_daily; j.light = true; }
+      return j;
     }
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { location.replace('team-login.html?next=' + encodeURIComponent('/team-brain.html')); throw new Error('Sign in again'); }
@@ -157,7 +159,7 @@
     $('heroTitle').textContent = crit ? `${crit} urgent problem${crit > 1 ? 's' : ''}${warn ? ` and ${warn} thing${warn > 1 ? 's' : ''} to watch` : ''}`
       : warn ? `${warn} thing${warn > 1 ? 's' : ''} to keep an eye on` : 'All clear: nothing needs you right now';
     const pol = data.policy ? `policy v${data.policy.version}` : 'no active policy';
-    $('heroSub').textContent = `Updated ${new Date(data.generated_at).toLocaleTimeString('en-GB')} · refreshes every 30s · ${pol} · market ${data.health.market_open ? 'open' : 'closed'}${data.settings?.book_halt ? ' · BOOKS HALTED' : ''}`;
+    $('heroSub').textContent = `Updated ${new Date(data.generated_at).toLocaleTimeString('en-GB')} · live every 10s · ${pol} · market ${data.health.market_open ? 'open' : 'closed'}${data.settings?.book_halt ? ' · BOOKS HALTED' : ''}`;
     document.title = (crit + warn ? `(${crit + warn}) ` : '') + 'Brain · IPFX Team';
   }
 
@@ -177,7 +179,7 @@
   }
   function renderTiles() {
     const c = data.counts || {}, t = data.treasury, jobs = data.health.jobs || [], beats = data.health.heartbeats || [];
-    const down = jobs.filter((j) => !j.ok).length + beats.filter((b) => !b.ok || Date.now() - Date.parse(b.at) > 15 * 60000).length;
+    const down = jobs.filter((j) => !j.ok).length + beats.filter((b) => !b.ok || Date.now() - Date.parse(b.at) > 5 * 60000).length;
     const total = jobs.length + beats.length;
     const tStatus = { healthy: ['good', 'Healthy'], tight: ['warning', 'Tight'], short: ['critical', 'Short'], unknown: ['info', 'Reserve not entered'] }[t?.status || 'unknown'];
     const lad = data.books.ladder || { accounts: 0, copying: 0 };
@@ -326,7 +328,7 @@
     const h = data.health, beatName = { 'ab-classifier': 'Classifier (moves traders between boxes)', 'brain-scan': 'Alert scan (this page)' };
     const rows = h.jobs.map((j) => `<div class="health-row"><span class="sev ${j.ok ? 'good' : 'critical'}"><i>${j.ok ? '✓' : '!'}</i></span><span>${esc(j.title)}</span><span class="small">${j.age_s == null ? 'no run found' : 'ran ' + ago(new Date(Date.now() - j.age_s * 1000).toISOString())}</span></div>`);
     for (const b of h.heartbeats || []) {
-      const ok = b.ok && Date.now() - Date.parse(b.at) < 15 * 60000;
+      const ok = b.ok && Date.now() - Date.parse(b.at) < 5 * 60000;
       rows.push(`<div class="health-row"><span class="sev ${ok ? 'good' : 'critical'}"><i>${ok ? '✓' : '!'}</i></span><span>${esc(beatName[b.worker] || b.worker)}${!b.ok && b.detail?.error ? ' · ' + esc(b.detail.error) : ''}</span><span class="small">${ago(b.at)}</span></div>`);
     }
     const pAge = h.prices_at ? (Date.now() - Date.parse(h.prices_at)) / 1000 : null, pOk = !h.market_open || (pAge != null && pAge < 120);
@@ -419,16 +421,26 @@
   }
 
   // ---------- load loop ----------
-  async function load() {
-    if (busy) return; busy = true; $('refresh').disabled = true; document.querySelector('main').classList.add('loading');
+  // Every 10 seconds: a light pulse (alerts, tiles, books, health). The full picture (every trader, moves,
+  // replay series) loads every minute, or straight away when the brain has new trader statistics.
+  async function load(forceFull = false) {
+    if (busy) return; busy = true; $('refresh').disabled = true;
+    if (forceFull === true) document.querySelector('main').classList.add('loading');
     try {
-      data = await call('overview'); lastLoad = Date.now(); render(); notifyNew();
+      const full = forceFull === true || !data || Date.now() - lastFull > FULL_MS;
+      let res = await call(full ? 'overview' : 'pulse');
+      if (!full && res.metrics_as_of && res.metrics_as_of !== data.metrics_as_of) res = await call('overview');
+      if (res.light) {
+        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders, events: data.events };
+        renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderHealth();
+      } else { data = res; lastFull = Date.now(); render(); }
+      lastLoad = Date.now(); notifyNew();
       $('status').textContent = (FIXTURE ? 'DESIGN PREVIEW · made-up data · ' : 'Owner-only · MFA protected · ') + 'updated ' + new Date().toLocaleTimeString('en-GB');
     } catch (e) { $('status').textContent = e.message; }
     finally { busy = false; $('refresh').disabled = false; document.querySelector('main').classList.remove('loading'); }
   }
 
-  $('refresh').addEventListener('click', load);
+  $('refresh').addEventListener('click', () => load(true));
   $('notifyBtn').addEventListener('click', async () => { try { await Notification.requestPermission(); } catch (_) {} syncNotifyBtn(); });
   $('soundToggle').checked = store.get('sound', false); $('soundToggle').addEventListener('change', (e) => store.set('sound', e.target.checked));
   $('helpBtn').addEventListener('click', () => { $('helpBody').innerHTML = HELP.map(([k, v]) => `<div><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join(''); $('help').showModal(); });
@@ -458,7 +470,7 @@
   });
   $('dClose').addEventListener('click', closeDrawer); $('scrim').addEventListener('click', closeDrawer);
   addEventListener('resize', () => { if (data) renderBooks(); });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastLoad > 10000) load(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastLoad > 5000) load(); });
   setInterval(() => { if (document.visibilityState === 'visible') load(); }, REFRESH_MS);
-  syncNotifyBtn(); load();
+  syncNotifyBtn(); load(true);
 })();

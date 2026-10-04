@@ -6,7 +6,7 @@ import { allowRequest, readJsonObject } from "../_shared/request-guards.ts";
 
 const ORIGINS = new Set(["https://ipfxcapital.com", "https://www.ipfxcapital.com", "http://localhost:3000", "http://localhost:8127"]);
 const JOBS = [
-  ["ipfx-ab-ledger", "Trade ledger", 900], ["ipfx-ab-classifier", "Classifier trigger", 900], ["ipfx-brain-scan", "Alert scan", 900],
+  ["ipfx-ab-ledger", "Trade ledger", 300], ["ipfx-ab-classifier", "Classifier trigger", 300], ["ipfx-brain-scan", "Alert scan", 60],
   ["ipfx-treasury", "Payout forecast", 10800], ["ipfx-book-reconcile", "Order reconciler", 300], ["ipfx-drawdown-sweep", "Account rule checks", 120],
   ["ipfx-quote-pump", "Price pump", 120], ["ipfx-demo-mirror-outbox", "Demo mirror", 300], ["ipfx-trader-detector", "Trader detector", 1800],
 ] as const;
@@ -38,21 +38,25 @@ Deno.serve(async (req) => {
   if (!body) return json({ ok: false, error: "Invalid request" }, 400);
   const action = String(body.action || "overview");
 
-  if (action === "overview") {
+  // "overview" = everything (about once a minute); "pulse" = the fast-moving parts only, for the 10-second refresh:
+  // alerts, tiles, books, health. Traders, moves and replay series come with the next overview.
+  if (action === "overview" || action === "pulse") {
+    const light = action === "pulse";
+    const none = Promise.resolve({ data: null });
     const since90 = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
     const since24 = new Date(Date.now() - 86_400_000).toISOString();
     const [open, resolved, profiles, metrics, events, limits, settings, pol, reservations, livePnl, paper, orders, skips, snap, beats, prices, mkt, ladders, ...jobs] = await Promise.all([
       db.from("ab_alerts").select("id,key,severity,category,title,detail,person_id,value,first_seen,last_seen,acknowledged_at").is("resolved_at", null).limit(500),
       db.from("ab_alerts").select("id,severity,category,title,person_id,first_seen,resolved_at").gte("resolved_at", since24).order("resolved_at", { ascending: false }).limit(60),
-      db.from("ab_trader_profiles").select("person_id,book_state,state_since,state_reason,last_trade_at"),
-      db.from("ab_trader_metrics").select("*"),
-      db.from("ab_lifecycle_events").select("id,person_id,from_state,to_state,reason,created_at,policy_version").order("created_at", { ascending: false }).limit(100),
+      db.from("ab_trader_profiles").select(light ? "book_state" : "person_id,book_state,state_since,state_reason,last_trade_at"),
+      light ? db.from("ab_trader_metrics").select("as_of").order("as_of", { ascending: false }).limit(1) : db.from("ab_trader_metrics").select("*"),
+      light ? none : db.from("ab_lifecycle_events").select("id,person_id,from_state,to_state,reason,created_at,policy_version").order("created_at", { ascending: false }).limit(100),
       db.from("ab_risk_limits").select("book,daily_loss_stop_usd,daily_profit_cap_usd,open_risk_max_usd,per_trade_max_usd,crowd_max,account_size_usd"),
       db.from("ab_settings").select("book_halt,payout_model").maybeSingle(),
       db.from("ab_policy_versions").select("version,note,created_at").eq("status", "ACTIVE").maybeSingle(),
       db.from("ab_risk_reservations").select("book,risk_usd").eq("status", "active"),
       db.from("book_daily_pnl").select("book,day,pnl_usd").gte("day", since90),
-      db.rpc("ab_paper_book_daily", { p_days: 90 }),
+      light ? none : db.rpc("ab_paper_book_daily", { p_days: 90 }),
       db.from("book_orders").select("book,event,status,pnl_usd,latency_ms,created_at").gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString()).limit(20000),
       db.from("ab_copy_skips").select("book,reason").gte("created_at", since24).limit(20000),
       db.from("treasury_snapshots").select("as_of,status,liab_30d,liab_90d,liab_90d_p90,assets_usd,open_accounts").order("as_of", { ascending: false }).limit(1).maybeSingle(),
@@ -63,7 +67,8 @@ Deno.serve(async (req) => {
       ...JOBS.map(([job]) => db.rpc("ab_cron_health", { p_job: job })),
     ]);
 
-    const ids = [...new Set([...(profiles.data ?? []).map((p) => p.person_id), ...(open.data ?? []).map((a) => a.person_id).filter(Boolean)])];
+    const ids = [...new Set([...(light ? [] : (profiles.data ?? []).map((p) => p.person_id)), ...(open.data ?? []).map((a) => a.person_id).filter(Boolean),
+      ...(resolved.data ?? []).map((a) => a.person_id).filter(Boolean)])];
     const names = new Map<string, string>();
     for (let i = 0; i < ids.length; i += 500) {
       const { data } = await db.from("user_profiles").select("user_id,full_name").in("user_id", ids.slice(i, i + 500));
@@ -95,7 +100,7 @@ Deno.serve(async (req) => {
       .sort((a, b) => (SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]) || (Date.parse(b.first_seen) - Date.parse(a.first_seen)));
 
     return json({
-      ok: true, generated_at: new Date().toISOString(), policy: pol.data, settings: settings.data, counts,
+      ok: true, light, generated_at: new Date().toISOString(), metrics_as_of: light ? (metrics.data?.[0]?.as_of ?? null) : (metrics.data ?? []).reduce((a: string | null, x: { as_of: string }) => !a || x.as_of > a ? x.as_of : a, null), policy: pol.data, settings: settings.data, counts,
       alerts, resolved: (resolved.data ?? []).map((a) => ({ ...a, name: label(a.person_id) })),
       health: {
         jobs: JOBS.map(([job, title, maxAge], i) => {
@@ -106,11 +111,11 @@ Deno.serve(async (req) => {
         heartbeats: beats.data ?? [], prices_at: prices.data?.received_at ?? null, market_open: mkt.data === true,
       },
       books: {
-        limits: limits.data ?? [], open_risk: openRisk, live_daily: livePnl.data ?? [], paper_daily: paper.data ?? [], execution,
+        limits: limits.data ?? [], open_risk: openRisk, live_daily: livePnl.data ?? [], ...(light ? {} : { paper_daily: paper.data ?? [] }), execution,
         skips: [...skipMap.entries()].map(([k, n]) => ({ book: k.split("|")[0], reason: k.split("|").slice(1).join("|"), n })).sort((a, b) => b.n - a.n),
         ladder: { accounts: (ladders.data ?? []).length, copying: (ladders.data ?? []).filter((l) => l.execution_enabled).length },
       },
-      treasury: snap.data, traders, events: (events.data ?? []).map((e) => ({ ...e, name: label(e.person_id) })),
+      treasury: snap.data, ...(light ? {} : { traders, events: (events.data ?? []).map((e) => ({ ...e, name: label(e.person_id) })) }),
     });
   }
 

@@ -80,3 +80,15 @@ test('page: owner pages link to the Brain; local design preview only on localhos
   assert.match(js, /functions\/v1\/brain-monitor/);
   for (const p of ['team-a-book.html', 'team-b-book.html', 'team-treasury.html']) assert.match(readFileSync(new URL('../' + p, import.meta.url), 'utf8'), /href="team-brain\.html"/, p);
 });
+
+test('10-second updates: alert scan every 10s writing only changes, ledger and classifier every minute, page pulses every 10s', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261005090000_brain_ten_second_pulse.sql', import.meta.url), 'utf8');
+  assert.match(sql, /cron\.schedule\('ipfx-brain-scan', '10 seconds', 'select public\.ab_alerts_scan\(\)'\)/);
+  assert.match(sql, /cron\.schedule\('ipfx-ab-ledger', '\* \* \* \* \*', 'select public\.ab_ledger_tick\(\)'\)/);
+  assert.match(sql, /cron\.schedule\('ipfx-ab-classifier', '\* \* \* \* \*', 'select public\.kick_ab_classifier\(\)'\)/);
+  assert.match(sql, /or a\.last_seen < now\(\) - interval '1 minute';/);
+  const fn = readFileSync(new URL('../supabase/functions/brain-monitor/index.ts', import.meta.url), 'utf8');
+  assert.match(fn, /action === "overview" \|\| action === "pulse"/);
+  const js = readFileSync(new URL('../assets/js/team-brain.js', import.meta.url), 'utf8');
+  assert.match(js, /const REFRESH_MS = 10000, FULL_MS = 60000;/);
+});
