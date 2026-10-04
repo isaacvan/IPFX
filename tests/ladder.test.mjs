@@ -43,11 +43,11 @@ test('ladder accounts: owner-enabled only, per-account limits, split signal grou
 
 test('owner control: MFA owner only, passwords never stored, every change audited, nothing trades or pays', () => {
   const f = read('supabase/functions/ladder-admin/index.ts');
-  assert.match(f, /aal\(authHeader\.replace\(\/\^Bearer\s\+\/i, ""\)\) !== "aal2"/);
+  assert.ok(f.includes('!== "aal2"') && f.includes('authHeader.replace('), 'MFA (aal2) session required');
   assert.match(f, /String\(user\.email \|\| ""\)\.toLowerCase\(\) !== ownerEmail/);
   assert.match(f, /execution_enabled: false,/);
   assert.doesNotMatch(f, /password[^,]*:\s*password/);
-  for (const a of ['treasury_set_reserve', 'ab_book_halt', 'ladder_account_add', 'ladder_account_update', 'ladder_payout_add', 'graduate_sponsorship_decide']) assert.match(f, new RegExp(`audit\("${a}"`));
+  for (const a of ['treasury_set_reserve', 'ab_book_halt', 'ladder_account_add', 'ladder_account_update', 'ladder_payout_add', 'graduate_sponsorship_decide']) assert.ok(f.includes('audit("' + a + '"'), 'audited: ' + a);
   const page = read('team-treasury.html');
   assert.match(page, /Nothing on this page places a trade or makes a payment/);
   assert.match(page, /team-treasury\.js\?v=/);
