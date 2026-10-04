@@ -30,13 +30,13 @@ Deno.serve(async (req) => {
   // Ledger points, paged, oldest first. Only rows with a real quote replay and a stop-loss-based R count as evidence.
   const points = new Map<string, LedgerPoint[]>();
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await db.from("ab_trade_ledger").select("person_id,closed_at,same_r,reverse_r,hold_seconds")
+    const { data, error } = await db.from("ab_trade_ledger").select("person_id,closed_at,same_r,reverse_r,hold_seconds,trader_r")
       .eq("replay_basis", "REPLAY_QUOTES").not("same_r", "is", null).not("reverse_r", "is", null)
       .order("closed_at", { ascending: true }).order("trade_id", { ascending: true }).range(from, from + 999);
     if (error) return json({ error: "ledger unavailable" }, 503);
     for (const r of data ?? []) {
       const list = points.get(r.person_id) ?? [];
-      list.push({ closedAt: Date.parse(r.closed_at), sameR: Number(r.same_r), reverseR: Number(r.reverse_r), holdSeconds: Number(r.hold_seconds) });
+      list.push({ closedAt: Date.parse(r.closed_at), sameR: Number(r.same_r), reverseR: Number(r.reverse_r), holdSeconds: Number(r.hold_seconds), traderR: r.trader_r == null ? null : Number(r.trader_r) });
       points.set(r.person_id, list);
     }
     if (!data || data.length < 1000) break;

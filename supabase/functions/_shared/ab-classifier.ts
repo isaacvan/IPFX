@@ -12,7 +12,7 @@
 
 export type BookState = "BB_DEMO" | "BB_LIVE" | "AB_DEMO" | "AB_LIVE" | "SUSPENDED";
 
-export type LedgerPoint = { closedAt: number; sameR: number; reverseR: number; holdSeconds: number };
+export type LedgerPoint = { closedAt: number; sameR: number; reverseR: number; holdSeconds: number; traderR?: number | null };
 
 export type Policy = {
   version: number;
@@ -35,14 +35,22 @@ export type Policy = {
   stage2AutoTarget: "AB_DEMO" | "AB_LIVE";
   stage2AutoMinTrades: number;  // replayed trades needed before the 2.75% rule may fire (0 = off)
   stage2AutoMinCopyR: number;   // their copy results (after costs) must average at least this (-Infinity = off)
+  maxCopyGapR: number;          // feed-lag fingerprint: IPFX result minus copy result, averaged; above this = never promote (Infinity = off)
 };
 
 export const POLICY_V1: Policy = {
   version: 1, minDays: 20, minTrades: 40, minEdgeR: 0.02, zLower: 1.645, eValuePromote: 10, eValueLive: 10,
   maxBestTradeShare: 0.30, minMedianHoldSeconds: 60, maxShareUnder60s: 0.50, dwellDays: 5, coolOffDays: 10,
   liveFlipMinTrades: 10, abFailTrades: 80, ewmaAlpha: 0.1, abDemoteEwma: -0.05,
-  stage2AutoPct: 2.75, stage2AutoTarget: "AB_DEMO", stage2AutoMinTrades: 0, stage2AutoMinCopyR: -Infinity,
+  stage2AutoPct: 2.75, stage2AutoTarget: "AB_DEMO", stage2AutoMinTrades: 0, stage2AutoMinCopyR: -Infinity, maxCopyGapR: Infinity,
 };
+
+// Mean of (IPFX result - copy result) per trade. Normal traders sit near or below zero (copies pay broker
+// costs, which hedge-first keeps at or under IPFX's); traders profiting from feed lag sit well above it.
+export function copyGap(points: LedgerPoint[]): { trades: number; gap: number } {
+  const xs = points.filter((p) => p.traderR != null && Number.isFinite(p.traderR)).map((p) => (p.traderR as number) - p.sameR);
+  return { trades: xs.length, gap: xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0 };
+}
 
 export type Evidence = {
   trades: number; days: number; mean: number; dayMean: number; dayLower: number; eValue: number;
@@ -129,7 +137,9 @@ export function decide(input: ClassifierInput, p: Policy = POLICY_V1): Decision 
   const revSince = evidence(since, (x) => x.reverseR, p.minEdgeR, p);
   const summary = (e: Evidence) => ({ trades: e.trades, days: e.days, mean: +e.mean.toFixed(4), dayLower: +e.dayLower.toFixed(4), eValue: +e.eValue.toFixed(2), ewma: +e.ewma.toFixed(4) });
   const recentSame = evidence(all.slice(-20), (x) => x.sameR, p.minEdgeR, p);
-  const hftOk = same.shareUnder60s <= p.maxShareUnder60s && same.medianHold >= p.minMedianHoldSeconds;
+  const cg = copyGap(all);
+  const lagFree = !(cg.trades >= 15 && cg.gap > p.maxCopyGapR);
+  const hftOk = same.shareUnder60s <= p.maxShareUnder60s && same.medianHold >= p.minMedianHoldSeconds && lagFree;
 
   switch (state) {
     case "BB_DEMO": {

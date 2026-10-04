@@ -87,7 +87,7 @@ export function simulate(scName, seed = 1, opts = {}) {
         t.bal += o; t.nTr++; traded = true; t.peak = Math.max(t.peak, t.bal);
         // ledger replay: latency traders' edge is not copyable (the broker price has already moved)
         const lag = t.kind === 'latency' ? 0.20 : 0;
-        if (r() >= sc.quoteGap) t.points.push({ closedAt: T0 + d * DAY + k * 3_600_000, sameR: o + sc.cIpfx - sc.cB - lag, reverseR: -o - sc.cIpfx - sc.cB + lag, holdSeconds: t.kind === 'latency' ? 90 : 600 });
+        if (r() >= sc.quoteGap) t.points.push({ closedAt: T0 + d * DAY + k * 3_600_000, sameR: o + sc.cIpfx - sc.cB - lag, reverseR: -o - sc.cIpfx - sc.cB + lag, holdSeconds: t.kind === 'latency' ? 90 : 600, traderR: o });
         if (t.state === 'BB_LIVE') reversedToday.push({ r: -o - sc.cIpfx - sc.cB + lag, t });
         if (t.state === 'AB_LIVE') copiedToday.push({ r: o + sc.cIpfx - sc.cB - lag, person: t.id, progress: t.stagesPassed >= 2 ? 'STAGE3_COMPLETE' : t.stagesPassed >= 1 && t.stage >= 3 ? 'STAGE2_PASSED' : 'EARLY', t });
         if (t.bal <= t.peak - D || t.bal <= t.sod - L) { t.stage = 0; t.startDay = r() < 0.5 ? (Math.floor(d / 21) + 1) * 21 : 1e9; break; }

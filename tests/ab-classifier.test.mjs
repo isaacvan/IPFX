@@ -116,3 +116,25 @@ test('wiring: cron worker, audit log and optimistic state change', () => {
   assert.match(sql, /create trigger ab_lifecycle_events_immutable/);
   assert.match(sql, /'SUSPENDED'.*human/s);
 });
+
+test('feed-lag fingerprint: profitable on IPFX but not when copied is never promoted (when the guard is on)', async () => {
+  const { copyGap } = await import('../supabase/functions/_shared/ab-classifier.ts');
+  const r = rng(77); const pts = [];
+  for (let d = 0; d < 40; d++) for (let k = 0; k < 3; k++) {
+    const o = r() < 0.52 ? 1.2 : -1.0;                // looks like a +0.14R trader on IPFX
+    pts.push({ closedAt: T0 + d * DAY + k * 3_600_000, sameR: o - 0.18, reverseR: -o - 0.02, holdSeconds: 90, traderR: o });
+  }
+  assert.ok(copyGap(pts).gap > 0.1);
+  const guarded = { ...POLICY_V1, maxCopyGapR: 0.1 };
+  const stage2 = decide({ state: 'BB_DEMO', stateSince: T0, lastAbExitAt: null, now: T0 + 41 * DAY, points: pts, stage2ProfitPct: 3 }, { ...guarded, stage2AutoTarget: 'AB_LIVE' });
+  assert.equal(stage2, null);
+  const normal = pts.map((p) => ({ ...p, sameR: p.traderR + 0.02 }));
+  assert.ok(copyGap(normal).gap < 0, 'normal traders copy at or better than their IPFX result');
+});
+
+test('crowding cap: at most crowd_max copies of one instrument and direction per book in 15 minutes', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261004120000_ab_crowding_cap.sql', import.meta.url), 'utf8');
+  assert.ok(sql.includes("'crowded: same instrument and direction already copied'"));
+  assert.ok(sql.includes("created_at > now() - interval '15 minutes'"));
+  assert.ok(sql.includes('crowd_max int not null default 3'));
+});
