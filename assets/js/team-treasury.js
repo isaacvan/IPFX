@@ -38,8 +38,9 @@
     const rec = d.recommendation;
     $('ladderRec').innerHTML = rec ? `<b>${esc(rec.action.toUpperCase())}${rec.accounts ? ' ' + rec.accounts + ' evaluation' + (rec.accounts > 1 ? 's' : '') : ''}</b> · ${esc(rec.reason)} · budget ${usd(rec.budget_usd)} · ${when(rec.as_of)}` : 'No recommendation yet (runs every hour).';
     const la = d.ladder_accounts || [];
-    $('ladderRows').innerHTML = la.length ? la.map((a) => `<tr><td>${esc(a.label)} #${esc(a.id)}</td><td>${usd(a.size_usd)}</td><td>${usd(a.fee_usd)}</td><td>${esc(a.status)}</td><td>${esc(a.signal_group)}</td><td>${a.execution_enabled ? 'ON' : 'off'}</td>
-      <td><button class="button" data-la="${a.id}" data-on="${a.execution_enabled ? '0' : '1'}" type="button">${a.execution_enabled ? 'Stop copying' : 'Start copying'}</button></td></tr>`).join('') : '<tr><td colspan="7" class="empty">No accounts yet.</td></tr>';
+    const ROLE = { ladder: 'Prop (A-book)', shadow: 'Demo copy', monitor: 'E8 monitor (read-only)' };
+    $('ladderRows').innerHTML = la.length ? la.map((a) => `<tr><td>${esc(a.label)} #${esc(a.id)}</td><td>${esc(ROLE[a.role] || a.role || 'Prop (A-book)')}${a.api_env === 'live' ? ' · live' : ''}</td><td>${usd(a.size_usd)}</td><td>${usd(a.fee_usd)}</td><td>${esc(a.status)}</td><td>${esc(a.signal_group)}</td><td>${a.execution_enabled ? 'ON' : 'off'}</td>
+      <td>${a.role === 'monitor' ? '<span class="small">Read-only</span>' : `<button class="button" data-la="${a.id}" data-on="${a.execution_enabled ? '0' : '1'}" type="button">${a.execution_enabled ? 'Stop copying' : 'Start copying'}</button>`}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No accounts yet.</td></tr>';
 
     const st = d.book_states || {};
     $('bookStates').innerHTML = Object.keys(STATE_LABEL).map((k) => `<div class="tile"><span>${STATE_LABEL[k]}</span><strong>${st[k] || 0}</strong></div>`).join('');
@@ -67,9 +68,9 @@
   $('ladderAdd').addEventListener('submit', async (e) => {
     e.preventDefault(); $('laSubmit').disabled = true;
     try {
-      await call('ladder_add', { label: $('laLabel').value, size_usd: Number($('laSize').value), fee_usd: Number($('laFee').value), signal_group: Number($('laGroup').value || 0),
+      await call('ladder_add', { role: $('laRole').value, label: $('laLabel').value, size_usd: Number($('laSize').value), fee_usd: Number($('laFee').value), signal_group: Number($('laGroup').value || 0),
         email: $('laEmail').value.trim(), password: $('laPassword').value, server: $('laServer').value.trim(), account_id: $('laAccount').value.trim() });
-      $('status').textContent = 'Account added with copying OFF'; await load();
+      $('status').textContent = $('laRole').value === 'monitor' ? 'E8 account connected read-only: the cost monitor starts within a minute' : 'Account added with copying OFF'; await load();
     } catch (err) { $('status').textContent = err.message; }
     finally { $('laPassword').value = ''; $('laSubmit').disabled = false; }
   });

@@ -89,7 +89,7 @@ export async function positions(accessToken: string, accountId: string, accNum: 
   return rows(await request(`/trade/accounts/${accountId}/positions`, { method: "GET" }, accessToken, accNum), "positions");
 }
 
-function configuredRows(configValue: unknown, dataValue: unknown, configKey: string, dataKey: string): Record<string, unknown>[] {
+export function configuredRows(configValue: unknown, dataValue: unknown, configKey: string, dataKey: string): Record<string, unknown>[] {
   const config = unwrap(configValue);
   const columns = object(config[configKey]).columns;
   const names = Array.isArray(columns) ? columns.map((c) => String(object(c).id ?? "")) : [];

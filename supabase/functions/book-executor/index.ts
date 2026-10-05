@@ -96,7 +96,7 @@ async function open(db: Db, b: Record<string, unknown>) {
   if (reviewDest) legs.push({ book, sizeUsd: Number(lim?.account_size_usd ?? 50000) });
   if (book === "a") {
     const groups = Number(ls?.signal_groups ?? 1);
-    const { data: ladders } = await db.from("ladder_accounts").select("id,size_usd,signal_group").eq("execution_enabled", true).in("status", ["evaluation", "funded"]);
+    const { data: ladders } = await db.from("ladder_accounts").select("id,size_usd,signal_group").eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"]);
     for (const la of ladders ?? []) if (Number(la.signal_group) % groups === signalGroup(String(person), groups)) legs.push({ book: "l" + la.id, sizeUsd: Number(la.size_usd) });
   }
   if (!legs.length) return { ok: true, skipped: "no connected destination" };

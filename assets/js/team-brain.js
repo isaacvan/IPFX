@@ -325,7 +325,7 @@
       : '<li class="empty-ok">No moves yet. Everyone starts on B-book demo (watching).</li>';
   }
   function renderHealth() {
-    const h = data.health, beatName = { 'ab-classifier': 'Classifier (moves traders between boxes)', 'brain-scan': 'Alert scan (this page)', hub: 'IPFX hub (live prices + position watcher)' };
+    const h = data.health, beatName = { 'ab-classifier': 'Classifier (moves traders between boxes)', 'brain-scan': 'Alert scan (this page)', hub: 'IPFX hub (live prices + position watcher)', 'cost-monitor': 'Cost monitor (E8 vs demo spreads and fees)' };
     const rows = h.jobs.map((j) => `<div class="health-row"><span class="sev ${j.ok ? 'good' : 'critical'}"><i>${j.ok ? '✓' : '!'}</i></span><span>${esc(j.title)}</span><span class="small">${j.age_s == null ? 'no run found' : 'ran ' + ago(new Date(Date.now() - j.age_s * 1000).toISOString())}</span></div>`);
     for (const b of h.heartbeats || []) {
       const ok = b.ok && Date.now() - Date.parse(b.at) < 5 * 60000;
@@ -336,8 +336,22 @@
     $('health').innerHTML = rows.join('');
   }
 
+  function renderCosts() {
+    const c = data.costs, el = $('costs'); if (!el) return;
+    const accts = c?.accounts || [];
+    if (!accts.length) { el.innerHTML = '<div class="empty-ok">Connect your E8 funded account (role: E8 cost monitor) and at least one demo copy account on the Treasury page. Sampling starts within a minute.</div>'; return; }
+    const px = (v) => fin(v) ? Number(v).toPrecision(3) : '—';
+    const sp = (c.spreads || []).map((r) => `<tr><td><b>${esc(r.symbol)}</b></td><td class="num">${px(r.e8)}</td><td class="num">${px(r.demo)}</td><td class="num">${px(r.ipfx)}</td>
+      <td class="num ${fin(r.e8_vs_demo) && r.e8_vs_demo > 0 ? 'neg' : 'pos'}">${fin(r.e8_vs_demo) ? (r.e8_vs_demo > 0 ? '+' : '') + px(r.e8_vs_demo) : '—'}</td><td class="num">${esc(r.samples)}</td></tr>`).join('');
+    const com = (c.commission || []).map((r) => `${esc({ monitor: 'E8', shadow: 'Demo', ladder: 'Prop' }[r.role] || r.role)}: ${fin(r.per_lot) ? '$' + Number(r.per_lot).toFixed(2) + ' per lot' : '—'} (${esc(r.fills)} fills)`).join(' · ');
+    el.innerHTML = `<div class="table-wrap" style="max-height:none"><table style="min-width:640px"><thead><tr><th>Instrument</th><th class="num">E8 spread</th><th class="num">Demo spread</th><th class="num">IPFX spread</th><th class="num">E8 − demo</th><th class="num">Samples</th></tr></thead>
+      <tbody>${sp || '<tr><td colspan="6" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>'}</tbody></table></div>
+      <p class="small" style="margin-top:10px">Commission: ${com || 'no filled orders read yet (history is read every 15 minutes)'}</p>
+      <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) · last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' · ')}</p>`;
+  }
+
   function render() {
-    renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderWatch(); renderBoard(); renderMoves(); renderHealth();
+    renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderCosts(); renderWatch(); renderBoard(); renderMoves(); renderHealth();
   }
 
   // ---------- notifications ----------
@@ -431,7 +445,7 @@
       let res = await call(full ? 'overview' : 'pulse');
       if (!full && res.metrics_as_of && res.metrics_as_of !== data.metrics_as_of) res = await call('overview');
       if (res.light) {
-        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders, events: data.events };
+        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders, events: data.events, costs: data.costs };
         renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderHealth();
       } else { data = res; lastFull = Date.now(); render(); }
       lastLoad = Date.now(); notifyNew();

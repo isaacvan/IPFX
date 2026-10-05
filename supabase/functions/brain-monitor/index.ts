@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
       ...JOBS.map(([job]) => db.rpc("ab_cron_health", { p_job: job })),
     ]);
 
+    const costs = light ? null : await db.rpc("cost_summary", { p_days: 7 });
     const ids = [...new Set([...(light ? [] : (profiles.data ?? []).map((p) => p.person_id)), ...(open.data ?? []).map((a) => a.person_id).filter(Boolean),
       ...(resolved.data ?? []).map((a) => a.person_id).filter(Boolean)])];
     const names = new Map<string, string>();
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
         skips: [...skipMap.entries()].map(([k, n]) => ({ book: k.split("|")[0], reason: k.split("|").slice(1).join("|"), n })).sort((a, b) => b.n - a.n),
         ladder: { accounts: (ladders.data ?? []).length, copying: (ladders.data ?? []).filter((l) => l.execution_enabled).length },
       },
-      treasury: snap.data, ...(light ? {} : { traders, events: (events.data ?? []).map((e) => ({ ...e, name: label(e.person_id) })) }),
+      treasury: snap.data, ...(light ? {} : { costs: costs?.data ?? null, traders, events: (events.data ?? []).map((e) => ({ ...e, name: label(e.person_id) })) }),
     });
   }
 

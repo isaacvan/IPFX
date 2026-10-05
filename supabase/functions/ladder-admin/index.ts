@@ -5,7 +5,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, readJsonObject } from "../_shared/request-guards.ts";
 import { encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
-import { accounts, authenticate, instruments, tradeRoute } from "../_shared/tradelocker.ts";
+import { infoRoute, tradeRoute } from "../_shared/tradelocker.ts";
+import { loginAnyEnv, readClient } from "../_shared/tradelocker-read.ts";
 
 const ORIGINS = new Set(["https://ipfxcapital.com", "https://www.ipfxcapital.com", "http://localhost:3000", "http://localhost:8127"]);
 function aal(token: string): string {
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
       db.from("ab_risk_limits").select("*"),
       db.from("ab_settings").select("book_halt,starting_reserve_usd,payout_model,sponsor_fee_usd,sl_deadline_seconds").maybeSingle(),
       db.from("ladder_settings").select("*").maybeSingle(),
-      db.from("ladder_accounts").select("id,label,size_usd,fee_usd,status,signal_group,platform,environment,server,account_id,execution_enabled,purchased_at"),
+      db.from("ladder_accounts").select("id,label,size_usd,fee_usd,status,signal_group,platform,environment,server,account_id,execution_enabled,purchased_at,role,api_env"),
       db.from("ladder_recommendations").select("*").order("as_of", { ascending: false }).limit(1).maybeSingle(),
       db.from("ladder_payouts").select("id,ladder_account_id,amount_usd,received_at,note").order("received_at", { ascending: false }).limit(20),
       db.from("graduate_sponsorships").select("id,account_id,user_id,status,fee_usd,note,created_at").order("created_at", { ascending: false }).limit(50),
@@ -79,33 +80,42 @@ Deno.serve(async (req) => {
   }
   if (action === "ladder_add") {
     const label = String(body.label || "").trim().slice(0, 80), size = Number(body.size_usd), fee = Number(body.fee_usd ?? 0), group = Math.max(0, Math.floor(Number(body.signal_group ?? 0)));
+    // ladder = prop account receiving A-book copies; shadow = demo account receiving every trader's copies;
+    // monitor = the E8 funded account, read only (cost monitor), never copied to.
+    const role = ["ladder", "shadow", "monitor"].includes(String(body.role)) ? String(body.role) : "ladder";
     const email = String(body.email || "").trim(), password = String(body.password || ""), server = String(body.server || "").trim(), wanted = String(body.account_id || "").trim();
     if (!label || !(size > 0) || !(fee >= 0) || !email || !password || !server) return json({ ok: false, error: "Label, size, fee, broker email, password and server are required" }, 400);
     const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
     if (!key) return json({ ok: false, error: "Token encryption unavailable" }, 503);
     try {
-      const tok = await authenticate(email, password, server);
-      const list = await accounts(tok.accessToken);
+      const { env, tok } = await loginAnyEnv(email, password, server);
+      if (env !== "demo" && role !== "monitor") return json({ ok: false, error: "Copy accounts must be on TradeLocker's demo environment for now (this login works on live). Add it as the E8 monitor instead, or use a demo-environment account." }, 400);
+      const tl = readClient(env);
+      const list = await tl.accounts(tok.accessToken);
       const acc = wanted ? list.find((a) => String(a.id ?? a.accountId) === wanted) : (list.length === 1 ? list[0] : null);
       if (!acc) return json({ ok: false, error: "Enter the account number shown after # (several accounts found)" }, 400);
       const accountId = String(acc.id ?? acc.accountId), accNum = String(acc.accNum ?? "");
-      const map = (await instruments(tok.accessToken, accountId, accNum)).map((row) => ({
+      const map = (await tl.instruments(tok.accessToken, accountId, accNum)).map((row) => ({
         symbol: String(row.name ?? row.symbol ?? "").trim().toUpperCase(), tradable_instrument_id: String(row.tradableInstrumentId ?? row.id ?? ""),
-        trade_route_id: tradeRoute(row), min_qty: Number(row.minQty ?? row.minLot ?? 0.01), lot_step: Number(row.qtyStep ?? row.lotStep ?? 0.01),
+        trade_route_id: tradeRoute(row), info_route_id: infoRoute(row), min_qty: Number(row.minQty ?? row.minLot ?? 0.01), lot_step: Number(row.qtyStep ?? row.lotStep ?? 0.01),
       })).filter((r) => r.symbol && r.trade_route_id != null);
       const { data: row, error } = await db.from("ladder_accounts").insert({
         label, size_usd: size, fee_usd: fee, signal_group: group, server, account_id: accountId, acc_num: accNum,
         access_token_ciphertext: await encryptSecret(tok.accessToken, key), refresh_token_ciphertext: await encryptSecret(tok.refreshToken, key),
-        access_expires_at: jwtExpiresAt(tok.accessToken), instrument_map: map, execution_enabled: false,
+        access_expires_at: jwtExpiresAt(tok.accessToken), instrument_map: map, execution_enabled: false, role, api_env: env,
       }).select("id").single();
       if (error || !row) return json({ ok: false, error: "Could not save the account" }, 503);
-      await audit("ladder_account_add", { id: row.id, label, size_usd: size, fee_usd: fee, signal_group: group, instruments: map.length });
-      return json({ ok: true, id: row.id, instruments: map.length, execution_enabled: false });
+      await audit("ladder_account_add", { id: row.id, label, size_usd: size, fee_usd: fee, signal_group: group, instruments: map.length, role, api_env: env });
+      return json({ ok: true, id: row.id, instruments: map.length, execution_enabled: false, role, api_env: env });
     } catch (_) { return json({ ok: false, error: "The broker rejected the login or the account could not be read" }, 400); }
   }
   if (action === "ladder_update") {
     const id = Number(body.id); const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (typeof body.execution_enabled === "boolean") patch.execution_enabled = body.execution_enabled;
+    if (patch.execution_enabled === true) {
+      const { data: cur } = await db.from("ladder_accounts").select("role").eq("id", id).maybeSingle();
+      if (cur?.role === "monitor") return json({ ok: false, error: "The E8 monitor account is read-only and can never receive copies" }, 400);
+    }
     if (["evaluation", "funded", "breached", "closed"].includes(String(body.status))) patch.status = body.status;
     if (!(id > 0) || Object.keys(patch).length < 2) return json({ ok: false, error: "Nothing to change" }, 400);
     await db.from("ladder_accounts").update(patch).eq("id", id);
