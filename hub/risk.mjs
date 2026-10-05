@@ -162,7 +162,11 @@ export class Risk {
     for (const [id, until] of this.cooldown) if (until < now - 60_000) this.cooldown.delete(id);
   }
 
+  // Only accounts the engine would act on: not suspended, and active, breached (flattening) or demo.
+  actionable(a) { return !!a && !a.revoked && ['active', 'breached', 'demo'].includes(a.status); }
+
   flag(accountId, reason) {
+    if (!this.actionable(this.accounts.get(accountId))) return;
     const now = Date.now();
     if ((this.cooldown.get(accountId) ?? 0) > now || this.queue.has(accountId)) return;
     this.cooldown.set(accountId, now + 2_000);

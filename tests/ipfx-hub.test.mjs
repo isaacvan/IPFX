@@ -107,3 +107,13 @@ test('demo accounts: the 10s sweep and the hub enforce stops, targets and orders
   assert.doesNotMatch(eng, /\["active", "breached"\]\.includes\(acct\.status\)/);
   assert.match(eng, /const isTradableAccount = \(acct: Acct\) => acct\.status === "active" \|\| isDemoAccount\(acct\);/);
 });
+
+test('the hub ignores accounts the engine would not act on (suspended / revoked, or not tradable)', () => {
+  const { r, tick } = make('shadow');
+  r.accounts.get(ACC).revoked = true;
+  tick('EURUSD', 1.0949, 1.0950);
+  assert.equal(r.queue.has(ACC), false);
+  r.accounts.get(ACC).revoked = false; r.accounts.get(ACC).status = 'passed';
+  tick('EURUSD', 1.0940, 1.0941);
+  assert.equal(r.queue.has(ACC), false);
+});
