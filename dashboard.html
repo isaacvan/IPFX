@@ -1344,7 +1344,7 @@ function renderAccounts(list){
   const signed=n=>(n>=0?'+':'-')+'$'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:0});
   const typeKey={traditional:'traditional',futures:'futures',infinity:'infinity',pac:'application'};
   const typeName={traditional:'Traditional',futures:'Futures',infinity:'Infinity',pac:'Application'};
-  const breachText={max_drawdown:'Maximum drawdown reached',daily_loss:'Daily loss limit reached'};
+  const breachText={max_drawdown:'Maximum drawdown reached',daily_loss:'Daily loss limit reached',stop_loss_rule:'3 stop-loss warnings (trades left without a stop loss)'};
   el.innerHTML+=list.map(a=>{
     const start=Number(a.starting_balance)||0, bal=Number(a.balance)||0, paid=Number(a.total_paid_out)||0;
     const profit=bal-start;

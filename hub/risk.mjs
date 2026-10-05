@@ -155,7 +155,7 @@ export class Risk {
     const now = Date.now();
     if (this.slDeadline != null) {
       for (const t of this.trades.values()) {
-        if (t.sl == null && now - Date.parse(t.opened_at) > this.slDeadline * 1000) this.flag(t.account_id, 'no_stop_loss');
+        if (t.sl == null && this.accounts.get(t.account_id)?.challenge_type === 'infinity' && now - Date.parse(t.opened_at) > this.slDeadline * 1000) this.flag(t.account_id, 'no_stop_loss');
       }
     }
     for (const o of this.pending.values()) if (o.expires_at && Date.parse(o.expires_at) < now) this.flag(o.account_id, 'order_expiry');

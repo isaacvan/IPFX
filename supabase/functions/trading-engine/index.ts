@@ -1017,7 +1017,10 @@ function emailLater(p: Promise<unknown>) {
 const BREACH_TEXT: Record<string, string> = {
   max_drawdown: "the maximum drawdown limit was reached",
   daily_loss: "the daily loss limit was reached",
+  stop_loss_rule: "three trades were left without a stop loss in this Infinity run (3 stop-loss warnings)",
 };
+// Infinity stop-loss rule: 3 warnings in one run end it (restart from Stage 1).
+const SL_STRIKES_MAX = 3;
 
 // deno-lint-ignore no-explicit-any
 type MirrorResult = Record<string, any> | null;
@@ -1825,7 +1828,12 @@ async function closeTrade(
   if (gross === null) return false;
   const v2 = rulesV2(acct);
   const commission = v2 ? round2((await symbolCheck(db, t.symbol)).commissionPerLot * Number(t.volume)) : 0;
-  const pnl = gross - commission;
+  const rawPnl = gross - commission;
+  // Infinity stop-loss rule: a trade closed for having no stop loss keeps its loss, never its profit.
+  const strip = reason === "no_stop_loss" && acct.challenge_type === "infinity" && rawPnl > 0;
+  const pnl = strip ? 0 : rawPnl;
+  // deno-lint-ignore no-explicit-any
+  if (strip) (t as any).stripped_profit = round2(rawPnl);
   // .eq("status","open") makes this UPDATE atomic and conditional at the
   // database level, but a filtered update that matches zero rows is NOT
   // an error in supabase-js — it silently succeeds with no data. Without
@@ -1836,6 +1844,7 @@ async function closeTrade(
   const { data: closedRow, error: e1 } = await db.from("trades").update({
     status: "closed", close_price: exit, pnl: round2(pnl),
     close_reason: reason, closed_at: new Date().toISOString(),
+    ...(strip ? { stripped_profit: round2(rawPnl) } : {}),
     ...(v2 ? {
       commission,
       // deno-lint-ignore no-explicit-any
@@ -1859,6 +1868,30 @@ async function closeTrade(
     client_ip: reason === "manual" ? (clientIp ?? null) : null, // system-initiated closes (sl/tp/breach) have no human to attribute an IP to
   });
   return true;
+}
+
+// Third stop-loss warning in an Infinity run: the run ends like a breach (frozen, switched to demo, resting orders
+// cancelled, open positions closed). The trader restarts from Stage 1 with claim_infinity.
+async function strikeOutRun(db: Db, acct: Acct, open: Tr[]): Promise<Tr[]> {
+  const bal = round2(Number(acct.balance));
+  const claim = await db.rpc("fn_claim_account_breach", { p_account_id: acct.id, p_reason: "stop_loss_rule", p_trigger_equity: bal, p_breach_floor: bal });
+  if (claim.error) { console.error("[sl-strikes] breach claim failed", { account_id: acct.id, message: claim.error.message }); return open; }
+  acct.status = "breached";
+  acct.breach_reason = "stop_loss_rule";
+  if (claim.data === true) {
+    for (const t of open) {
+      let q = await fetchQuote(t.symbol);
+      if (q === null) q = await lastKnownQuote(t.symbol);
+      if (q !== null) await closeTrade(db, acct, t, t.side === "buy" ? q.bid : q.ask, "breach", q);
+    }
+    emailLater(sendLifecycleEmail(db, "account_breached", acct.user_id, {
+      challenge_name: acct.label,
+      breach_reason: BREACH_TEXT.stop_loss_rule,
+      next_step: "This Infinity run has ended and IPFX Markets has switched you to demo. Restart the Infinity Challenge from Stage 1 when you are ready; your new run starts with 0 warnings. Always set a stop loss within 30 seconds of opening a trade.",
+    }));
+  }
+  const { data: left } = await db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open");
+  return left ?? [];
 }
 
 // Marks positions, applies SL/TP, daily rollover, breach/pass rules.
@@ -2024,7 +2057,9 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   // through the stop costs what the market cost; a take-profit fills at its level.
   if (isTradableAccount(acct) && !venueMode) {
     const still: Tr[] = [];
+    let strikeOut = false;
     for (const t of open) {
+      if (strikeOut) { still.push(t); continue; }
       const q = await fetchQuote(t.symbol);
       if (q === null || quoteStale(q)) { still.push(t); continue; }
       const ex = t.side === "buy" ? q.bid : q.ask; // the price that would actually fill a close
@@ -2044,12 +2079,19 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const sl = t.sl === null ? null : Number(t.sl);
       const tp = t.tp === null ? null : Number(t.tp);
       let done = false;
-      const slDeadline = sl === null ? await slDeadlineSeconds(db) : null;
+      // Infinity only: a trade still without a stop loss after the deadline is closed, its profit removed
+      // (closeTrade) and it counts as a stop-loss warning.
+      const slDeadline = sl === null && acct.challenge_type === "infinity" ? await slDeadlineSeconds(db) : null;
       // deno-lint-ignore no-explicit-any
       const openedAtMs = Date.parse(String((t as any).opened_at ?? ""));
       if (slDeadline != null && Number.isFinite(openedAtMs) && Date.now() - openedAtMs > slDeadline * 1000) {
         done = await closeTrade(db, acct, t, ex, "no_stop_loss", q);
-        if (!done) still.push(t);
+        if (!done) { still.push(t); continue; }
+        // deno-lint-ignore no-explicit-any
+        const { data: strikes } = await db.rpc("fn_record_sl_strike", { p_account: acct.id, p_trade: t.id, p_stripped: Number((t as any).stripped_profit ?? 0) });
+        // deno-lint-ignore no-explicit-any
+        (acct as any).sl_strikes = Number(strikes ?? 0);
+        if (Number(strikes) >= SL_STRIKES_MAX && acct.status === "active") strikeOut = true;
         continue;
       }
       if (t.side === "buy") {
@@ -2062,6 +2104,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       if (!done) still.push(t);
     }
     open = still;
+    if (strikeOut) open = await strikeOutRun(db, acct, open);
   }
 
   // Futures positions must be flat outside the CME session. Closing here
@@ -2329,6 +2372,8 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     ok: true,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
+      // deno-lint-ignore no-explicit-any
+      sl_strikes: Number((acct as any).sl_strikes ?? 0), sl_strikes_max: SL_STRIKES_MAX,
       is_demo: isDemoAccount(acct),
       venue: acct.venue ?? "ipfx",
       starting_balance: start, balance: Number(acct.balance), equity, floating,

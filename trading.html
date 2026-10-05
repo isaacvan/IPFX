@@ -4477,6 +4477,12 @@ function announceAutoClosedTrades(state){
       const sym=(t.symbol||'').replace(/^[^:]+:/,'');
       const pnl=(+t.pnl||0);
       const money=(v)=>(v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+      if(t.close_reason==='no_stop_loss'){
+        const n=+(state.account&&state.account.sl_strikes)||0,max=+(state.account&&state.account.sl_strikes_max)||3;
+        const stripped=+t.stripped_profit||0;
+        engineMsg(`Stop-loss warning ${n} of ${max}: your ${sym} trade had no stop loss after 30 seconds and was closed${stripped>0?` — its profit (${money(stripped)}) was removed`:''}. It does not count towards your progress.${n>=max?' This Infinity run has ended; restart from Stage 1.':` At ${max} warnings this Infinity run ends and you restart from Stage 1.`}`,false);
+        continue;
+      }
       const label=t.close_reason==='sl'?'Stop loss hit'
         :t.close_reason==='tp'?'Take profit hit'
         :t.close_reason==='breach'?'Account breach — position flattened'
@@ -5544,7 +5550,7 @@ function renderAccountFreeze(a){
   if(!show)return;
   const labels={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application'};
   const label=labels[breach.challenge_type]||'Challenge';
-  const reason=breach.reason_label||(breach.reason==='daily_loss'?'Daily loss limit reached':'Maximum drawdown reached');
+  const reason=breach.reason_label||(breach.reason==='daily_loss'?'Daily loss limit reached':breach.reason==='stop_loss_rule'?'3 stop-loss warnings (trades left without a stop loss)':'Maximum drawdown reached');
   const stage=Number(breach.stage||1);
   const evaluation=breach.phase==='evaluation'&&['infinity','traditional','futures','pac'].includes(breach.challenge_type);
   const money=v=>'$'+Math.abs(Number(v)||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
