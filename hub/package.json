@@ -1,0 +1,11 @@
+{
+  "name": "ipfx-hub",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "IPFX real-time hub: price streaming and tick-by-tick position watcher (hub.ipfxcapital.com)",
+  "main": "server.mjs",
+  "engines": { "node": ">=22" },
+  "dependencies": { "ws": "8.18.3" },
+  "scripts": { "start": "node server.mjs" }
+}

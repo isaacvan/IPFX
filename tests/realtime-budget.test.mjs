@@ -15,7 +15,7 @@ test('quote pump pushes only symbols someone has open, at most twice a second', 
 
 test('the ticket polls every 2.25s while live pushes arrive, 0.75s otherwise', () => {
   const t = read('trading.html');
-  assert.match(t, /const pushing=rtQuoteChan&&Date\.now\(\)-lastPushedQuoteAt<3000;/);
+  assert.match(t, /const pushing=\(rtQuoteChan\|\|hubLive\(\)\)&&Date\.now\(\)-lastPushedQuoteAt<3000;/);
   assert.match(t, /if\(pushing\)return since>=2250;/);
   assert.match(t, /lastPushedQuoteAt=Date\.now\(\);/);
   assert.match(t, /setInterval\(pollTicketPrice,750\);/);

@@ -1,0 +1,22 @@
+[Unit]
+Description=IPFX hub (prices + position watcher)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ipfxhub
+Group=ipfxhub
+WorkingDirectory=/opt/ipfx-hub
+EnvironmentFile=/etc/ipfx-hub.env
+ExecStart=/usr/local/bin/node /opt/ipfx-hub/server.mjs
+Restart=always
+RestartSec=2
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/opt/ipfx-hub
+
+[Install]
+WantedBy=multi-user.target

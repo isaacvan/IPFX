@@ -565,6 +565,36 @@ async function broadcastQuotes(qs: Quote[]): Promise<void> {
   } catch (_) { /* push is display-only; polling still delivers prices */ }
 }
 
+// ---------- IPFX hub (hub.ipfxcapital.com) ----------
+// Each pump tick also sends the changed, watched prices to the hub, which streams them to traders' screens and
+// watches open positions tick by tick. Fire-and-forget: never awaited, so the pump is never slowed. While a send
+// is in flight, newer prices wait in a per-symbol map (latest wins); on failure they are retried after a pause.
+const hubPending = new Map<string, Quote>();
+let hubInFlight = false, hubPauseUntil = 0;
+function pushToHub(qs: Quote[]): void {
+  const url = Deno.env.get("HUB_INGEST_URL"), secret = Deno.env.get("HUB_SECRET");
+  if (!url || !secret) return;
+  for (const q of qs) if (watched.has(q.symbol)) hubPending.set(q.symbol, q);
+  if (hubInFlight || !hubPending.size || Date.now() < hubPauseUntil) return;
+  const batch = [...hubPending.values()];
+  hubPending.clear();
+  hubInFlight = true;
+  fetch(url, {
+    method: "POST", headers: { "Content-Type": "application/json", "x-hub-secret": secret },
+    body: JSON.stringify({ q: batch.map((q) => ({ s: q.symbol, b: q.bid, a: q.ask, m: q.mid, sp: q.spread, pt: q.providerTs, rt: q.receivedTs, d: INSTRUMENTS[q.symbol]?.digits, src: q.source })) }),
+    signal: AbortSignal.timeout(1500),
+  }).then((r) => { if (!r.ok) hubPauseUntil = Date.now() + 2000; return r.body?.cancel(); })
+    .catch(() => { hubPauseUntil = Date.now() + 5000; for (const q of batch) if (!hubPending.has(q.symbol)) hubPending.set(q.symbol, q); })
+    .finally(() => { hubInFlight = false; });
+}
+function hubSecretOk(got: string | null): boolean {
+  const want = Deno.env.get("HUB_SECRET") ?? "";
+  const a = new TextEncoder().encode(got ?? ""), b = new TextEncoder().encode(want);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+  return want.length >= 32 && diff === 0;
+}
+
 // ---------- TradeLocker price source ----------
 // Throttled record of which instruments traders are watching (one write per symbol per 5s per isolate).
 const demandNotedAt = new Map<string, number>();
@@ -907,6 +937,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
       }
       const { rows, changed } = out;
       await refreshWatched(db).catch(() => {});
+      if (changed.length) pushToHub(changed);
       if (rows.length) {
         await Promise.all([
           db.from("live_quotes").upsert(rows),
@@ -2755,6 +2786,30 @@ const handleRequest = async (req: Request): Promise<Response> => {
     }
     const res = await job;
     return new Response(JSON.stringify({ ok: true, ...res }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
+
+  // The hub's two calls (dedicated secret, no user session): instrument specs for its P&L estimates, and
+  // "check these accounts now" when a stop, take-profit, pending order or loss limit is crossed. The decision
+  // is always made here by enforce(), exactly as for the sweep and the traders' own price polls.
+  if (body.action === "hub_specs" || body.action === "hub_enforce") {
+    if (!hubSecretOk(req.headers.get("x-hub-secret"))) return err("Not authorized", 401);
+    const out = (b: unknown) => new Response(JSON.stringify(b), { headers: { ...CORS, "Content-Type": "application/json" } });
+    if (body.action === "hub_specs") {
+      return out({ ok: true, instruments: Object.fromEntries(Object.entries(INSTRUMENTS).map(([s, i]) => [s, { contract: i.contract, quote: i.quote, digits: i.digits, cls: i.cls }])) });
+    }
+    const hubDb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const ids = (Array.isArray(body.account_ids) ? body.account_ids : []).map(String)
+      .filter((x: string) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 25);
+    const results: Record<string, unknown>[] = [];
+    for (const id of ids) {
+      const { data: acct } = await hubDb.from("trading_accounts").select("*").eq("id", id).is("access_revoked_at", null).maybeSingle();
+      if (!acct || !["active", "breached"].includes(acct.status)) { results.push({ id, skipped: true }); continue; }
+      try {
+        const r = await enforce(hubDb, acct as Acct);
+        results.push({ id, open: r.open.length, equity: r.equity, status: (acct as Acct).status });
+      } catch (e) { results.push({ id, error: String(e).slice(0, 120) }); }
+    }
+    return out({ ok: true, results });
   }
 
   if (body.action === "sweep") {

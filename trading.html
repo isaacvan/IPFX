@@ -5791,10 +5791,11 @@ function ticketPollDue(){
   // Live pushes arriving: the poll is only a safety net and risk check. With no open trades or pending orders
   // there is nothing to risk-check, so every 15s; with positions, every 2.25s so drawdown/SL/TP stay fast.
   // If pushes pause for 3s (quiet market, lost connection) polling returns to full speed.
-  const pushing=rtQuoteChan&&Date.now()-lastPushedQuoteAt<3000;
+  const pushing=(rtQuoteChan||hubLive())&&Date.now()-lastPushedQuoteAt<3000;
   const exposed=((engineState&&engineState.open_trades)||[]).length>0||((engineState&&engineState.pending_orders)||[]).length>0;
   if(pushing&&!exposed)return since>=15000;
   if(Date.now()-lastUserActivity>300000)return since>=3000;
+  if(pushing&&hubRisk&&hubLive())return since>=10000;
   if(pushing)return since>=2250;
   return true;
 }
@@ -5805,6 +5806,51 @@ document.addEventListener('visibilitychange',()=>{
   if(!engineBusy)engineCall({action:'state'});
   if(typeof pollWatchlist==='function')pollWatchlist();
 });
+// ---- IPFX hub: live prices over one WebSocket (hub.ipfxcapital.com, free server) ----
+// Chart and watchlist prices arrive here first. While the hub is live, the Supabase price channel and the
+// watchlist poll stand down; if it drops, everything below carries on exactly as before. The hub also watches
+// open positions tick by tick: only when it reports that watcher active ('risk') do this page's own checks relax.
+const HUB_WS='wss://hub.ipfxcapital.com/ws';
+let hubWs=null,hubOk=false,hubRisk=false,hubLastMsg=0,hubBackoff=1000,hubConnecting=false,hubSubsKey='',hubRetryAt=0;
+async function connectHub(){
+  if(hubConnecting||hubWs||!hasSession()||pollsPaused()||Date.now()<hubRetryAt||typeof WebSocket==='undefined')return;
+  hubConnecting=true;
+  try{
+    const tok=await freshToken();if(!tok)return;
+    const ws=new WebSocket(HUB_WS);hubWs=ws;
+    ws.onopen=()=>{ws.send(JSON.stringify({t:'auth',token:tok}));};
+    ws.onmessage=(ev)=>{
+      let m;try{m=JSON.parse(ev.data);}catch(_){return;}
+      hubLastMsg=Date.now();
+      if(m.t==='auth'){hubOk=m.ok===true;hubRisk=hubOk&&m.risk==='active'&&m.rk===true;if(hubOk){hubBackoff=1000;hubSubsKey='';syncHubSubs();}}
+      else if(m.t==='hb'){hubRisk=m.risk==='active'&&m.rk===true&&m.feed!=null&&m.feed<5000;}
+      else if(m.t==='q'&&Array.isArray(m.q)){for(const p of m.q)onHubQuote(p);}
+    };
+    ws.onclose=()=>{hubOk=false;hubRisk=false;hubWs=null;hubRetryAt=Date.now()+hubBackoff;hubBackoff=Math.min(60000,hubBackoff*2);};
+    ws.onerror=()=>{};
+  }catch(_){hubWs=null;hubRetryAt=Date.now()+hubBackoff;hubBackoff=Math.min(60000,hubBackoff*2);}
+  finally{hubConnecting=false;}
+}
+function hubLive(){return hubOk&&Date.now()-hubLastMsg<8000;}
+function hubSymbols(){
+  const s=new Set([execSymbol(activeSym)]);
+  try{if(typeof wlEntries==='function')for(const i of wlEntries())s.add(execSymbol(i.sym));}catch(_){}
+  return [...s].filter(Boolean).slice(0,60);
+}
+function syncHubSubs(){
+  if(!hubOk||!hubWs||hubWs.readyState!==1)return;
+  const syms=hubSymbols(),key=syms.join(',');
+  if(key===hubSubsKey)return;
+  hubSubsKey=key;hubWs.send(JSON.stringify({t:'sub',s:syms}));
+}
+function onHubQuote(p){
+  if(!p||!isFinite(p.b)||!isFinite(p.a))return;
+  if(p.s===execSymbol(activeSym))onPushedQuote({s:p.s,b:p.b,a:p.a,m:isFinite(p.m)?p.m:(p.b+p.a)/2,sp:p.sp,d:p.d,rt:p.rt});
+  const d=Number.isInteger(p.d)?p.d:5,bidEl=document.getElementById('wlb-'+p.s),askEl=document.getElementById('wla-'+p.s);
+  if(bidEl&&typeof flashWlCell==='function')flashWlCell(bidEl,p.b.toFixed(d));
+  if(askEl&&typeof flashWlCell==='function')flashWlCell(askEl,p.a.toFixed(d));
+  if(typeof cacheLiveQuote==='function')cacheLiveQuote({symbol:p.s,mid:p.m,bid:p.b,ask:p.a,spread:p.sp,digits:p.d,status:'live'});
+}
 // ---- realtime quote push ----
 // The server's quote pump broadcasts every price change on a private channel per symbol. The platform
 // subscribes to the active symbol only, so a new price reaches the ticket and chart ~instantly instead
@@ -5813,6 +5859,10 @@ let rtQuoteChan=null,rtQuoteSym=null,rtQuoteBusy=false,quoteAppliedRt=0;
 async function ensureQuoteStream(){
   const c=getSbEngine();
   if(!c||!hasSession()||rtQuoteBusy)return;
+  if(hubLive()){
+    if(rtQuoteChan&&!rtQuoteBusy){rtQuoteBusy=true;try{await c.removeChannel(rtQuoteChan);}catch(_){}rtQuoteChan=null;rtQuoteSym=null;rtQuoteBusy=false;}
+    return;
+  }
   const key=execSymbol(activeSym);
   if(rtQuoteChan&&rtQuoteSym===key)return;
   rtQuoteBusy=true;
@@ -5840,6 +5890,7 @@ function onPushedQuote(p){
   if(typeof cacheLiveQuote==='function')cacheLiveQuote(q);
 }
 async function pollTicketPrice(){
+  connectHub();syncHubSubs();
   ensureQuoteStream();
   if(priceFetchBusy||!activeSym||!hasSession()||pollsPaused()||!ticketPollDue())return;
   priceFetchBusy=true;lastTicketPoll=Date.now();
@@ -6303,6 +6354,7 @@ async function pollWatchlist(){
   if(wlCollapsed||wlPollBusy||typeof hasSession!=='function'||!hasSession()||document.hidden)return;
   // Idle for 5+ minutes: refresh the watchlist every 15s instead of every 4s.
   if(Date.now()-lastUserActivity>300000&&Date.now()-lastWlPoll<15000)return;
+  if(hubLive()&&Date.now()-lastWlPoll<30000)return;
   lastWlPoll=Date.now();
   const list=document.getElementById('wlList');
   if(!list||!list.children.length)return;
