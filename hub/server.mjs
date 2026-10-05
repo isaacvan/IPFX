@@ -11,7 +11,7 @@ const PORT = Number(env.PORT || 8080);
 const SB_URL = env.SUPABASE_URL, SB_ANON = env.SUPABASE_ANON_KEY, SECRET = env.HUB_SECRET || '';
 const RISK_MODE = env.RISK_MODE === 'active' ? 'active' : 'shadow';
 const LOADTEST_KEY = env.LOADTEST_KEY && env.LOADTEST_KEY.length >= 32 ? env.LOADTEST_KEY : '';
-const MAX_CLIENTS = 20_000, MAX_PER_IP = 30, MAX_SUBS = 60;
+const MAX_CLIENTS = 20_000, MAX_PER_IP = Number(env.MAX_PER_IP || 30), MAX_SUBS = 60;
 const SYMBOL_RE = /^[A-Z0-9:._-]{2,20}$/;
 if (!SB_URL || !SB_ANON || SECRET.length < 32) { console.error('missing SUPABASE_URL / SUPABASE_ANON_KEY / HUB_SECRET'); process.exit(1); }
 

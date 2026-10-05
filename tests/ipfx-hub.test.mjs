@@ -92,3 +92,11 @@ test('trading page: hub first, everything falls back when it drops; own checks r
   assert.match(page, /hubRisk=m\.risk==='active'&&m\.rk===true&&m\.feed!=null&&m\.feed<5000;/);
   assert.match(page, /if\(hubLive\(\)&&Date\.now\(\)-lastWlPoll<30000\)return;/);
 });
+
+test('Brain: red alert when the hub stops reporting (a quiet feed only counts while the market is open)', () => {
+  const sql = read('supabase/migrations/20261005130000_brain_hub_alert.sql');
+  assert.match(sql, /'system:hub', 'critical'/);
+  assert.match(sql, /where hb\.worker = 'hub' and \(hb\.at < now\(\) - interval '2 minutes' or \(not hb\.ok and public\.ab_fx_market_open\(\)\)\)/);
+  assert.match(read('assets/js/team-brain.js'), /hub: 'IPFX hub \(live prices \+ position watcher\)'/);
+  assert.match(read('hub/server.mjs'), /MAX_PER_IP = Number\(env\.MAX_PER_IP \|\| 30\)/, 'per-address connection limit stays on by default');
+});
