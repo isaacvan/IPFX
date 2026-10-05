@@ -2803,7 +2803,8 @@ const handleRequest = async (req: Request): Promise<Response> => {
     const results: Record<string, unknown>[] = [];
     for (const id of ids) {
       const { data: acct } = await hubDb.from("trading_accounts").select("*").eq("id", id).is("access_revoked_at", null).maybeSingle();
-      if (!acct || !["active", "breached"].includes(acct.status)) { results.push({ id, skipped: true }); continue; }
+      // Demo accounts too: their stops, take-profits and pending orders must fire even when the trader is offline.
+      if (!acct || !(isTradableAccount(acct as Acct) || acct.status === "breached")) { results.push({ id, skipped: true }); continue; }
       try {
         const r = await enforce(hubDb, acct as Acct);
         results.push({ id, open: r.open.length, equity: r.equity, status: (acct as Acct).status });
@@ -2848,7 +2849,8 @@ const handleRequest = async (req: Request): Promise<Response> => {
       visited++;
       const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id)
         .is("access_revoked_at", null).maybeSingle();
-      if (!acct || !["active", "breached"].includes(acct.status)) continue;
+      // Demo accounts included: enforce() closes their stops/targets and fills their orders (no loss limits apply).
+      if (!acct || !(isTradableAccount(acct as Acct) || acct.status === "breached")) continue;
       const before = acct.status;
       await enforce(db, acct as Acct);
       if (before === "active") {

@@ -100,3 +100,10 @@ test('Brain: red alert when the hub stops reporting (a quiet feed only counts wh
   assert.match(read('assets/js/team-brain.js'), /hub: 'IPFX hub \(live prices \+ position watcher\)'/);
   assert.match(read('hub/server.mjs'), /MAX_PER_IP = Number\(env\.MAX_PER_IP \|\| 30\)/, 'per-address connection limit stays on by default');
 });
+
+test('demo accounts: the 10s sweep and the hub enforce stops, targets and orders even when the trader is offline', () => {
+  const eng = read('supabase/functions/trading-engine/index.ts');
+  assert.equal((eng.match(/!\(isTradableAccount\(acct as Acct\) \|\| acct\.status === "breached"\)/g) || []).length, 2);
+  assert.doesNotMatch(eng, /\["active", "breached"\]\.includes\(acct\.status\)/);
+  assert.match(eng, /const isTradableAccount = \(acct: Acct\) => acct\.status === "active" \|\| isDemoAccount\(acct\);/);
+});
