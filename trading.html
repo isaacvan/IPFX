@@ -4599,7 +4599,7 @@ async function engineCall(body){
     showVenueBanner(j.account);
     if(Array.isArray(j.alerts))handleAlerts(j.alerts);
     const prevType=engineState&&engineState.account&&engineState.account.challenge_type;
-    engineState=j;
+    engineState=j;lastStateAt=Date.now();
     if(prevType!==(j.account&&j.account.challenge_type)&&typeof renderWatchlist==='function'){
       renderWatchlist();
       const isFut=j.account&&j.account.challenge_type==='futures';
@@ -5675,7 +5675,40 @@ if(hasSession()){
   engineCall({action:'state'});
   loadJournalEntries().then(renderJournal);
 }
-setInterval(()=>{if(!engineBusy&&hasSession()&&!pollsPaused())engineCall({action:'state'});},4000);
+// Account state: the server pushes "your account changed" on a private channel (acct:<user id>, sent by database
+// triggers on trades, the account and price alerts) and the page fetches its state once. The timed check is only a
+// safety net: every 30s while the push channel is connected, every 4s (as before) when it is not.
+let lastStateAt=0,acctChan=null,acctChanUser=null,acctChanOk=false,acctBusy=false,acctPending=false,acctDebounce=null;
+async function ensureAccountStream(){
+  const c=getSbEngine();
+  if(!c||!hasSession()||acctBusy)return;
+  acctBusy=true;
+  try{
+    const tok=await freshToken();if(!tok)return;
+    let uid=null;
+    try{const p=tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');uid=JSON.parse(atob(p+'='.repeat((4-p.length%4)%4))).sub;}catch(_){}
+    if(!uid||(acctChan&&acctChanUser===uid))return;
+    if(acctChan){try{await c.removeChannel(acctChan);}catch(_){}acctChan=null;acctChanOk=false;}
+    try{await c.realtime.setAuth(tok);}catch(_){}
+    acctChanUser=uid;
+    acctChan=c.channel('acct:'+uid,{config:{private:true}})
+      .on('broadcast',{event:'changed'},()=>onAccountChanged())
+      .subscribe(status=>{
+        acctChanOk=status==='SUBSCRIBED';
+        if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){acctChan=null;acctChanUser=null;acctChanOk=false;}
+      });
+  }finally{acctBusy=false;}
+}
+function onAccountChanged(){
+  clearTimeout(acctDebounce);
+  acctDebounce=setTimeout(()=>{if(engineBusy||pollsPaused()){acctPending=true;return;}engineCall({action:'state'});},250);
+}
+setInterval(()=>{
+  if(!hasSession()||pollsPaused()||engineBusy)return;
+  if(!acctChan)ensureAccountStream();
+  const every=acctPending?0:acctChanOk?30000:4000;
+  if(Date.now()-lastStateAt>=every){acctPending=false;engineCall({action:'state'});}
+},1000);
 function updateOrdPrices(value){
   const q=(value&&typeof value==='object')?value:{mid:+value};
   const mid=+q.mid;
@@ -5755,9 +5788,14 @@ function pollsPaused(){return document.hidden===true;}
 function ticketPollDue(){
   const since=Date.now()-lastTicketPoll;
   if(typeof feedState!=='undefined'&&feedState==='closed')return since>=10000;
+  // Live pushes arriving: the poll is only a safety net and risk check. With no open trades or pending orders
+  // there is nothing to risk-check, so every 15s; with positions, every 2.25s so drawdown/SL/TP stay fast.
+  // If pushes pause for 3s (quiet market, lost connection) polling returns to full speed.
+  const pushing=rtQuoteChan&&Date.now()-lastPushedQuoteAt<3000;
+  const exposed=((engineState&&engineState.open_trades)||[]).length>0||((engineState&&engineState.pending_orders)||[]).length>0;
+  if(pushing&&!exposed)return since>=15000;
   if(Date.now()-lastUserActivity>300000)return since>=3000;
-  // Live pushes arriving: the poll is only a safety net and risk check, so every 2.25s instead of 0.75s.
-  if(rtQuoteChan&&Date.now()-lastPushedQuoteAt<3000)return since>=2250;
+  if(pushing)return since>=2250;
   return true;
 }
 let lastPushedQuoteAt=0;
@@ -6260,8 +6298,12 @@ function flashWlCell(el,newText){
     setTimeout(()=>el.classList.remove('flash-up','flash-dn'),600);
   }
 }
+let lastWlPoll=0;
 async function pollWatchlist(){
   if(wlCollapsed||wlPollBusy||typeof hasSession!=='function'||!hasSession()||document.hidden)return;
+  // Idle for 5+ minutes: refresh the watchlist every 15s instead of every 4s.
+  if(Date.now()-lastUserActivity>300000&&Date.now()-lastWlPoll<15000)return;
+  lastWlPoll=Date.now();
   const list=document.getElementById('wlList');
   if(!list||!list.children.length)return;
   wlPollBusy=true;
