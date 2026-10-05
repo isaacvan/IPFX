@@ -28,9 +28,13 @@ const bookStrategy = (book: string, tradeId: string) => `ipfx${book}_${tradeId.r
 async function destination(db: Db, book: string) {
   const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
   if (!key) return null;
-  const ladder = /^l[0-9]+$/.test(book);
-  const { data: d } = ladder
-    ? await db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("execution_enabled", true).in("status", ["evaluation", "funded"]).maybeSingle()
+  const shadow = /^s[0-9]+$/.test(book);
+  const ladder = shadow || /^l[0-9]+$/.test(book);
+  const { data: d } = shadow
+    // Demo copy accounts: no status or execution filter, so a paused account can still close what it holds.
+    ? await db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("role", "shadow").maybeSingle()
+    : ladder
+    ? await db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"]).maybeSingle()
     : await db.from("team_book_destinations").select("*").eq("book", book).eq("status", "connected").eq("environment", "demo").maybeSingle();
   if (!d || !d.access_token_ciphertext) return null;
   let token = await decryptSecret(d.access_token_ciphertext, key);
@@ -211,6 +215,111 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
   return { ok: true, results, fill_price: fillA, duplicate_a: duplicateA };
 }
 
+// ---------- Shadow copy: every trader's trade at the broker's minimum size on a TradeLocker demo account ----------
+// Sent after the trader's own fill, never blocks or alters it, and never touches risk reservations or
+// book_orders. The Brain scales the result to funded size (shadow_funded_summary).
+async function shadowOpen(db: Db, b: Record<string, unknown>) {
+  const tradeId = String(b.source_trade_id), scale = Number(b.price_scale_per_lot);
+  const { data: t } = await db.from("trades").select("id,user_id,symbol,side,status").eq("id", tradeId).maybeSingle();
+  if (!t || t.status !== "open") return { ok: true, skipped: "source trade not open" };
+  if (!(scale > 0)) return { ok: true, skipped: "no price scale" };
+  const { data: person } = await db.rpc("ab_person_of", { p_user: t.user_id });
+  const who = String(person ?? t.user_id);
+  const { data: acctId } = await db.rpc("fn_shadow_account", { p_person: who });
+  if (!acctId) return { ok: true, skipped: "no demo account with room" };
+  const book = "s" + acctId;
+  const dest = await destination(db, book);
+  if (!dest) return { ok: true, skipped: "demo account not connected" };
+  const inst = instrumentFor(dest.map, t.symbol);
+  if (!inst) return { ok: true, skipped: "instrument not available" };
+  const side = t.side === "sell" ? "sell" : "buy";
+  const qty = Number(inst.min_qty ?? inst.lot_step ?? 0.01);
+  if (!(qty > 0)) return { ok: true, skipped: "no minimum size" };
+  const { data: claim, error: claimErr } = await db.from("shadow_orders").insert({
+    source_trade_id: tradeId, person_id: who, account_id: acctId, event: "open", idempotency_key: `${book}:${tradeId}:open`,
+    symbol: t.symbol, side, qty, status: "sent", price_scale_per_lot: scale,
+  }).select("id").single();
+  if (claimErr?.code === "23505") return { ok: true, skipped: "duplicate event" };
+  if (claimErr || !claim) return { ok: false, error: "claim failed" };
+  const started = Date.now();
+  try {
+    const payload = { ...marketOrder({ qty, routeId: Number(inst.trade_route_id), side, tradableInstrumentId: Number(inst.tradable_instrument_id), sl: null, tp: null, sourceTradeId: tradeId }), strategyId: bookStrategy(book, tradeId) };
+    const ids = responseIds(await placeMarketOrder(dest.token, dest.accountId, dest.accNum, payload));
+    const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId }).catch(() => null);
+    const positionId = ids.positionId ?? fill?.positionId ?? null;
+    await db.from("shadow_orders").update({ status: positionId ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
+      fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
+    // The trader may have closed while the demo order was in flight: close the demo position right away.
+    const { data: now } = await db.from("trades").select("status").eq("id", tradeId).maybeSingle();
+    if (positionId && now?.status === "closed") await shadowClose(db, { source_trade_id: tradeId });
+    return { ok: true, book, qty, fill_price: fill?.price ?? null };
+  } catch (e) {
+    // Never resubmit an ambiguous order: the reconciler finds it by strategy id.
+    await db.from("shadow_orders").update({ status: "reconciliation_required", error: String(e).slice(0, 300), latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
+    return { ok: true, book, error: "broker result requires reconciliation" };
+  }
+}
+
+async function shadowClose(db: Db, b: Record<string, unknown>) {
+  const tradeId = String(b.source_trade_id);
+  const { data: legs } = await db.from("shadow_orders").select("*").eq("source_trade_id", tradeId).eq("event", "open").eq("status", "filled");
+  const results: Array<Record<string, unknown>> = [];
+  for (const leg of legs ?? []) {
+    const book = "s" + leg.account_id;
+    const { data: claim, error: claimErr } = await db.from("shadow_orders").insert({
+      source_trade_id: tradeId, person_id: leg.person_id, account_id: leg.account_id, event: "close", idempotency_key: `${book}:${tradeId}:close`,
+      symbol: leg.symbol, side: leg.side === "buy" ? "sell" : "buy", qty: leg.qty, status: "sent", price_scale_per_lot: leg.price_scale_per_lot,
+    }).select("id").single();
+    if (claimErr?.code === "23505") { results.push({ book, skipped: "duplicate event" }); continue; }
+    if (claimErr || !claim) { results.push({ book, error: "claim failed" }); continue; }
+    const dest = await destination(db, book);
+    if (!dest) { await db.from("shadow_orders").update({ status: "reconciliation_required", error: "destination unavailable" }).eq("id", claim.id); results.push({ book, error: "destination unavailable" }); continue; }
+    const started = Date.now();
+    try {
+      const ids = responseIds(await closePositionQty(dest.token, dest.accNum, String(leg.broker_position_id), 0));
+      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true }).catch(() => null);
+      await db.from("shadow_orders").update({ status: fill ? "closed" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: leg.broker_position_id,
+        fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
+      if (fill) await db.from("shadow_orders").update({ status: "closed", updated_at: new Date().toISOString() }).eq("id", leg.id);
+      results.push({ book, fill_price: fill?.price ?? null });
+    } catch (e) {
+      await db.from("shadow_orders").update({ status: "reconciliation_required", error: String(e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", claim.id);
+      results.push({ book, error: "broker result requires reconciliation" });
+    }
+  }
+  return { ok: true, results };
+}
+
+// Lost responses (found by strategy id) and orphans (the trader's trade closed but the demo copy is still open).
+async function shadowReconcile(db: Db) {
+  const fixed: unknown[] = [];
+  const { data: stuck } = await db.from("shadow_orders").select("*").in("status", ["sent", "reconciliation_required"])
+    .lt("created_at", new Date(Date.now() - 45_000).toISOString()).limit(20);
+  for (const o of stuck ?? []) {
+    const book = "s" + o.account_id, dest = await destination(db, book);
+    if (!dest) continue;
+    const rows = await ordersByStrategy(dest.token, dest.accountId, dest.accNum, bookStrategy(book, o.source_trade_id)).catch(() => []);
+    const filled = rows.filter((r) => String(r.status ?? "").toLowerCase() === "filled" &&
+      (o.event === "open" ? (r.isOpen === true || String(r.isOpen) === "true") : !(r.isOpen === true || String(r.isOpen) === "true")));
+    if (filled.length) {
+      const r = filled[0];
+      await db.from("shadow_orders").update({ status: o.event === "open" ? "filled" : "closed", broker_order_id: String(r.id ?? ""),
+        broker_position_id: r.positionId == null ? o.broker_position_id : String(r.positionId), fill_price: Number(r.avgPrice) || null, error: null, updated_at: new Date().toISOString() }).eq("id", o.id);
+      if (o.event === "close") await db.from("shadow_orders").update({ status: "closed" }).eq("source_trade_id", o.source_trade_id).eq("event", "open").eq("status", "filled");
+      fixed.push({ id: o.id, found: true });
+    } else if (Date.now() - Date.parse(o.created_at) > 10 * 60_000) {
+      await db.from("shadow_orders").update({ status: "error", error: (o.error ? o.error + " | " : "") + "no broker order found after 10 minutes", updated_at: new Date().toISOString() }).eq("id", o.id);
+      fixed.push({ id: o.id, found: false });
+    }
+  }
+  const { data: legs } = await db.from("shadow_orders").select("source_trade_id").eq("event", "open").eq("status", "filled").limit(200);
+  for (const leg of legs ?? []) {
+    const { data: t } = await db.from("trades").select("status").eq("id", leg.source_trade_id).maybeSingle();
+    if (t?.status === "closed") fixed.push({ orphan: leg.source_trade_id, ...(await shadowClose(db, { source_trade_id: leg.source_trade_id })) });
+  }
+  return fixed;
+}
+
 async function reconcile(db: Db) {
   const fixed: unknown[] = [];
   // 1) Orders whose broker response was lost: find them by strategy id.
@@ -243,6 +352,7 @@ async function reconcile(db: Db) {
     ]);
     if (t?.status === "closed" && !(c ?? []).length) fixed.push({ orphan: leg.source_trade_id, ...(await closeLeg(db, { source_trade_id: leg.source_trade_id, event: "close" })) });
   }
+  fixed.push(...await shadowReconcile(db).catch(() => []));
   return { ok: true, fixed };
 }
 
@@ -276,6 +386,8 @@ Deno.serve(async (req) => {
     await logSkips(db, body, r).catch(() => {});
     return json(r);
   }
+  if (body.event === "shadow_open") return json(await shadowOpen(db, body));
+  if (body.event === "shadow_close") return json(await shadowClose(db, body));
   if (body.event === "close" || body.event === "partial_close") return json(await closeLeg(db, body));
   return json({ ok: false, error: "unknown event" }, 400);
 });

@@ -1159,6 +1159,18 @@ async function bookNow(body: Record<string, unknown>, timeoutMs = HEDGE_SYNC_TIM
   try { return await Promise.race([call, timeout]); } finally { clearTimeout(timer); }
 }
 function bookLater(body: Record<string, unknown>) { mirrorLater(callBook(body)); }
+// Shadow copy (demo accounts at minimum size, scaled to funded size in the Brain). Only dispatched while at least
+// one enabled demo copy account exists, so nothing is invoked before the owner connects them.
+let shadowCache: { at: number; v: boolean } = { at: 0, v: false };
+async function shadowOn(db: Db): Promise<boolean> {
+  if (Date.now() - shadowCache.at < 30_000) return shadowCache.v;
+  const { count } = await db.from("ladder_accounts").select("id", { count: "exact", head: true }).eq("role", "shadow").eq("execution_enabled", true).not("access_token_ciphertext", "is", null);
+  shadowCache = { at: Date.now(), v: (count ?? 0) > 0 };
+  return shadowCache.v;
+}
+function shadowLater(db: Db, body: Record<string, unknown>) {
+  mirrorLater((async () => ((await shadowOn(db).catch(() => false)) ? await callBook(body) : null))());
+}
 async function bookLegs(db: Db, tradeId: string): Promise<{ a: boolean; b: boolean }> {
   const { data } = await db.from("book_orders").select("book").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "reconciliation_required", "sent"]);
   const books = new Set<string>((data ?? []).map((r: Record<string, unknown>) => String(r.book)));
@@ -1570,6 +1582,7 @@ async function processPendingOrders(
       mirrorLater(fireMirror(db, acct, inserted as Tr, "open", sourceRiskUsd));
       if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: sourceRiskUsd, price_scale_per_lot: inst.contract * conv });
     }
+    shadowLater(db, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
     working.push(inserted as Tr);
   }
   return working;
@@ -1861,6 +1874,7 @@ async function closeTrade(
   if (hedge.state !== "filled") mirrorLater(fireMirror(db, acct, t, "close"));
   // B-book reverse legs (and any A-book leg left unpriced) close right after the trader's close.
   if (legs.b || (legs.a && hedge.state !== "filled")) bookLater({ event: "close", source_trade_id: t.id });
+  shadowLater(db, { event: "shadow_close", source_trade_id: t.id });
   await logAudit(db, {
     trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "close",
     symbol: t.symbol, side: t.side, requested_volume: Number(t.volume),
@@ -3753,6 +3767,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
       mirrorLater(fireMirror(db, acct as Acct, { id: inserted.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: openPrice, close_price: null, sl, tp, status: "open", pnl: null } as Tr, "open", mirrorRiskUsd));
       // B-book live trader: reverse right after the trader's fill.
       if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: mirrorRiskUsd, price_scale_per_lot: inst.contract * conv });
+      shadowLater(db, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
       await logAudit(db, {
           trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
           symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPrice, quote: q, client_ip: clientIp,

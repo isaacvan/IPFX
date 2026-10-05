@@ -350,8 +350,26 @@
       <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) · last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' · ')}</p>`;
   }
 
+  function renderShadow() {
+    const x = data.shadow, el = $('shadow'); if (!el) return;
+    if (!x || !x.coverage?.accounts) { el.innerHTML = '<div class="empty-ok">Connect the demo copy accounts on the Treasury page (role: Demo copy). Every trader is then copied at minimum size and this panel shows what their results would really have been on a funded account.</div>'; return; }
+    const usd = (v) => fin(v) ? (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString() : '—';
+    const cls = (v) => fin(v) && v < 0 ? 'neg' : 'pos';
+    const nm = new Map((data.traders || []).map((t) => [t.person_id, t.name]));
+    const cov = x.coverage;
+    const tile = (label, v, note, c) => `<div class="tile"><span>${label}</span><strong class="${c || ''}">${v}</strong><div class="sub2">${note}</div></div>`;
+    const rows = (x.people || []).map((r) => `<tr><td>${esc(nm.get(r.person_id) || 'Trader ' + String(r.person_id).slice(0, 6))}</td><td class="num">${esc(r.trades)}</td><td class="num ${cls(r.ipfx_scaled)}">${usd(r.ipfx_scaled)}</td><td class="num ${cls(r.funded_net)}">${usd(r.funded_net)}</td><td class="num ${r.gap > 0 ? 'neg' : 'pos'}">${usd(r.gap)}</td></tr>`).join('');
+    el.innerHTML = `<div class="tiles" style="margin:0 0 12px">${tile('On IPFX', usd(x.ipfx_scaled), 'what traders were shown, scaled to $' + Number(x.funded_size).toLocaleString(), cls(x.ipfx_scaled))}
+      ${tile('Really, on E8', usd(x.funded_net), 'demo result scaled up, minus E8 extra costs', cls(x.funded_net))}
+      ${tile('IPFX is easier by', usd(x.gap), 'the part of IPFX profit that real fills would not give', x.gap > 0 ? 'neg' : 'pos')}
+      ${tile('Copied', esc(x.trades), esc(cov.traders) + ' traders on ' + esc(cov.accounts) + ' demo accounts · ' + esc(cov.failed) + ' copies failed', cov.failed ? 'neg' : '')}</div>
+      <div class="table-wrap" style="max-height:none"><table style="min-width:560px"><thead><tr><th>Trader (largest gap first)</th><th class="num">Trades</th><th class="num">On IPFX</th><th class="num">Really, on E8</th><th class="num">Gap</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="empty">No finished copies yet.</td></tr>'}</tbody></table></div>
+      <p class="small" style="margin-top:10px">Partial closes are not mirrored (the demo size is the minimum lot); the demo copy closes when the trader's trade fully closes.</p>`;
+  }
+
   function render() {
-    renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderCosts(); renderWatch(); renderBoard(); renderMoves(); renderHealth();
+    renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderCosts(); renderShadow(); renderWatch(); renderBoard(); renderMoves(); renderHealth();
   }
 
   // ---------- notifications ----------
@@ -445,7 +463,7 @@
       let res = await call(full ? 'overview' : 'pulse');
       if (!full && res.metrics_as_of && res.metrics_as_of !== data.metrics_as_of) res = await call('overview');
       if (res.light) {
-        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders, events: data.events, costs: data.costs };
+        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders, events: data.events, costs: data.costs, shadow: data.shadow };
         renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderHealth();
       } else { data = res; lastFull = Date.now(); render(); }
       lastLoad = Date.now(); notifyNew();
