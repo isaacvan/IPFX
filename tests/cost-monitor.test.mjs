@@ -36,3 +36,11 @@ test('Treasury page offers the three roles; Brain shows the cost comparison', ()
   assert.match(html, /<option value="monitor">E8 funded account: cost monitor \(read-only, never trades\)<\/option>/);
   assert.match(read('assets/js/team-brain.js'), /function renderCosts\(\)/);
 });
+
+test('spread parity: Brain alerts when IPFX spread leaves 80%-125% of E8 and shows the ratio', () => {
+  const sql = read('supabase/migrations/20261005160000_spread_parity.sql');
+  assert.match(sql, /'cost:spread:' \|\| s\.symbol/);
+  assert.match(sql, /s\.ipfx \/ s\.e8 > 1\.25 or s\.ipfx \/ s\.e8 < 0\.8/);
+  assert.match(sql, /'ipfx_vs_e8'/);
+  assert.match(read('assets/js/team-brain.js'), /IPFX vs E8/);
+});

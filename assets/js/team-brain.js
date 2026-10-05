@@ -342,10 +342,10 @@
     if (!accts.length) { el.innerHTML = '<div class="empty-ok">Connect your E8 funded account (role: E8 cost monitor) and at least one demo copy account on the Treasury page. Sampling starts within a minute.</div>'; return; }
     const px = (v) => fin(v) ? Number(v).toPrecision(3) : '—';
     const sp = (c.spreads || []).map((r) => `<tr><td><b>${esc(r.symbol)}</b></td><td class="num">${px(r.e8)}</td><td class="num">${px(r.demo)}</td><td class="num">${px(r.ipfx)}</td>
-      <td class="num ${fin(r.e8_vs_demo) && r.e8_vs_demo > 0 ? 'neg' : 'pos'}">${fin(r.e8_vs_demo) ? (r.e8_vs_demo > 0 ? '+' : '') + px(r.e8_vs_demo) : '—'}</td><td class="num">${esc(r.samples)}</td></tr>`).join('');
+      <td class="num ${fin(r.e8_vs_demo) && r.e8_vs_demo > 0 ? 'neg' : 'pos'}">${fin(r.e8_vs_demo) ? (r.e8_vs_demo > 0 ? '+' : '') + px(r.e8_vs_demo) : '—'}</td><td class="num ${fin(r.ipfx_vs_e8) && (r.ipfx_vs_e8 > 1.25 || r.ipfx_vs_e8 < 0.8) ? 'neg' : 'pos'}">${fin(r.ipfx_vs_e8) ? Math.round(r.ipfx_vs_e8 * 100) + '%' : '—'}</td><td class="num">${esc(r.samples)}</td></tr>`).join('');
     const com = (c.commission || []).map((r) => `${esc({ monitor: 'E8', shadow: 'Demo', ladder: 'Prop' }[r.role] || r.role)}: ${fin(r.per_lot) ? '$' + Number(r.per_lot).toFixed(2) + ' per lot' : '—'} (${esc(r.fills)} fills)`).join(' · ');
-    el.innerHTML = `<div class="table-wrap" style="max-height:none"><table style="min-width:640px"><thead><tr><th>Instrument</th><th class="num">E8 spread</th><th class="num">Demo spread</th><th class="num">IPFX spread</th><th class="num">E8 − demo</th><th class="num">Samples</th></tr></thead>
-      <tbody>${sp || '<tr><td colspan="6" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>'}</tbody></table></div>
+    el.innerHTML = `<div class="table-wrap" style="max-height:none"><table style="min-width:640px"><thead><tr><th>Instrument</th><th class="num">E8 spread</th><th class="num">Demo spread</th><th class="num">IPFX spread</th><th class="num">E8 − demo</th><th class="num" title="IPFX spread as a share of E8's. Aim for 80% to 125%.">IPFX vs E8</th><th class="num">Samples</th></tr></thead>
+      <tbody>${sp || '<tr><td colspan="7" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>'}</tbody></table></div>
       <p class="small" style="margin-top:10px">Commission: ${com || 'no filled orders read yet (history is read every 15 minutes)'}</p>
       <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) · last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' · ')}</p>`;
   }
