@@ -68,9 +68,9 @@
   $('ladderAdd').addEventListener('submit', async (e) => {
     e.preventDefault(); $('laSubmit').disabled = true;
     try {
-      await call('ladder_add', { role: $('laRole').value, label: $('laLabel').value, size_usd: Number($('laSize').value), fee_usd: Number($('laFee').value), signal_group: Number($('laGroup').value || 0),
-        email: $('laEmail').value.trim(), password: $('laPassword').value, server: $('laServer').value.trim(), account_id: $('laAccount').value.trim() });
-      $('status').textContent = $('laRole').value === 'monitor' ? 'E8 account connected read-only: the cost monitor starts within a minute' : 'Account added with copying OFF'; await load();
+      const added = await call('ladder_add', { role: $('laRole').value, label: $('laLabel').value, size_usd: Number($('laSize').value), fee_usd: Number($('laFee').value), signal_group: Number($('laGroup').value || 0),
+        email: $('laEmail').value.trim(), password: $('laPassword').value, server: $('laServer').value.trim(), account_id: $('laAccount').value.trim(), all: $('laAll').value === '1' });
+      $('status').textContent = $('laRole').value === 'monitor' ? 'E8 account connected read-only: the cost monitor starts within a minute' : (added && added.added > 1 ? added.added + ' demo accounts added with copying OFF' + (added.skipped ? ' (' + added.skipped + ' were already connected)' : '') : 'Account added with copying OFF'); await load();
     } catch (err) { $('status').textContent = err.message; }
     finally { $('laPassword').value = ''; $('laSubmit').disabled = false; }
   });

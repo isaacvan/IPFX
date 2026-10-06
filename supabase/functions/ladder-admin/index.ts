@@ -92,21 +92,33 @@ Deno.serve(async (req) => {
       if (env !== "demo" && role !== "monitor") return json({ ok: false, error: "Copy accounts must be on TradeLocker's demo environment for now (this login works on live). Add it as the E8 monitor instead, or use a demo-environment account." }, 400);
       const tl = readClient(env);
       const list = await tl.accounts(tok.accessToken);
-      const acc = wanted ? list.find((a) => String(a.id ?? a.accountId) === wanted) : (list.length === 1 ? list[0] : null);
-      if (!acc) return json({ ok: false, error: "Enter the account number shown after # (several accounts found)" }, 400);
-      const accountId = String(acc.id ?? acc.accountId), accNum = String(acc.accNum ?? "");
-      const map = (await tl.instruments(tok.accessToken, accountId, accNum)).map((row) => ({
-        symbol: String(row.name ?? row.symbol ?? "").trim().toUpperCase(), tradable_instrument_id: String(row.tradableInstrumentId ?? row.id ?? ""),
-        trade_route_id: tradeRoute(row), info_route_id: infoRoute(row), min_qty: Number(row.minQty ?? row.minLot ?? 0.01), lot_step: Number(row.qtyStep ?? row.lotStep ?? 0.01),
-      })).filter((r) => r.symbol && r.trade_route_id != null);
-      const { data: row, error } = await db.from("ladder_accounts").insert({
-        label, size_usd: size, fee_usd: fee, signal_group: group, server, account_id: accountId, acc_num: accNum,
-        access_token_ciphertext: await encryptSecret(tok.accessToken, key), refresh_token_ciphertext: await encryptSecret(tok.refreshToken, key),
-        access_expires_at: jwtExpiresAt(tok.accessToken), instrument_map: map, execution_enabled: false, role, api_env: env,
-      }).select("id").single();
-      if (error || !row) return json({ ok: false, error: "Could not save the account" }, 503);
-      await audit("ladder_account_add", { id: row.id, label, size_usd: size, fee_usd: fee, signal_group: group, instruments: map.length, role, api_env: env });
-      return json({ ok: true, id: row.id, instruments: map.length, execution_enabled: false, role, api_env: env });
+      // "Add every account on this login" is for demo copy accounts only: one login (TradeLocker allows one profile
+      // and up to 10 demo accounts) connects them all at once. Accounts already connected are skipped.
+      const all = body.all === true && role === "shadow";
+      const chosen = all ? list : [wanted ? list.find((a) => String(a.id ?? a.accountId) === wanted) : (list.length === 1 ? list[0] : null)];
+      if (!chosen.length || !chosen[0]) return json({ ok: false, error: "Enter the account number shown after # (several accounts found)" }, 400);
+      const { data: existing } = await db.from("ladder_accounts").select("account_id,server");
+      const have = new Set((existing ?? []).map((r) => `${r.server}|${r.account_id}`));
+      const added: Array<Record<string, unknown>> = [];
+      let skipped = 0;
+      for (const acc of chosen) {
+        const accountId = String(acc!.id ?? acc!.accountId), accNum = String(acc!.accNum ?? "");
+        if (have.has(`${server}|${accountId}`)) { skipped++; continue; }
+        const map = (await tl.instruments(tok.accessToken, accountId, accNum)).map((row) => ({
+          symbol: String(row.name ?? row.symbol ?? "").trim().toUpperCase(), tradable_instrument_id: String(row.tradableInstrumentId ?? row.id ?? ""),
+          trade_route_id: tradeRoute(row), info_route_id: infoRoute(row), min_qty: Number(row.minQty ?? row.minLot ?? 0.01), lot_step: Number(row.qtyStep ?? row.lotStep ?? 0.01),
+        })).filter((r) => r.symbol && r.trade_route_id != null);
+        const rowLabel = all ? `${label} #${accNum || accountId}` : label;
+        const { data: row, error } = await db.from("ladder_accounts").insert({
+          label: rowLabel, size_usd: size, fee_usd: role === "shadow" ? 0 : fee, signal_group: group, server, account_id: accountId, acc_num: accNum,
+          access_token_ciphertext: await encryptSecret(tok.accessToken, key), refresh_token_ciphertext: await encryptSecret(tok.refreshToken, key),
+          access_expires_at: jwtExpiresAt(tok.accessToken), instrument_map: map, execution_enabled: false, role, api_env: env,
+        }).select("id").single();
+        if (error || !row) return json({ ok: false, error: `Could not save account #${accNum || accountId}`, added: added.length }, 503);
+        added.push({ id: row.id, instruments: map.length });
+        await audit("ladder_account_add", { id: row.id, label: rowLabel, size_usd: size, fee_usd: role === "shadow" ? 0 : fee, signal_group: group, instruments: map.length, role, api_env: env, bulk: all });
+      }
+      return json({ ok: true, id: added[0]?.id ?? null, added: added.length, skipped, instruments: added[0]?.instruments ?? 0, execution_enabled: false, role, api_env: env });
     } catch (_) { return json({ ok: false, error: "The broker rejected the login or the account could not be read" }, 400); }
   }
   if (action === "ladder_update") {
