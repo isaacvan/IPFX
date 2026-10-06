@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { closePositionQty, marketOrder, orderFill, ordersByStrategy, placeMarketOrder, refresh, responseIds } from "../_shared/tradelocker.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
+import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { POLICY_V1, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
 import { emergencyStop, fundedRiskUsd, legSide, lotsFor, sizeMultiplier, type Progress } from "../_shared/ab-allocator.ts";
 
@@ -46,7 +47,7 @@ async function destination(db: Db, book: string) {
     if (ladder) await db.from("ladder_accounts").update(patch).eq("id", Number(book.slice(1)));
     else await db.from("team_book_destinations").update({ ...patch, last_health_at: new Date().toISOString() }).eq("book", book);
   }
-  return { token, accountId: String(d.account_id), accNum: String(d.acc_num), map: (d.instrument_map ?? []) as Array<Record<string, unknown>> };
+  return { token, accountId: String(d.account_id), accNum: String(d.acc_num), env: (d.api_env ?? "demo") as TlEnv, map: (d.instrument_map ?? []) as Array<Record<string, unknown>> };
 }
 // Deterministic split of traders across ladder accounts (each account copies one group), so one bad trader or
 // one bad day cannot hit every account at once.
@@ -249,6 +250,8 @@ async function shadowOpen(db: Db, b: Record<string, unknown>) {
     const positionId = ids.positionId ?? fill?.positionId ?? null;
     await db.from("shadow_orders").update({ status: positionId ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
       fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
+    // A partial close may have arrived while the demo order was in flight.
+    if (positionId) await shadowPriceSlices(db, tradeId).catch(() => 0);
     // The trader may have closed while the demo order was in flight: close the demo position right away.
     const { data: now } = await db.from("trades").select("status").eq("id", tradeId).maybeSingle();
     if (positionId && now?.status === "closed") await shadowClose(db, { source_trade_id: tradeId });
@@ -260,8 +263,43 @@ async function shadowOpen(db: Db, b: Record<string, unknown>) {
   }
 }
 
+// Partial closes: the demo copy is the broker minimum and cannot be split, so a slice is priced from the demo
+// account's own bid/ask at that moment (the side a close would use) and no order is sent. Slices older than three
+// minutes are never priced late: they stay unpriced and the trade is left out of the funded-size results.
+const SLICE_MAX_AGE_MS = 3 * 60_000;
+async function shadowPriceSlices(db: Db, tradeId: string) {
+  const { data: slices } = await db.from("shadow_slices").select("id,created_at").eq("source_trade_id", tradeId).is("exit_price", null);
+  const due = (slices ?? []).filter((x: Record<string, unknown>) => Date.now() - Date.parse(String(x.created_at)) < SLICE_MAX_AGE_MS);
+  if (!due.length) return 0;
+  const { data: leg } = await db.from("shadow_orders").select("account_id,symbol,side").eq("source_trade_id", tradeId).eq("event", "open").eq("status", "filled").maybeSingle();
+  if (!leg) return 0;
+  const book = "s" + leg.account_id, dest = await destination(db, book);
+  if (!dest) return 0;
+  const inst = instrumentFor(dest.map, leg.symbol);
+  if (!inst || inst.info_route_id == null) return 0;
+  const q = await readClient(dest.env).quote(dest.token, dest.accNum, Number(inst.info_route_id), String(inst.tradable_instrument_id)).catch(() => null);
+  if (!q) return 0;
+  const exit = leg.side === "buy" ? q.bid : q.ask;
+  for (const x of due) await db.from("shadow_slices").update({ exit_price: exit, bid: q.bid, ask: q.ask, priced_at: new Date().toISOString() }).eq("id", x.id).is("exit_price", null);
+  return due.length;
+}
+
+async function shadowPartial(db: Db, b: Record<string, unknown>) {
+  const tradeId = String(b.source_trade_id), sliceId = String(b.slice_trade_id ?? "");
+  if (!sliceId) return { ok: false, error: "slice_trade_id required" };
+  const { data: leg } = await db.from("shadow_orders").select("account_id,status").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "sent", "reconciliation_required"]).maybeSingle();
+  if (!leg) return { ok: true, skipped: "no demo copy" };
+  const { error } = await db.from("shadow_slices").insert({ source_trade_id: tradeId, slice_trade_id: sliceId, account_id: leg.account_id });
+  if (error?.code === "23505") return { ok: true, skipped: "duplicate event" };
+  if (error) return { ok: false, error: "claim failed" };
+  // Demo order still in flight: shadowOpen prices the slice as soon as it fills.
+  const priced = leg.status === "filled" ? await shadowPriceSlices(db, tradeId) : 0;
+  return { ok: true, priced };
+}
+
 async function shadowClose(db: Db, b: Record<string, unknown>) {
   const tradeId = String(b.source_trade_id);
+  await shadowPriceSlices(db, tradeId).catch(() => 0);
   const { data: legs } = await db.from("shadow_orders").select("*").eq("source_trade_id", tradeId).eq("event", "open").eq("status", "filled");
   const results: Array<Record<string, unknown>> = [];
   for (const leg of legs ?? []) {
@@ -312,6 +350,8 @@ async function shadowReconcile(db: Db) {
       fixed.push({ id: o.id, found: false });
     }
   }
+  const { data: waiting } = await db.from("shadow_slices").select("source_trade_id").is("exit_price", null).gt("created_at", new Date(Date.now() - SLICE_MAX_AGE_MS).toISOString()).limit(50);
+  for (const w of [...new Set((waiting ?? []).map((x: Record<string, unknown>) => String(x.source_trade_id)))]) fixed.push({ priced_slices: w, n: await shadowPriceSlices(db, w).catch(() => 0) });
   const { data: legs } = await db.from("shadow_orders").select("source_trade_id").eq("event", "open").eq("status", "filled").limit(200);
   for (const leg of legs ?? []) {
     const { data: t } = await db.from("trades").select("status").eq("id", leg.source_trade_id).maybeSingle();
@@ -388,6 +428,7 @@ Deno.serve(async (req) => {
   }
   if (body.event === "shadow_open") return json(await shadowOpen(db, body));
   if (body.event === "shadow_close") return json(await shadowClose(db, body));
+  if (body.event === "shadow_partial") return json(await shadowPartial(db, body));
   if (body.event === "close" || body.event === "partial_close") return json(await closeLeg(db, body));
   return json({ ok: false, error: "unknown event" }, 400);
 });

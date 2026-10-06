@@ -4003,6 +4003,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     // Book legs shrink by the same fraction (gap fixed: partial closes used to leave the copy full size).
     const pLegs = await bookLegs(db, target.id);
     if (pLegs.a || pLegs.b) bookLater({ event: "partial_close", source_trade_id: target.id, fraction: vol / full, slice_id: closedSlice.id });
+    shadowLater(db, { event: "shadow_partial", source_trade_id: target.id, slice_trade_id: closedSlice.id });
     await logAudit(db, {
       trade_id: closedSlice.id, user_id: user.id, account_id: (acct as Acct).id, event: "partial_close",
       symbol: target.symbol, side: target.side, requested_volume: vol,

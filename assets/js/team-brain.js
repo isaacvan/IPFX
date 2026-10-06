@@ -365,7 +365,7 @@
       ${tile('Copied', esc(x.trades), esc(cov.traders) + ' traders on ' + esc(cov.accounts) + ' demo accounts · ' + esc(cov.failed) + ' copies failed', cov.failed ? 'neg' : '')}</div>
       <div class="table-wrap" style="max-height:none"><table style="min-width:560px"><thead><tr><th>Trader (largest gap first)</th><th class="num">Trades</th><th class="num">On IPFX</th><th class="num">Really, on E8</th><th class="num">Gap</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="5" class="empty">No finished copies yet.</td></tr>'}</tbody></table></div>
-      <p class="small" style="margin-top:10px">Partial closes are not mirrored (the demo size is the minimum lot); the demo copy closes when the trader's trade fully closes.</p>`;
+      <p class="small" style="margin-top:10px">Partial closes are priced from the demo account's own bid/ask at that moment (no extra order; the demo lot is the minimum and cannot be split)${x.incomplete ? ` · ${esc(x.incomplete)} trade(s) left out because a partial close could not be priced in time` : ''}.</p>`;
   }
 
   function render() {
