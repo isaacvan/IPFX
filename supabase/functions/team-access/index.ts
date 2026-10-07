@@ -1,16 +1,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "https://ipfxcapital.com",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
-  status,
-  headers: { ...CORS, "Content-Type": "application/json" },
-});
+const ORIGINS = new Set(["https://ipfxcapital.com", "http://localhost:8127"]);
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("Origin") || "https://ipfxcapital.com";
+  const CORS = {
+    "Access-Control-Allow-Origin": ORIGINS.has(origin) ? origin : "https://ipfxcapital.com",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+    "Cache-Control": "no-store",
+  };
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+    status, headers: { ...CORS, "Content-Type": "application/json" },
+  });
+  if (!ORIGINS.has(origin)) return json({ ok: false, error: "Origin not allowed" }, 403);
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
   const authorization = req.headers.get("Authorization") ?? "";
