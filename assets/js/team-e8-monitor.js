@@ -29,8 +29,14 @@
   $('simulationTrades').innerHTML=(sim?.recent||[]).map(t=>{
    const reverse=t.selected_book==='b',side=reverse?(t.trader_side==='buy'?'sell':'buy'):t.trader_side;
    const gross=t.selected_gross_usd==null?'Unavailable':'$'+Number(t.selected_gross_usd).toFixed(2);
-   return '<tr><td>'+esc(t.trade_id.slice(0,8))+' / '+esc(t.symbol)+(t.is_practice?' · practice':'')+'</td><td>'+esc(t.trader_side)+' → '+esc(side)+' ('+(reverse?'B':'A')+')</td><td>'+esc(t.exited_lots??0)+' / '+esc(t.original_lots)+'</td><td>'+esc(t.status.replaceAll('_',' '))+'</td><td>'+esc(gross)+'</td><td>Unverified</td></tr>';
-  }).join('')||'<tr><td colspan="6">No new tracked trades yet.</td></tr>';
+   const decision=t.decision_gross_usd==null?'Unavailable':'$'+Number(t.decision_gross_usd).toFixed(2);
+   return '<tr><td>'+esc(t.trade_id.slice(0,8))+' / '+esc(t.symbol)+(t.is_practice?' · practice':'')+'</td><td>'+esc(t.trader_side)+' → '+esc(side)+' ('+(reverse?'B':'A')+')</td><td>'+esc(t.exited_lots??0)+' / '+esc(t.original_lots)+'</td><td>'+esc(t.status.replaceAll('_',' '))+'</td><td>'+esc(gross)+'</td><td>'+esc(decision)+'<br><small>'+esc((t.decision_status||'Decision quote unavailable').replaceAll('_',' '))+'</small></td><td>Unverified</td></tr>';
+  }).join('')||'<tr><td colspan="7">No new tracked trades yet.</td></tr>';
+  $('pendingStatus').textContent=sim?.pending_active==null?'Pending archive unavailable.':sim.pending_active+' resting orders · '+sim.pending_unconfirmed+' fills awaiting a source trade link';
+  $('pendingOrders').innerHTML=(sim?.pending_recent||[]).map(p=>{
+   const o=p.snapshot||{};
+   return '<tr><td>'+esc(p.order_id.slice(0,8))+' / '+esc(o.symbol)+'</td><td>'+esc(o.side)+' '+esc(o.order_type)+'</td><td>'+esc(o.volume)+' @ '+esc(o.trigger_price)+'</td><td>'+esc(p.status)+'<br><small>'+esc(p.tracking_status.replaceAll('_',' '))+'</small></td><td>'+esc(o.filled_trade_id?.slice(0,8)||o.reject_reason||'—')+'</td></tr>';
+  }).join('')||'<tr><td colspan="5">No observed pending orders yet.</td></tr>';
   $('status').textContent='Owner-only · read-only E8 · updated '+new Date().toLocaleTimeString('en-GB');
  }catch(e){refreshQuoteAge();$('status').textContent=e.name==='TimeoutError'?'Monitor request timed out — showing the last received data.':e.message;}finally{busy=false;}}
  $('connect').addEventListener('submit',async e=>{e.preventDefault();$('connectBtn').disabled=true;try{
