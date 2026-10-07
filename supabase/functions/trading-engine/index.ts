@@ -1804,7 +1804,7 @@ async function todayGain(db: Db, acct: Acct, equity: number): Promise<number> {
 type Tr = {
   id: string; account_id: string; user_id: string; symbol: string;
   side: string; volume: number; open_price: number; close_price: number | null;
-  sl: number | null; tp: number | null; status: string; pnl: number | null;
+  sl: number | null; tp: number | null; status: string; pnl: number | null; opened_at: string;
   trail_distance?: number | null;
 };
 
@@ -3006,7 +3006,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     "state", "price", "prices", "open", "close", "close_all", "modify",
     "partial_close", "place_pending", "cancel_pending", "set_trailing",
   ]);
-  if (authMethod === "bot" && !BOT_ALLOWED_ACTIONS.has(body.action)) {
+  if (authMethod === "bot" && (typeof body.action !== "string" || !BOT_ALLOWED_ACTIONS.has(body.action))) {
     return err("This API key is trade-only — it cannot access payouts, KYC, or account settings", 403);
   }
 
@@ -3137,7 +3137,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
       if (q === null) return { symbol, status: "no_feed" as const, digits: inst.digits };
       const stale = quoteStale(q);
       return {
-        symbol, status: (stale ? "stale" : "demo") as const,
+        symbol, status: stale ? "stale" as const : "demo" as const,
         mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread, digits: inst.digits,
       };
     }));
@@ -3974,6 +3974,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
 
     const { data: closedSlice, error: insErr } = await db.from("trades").insert({
       account_id: (acct as Acct).id, user_id: user.id, symbol: target.symbol,
+      parent_trade_id: target.id,
       side: target.side, volume: vol, open_price: target.open_price,
       sl: target.sl, tp: target.tp, status: "closed", close_price: exit,
       pnl: round2(pnl), close_reason: "partial", opened_at: target.opened_at,

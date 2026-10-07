@@ -1,11 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {createRequire} from 'node:module';
 // Browser fixture blocks all external traffic. Never uses an existing owner profile.
-test('owner monitor renders freshness, clears credentials and submits reverse partial replay',{skip:!process.env.E8_BROWSER_TEST},async()=>{
+test('owner monitor renders freshness, clears credentials and submits reverse partial replay',{skip:!process.env.E8_BROWSER_TEST,timeout:60000},async()=>{
  const require=createRequire(import.meta.url);
  const {chromium}=require(process.env.E8_PLAYWRIGHT);
- const browser=await chromium.launch({executablePath:process.env.E8_CHROME,headless:true,args:['--disable-background-networking']});
+ process.stdout.write('fixture: launching isolated browser\n');
+ const browser=await chromium.launch({executablePath:process.env.E8_CHROME,headless:true,timeout:20000,args:['--disable-background-networking']});
+ process.stdout.write('fixture: browser ready\n');
  try{
  const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage(),errors=[],requests=[];
+ page.setDefaultTimeout(15000);
  page.on('pageerror',e=>errors.push(e.message));
  const fixture={ok:true,accounts:[{id:1,label:'E8 fixture',account_id:'99'}],summary:{accounts:[{id:1,label:'E8 fixture',enabled:true,status:'READY'}],quotes:[{account_id:1,symbol:'EURUSD',bid:1.1,ask:1.1002,spread:.0002,received_at:new Date().toISOString(),fresh:true,age_ms:100}],fills:1,fee_complete_fills:0,revisions:1}};
  await context.route('**/*',async route=>{
@@ -14,13 +17,15 @@ test('owner monitor renders freshness, clears credentials and submits reverse pa
   if(url.pathname==='/assets/js/team-e8-monitor.js')return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(new URL('../assets/js/team-e8-monitor.js',import.meta.url),'utf8')});
   if(url.hostname==='cdn.jsdelivr.net')return route.fulfill({contentType:'text/javascript',body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:{access_token:'fixture-owner-session'}}})}})};"});
   if(url.pathname.includes('/functions/v1/')){
+   const headers={'Access-Control-Allow-Origin':'https://fixture.test','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Allow-Headers':'authorization,content-type'};
+   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
    const body=req.postDataJSON();requests.push({fn:url.pathname,body});
    const response=body.action==='project'?{ok:true,result:{available:true,netUSD:148,grossUSD:155,feesUSD:7,entrySamplingWaitMs:200,slices:[{samplingWaitMs:200},{samplingWaitMs:200}]}}:body.action==='ladder_add'?{ok:true,id:1}:body.action==='overview'?fixture:{ok:true};
-   return route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(response)});
+   return route.fulfill({contentType:'application/json',headers,body:JSON.stringify(response)});
   }
   return route.fulfill({status:200,body:''});
  });
- await page.goto('https://fixture.test/team-e8-monitor.html');await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('updated'));
+ await page.goto('https://fixture.test/team-e8-monitor.html',{timeout:15000});process.stdout.write('fixture: page loaded\n');await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('updated'),null,{timeout:15000});
  assert.match(await page.locator('#quotes').innerText(),/Recent API reply/);assert.match(await page.locator('#history').innerText(),/Missing fees are unknown/);
  await page.locator('#email').fill('fixture@example.invalid');await page.locator('#password').fill('synthetic-test-value');await page.locator('#server').fill('fixture');await page.locator('#account').fill('99');await page.locator('#connectBtn').click();
  await page.waitForFunction(()=>document.querySelector('#password').value==='');

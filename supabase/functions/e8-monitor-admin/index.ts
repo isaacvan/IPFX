@@ -21,9 +21,9 @@ Deno.serve(async req=>{
  try{if(!await allowRequest(db,'e8-monitor-admin',user.id,60,60))return json({ok:false,error:'Too many requests'},429);}catch{return json({ok:false,error:'Request protection unavailable'},503);}
  const body=await readJsonObject(req,8192).catch(()=>null);if(!body)return json({ok:false,error:'Invalid request'},400);
  if(body.action==='overview'){
-  const [summary,accounts]=await Promise.all([db.rpc('e8_reference_summary'),db.from('ladder_accounts').select('id,label,platform,api_env,account_id,server,instrument_map').eq('role','monitor').eq('execution_enabled',false)]);
-  if(summary.error||accounts.error)return json({ok:false,error:'Reference monitor unavailable'},503);
-  return json({ok:true,summary:summary.data,accounts:accounts.data});
+  const [summary,accounts,simulation]=await Promise.all([db.rpc('e8_reference_summary'),db.from('ladder_accounts').select('id,label,platform,api_env,account_id,server,instrument_map').eq('role','monitor').eq('execution_enabled',false),db.rpc('e8_sim_summary')]);
+  if(summary.error||accounts.error||simulation.error)return json({ok:false,error:'Reference monitor unavailable'},503);
+  return json({ok:true,summary:summary.data,accounts:accounts.data,simulation:simulation.data});
  }
  const id=Number(body.account_id);if(!Number.isSafeInteger(id)||id<1)return json({ok:false,error:'Choose an E8 monitor account'},400);
  const {data:a,error:ae}=await db.from('ladder_accounts').select('role,platform,execution_enabled,server,api_env,instrument_map').eq('id',id).maybeSingle();

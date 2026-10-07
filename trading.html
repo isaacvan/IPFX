@@ -4620,7 +4620,9 @@ async function engineCall(body){
     }
     if(typeof renderJournal==='function')renderJournal();return j;
   }catch(e){
-    engineMsg(e&&e.name==='AbortError'?'No response after 15s — check your connection and try again':'Network error — order not placed');
+    engineMsg(body.action==='state'?'Connection is slow — account state could not be refreshed.':
+      (e&&e.name==='AbortError'?'No confirmation after 15s. The action may have completed. Check positions and history before retrying.':
+      'Connection lost. The action may have completed. Check positions and history before retrying.'));
     return null;
   }finally{
     clearTimeout(killer);

@@ -9,11 +9,16 @@ test('E8 SQL rejects execution accounts, preserves quote/history and serialises 
  create table ladder_accounts(id bigint primary key,label text,role text,execution_enabled boolean,platform text);
  create table cost_samples(id bigint primary key);create table cost_fills(account_id bigint,role text,ref text);`);
  await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261007140000_e8_reference_monitor.sql',import.meta.url),'utf8'));
+ await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261007160500_e8_monitor_cadence.sql',import.meta.url),'utf8'));
  await db.exec(`insert into ladder_accounts values(1,'E8','monitor',false,'tradelocker'),(2,'Copy','ladder',true,'tradelocker');`);
  await assert.rejects(db.exec(`insert into e8_monitor_profiles(account_id,scope) values(2,'demo')`),/read-only/);
  await db.exec(`insert into e8_monitor_profiles(account_id,scope,enabled) values(1,'E8',true)`);
  await assert.rejects(db.exec("update ladder_accounts set role='ladder',execution_enabled=true where id=1"),/execution account/);
  const p=(await db.query('select e8_monitor_claim() p')).rows[0].p;assert.equal(p.account_id,1);assert.ok(p.lease);
+ const cadence=(await db.query('select extract(epoch from next_run)*1000 deadline,extract(epoch from clock_timestamp())*1000 claimed,interval_ms from e8_monitor_profiles where account_id=1')).rows[0];
+ assert.equal(Number(cadence.deadline)%Number(cadence.interval_ms),0,'deadline is aligned rather than delayed by dispatch');
+ assert.ok(Number(cadence.deadline)>Number(cadence.claimed));
+ assert.ok(Number(cadence.deadline)-Number(cadence.claimed)<=Number(cadence.interval_ms));
  assert.equal((await db.query('select e8_monitor_claim() p')).rows[0].p,null,'concurrent worker cannot take the held profile');
  const rules=[{type:'QUOTES',limit:2,windowMs:1000}];
  for(const bad of [null,{},[],[{}],[{type:'QUOTES',limit:'NaN',windowMs:1000}],[{type:'QUOTES',limit:2,windowMs:null}]])
