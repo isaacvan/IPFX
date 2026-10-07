@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decide, herdClusters, POLICY_V1, type BookState, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
 import { personMetrics, type LedgerRow } from "../_shared/brain.ts";
+type IntegritySignal = { person_id: string; investigation_hold: boolean | null; critical_flag: boolean | null; stage2_profit_pct: number | null };
 
 function constantTimeEqual(a: string, b: string): boolean {
   const ea = new TextEncoder().encode(a), eb = new TextEncoder().encode(b);
@@ -36,7 +37,7 @@ async function run(db: any): Promise<Response> {
   if (polErr || !pol) return json({ error: "no active policy" }, 503);
   const policy: Policy = { ...POLICY_V1, ...(pol.thresholds as Partial<Policy>), version: pol.version };
 
-  const { data: profiles, error: profErr } = await db.from("ab_trader_profiles").select("person_id,book_state,state_since,last_ab_exit_at");
+  const { data: profiles, error: profErr } = await db.from("ab_trader_profiles").select("person_id,book_state,state_since,last_ab_exit_at,manual_book_state");
   if (profErr) return json({ error: "profiles unavailable" }, 503);
 
   // Ledger points, paged, oldest first. Only rows with a real quote replay and a stop-loss-based R count as evidence.
@@ -56,7 +57,7 @@ async function run(db: any): Promise<Response> {
   // Integrity signals must be read or the run stops: a silent failure here once meant no suspension could fire.
   const { data: signals, error: sigErr } = await db.from("ab_person_signals").select("person_id,investigation_hold,critical_flag,stage2_profit_pct");
   if (sigErr) return json({ error: "integrity signals unavailable: " + sigErr.message }, 503);
-  const sig = new Map((signals ?? []).map((s) => [s.person_id, s]));
+  const sig = new Map<string, IntegritySignal>((signals ?? []).map((s: IntegritySignal): [string, IntegritySignal] => [s.person_id, s]));
   // Herd clusters: people linked by repeated same-trade-within-60s pairs (ab_herd_pairs), joined transitively.
   const { data: pairs, error: herdErr } = await db.rpc("ab_herd_pairs");
   if (herdErr) return json({ error: "herd signals unavailable: " + herdErr.message }, 503);
@@ -69,6 +70,9 @@ async function run(db: any): Promise<Response> {
   for (const p of profiles ?? []) {
     const s = sig.get(p.person_id);
     const suspend = s?.investigation_hold ? "account under investigation" : s?.critical_flag ? "critical trade-safety flag" : null;
+    finalState.set(p.person_id, p.book_state as BookState);
+    // Owner choices persist; integrity checks still suspend immediately. The database also guards races.
+    if (p.manual_book_state && !suspend) continue;
     const decision = decide({
       state: p.book_state as BookState, stateSince: Date.parse(p.state_since),
       lastAbExitAt: p.last_ab_exit_at ? Date.parse(p.last_ab_exit_at) : null, now,
@@ -76,7 +80,6 @@ async function run(db: any): Promise<Response> {
       stage2ProfitPct: s?.stage2_profit_pct == null ? null : Number(s.stage2_profit_pct),
       herd: herd.has(p.person_id),
     }, policy);
-    finalState.set(p.person_id, p.book_state as BookState);
     if (!decision) continue;
     const { data: applied, error } = await db.rpc("ab_apply_transition", {
       p_person: p.person_id, p_from: p.book_state, p_to: decision.to, p_reason: decision.reason,
@@ -123,7 +126,7 @@ async function writeMetrics(db: any, profiles: Array<{ person_id: string }>, sta
   }
   const { data: br, error: brErr } = await db.from("ab_person_breaches_7d").select("person_id,breaches");
   if (brErr) throw new Error("breaches: " + brErr.message);
-  const breaches = new Map((br ?? []).map((b: { person_id: string; breaches: number }) => [b.person_id, Number(b.breaches)]));
+  const breaches = new Map<string, number>((br ?? []).map((b: { person_id: string; breaches: number }): [string, number] => [b.person_id, Number(b.breaches)]));
   const asOf = new Date().toISOString();
   const out = profiles.map((p) => {
     const s = sig.get(p.person_id), pay = payout.get(p.person_id);

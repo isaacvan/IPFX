@@ -1,5 +1,5 @@
 // Owner-only Brain control room (Team -> Brain page). Read-only view of the A/B-book brain: alerts, books,
-// traders, moves and system health. The only write is acknowledging an alert (audited). Requires the owner's
+// traders, moves and system health. Owner model changes and alert acknowledgements are audited. Requires the owner's
 // signed-in MFA (aal2) session, like ladder-admin.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, readJsonObject } from "../_shared/request-guards.ts";
@@ -11,6 +11,8 @@ const JOBS = [
   ["ipfx-quote-pump", "Price pump", 120], ["ipfx-demo-mirror-outbox", "Demo mirror", 300], ["ipfx-trader-detector", "Trader detector", 1800],
 ] as const;
 const SEVERITY_RANK: Record<string, number> = { critical: 0, warning: 1, good: 2, info: 3 };
+type BrainProfile = { person_id: string; book_state: string; state_since?: string; state_reason?: string;
+  last_trade_at?: string; manual_book_state?: string | null; manual_since?: string | null; manual_reason?: string | null };
 
 function aal(token: string): string {
   try { const raw = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); return String(JSON.parse(atob(raw + "=".repeat((4 - raw.length % 4) % 4))).aal ?? ""); }
@@ -48,7 +50,7 @@ Deno.serve(async (req) => {
     const [open, resolved, profiles, metrics, events, limits, settings, pol, reservations, livePnl, paper, orders, skips, snap, beats, prices, mkt, ladders, ...jobs] = await Promise.all([
       db.from("ab_alerts").select("id,key,severity,category,title,detail,person_id,value,first_seen,last_seen,acknowledged_at").is("resolved_at", null).limit(500),
       db.from("ab_alerts").select("id,severity,category,title,person_id,first_seen,resolved_at").gte("resolved_at", since24).order("resolved_at", { ascending: false }).limit(60),
-      db.from("ab_trader_profiles").select(light ? "book_state" : "person_id,book_state,state_since,state_reason,last_trade_at"),
+      db.from("ab_trader_profiles").select(light ? "book_state" : "person_id,book_state,state_since,state_reason,last_trade_at,manual_book_state,manual_since,manual_reason").returns<BrainProfile[]>(),
       light ? db.from("ab_trader_metrics").select("as_of").order("as_of", { ascending: false }).limit(1) : db.from("ab_trader_metrics").select("*"),
       light ? none : db.from("ab_lifecycle_events").select("id,person_id,from_state,to_state,reason,created_at,policy_version").order("created_at", { ascending: false }).limit(100),
       db.from("ab_risk_limits").select("book,daily_loss_stop_usd,daily_profit_cap_usd,open_risk_max_usd,per_trade_max_usd,crowd_max,account_size_usd"),
@@ -124,9 +126,45 @@ Deno.serve(async (req) => {
   if (action === "trader") {
     const person = String(body.person_id || "");
     if (!/^[0-9a-f-]{36}$/i.test(person)) return json({ ok: false, error: "Choose a trader" }, 400);
-    const { data, error } = await db.rpc("ab_brain_person", { p_person: person });
+    const [{ data, error }, routing, activity] = await Promise.all([
+      db.rpc("ab_brain_person", { p_person: person }),db.rpc("ab_model_capabilities", { p_person: person }),
+      db.rpc("ab_brain_live_activity", { p_person: person }),
+    ]);
     if (error || !data) return json({ ok: false, error: "Trader not found" }, 404);
-    return json({ ok: true, ...data });
+    if (routing.error || activity.error) return json({ ok: false, error: "Trader routing/activity unavailable" }, 503);
+    return json({ ok: true, ...data, routing: routing.data, activity: activity.data });
+  }
+
+  if (action === "set_model") {
+    const person = String(body.person_id || ""), target = String(body.target || "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(person) ||
+      !["AB_DEMO", "AB_LIVE", "BB_DEMO", "BB_LIVE", "AUTOMATIC"].includes(target) ||
+      typeof body.expected_state !== "string" || !(body.expected_manual == null || typeof body.expected_manual === "string") ||
+      typeof body.reason !== "string" || body.reason.trim().length < 5 || body.reason.length > 300)
+      return json({ ok: false, error: "Choose a trader/model and provide a reason" }, 400);
+    const { data, error } = await db.rpc("ab_owner_set_model", {
+      p_person: person, p_target: target, p_expected_state: body.expected_state,
+      p_expected_manual: body.expected_manual ?? null, p_reason: body.reason.trim(), p_actor: user.id,
+    });
+    if (error) return json({ ok: false, error: "Model change unconfirmed; refresh the trader before retrying" }, 503);
+    if (!data?.ok) return json({ ok: false, error: data?.error || "Model change refused", routing: data?.routing }, 409);
+    return json(data);
+  }
+
+  if (action === "find_traders") {
+    const term = typeof body.query === "string" ? body.query.trim() : "";
+    if (term.length < 3 || term.length > 80) return json({ ok: false, error: "Enter at least three characters of the registered name" }, 400);
+    const { data, error } = await db.from("user_profiles").select("user_id,full_name")
+      .ilike("full_name", "%" + term.replace(/[\\%_]/g, "\\$&") + "%").limit(20);
+    if (error) return json({ ok: false, error: "Registered trader search unavailable" }, 503);
+    return json({ ok: true, results: data ?? [] });
+  }
+  if (action === "add_trader") {
+    const id = String(body.user_id || "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return json({ ok: false, error: "Choose a registered trader" }, 400);
+    const { data, error } = await db.rpc("ab_owner_enroll_model", { p_user: id, p_actor: user.id });
+    if (error) return json({ ok: false, error: "Adding trader unconfirmed; refresh before retrying" }, 503);
+    return json(data ?? { ok: false, error: "Trader not found" }, data?.ok ? 200 : 409);
   }
 
   if (action === "ack") {

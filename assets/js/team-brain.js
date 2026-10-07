@@ -1,4 +1,4 @@
-/* Owner-only Brain control room. Reads through brain-monitor (owner + MFA). Never trades, sizes or routes. */
+/* Owner-only Brain control room. Reads and saves owner model choices through brain-monitor (owner + MFA). Never places or sizes orders. */
 (() => {
   'use strict';
   const SB_URL = 'https://agulweemteoeagscmppy.supabase.co';
@@ -11,6 +11,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const fin = (v) => v != null && v !== '' && Number.isFinite(Number(v));
   const usd = (v, signed = false) => !fin(v) ? '—' : (signed && Number(v) > 0 ? '+' : '') + Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const exactUsd = (v, signed=false) => !fin(v) ? '�' : (signed && Number(v)>0 ? '+' : '') + Number(v).toLocaleString('en-US', {style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2});
   const rr = (v, d = 2) => !fin(v) ? '—' : (Number(v) > 0 ? '+' : '') + Number(v).toFixed(d) + 'R';
   const pct = (v) => !fin(v) ? '—' : Math.round(Number(v) * 100) + '%';
   const signCls = (v) => !fin(v) || Number(v) === 0 ? '' : Number(v) > 0 ? 'pos' : 'neg';
@@ -19,10 +20,10 @@
   const store = { get(k, d) { try { const v = localStorage.getItem('brain.' + k); return v == null ? d : JSON.parse(v); } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem('brain.' + k, JSON.stringify(v)); } catch (_) {} } };
 
   const STATES = {
-    AB_LIVE: { tiny: 'A live', label: 'A-book live', short: 'A live', why: 'Being copied into prop accounts' },
-    AB_DEMO: { tiny: 'A test', label: 'A-book demo', short: 'A demo', why: 'On test: copies go to the demo account' },
-    BB_LIVE: { tiny: 'B live', label: 'B-book live', short: 'B live', why: 'IPFX bets against them' },
-    BB_DEMO: { tiny: 'Watch', label: 'B-book demo', short: 'Watching', why: 'Watched only, not enough proof yet' },
+    AB_LIVE: { tiny: 'A live', label: 'A-book live', short: 'A live', why: 'Same-direction execution selected; check destination availability below' },
+    AB_DEMO: { tiny: 'A test', label: 'A-book demo', short: 'A demo', why: 'Same-direction internal simulation' },
+    BB_LIVE: { tiny: 'B live', label: 'B-book live', short: 'B live', why: 'Reverse execution selected; check destination availability below' },
+    BB_DEMO: { tiny: 'Watch', label: 'B-book demo', short: 'Watching', why: 'Reverse internal simulation' },
     SUSPENDED: { tiny: 'Susp.', label: 'Suspended', short: 'Suspended', why: 'Integrity problem; only a person can release' },
   };
   const TAGS = {
@@ -55,14 +56,16 @@
     ['Real money ($) vs Replay (R)', 'Real money = actual broker results on connected accounts. Replay = what the books would have made, worked out from saved prices.'],
     ['Alerts', 'Red = act now. Amber = keep an eye on it. Green = good news. Alerts close themselves when the problem stops; "Seen" just dims them.'],
     ['Tags', 'Proven skill, B-book earner (good) · Could cost you, Getting worse, Turning good (money risk) · Broke a rule, Safety flag, No stop loss, Under a minute, Price-delay pattern, Herd (rules).'],
-    ['Updating', 'This page refreshes every 30 seconds. The brain re-checks every trader every 5 minutes and the payout forecast runs hourly.'],
+    ['Updating', 'Alerts and the open trader’s source activity refresh every 10 seconds. Statistics and automatic classification update on the minute; the payout forecast runs hourly. Saved source closes are immediate; E8 estimates wait for matching quotes.'],
   ];
 
   let data = null, busy = false, filter = 'action', tab = 'ALL', sortKey = store.get('sort', 'last'), sortDir = store.get('dir', 'desc'), shown = 100;
   let mode = store.get('mode', 'live'), range = store.get('range', 30), knownAlerts = null, lastLoad = 0, lastFull = 0;
+  let activePerson = null, modelBusy = false, drawerBusy = false, drawerData = null;
 
   async function call(action, extra = {}) {
     if (FIXTURE) {
+      if (['set_model','add_trader','find_traders'].includes(action)) throw new Error('Design preview cannot change or search real traders');
       const f = action === 'trader' ? 'brain-trader.json' : 'brain-overview.json';
       if (action === 'ack') return { ok: true };
       const r = await fetch('/tests/fixtures/' + f, { cache: 'no-store' }); const j = await r.json();
@@ -71,10 +74,10 @@
     }
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { location.replace('team-login.html?next=' + encodeURIComponent('/team-brain.html')); throw new Error('Sign in again'); }
-    const r = await fetch(SB_URL + '/functions/v1/brain-monitor', { method: 'POST', cache: 'no-store',
+    const r = await fetch(SB_URL + '/functions/v1/brain-monitor', { method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(15000),
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ action, ...extra }) });
     const body = await r.json().catch(() => null);
-    if (!r.ok || !body?.ok) throw new Error(body?.error || 'Owner and MFA verification required');
+    if (!r.ok || !body?.ok) { const error = new Error(body?.error || 'Owner and MFA verification required'); error.httpStatus = r.status; throw error; }
     return body;
   }
 
@@ -400,15 +403,49 @@
 
   // ---------- drawer ----------
   async function openTrader(id) {
+    activePerson = id; drawerData = null;
     const t = traderById().get(id); const drawer = $('drawer');
     $('dName').textContent = t?.name || 'Trader ' + id.slice(0, 6); $('dBox').textContent = STATES[t?.book_state]?.label || ''; $('dTags').innerHTML = tagChips(t?.metrics?.tags);
     $('dBody').innerHTML = '<p class="muted">Loading…</p>';
     drawer.setAttribute('aria-hidden', 'false'); $('scrim').hidden = false; $('dClose').focus();
-    try { renderTrader(t, await call('trader', { person_id: id })); } catch (e) { $('dBody').innerHTML = `<p class="negative">${esc(e.message)}</p>`; }
+    try { const d = await call('trader', { person_id: id }); if (activePerson === id) { drawerData=d; renderTrader(t,d); } }
+    catch (e) { if (activePerson === id) $('dBody').innerHTML = `<p class="negative">${esc(e.message)}</p>`; }
   }
-  function closeDrawer() { $('drawer').setAttribute('aria-hidden', 'true'); $('scrim').hidden = true; hideTip(); }
+  function closeDrawer() { activePerson=null; drawerData=null; $('drawer').setAttribute('aria-hidden', 'true'); $('scrim').hidden = true; hideTip(); }
+  function modelControls(p,routing) {
+    return `<section class="model-controls"><h3>Choose this trader’s model</h3>
+      <p>${p.manual_book_state ? 'Owner choice stays in place until you select Automatic.' : 'Automatic classification is on.'} Safety suspensions still apply. This choice covers all accounts belonging to this person.</p>
+      <label for="modelReason">Reason for changing model</label><input id="modelReason" maxlength="300" placeholder="For example: reviewed consistent performance">
+      <div class="model-buttons">${['AB_DEMO','AB_LIVE','BB_DEMO','BB_LIVE'].map(k=>`<button type="button" class="button" data-model="${k}" ${routing?.[k]?.available ? '' : 'disabled'} title="${esc(routing?.[k]?.reason || 'Routing status unavailable')}">${esc(STATES[k].label)}</button>`).join('')}
+      <button type="button" class="button" data-model="AUTOMATIC" ${p.manual_book_state ? '' : 'disabled'}>Automatic</button></div>
+      <p class="small">Saved changes affect new orders. Existing positions retain their original direction and destinations. A live label is not proof of a broker fill.</p>
+      <ul class="small">${['AB_LIVE','BB_LIVE'].map(k=>`<li><b>${esc(STATES[k].label)}:</b> ${esc(routing?.[k]?.reason || 'Unavailable')}</li>`).join('')}</ul>
+      <p id="modelStatus" role="status"></p></section>`;
+  }
+  function liveActivity(d) {
+    const a=d.activity;
+    if(!a)return '<p>Current trade activity unavailable.</p>';
+    return `<h3>Current account balances</h3><ul class="small">${(d.accounts||[]).map(x=>`<li>${esc(x.label||x.id)} � ${exactUsd(x.balance)} � ${esc(x.status)}</li>`).join('')||'<li>No challenge accounts.</li>'}</ul><h3>Current IPFX trades</h3><p class="small">Source closes save immediately. This list refreshes every 10 seconds; statistical scores use the ledger’s minute cycle.</p>
+     <div class="table-wrap"><table><thead><tr><th>Trade / account</th><th>Position</th><th>Lots</th><th>Status</th><th>IPFX result</th></tr></thead><tbody>${(a.source_trades||[]).map(x=>`<tr><td>${esc(x.id.slice(0,8))}${x.parent_trade_id?' · partial of '+esc(x.parent_trade_id.slice(0,8)):''}</td><td>${esc(x.symbol)} ${esc(x.side)}</td><td>${esc(x.volume)}</td><td>${esc(x.status)}${x.close_reason?' · '+esc(x.close_reason):''}</td><td>${x.status==='closed'?exactUsd(x.pnl,true):'Open'}</td></tr>`).join('')||'<tr><td colspan="5">No source trades.</td></tr>'}</tbody></table></div>
+     <h3>Internal estimates</h3><div class="table-wrap"><table><thead><tr><th>Trade</th><th>Frozen model</th><th>Status</th><th>E8 sampled gross</th><th>IPFX decision gross</th><th>Net</th></tr></thead><tbody>${(a.simulations||[]).map(x=>`<tr><td>${esc(x.trade_id.slice(0,8))}</td><td>${x.selected_book==='a'?'A · same direction':'B · reverse'}</td><td>${esc(x.status)}</td><td>${exactUsd(x.selected_gross_usd,true)}</td><td>${exactUsd(x.decision_gross_usd,true)}</td><td>Unverified</td></tr>`).join('')||'<tr><td colspan="6">No archived estimates.</td></tr>'}</tbody></table></div>
+     <h3>Pending-order history</h3><ul class="small">${(a.pending||[]).map(x=>`<li>${esc(x.order_id.slice(0,8))} · ${esc(x.snapshot?.symbol)} · ${esc(x.status)} · ${esc(x.tracking_status)}</li>`).join('')||'<li>No observed pending orders.</li>'}</ul>`;
+  }
+  async function refreshDrawer() {
+    if(!activePerson||drawerBusy||modelBusy)return;
+    const id=activePerson; drawerBusy=true;
+    try { const d=await call('trader',{person_id:id}); if(activePerson!==id||modelBusy)return;
+      if($('dLive'))$('dLive').innerHTML=liveActivity(d);
+      // Avoid replacing a reason input or button while the owner is using the controls.
+      if(!document.activeElement?.closest('.model-controls')) {
+        const reason=$('modelReason')?.value||'';drawerData=d;renderTrader(traderById().get(id),d);
+        if($('modelReason'))$('modelReason').value=reason;
+      }
+    } catch(e){if(activePerson===id&&$('modelStatus'))$('modelStatus').textContent='Activity refresh failed; showing last received data.';}
+    finally{drawerBusy=false;}
+  }
   function renderTrader(t, d) {
     const m = d.metrics || t?.metrics || {}, p = d.profile || {};
+    $('dBox').textContent=(STATES[p.book_state]?.label||p.book_state||'')+' · '+(p.manual_book_state?'Owner choice':'Automatic');
     const kv = [['Trades', m.trades ?? 0], ['Win rate', pct(m.win_rate)], ['P&L on IPFX', usd(m.pnl_usd, true)], ['Avg per trade', rr(m.avg_r)],
       ['Profit factor', fin(m.profit_factor) ? Number(m.profit_factor).toFixed(2) : '—'], ['Biggest fall', fin(m.max_dd_r) ? '−' + Number(m.max_dd_r).toFixed(1) + 'R' : '—'],
       ['Copy edge', rr(m.copy_r)], ['Reverse edge', rr(m.reverse_r)], ['Proof (copy)', fin(m.proof_copy) ? (m.proof_copy >= 10 ? 'Proven' : Number(m.proof_copy).toFixed(1) + ' / 10') : '—'],
@@ -420,6 +457,7 @@
       <td class="num ${signCls(x.trader_pnl_usd)}">${usd(x.trader_pnl_usd, true)}</td><td class="num">${rr(x.trader_r)}</td><td class="num">${rr(x.same_r)}</td><td class="num">${rr(x.reverse_r)}</td>
       <td>${x.risk_basis === 'STOP_LOSS' ? 'Stop loss' : '<span class="tag warning">No SL</span>'}</td><td class="num">${fin(x.hold_seconds) ? (x.hold_seconds < 120 ? Math.round(x.hold_seconds) + 's' : Math.round(x.hold_seconds / 60) + 'm') : '—'}</td></tr>`).join('');
     $('dBody').innerHTML = `
+      ${modelControls(p,d.routing)}<div id="dLive">${liveActivity(d)}</div>
       <div class="why-box"><b>${esc(STATES[p.book_state]?.label || '')}</b> since ${p.state_since ? esc(new Date(p.state_since).toLocaleDateString('en-GB')) : '—'} · ${esc(STATES[p.book_state]?.why || '')}<br><span class="small">Why: ${esc(p.state_reason || 'Everyone starts here')}</span></div>
       <div class="kv">${kv.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>
       <div class="two"><div><h3>Running total of results (R), last ${(m.curve || []).length} trades</h3><div class="chart" id="dCurve"></div></div><div><h3>Wins and losses by size</h3><div class="chart" id="dHist"></div></div></div>
@@ -473,6 +511,32 @@
   }
 
   $('refresh').addEventListener('click', () => load(true));
+  $('findTrader').addEventListener('submit',async(e)=>{
+    e.preventDefault();$('findTraderBtn').disabled=true;
+    try{const r=await call('find_traders',{query:$('registeredName').value.trim()});
+      $('registeredResults').innerHTML=(r.results||[]).map(x=>`<p><button class="button" type="button" data-enroll="${esc(x.user_id)}">Add ${esc(x.full_name||'registered trader')} to Brain</button> <small>${esc(x.user_id.slice(0,8))}</small></p>`).join('')||'<p>No matching registered name.</p>';
+    }catch(error){$('registeredResults').textContent=error.message;}finally{$('findTraderBtn').disabled=false;}
+  });
+  $('registeredResults').addEventListener('click',async(e)=>{
+    const b=e.target.closest('[data-enroll]');if(!b||b.disabled)return;b.disabled=true;
+    try{const r=await call('add_trader',{user_id:b.dataset.enroll});await load(true);await openTrader(r.person_id);}
+    catch(error){$('registeredResults').textContent=error.httpStatus&&error.httpStatus<500?error.message:'Adding trader unconfirmed. Refresh before retrying.';}
+    finally{b.disabled=false;}
+  });
+  $('dBody').addEventListener('click',async(e)=>{
+    const b=e.target.closest('button[data-model]');if(!b||b.disabled||modelBusy||!activePerson||!drawerData?.profile)return;
+    const reason=$('modelReason').value.trim();if(reason.length<5){$('modelStatus').textContent='Enter a reason of at least five characters.';return;}
+    const id=activePerson,p=drawerData.profile;modelBusy=true;
+    document.querySelectorAll('[data-model]').forEach(x=>x.disabled=true);$('modelStatus').textContent='Saving backend model…';
+    try{await call('set_model',{person_id:id,target:b.dataset.model,reason,expected_state:p.book_state,expected_manual:p.manual_book_state??null});
+      if(activePerson===id){await openTrader(id);if($('modelStatus'))$('modelStatus').textContent='Saved on the backend. Applies to new orders.';}
+      await load(true);
+    }catch(error){if(activePerson===id){
+      // Reconcile the displayed backend choice before allowing another mutation after a timeout.
+      await openTrader(id);if($('modelStatus'))$('modelStatus').textContent=error.httpStatus&&error.httpStatus<500?error.message:'Outcome unconfirmed. Check the refreshed model before retrying.';
+    }}finally{modelBusy=false;}
+  });
+  setInterval(()=>{if(!document.hidden)refreshDrawer();},REFRESH_MS);
   $('notifyBtn').addEventListener('click', async () => { try { await Notification.requestPermission(); } catch (_) {} syncNotifyBtn(); });
   $('soundToggle').checked = store.get('sound', false); $('soundToggle').addEventListener('change', (e) => store.set('sound', e.target.checked));
   $('helpBtn').addEventListener('click', () => { $('helpBody').innerHTML = HELP.map(([k, v]) => `<div><b>${esc(k)}</b><p>${esc(v)}</p></div>`).join(''); $('help').showModal(); });

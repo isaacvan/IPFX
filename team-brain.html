@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><link rel="stylesheet" href="/assets/css/team-brain.css?v=20261004"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><link rel="stylesheet" href="/assets/css/team-brain.css?v=20261008a"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
 <body><header class="top"><div><div class="brand">IPFX Team · Brain</div><div class="subtitle" id="status" role="status">Checking secure access…</div></div><nav aria-label="Team pages"><a href="team-brain.html" aria-current="page">Brain</a><a href="trader-analytics.html">Analytics</a><a href="team-b-book.html">B-book</a><a href="team-a-book.html">A-book</a><a href="team-treasury.html">Treasury</a><a href="team-e8-monitor.html">E8 monitor</a><a href="admin.html">Operations</a></nav></header>
 <main class="brain">
   <section class="hero" id="hero" aria-live="polite">
@@ -58,6 +58,7 @@
     <div class="panel"><h2><span class="dot critical" aria-hidden="true"></span>Broke the rules / suspicious</h2><p class="small">Breaches, flags, suspensions, no stop loss, very fast trading, price-delay pattern, herds.</p><ol class="wl" id="wlRules"></ol></div>
   </section>
 
+  <section class="panel"><h2>Add a registered trader</h2><p class="small">Find their registered name, add them to the Brain, then choose their model. Adding them starts automatic B-book demo and does not place a funded order.</p><form id="findTrader" class="model-buttons"><label for="registeredName">Registered name</label><input id="registeredName" minlength="3" maxlength="80" required><button id="findTraderBtn" class="button" type="submit">Find trader</button></form><div id="registeredResults" role="status"></div></section>
   <section class="panel" aria-labelledby="boardH">
     <div class="panel-head"><h2 id="boardH">All traders</h2>
       <div class="chips" role="tablist" id="boxTabs"></div>
@@ -84,5 +85,5 @@
 
 <dialog id="help" aria-labelledby="helpH"><h2 id="helpH">How to read the Brain</h2><div class="help-grid" id="helpBody"></div><form method="dialog"><button class="button primary">Got it</button></form></dialog>
 <div class="tip" id="tip" role="tooltip" hidden></div>
-<script src="/assets/js/team-brain.js?v=20261005d"></script>
+<script src="/assets/js/team-brain.js?v=20261008a"></script>
 </body></html>
