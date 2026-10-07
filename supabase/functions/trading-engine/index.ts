@@ -1847,26 +1847,18 @@ async function closeTrade(
   const pnl = strip ? 0 : rawPnl;
   // deno-lint-ignore no-explicit-any
   if (strip) (t as any).stripped_profit = round2(rawPnl);
-  // .eq("status","open") makes this UPDATE atomic and conditional at the
-  // database level, but a filtered update that matches zero rows is NOT
-  // an error in supabase-js — it silently succeeds with no data. Without
-  // checking rows-affected, a trade already closed by a concurrent
-  // request (two tabs, a double-click, the state poll racing a manual
-  // close) would credit pnl to acct.balance a SECOND time here. .select()
-  // is what makes the affected rows visible to check.
-  const { data: closedRow, error: e1 } = await db.from("trades").update({
-    status: "closed", close_price: exit, pnl: round2(pnl),
-    close_reason: reason, closed_at: new Date().toISOString(),
-    ...(strip ? { stripped_profit: round2(rawPnl) } : {}),
-    ...(v2 ? {
-      commission,
-      // deno-lint-ignore no-explicit-any
-      execution_shortfall: round2(Number((t as any).execution_shortfall ?? 0) + (exec?.shortfallUsd ?? 0)),
-      pnl_basis: "NET_AFTER_COSTS",
-    } : {}),
-  }).eq("id", t.id).eq("status", "open").select("id");
-  if (e1 || !closedRow || closedRow.length === 0) return false; // already closed elsewhere — no-op, not an error
-  acct.balance = round2(Number(acct.balance) + pnl);
+  // The source close and balance credit commit together. Recheck the
+  // volume and entry price: a concurrent partial must not let this close
+  // credit the old, larger position. Broker hedging above remains first.
+  const { data: committed, error: e1 } = await db.rpc("fn_commit_ipfx_close", {
+    p_trade_id: t.id, p_account_id: acct.id, p_user_id: acct.user_id,
+    p_expected_volume: Number(t.volume), p_expected_open_price: Number(t.open_price),
+    p_exit: exit, p_pnl: round2(pnl), p_reason: reason, p_costs_enabled: v2,
+    p_commission: commission, p_shortfall: round2(exec?.shortfallUsd ?? 0),
+    p_stripped_profit: strip ? round2(rawPnl) : null,
+  });
+  if (e1 || !committed?.ok) return false; // closed or resized elsewhere; no duplicate credit
+  acct.balance = Number(committed.balance);
   // The source close is committed. Broker copying must not hold up the UI;
   // EdgeRuntime.waitUntil keeps the exact-ID mirror dispatch alive. A hedge already closed
   // above is skipped; after an unpriced attempt it is re-sent (the idempotency key drops a
@@ -2308,13 +2300,18 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   const expectedStatus = acct.status;
   const saved = await db.from("trading_accounts").update({
-    balance: acct.balance, day_start_equity: acct.day_start_equity,
+    ...(venueMode ? { balance: acct.balance } : {}), day_start_equity: acct.day_start_equity,
     day_start_date: acct.day_start_date, status: acct.status,
     breach_reason: acct.breach_reason,
     trailing_peak: acct.trailing_peak ?? null,
     trailing_peak_date: acct.trailing_peak_date ?? null,
     updated_at: new Date().toISOString(),
   }).eq("id", acct.id).eq("status", expectedStatus).select("status,breach_reason,balance");
+  if (saved.data?.length && !venueMode) {
+    const beforeRefresh = Number(acct.balance);
+    acct.balance = Number(saved.data[0].balance);
+    equity = round2(equity + Number(acct.balance) - beforeRefresh);
+  }
   if (!saved.data?.length) {
     const { data: fresh } = await db.from("trading_accounts")
       .select("status,breach_reason,balance").eq("id", acct.id).maybeSingle();
@@ -3449,7 +3446,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
         pending_order_id: created.id, user_id: user.id, account_id: (acct as Acct).id, event: "place_pending",
         symbol, side, requested_volume: volume, requested_price: trigger, quote: q, client_ip: clientIp,
       });
-      return jsonOk({ pending: created, order_id: orderId });
+      return jsonOk({ ...await statePayload(db, acct as Acct, state.open, state.equity, state.floating), pending: created, order_id: orderId });
     } finally {
       await releaseOrderLock(db, (acct as Acct).id);
     }
@@ -3467,7 +3464,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
       symbol: upd[0].symbol, side: upd[0].side, requested_volume: Number(upd[0].volume),
       requested_price: Number(upd[0].trigger_price), client_ip: clientIp,
     });
-    return jsonOk({});
+    return jsonOk(await statePayload(db, acct as Acct, state.open, state.equity, state.floating));
   }
 
   // ---- price alerts ----
@@ -3944,59 +3941,23 @@ const handleRequest = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Claim the volume FIRST, conditioned on the position still being open
-    // AND still at the volume we read it at (optimistic check — nothing
-    // else, e.g. a concurrent full close, resized or closed it since).
-    // Only once that atomic claim succeeds do we realize P&L and insert
-    // the closed-slice trade. Doing this in the other order (as originally
-    // written) let a concurrent full close land in the gap between the
-    // insert and the shrink-update: the shrink would then silently match
-    // zero rows while the phantom partial-close trade had already been
-    // inserted and credited, double-counting that volume's P&L.
-    const { data: claimed } = await db.from("trades")
-      .update({ volume: round2(full - vol) })
-      .eq("id", target.id).eq("status", "open").eq("volume", full)
-      .select("id");
-    if (!claimed || claimed.length === 0) {
-      return err("This position changed (closed, modified, or partially closed elsewhere) — try again", 409);
-    }
-
+    // Price first; the RPC rechecks ownership, volume and entry price under a
+    // row lock and commits the resize, slice and balance credit together.
     const slice = { ...target, volume: vol } as Tr;
     const grossPnl = await tradePnl(slice, exit);
-    if (grossPnl === null) {
-      // Roll back the claim — we cannot price the close, so give the
-      // volume back rather than leaving the position stuck short.
-      await db.from("trades").update({ volume: full }).eq("id", target.id);
-      return err("Could not price the close", 503);
-    }
+    if (grossPnl === null) return err("Could not price the close", 503);
     const sliceCommission = specP ? round2(specP.commissionPerLot * vol) : 0;
     const pnl = grossPnl - sliceCommission;
-
-    const { data: closedSlice, error: insErr } = await db.from("trades").insert({
-      account_id: (acct as Acct).id, user_id: user.id, symbol: target.symbol,
-      parent_trade_id: target.id,
-      side: target.side, volume: vol, open_price: target.open_price,
-      sl: target.sl, tp: target.tp, status: "closed", close_price: exit,
-      pnl: round2(pnl), close_reason: "partial", opened_at: target.opened_at,
-      closed_at: new Date().toISOString(),
-      ...(v2p ? { commission: sliceCommission, execution_shortfall: sliceShortfall, pnl_basis: "NET_AFTER_COSTS" } : {}),
-    }).select("id").single();
-    if (insErr || !closedSlice) {
-      await db.from("trades").update({ volume: full }).eq("id", target.id);
-      return err("Could not record the partial close", 500);
-    }
-
-    // Atomic increment (balance = balance + pnl in one SQL statement, via
-    // fn_adjust_balance) rather than read-then-write here: this call site
-    // sits entirely outside enforce()'s own read-at-request-start/
-    // write-at-request-end cycle, so a plain overwrite of acct.balance
-    // would silently discard any concurrent balance change (a payout, a
-    // different position closing) that happened in the gap.
-    const { data: newBal, error: balErr } = await db.rpc("fn_adjust_balance", {
-      p_account_id: (acct as Acct).id, p_delta: round2(pnl),
+    const { data: committed, error: commitErr } = await db.rpc("fn_commit_ipfx_partial", {
+      p_trade_id: target.id, p_account_id: (acct as Acct).id, p_user_id: user.id,
+      p_expected_volume: full, p_expected_open_price: Number(target.open_price),
+      p_volume: vol, p_exit: exit, p_pnl: round2(pnl), p_costs_enabled: v2p,
+      p_commission: sliceCommission, p_shortfall: sliceShortfall, p_slice_id: crypto.randomUUID(),
     });
-    if (balErr) return err("Partial close filled but balance update failed — contact support", 500);
-    (acct as Acct).balance = Number(newBal);
+    if (commitErr) return err("Could not record the partial close", 500);
+    if (!committed?.ok) return err("This position changed — refresh it before retrying", 409);
+    const closedSlice = { id: String(committed.slice_id) };
+    (acct as Acct).balance = Number(committed.balance);
     // trade_id here is the CLOSED SLICE's own id (a distinct Position),
     // not target.id (the original position, which is still open at its
     // reduced volume) — a partial close creates a new closed position,

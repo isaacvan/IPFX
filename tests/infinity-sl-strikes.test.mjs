@@ -15,8 +15,8 @@ test('the 30-second rule applies to Infinity accounts only, and is switched on',
 
 test('a warned trade keeps its loss but never its profit', () => {
   assert.match(eng, /const strip = reason === "no_stop_loss" && acct\.challenge_type === "infinity" && rawPnl > 0;\s+const pnl = strip \? 0 : rawPnl;/);
-  assert.match(eng, /\.\.\.\(strip \? \{ stripped_profit: round2\(rawPnl\) \} : \{\}\),/);
-  assert.match(eng, /acct\.balance = round2\(Number\(acct\.balance\) \+ pnl\);/);
+  assert.match(eng, /p_stripped_profit: strip \? round2\(rawPnl\) : null/);
+  assert.match(eng, /acct\.balance = Number\(committed\.balance\);/);
 });
 
 test('every warned trade is one warning (never twice); the third ends the run like a breach', () => {

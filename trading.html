@@ -1898,14 +1898,14 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         <div class="op-ticket-head"><div><div class="op-eyebrow">New order</div><div class="op-sym-hd"><button type="button" class="op-sym-name op-sym-btn" id="op-sym" onclick="openSymbolPicker()" title="Change instrument (/)">EUR/USD</button><svg class="op-sym-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span class="op-live-dot"></span><span class="op-live-label">Live</span></div></div><div class="op-feed-label">Practice account</div></div>
         <div class="op-type-bar" role="tablist" aria-label="Order timing"><button type="button" class="op-type-btn active" onclick="setOrdType('market',this)" aria-selected="true">Market</button><button type="button" class="op-type-btn" onclick="setOrdType('pending',this)" aria-selected="false">Pending</button></div>
         <div class="op-quickbar" aria-label="Order protection"><button type="button" class="op-quick" onclick="toggleRisk()"><span class="op-chk" id="opRiskChk"></span><span>Risk</span></button><button type="button" class="op-quick" onclick="toggleSLTP('sl')"><span class="op-chk" id="slToggle"></span><span>Stop loss</span></button><button type="button" class="op-quick" onclick="toggleSLTP('tp')"><span class="op-chk" id="tpToggle"></span><span>Take profit</span></button><button type="button" class="op-quick" onclick="toggleTrail()"><span class="op-chk" id="opTrailChk"></span><span>Trail</span></button></div>
-        <div class="op-pending-fields" id="opPendingFields" hidden><div class="op-field-label">Pending order type</div><div class="op-otype" id="opOtype"><button type="button" class="op-ot on" data-t="limit" onclick="setOrderType('limit',this)" title="Rests below market for a buy, above for a sell">Limit</button><button type="button" class="op-ot" data-t="stop" onclick="setOrderType('stop',this)" title="Rests above market for a buy, below for a sell">Stop</button></div><label class="op-field-label" for="triggerPrice">Trigger price</label><div class="op-trigger" id="opTriggerWrap"><input type="number" class="op-sltp-inp" id="triggerPrice" placeholder="Enter trigger price" step="0.0001" oninput="updateTriggerHint()"><div class="op-trigger-hint" id="opTriggerHint"></div></div><div class="op-pend-extra"><label>Expires<select id="pendExpiry"><option value="">Good till cancelled</option><option value="eod">End of day (22:00 UTC)</option><option value="24h">24 hours</option><option value="1w">1 week</option></select></label><label>OCO with<select id="pendOco" title="One-cancels-other: when either order fills, the other is cancelled"><option value="">None</option></select></label></div></div>
+        <div class="op-pending-fields" id="opPendingFields" hidden><div class="op-field-label">Pending order type</div><div class="op-otype" id="opOtype"><button type="button" class="op-ot on" data-t="limit" onclick="setOrderType('limit',this)" title="Rests below market for a buy, above for a sell">Limit</button><button type="button" class="op-ot" data-t="stop" onclick="setOrderType('stop',this)" title="Rests above market for a buy, below for a sell">Stop</button></div><label class="op-field-label" for="triggerPrice">Trigger price</label><div class="op-trigger" id="opTriggerWrap"><input type="number" class="op-sltp-inp" id="triggerPrice" placeholder="Enter trigger price" step="0.0001" oninput="updateTriggerHint();updateRiskPreview();updateSltpReadouts()"><div class="op-trigger-hint" id="opTriggerHint"></div></div><div class="op-pend-extra"><label>Expires<select id="pendExpiry"><option value="">Good till cancelled</option><option value="eod">End of day (22:00 UTC)</option><option value="24h">24 hours</option><option value="1w">1 week</option></select></label><label>OCO with<select id="pendOco" title="One-cancels-other: when either order fills, the other is cancelled"><option value="">None</option></select></label></div></div>
         <div class="op-sltp-inputs" id="sltpFields"><div class="op-sltp-row"><div class="op-sltp-grp"><label class="op-field-label" for="slPrice">Stop loss price</label><div class="op-sltp-stepper"><button type="button" class="op-sltp-step" onclick="adjSltp('sl',-1)" tabindex="-1">−</button><input type="number" class="op-sltp-inp" id="slPrice" placeholder="Not set" step="0.0001" oninput="updatePnlPreview();updateRiskPreview();updateSltpReadouts()"><button type="button" class="op-sltp-step" onclick="adjSltp('sl',1)" tabindex="-1">+</button></div><div class="op-sltp-pnl" id="slPnlReadout">—</div></div><div class="op-sltp-grp"><label class="op-field-label" for="tpPrice">Take profit price</label><div class="op-sltp-stepper"><button type="button" class="op-sltp-step" onclick="adjSltp('tp',-1)" tabindex="-1">−</button><input type="number" class="op-sltp-inp" id="tpPrice" placeholder="Not set" step="0.0001" oninput="updatePnlPreview();updateRiskPreview();updateSltpReadouts()"><button type="button" class="op-sltp-step" onclick="adjSltp('tp',1)" tabindex="-1">+</button></div><div class="op-sltp-pnl" id="tpPnlReadout">—</div></div></div></div>
         <div class="op-signin" id="opSignin">
           <div class="op-signin-txt"><strong>Sign in to trade</strong><span>See live prices, place orders and track your challenge.</span></div>
           <button type="button" class="op-signin-btn" onclick="openDesktopAuth()">Sign in</button>
         </div>
         <div class="op-limit-card" id="opLimitCard"><div><span class="op-limit-kicker">Account order limit</span><strong id="opLimitSummary">Sign in to view limits</strong></div><span class="op-limit-state" id="opLimitState">—</span></div>
-        <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Risk on this order</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div><button type="button" class="op-risk-size" id="opRiskSize" hidden onclick="sizeToRiskCap()">Size to risk cap</button></div>
+        <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Estimated stop risk</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div><button type="button" class="op-risk-size" id="opRiskSize" hidden onclick="sizeToRiskCap()">Size to risk cap</button></div>
         <div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
         <button type="button" class="hk-chip" id="hkChip" onclick="toggleHotkeys()" title="Keyboard trading shortcuts"></button>
@@ -2748,13 +2748,29 @@ function contractSizeFor(sym){
   if(/^(BTC|ETH|LTC|ADA|SOL|DOT)USD/.test(s)) return 1; // crypto: 1 coin per lot
   return 100000; // forex
 }
+function orderPreviewEntry(level,forProfit=false){
+  if(orderType!=='market'){
+    const trigger=parseFloat((document.getElementById('triggerPrice')||{}).value);
+    return isFinite(trigger)&&trigger>0?trigger:0;
+  }
+  const q=liveQuotesBySymbol.get(execSymbol(activeSym));
+  if(q&&q.bid>0&&q.ask>=q.bid){
+    const bidDistance=Math.abs(q.bid-level),askDistance=Math.abs(q.ask-level);
+    return forProfit?(bidDistance<askDistance?q.bid:q.ask):(bidDistance>askDistance?q.bid:q.ask);
+  }
+  return (typeof ordMidPrice==='number'&&ordMidPrice)||0;
+}
+function orderRiskPerLot(sl){
+  const entry=orderPreviewEntry(sl),conv=clientUsdPerQuote(symMeta(activeSym).quoteCurrency);
+  return entry&&isFinite(sl)&&sl>0&&conv!=null?Math.abs(entry-sl)*contractSizeFor(activeSym)*conv:null;
+}
 function updateRiskPreview(){
   const box=document.getElementById('opRisk');
   if(!box)return;
   const a=engineState&&engineState.account;
   const L=(a&&a.limits)||{};
   const slVal=parseFloat((document.getElementById('slPrice')||{}).value);
-  const entry=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
+  const entry=orderPreviewEntry(slVal);
 
   if(!a||!slOn||!isFinite(slVal)||slVal<=0||!entry){
     // With no stop we cannot state a risk. Say so when one is required.
@@ -2766,7 +2782,9 @@ function updateRiskPreview(){
     return;
   }
 
-  const risk=Math.abs(entry-slVal)*contractSizeFor(activeSym)*ordLots;
+  const perLot=orderRiskPerLot(slVal);
+  if(perLot==null){box.style.display='';box.className='op-risk';document.getElementById('opRiskVal').textContent='Unavailable';document.getElementById('opRiskNote').textContent='Waiting for a currency conversion price.';const size=document.getElementById('opRiskSize');if(size)size.hidden=true;return;}
+  const risk=perLot*ordLots;
   const cap=L.max_risk_per_trade_usd;
   const sizeBtn=document.getElementById('opRiskSize');if(sizeBtn)sizeBtn.hidden=!(cap!=null&&isFinite(+cap)&&+cap>0);
   const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -2781,7 +2799,7 @@ function updateRiskPreview(){
     box.className='op-risk';
     const pctEq=a.equity?((risk/(+a.equity))*100).toFixed(2):null;
     document.getElementById('opRiskNote').textContent=
-      (cap!=null?`Within your ${money(cap)} cap. `:'')+(pctEq?`${pctEq}% of equity.`:'');
+      (cap!=null?`Within your ${money(cap)} cap. `:'')+(pctEq?`${pctEq}% of equity. `:'')+'Estimate excludes fees and execution slippage.';
   }
 }
 
@@ -4591,12 +4609,17 @@ async function engineCall(body){
   // fails fast with a clear message instead.
   const ctrl=new AbortController();
   const killer=setTimeout(()=>ctrl.abort(),15000);
+  let acknowledged=null;
   try{
     const requestBody={...body,account_mode:selectedAccountMode};
     const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(requestBody),signal:ctrl.signal});
     const j=await r.json().catch(()=>null);
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
-    if(!r.ok||!j||j.ok===false){engineMsg((j&&j.error)||'Order rejected');return null;}
+    if(!r.ok||!j||j.ok===false){engineMsg(r.status>=500?'No confirmation from the server. Check positions and history before retrying.':((j&&j.error)||'Order rejected'));return null;}
+    acknowledged=j;
+    // Pending-order acknowledgements are not account snapshots. Preserve
+    // visible positions until the caller fetches a complete state response.
+    if(!j.account)return j;
     if(j.switched_to_demo||j.account?.is_demo){
       selectedAccountMode='demo';
       localStorage.setItem('ipfx-account-mode','demo');
@@ -4620,6 +4643,7 @@ async function engineCall(body){
     }
     if(typeof renderJournal==='function')renderJournal();return j;
   }catch(e){
+    if(acknowledged){lastStateAt=0;engineMsg('Action confirmed. Account display needs a refresh.');return acknowledged;}
     engineMsg(body.action==='state'?'Connection is slow — account state could not be refreshed.':
       (e&&e.name==='AbortError'?'No confirmation after 15s. The action may have completed. Check positions and history before retrying.':
       'Connection lost. The action may have completed. Check positions and history before retrying.'));
@@ -5180,8 +5204,8 @@ async function omSubmit(){
 // Largest size whose entry-to-stop risk fits the account's per-trade cap (rounded DOWN so it never exceeds it).
 function sizeToRiskCap(){
   const a=engineState&&engineState.account, cap=a&&a.limits&&+a.limits.max_risk_per_trade_usd;
-  const slVal=parseFloat((document.getElementById('slPrice')||{}).value), entry=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
-  const perLot=Math.abs(entry-slVal)*contractSizeFor(activeSym);
+  const slVal=parseFloat((document.getElementById('slPrice')||{}).value);
+  const perLot=orderRiskPerLot(slVal);
   if(!cap||!isFinite(perLot)||perLot<=0){engineMsg('Set a stop loss first',false);return;}
   const fut=futSym(activeSym);
   const lots=fut?Math.floor(cap/perLot):Math.floor((cap/perLot)*100+1e-9)/100;
@@ -6429,17 +6453,19 @@ function adjSltp(type,dir){
   updateSltpReadouts();
 }
 function updateSltpReadouts(){
-  const entry=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
+  const conv=clientUsdPerQuote(symMeta(activeSym).quoteCurrency);
   const cs=(typeof contractSizeFor==='function')?contractSizeFor(activeSym):100000;
   const slEl=document.getElementById('slPrice'),tpEl=document.getElementById('tpPrice');
   const slOut=document.getElementById('slPnlReadout'),tpOut=document.getElementById('tpPnlReadout');
   if(slOut){
     const v=parseFloat(slEl&&slEl.value);
-    slOut.textContent=(entry&&isFinite(v)&&v>0)?sltpMoney(Math.abs(entry-v)*cs*ordLots):'—';
+    const entry=orderPreviewEntry(v);
+    slOut.textContent=(entry&&isFinite(v)&&v>0&&conv!=null)?sltpMoney(Math.abs(entry-v)*cs*ordLots*conv):'—';
   }
   if(tpOut){
     const v=parseFloat(tpEl&&tpEl.value);
-    tpOut.textContent=(entry&&isFinite(v)&&v>0)?sltpMoney(Math.abs(entry-v)*cs*ordLots):'—';
+    const entry=orderPreviewEntry(v,true);
+    tpOut.textContent=(entry&&isFinite(v)&&v>0&&conv!=null)?sltpMoney(Math.abs(entry-v)*cs*ordLots*conv):'—';
   }
 }
 function toggleTrail(){
@@ -6471,6 +6497,7 @@ function setOrdType(type,btn){
     const trigger=document.getElementById('opTriggerWrap');
     if(trigger)trigger.style.display='none';
   }
+  updateRiskPreview();updateSltpReadouts();
 }
 
 // ── P&L PREVIEW ──
