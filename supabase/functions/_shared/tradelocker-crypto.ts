@@ -7,7 +7,7 @@ function b64(bytes: Uint8Array): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function unb64(value: string): Uint8Array {
+function unb64(value: string): Uint8Array<ArrayBuffer> {
   const raw = value.replace(/-/g, "+").replace(/_/g, "/");
   const padded = raw + "=".repeat((4 - raw.length % 4) % 4);
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));

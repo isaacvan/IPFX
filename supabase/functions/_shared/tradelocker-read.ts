@@ -9,8 +9,9 @@ export const TL_BASES = {
 } as const;
 export type TlEnv = keyof typeof TL_BASES;
 
-async function get(base: string, path: string, init: RequestInit, accessToken?: string, accNum?: string): Promise<unknown> {
+async function get(base: string, path: string, init: RequestInit, accessToken?: string, accNum?: string, before?: (path: string) => Promise<void>): Promise<unknown> {
   if (init.method && init.method !== "GET" && !path.startsWith("/auth/jwt/")) throw new Error("READ_ONLY_CLIENT");
+  await before?.(path);
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   if (accNum != null) headers.accNum = String(accNum);
@@ -20,29 +21,34 @@ async function get(base: string, path: string, init: RequestInit, accessToken?: 
   const raw = await r.text();
   const lossless = raw.replace(/("(?:id|accountId|tradableInstrumentId|orderId|positionId)"\s*:\s*)(-?\d{16,})(?=\s*[,}])/g, '$1"$2"').replace(/([\[,]\s*)(-?\d{16,})(?=\s*[,\]}])/g, '$1"$2"');
   const body = (() => { try { return JSON.parse(lossless); } catch (_) { return {}; } })();
-  if (!r.ok) throw new Error(`TRADELOCKER_HTTP_${r.status}:${JSON.stringify(body).slice(0, 160)}`);
+  if (!r.ok) throw new Error(`TRADELOCKER_HTTP_${r.status}`);
   return body;
 }
 
-export function readClient(env: TlEnv) {
+export function readClient(env: TlEnv, before?: (path: string) => Promise<void>) {
   const base = TL_BASES[env];
+  const read = (path: string, init: RequestInit, token?: string, accNum?: string) => get(base,path,init,token,accNum,before);
   return {
     env,
     authenticate: async (email: string, password: string, server: string): Promise<TradeLockerTokens> =>
-      tokens(await get(base, "/auth/jwt/token", { method: "POST", body: JSON.stringify({ email, password, server }) })),
+      tokens(await read("/auth/jwt/token", { method: "POST", body: JSON.stringify({ email, password, server }) })),
     refresh: async (refreshToken: string): Promise<TradeLockerTokens> =>
-      tokens(await get(base, "/auth/jwt/refresh", { method: "POST", body: JSON.stringify({ refreshToken }) })),
-    accounts: async (accessToken: string) => rows(await get(base, "/auth/jwt/all-accounts", { method: "GET" }, accessToken), "accounts"),
+      tokens(await read("/auth/jwt/refresh", { method: "POST", body: JSON.stringify({ refreshToken }) })),
+    accounts: async (accessToken: string) => rows(await read("/auth/jwt/all-accounts", { method: "GET" }, accessToken), "accounts"),
     instruments: async (accessToken: string, accountId: string, accNum: string) =>
-      rows(await get(base, `/trade/accounts/${accountId}/instruments`, { method: "GET" }, accessToken, accNum), "instruments"),
+      rows(await read(`/trade/accounts/${accountId}/instruments`, { method: "GET" }, accessToken, accNum), "instruments"),
+    config: async (accessToken: string, accNum: string) =>
+      unwrap(await read("/trade/config", { method: "GET" }, accessToken, accNum)),
+    historyWithConfig: async (accessToken: string, accountId: string, accNum: string, config: unknown) =>
+      configuredRows(config, await read(`/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum), "ordersHistoryConfig", "ordersHistory"),
     quote: async (accessToken: string, accNum: string, routeId: number, tradableInstrumentId: string | number) => {
-      const d = unwrap(await get(base, `/trade/quotes?routeId=${routeId}&tradableInstrumentId=${tradableInstrumentId}`, { method: "GET" }, accessToken, accNum));
+      const d = unwrap(await read(`/trade/quotes?routeId=${routeId}&tradableInstrumentId=${tradableInstrumentId}`, { method: "GET" }, accessToken, accNum));
       const bid = Number(d.bp ?? d.bid), ask = Number(d.ap ?? d.ask);
       return Number.isFinite(bid) && Number.isFinite(ask) && bid > 0 && ask >= bid ? { bid, ask } : null;
     },
     history: async (accessToken: string, accountId: string, accNum: string) => {
-      const config = await get(base, "/trade/config", { method: "GET" }, accessToken, accNum);
-      const data = await get(base, `/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum);
+      const config = await read("/trade/config", { method: "GET" }, accessToken, accNum);
+      const data = await read(`/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum);
       return configuredRows(config, data, "ordersHistoryConfig", "ordersHistory");
     },
   };

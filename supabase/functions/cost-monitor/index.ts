@@ -32,7 +32,12 @@ Deno.serve(async (req) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
   const { data: accts } = await db.from("ladder_accounts").select("*").in("role", ["monitor", "shadow"]).not("access_token_ciphertext", "is", null).order("id");
-  const chosen = [...(accts ?? []).filter((a) => a.role === "monitor"), ...(accts ?? []).filter((a) => a.role === "shadow").slice(0, SHADOW_SAMPLED)];
+  // Dedicated E8 profiles own all monitoring reads, including when paused. Do not
+  // refresh their tokens or bypass their shared rate windows in this legacy worker.
+  const { data: profiles, error: profileError } = await db.from("e8_monitor_profiles").select("account_id");
+  if (profileError) return json({ok:false,error:"reference monitor ownership unavailable"},503);
+  const owned = new Set((profiles ?? []).map(p=>Number(p.account_id)));
+  const chosen = [...(accts ?? []).filter((a) => a.role === "monitor" && !owned.has(Number(a.id))), ...(accts ?? []).filter((a) => a.role === "shadow").slice(0, SHADOW_SAMPLED)];
   const historyDue = new Date().getUTCMinutes() % 15 === 0;
   const { data: ipfx } = await db.from("live_quotes").select("symbol,bid,ask").in("symbol", SYMBOLS);
   const ipfxBy = new Map((ipfx ?? []).map((q) => [q.symbol, q]));
