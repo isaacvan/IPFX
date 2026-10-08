@@ -4,6 +4,8 @@ import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { applicableRules, measuredFill, referenceRules, type RateRule } from "../_shared/e8-reference.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
+// E8 names the stock indices differently from the HeroFX feed that IPFX prices come from (matched on the start of the name).
+const E8_ALIASES: Record<string, string> = { DJI: "DOW", GER40: "DAX", JPN225: "NIKKEI", NSXUSD: "NSDQ", SPXUSD: "SP" };
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
 const norm=(s:string)=>s.toUpperCase().replace(/[^A-Z0-9]/g,"");
 const delay=(ms:number)=>new Promise(r=>setTimeout(r,ms));
@@ -54,11 +56,14 @@ Deno.serve(async req=>{
   if(!config||!configAt||Date.now()-Date.parse(configAt)>15*60000){config=await tl.config(token,String(a.acc_num));rules=referenceRules(config);configAt=new Date().toISOString();}
   if(!applicableRules(rules,'QUOTES').length)throw Error('BROKER_RATE_SCHEMA_UNAVAILABLE');
   const map=(a.instrument_map??[]) as Array<Record<string,unknown>>;
-  const {data:ipfx,error:ipfxError}=await db.from('live_quotes').select('symbol,bid,ask,received_at').in('symbol',p.symbols);
+  // The 5 main instruments every run (10 s); the slow list on every third run (30 s). Deterministic from the clock, so no stored state.
+  const slowDue=Math.floor(started/10000)%3===0;
+  const symbolsNow=[...(p.symbols as string[]),...(slowDue?((p.slow_symbols??[]) as string[]):[])];
+  const {data:ipfx,error:ipfxError}=await db.from('live_quotes').select('symbol,bid,ask,received_at').in('symbol',symbolsNow);
   const ix=new Map((ipfxError?[]:ipfx??[]).map(q=>[q.symbol,q]));
-  for(const symbol of p.symbols as string[]){
+  for(const symbol of symbolsNow){
    if(Date.now()-started>24000){status='PARTIAL_COVERAGE';break;}
-   const target=norm(TL_SYMBOLS[symbol]??symbol),exact=map.filter(m=>norm(String(m.symbol))===target);
+   const target=norm(E8_ALIASES[symbol]??TL_SYMBOLS[symbol]??symbol),exact=map.filter(m=>norm(String(m.symbol))===target);
    const candidates=exact.length?exact:map.filter(m=>norm(String(m.symbol)).startsWith(target));
    if(candidates.length!==1||candidates[0].info_route_id==null){status='PARTIAL_COVERAGE';continue;}
    const inst=candidates[0],requested=new Date().toISOString();
