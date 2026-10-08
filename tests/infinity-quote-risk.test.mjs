@@ -3,6 +3,7 @@ const account='11111111-1111-4111-8111-111111111111',user='22222222-2222-4222-82
 async function setup({mode='static',daily=2.5}={}){
  const{PGlite}=await import(pathToFileURL(process.env.DEMO_TEST_DEPS+'/node_modules/@electric-sql/pglite/dist/index.js').href);const db=new PGlite();
  await db.exec(`create role anon;create role authenticated;create role service_role;
+ create schema cron;create function cron.schedule(text,text,text) returns bigint language sql as 'select 1::bigint';
  create table risk_test_time(at timestamptz);insert into risk_test_time values('2026-10-08T10:00:00Z');
  create function risk_test_clock() returns timestamptz language sql stable as 'select at from public.risk_test_time';
  create table trading_accounts(id uuid primary key,user_id uuid,challenge_type text,phase text,status text,stage int,venue text,
@@ -130,5 +131,17 @@ test('one price update covers 1000 synthetic Infinity portfolios and does not lo
  assert.equal((await f.db.query("select count(*) n from trading_accounts where status='breached'")).rows[0].n,1000);
  assert.equal((await f.db.query('select count(*) n from account_breach_events')).rows[0].n,1000);
  await f.quote(2100);assert.equal((await f.db.query("select count(*) n from trading_accounts where status='breached'")).rows[0].n,1000);
+ }finally{await f.db.close();}
+});
+test('a bookkeeping failure still freezes the observed crossing, and pending cancellation retries after recovery',async()=>{
+ const f=await setup();try{
+ await f.db.exec(fs.readFileSync(new URL('../supabase/migrations/20261008133001_infinity_freeze_fallback.sql',import.meta.url),'utf8').replaceAll('clock_timestamp()','public.risk_test_clock()'));
+ await f.quote(2000);await f.open();await f.db.exec(`insert into pending_orders values('44444444-4444-4444-8444-444444444444','${account}','${user}','pending',null);
+ create or replace function fn_ensure_demo_account(uuid) returns uuid language plpgsql as $$begin raise exception 'injected bookkeeping failure';end$$;`);
+ await f.quote(1975);assert.equal((await f.row()).status,'breached');assert.equal((await f.row()).breach_equity,97500);
+ assert.equal((await f.db.query("select ok from ab_heartbeats where worker='infinity-freeze-fallback'")).rows[0].ok,false);
+ assert.equal((await f.db.query('select count(*) n from account_breach_events')).rows[0].n,1);
+ await f.quote(2100);assert.equal((await f.row()).status,'breached');
+ await f.db.query('select fn_cleanup_failed_pending()');assert.equal((await f.db.query('select status from pending_orders')).rows[0].status,'cancelled');
  }finally{await f.db.close();}
 });
