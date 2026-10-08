@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><link rel="stylesheet" href="/assets/css/team-brain.css?v=20261008-accounts"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><link rel="stylesheet" href="/assets/css/team-brain.css?v=20261008-controls"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
 <body><header class="top"><div><div class="brand">IPFX Team · Brain</div><div class="subtitle" id="status" role="status">Checking secure access…</div></div><nav aria-label="Team pages"><a href="team-brain.html" aria-current="page">Brain</a><a href="trader-analytics.html">Analytics</a><a href="team-b-book.html">B-book</a><a href="team-a-book.html">A-book</a><a href="team-treasury.html">Treasury</a><a href="team-e8-monitor.html">E8 monitor</a><a href="admin.html">Operations</a></nav></header>
 <main class="brain">
   <section class="hero" id="hero" aria-live="polite">
@@ -84,8 +84,10 @@
 </div></aside>
 <div class="scrim" id="scrim" hidden></div>
 
+<dialog id="solutionDialog" aria-labelledby="solutionTitle"><h2 id="solutionTitle">Alert solutions</h2><p id="solutionSummary"></p><div id="solutionEvidence"></div><label>Action <select id="solutionKind"></select></label><p id="solutionHelp" class="small"></p><label>Reason / message to trader <textarea id="solutionReason" maxlength="500" rows="4"></textarea></label><p id="solutionResult" role="status"></p><button class="button primary" id="solutionApply" type="button">Apply action</button> <button class="button" id="solutionClose" type="button">Close</button></dialog>
+<dialog id="applicationDialog" aria-labelledby="applicationTitle"><h2 id="applicationTitle">Challenge applications</h2><p class="small">Owner + MFA. Open one person to review their protected details and documents. Open one document at a time. Private links expire after 60 seconds.</p><div id="applicationList"></div><button class="button" id="applicationPrevious" type="button">Previous</button> <button class="button" id="applicationNext" type="button">Next</button><div id="applicationDetail"></div><p id="applicationStatus" role="status"></p><button class="button" id="applicationClose" type="button">Close</button></dialog>
 <dialog id="help" aria-labelledby="helpH"><h2 id="helpH">How to read the Brain</h2><div class="help-grid" id="helpBody"></div><form method="dialog"><button class="button primary">Got it</button></form></dialog>
 <div class="tip" id="tip" role="tooltip" hidden></div>
 <script src="/assets/js/brain-account-labels.js?v=20261008a"></script>
-<script src="/assets/js/team-brain.js?v=20261008-accounts"></script>
+<script src="/assets/js/team-brain.js?v=20261008-controls"></script>
 </body></html>

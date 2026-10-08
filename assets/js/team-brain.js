@@ -164,7 +164,7 @@
 
   // ---------- sections ----------
   function renderHero() {
-    const open = data.alerts.filter((a) => !a.acknowledged_at);
+    const open = data.alerts.filter((a) => !a.resolved_at); // Seen never means the underlying problem is resolved.
     const crit = open.filter((a) => a.severity === 'critical').length, warn = open.filter((a) => a.severity === 'warning').length;
     const level = crit ? 'critical' : warn ? 'warning' : 'good';
     $('hero').dataset.level = level;
@@ -209,7 +209,7 @@
       <span class="sev ${a.severity}"><i>${s.icon}</i>${s.word}</span>
       <div><h3>${esc(a.title)}</h3>${a.detail ? `<p>${esc(a.detail)}</p>` : ''}
         <div class="meta"><span>${resolved ? 'Resolved ' + ago(a.resolved_at) : 'For ' + dur(a.first_seen)}</span><span>${esc(a.category)}</span>${a.acknowledged_at ? '<span>Seen</span>' : ''}</div></div>
-      <div class="acts">${a.person_id ? `<button class="button small-btn" data-person="${esc(a.person_id)}" type="button">Open trader</button>` : ''}${!resolved && !a.acknowledged_at ? `<button class="button small-btn" data-ack="${a.id}" type="button">Seen</button>` : ''}</div></article>`;
+      <div class="acts">${a.person_id ? `<button class="button small-btn" data-person="${esc(a.person_id)}" type="button">Open trader</button>` : ''}${!resolved && !a.acknowledged_at ? `<button class="button small-btn" data-ack="${a.id}" type="button">Seen</button>` : ''}${!resolved ? `<button class="button small-btn" data-solution="${a.id}" type="button">Solutions</button>` : ''}</div></article>`;
   }
   function filteredAlerts() {
     if (filter === 'resolved') return data.resolved || [];
@@ -585,9 +585,11 @@
     try { await call('ack', { ids }); for (const a of data.alerts) if (ids.includes(a.id)) a.acknowledged_at = new Date().toISOString(); renderHero(); renderAlerts(); } catch (err) { $('status').textContent = err.message; }
   });
   document.addEventListener('click', async (e) => {
+    const solution=e.target.closest('[data-solution]');
+    if(solution){await openSolution(Number(solution.dataset.solution));return;}
     const ack = e.target.closest('[data-ack]');
     if (ack) { const id = Number(ack.dataset.ack); try { await call('ack', { id }); const a = data.alerts.find((x) => x.id === id); if (a) a.acknowledged_at = new Date().toISOString(); renderHero(); renderAlerts(); } catch (err) { $('status').textContent = err.message; } return; }
-    const p = e.target.closest('[data-person]'); if (p && data) openTrader(p.dataset.person);
+    const p = e.target.closest('[data-person]'); if (p && data) { if($('solutionDialog').open)$('solutionDialog').close();openTrader(p.dataset.person); }
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && $('drawer').getAttribute('aria-hidden') === 'false') closeDrawer();
@@ -595,6 +597,96 @@
   });
   $('dClose').addEventListener('click', closeDrawer); $('scrim').addEventListener('click', closeDrawer);
   $('accountFilter').addEventListener('change',()=>{shown=100;if(data)renderBoard();});
+  // Sensitive review dialogs are never written to localStorage or refreshed by
+  // the normal 10-second pulse. Opening documents creates a fresh audit event.
+  let solutionContext=null,solutionBusy=false,solutionRequest=null,applicationOffset=0,documentTimer=null,documentGeneration=0,viewerTimer=null,viewerGeneration=0;
+  const applicationButton=document.createElement('button');applicationButton.type='button';applicationButton.className='button';applicationButton.textContent='Applications & identity';
+  document.querySelector('nav[aria-label="Team pages"]').append(applicationButton);
+  applicationButton.addEventListener('click',()=>{$('applicationDialog').showModal();loadApplications(0);});
+  async function openSolution(id){
+    $('solutionResult').textContent='Loading actions…';$('solutionApply').disabled=true;
+    $('solutionEvidence').replaceChildren();solutionContext=null;solutionRequest=crypto.randomUUID();$('solutionDialog').showModal();
+    try{
+      const ctx=await call('solution_context',{alert_id:id});solutionContext=ctx;
+      $('solutionSummary').textContent=ctx.alert.title;
+      $('solutionKind').innerHTML=ctx.options.map(x=>`<option value="${esc(x.kind)}">${esc(x.label)}</option>`).join('');
+      $('solutionReason').value=ctx.alert.key.includes(':NO_SL:')?'Please place and keep a stop-loss on every Infinity trade. A missing stop after 30 seconds closes the trade, removes profit and records an automatic strike. Three strikes end the run; a new approved run is only available next UTC month.':'';
+      if(ctx.review){const r=ctx.review;
+        $('solutionEvidence').innerHTML=`<p>${esc(r.matches)} matching entry/exit pairs over ${esc(r.matched_days)} days (${pct(r.share)} of the smaller stream). This is a review flag, not a cheating verdict.</p><p><button class="button" data-person="${esc(r.person_a)}">Open first trader</button> <button class="button" data-person="${esc(r.person_b)}">Open second trader</button></p><div class="table-wrap"><table><thead><tr><th>Trade pair</th><th>Market</th><th>Entry gap</th><th>Exit gap</th><th>Lots</th></tr></thead><tbody>${(r.evidence||[]).map(x=>`<tr><td>${esc(x.source_trade.slice(0,8))} / ${esc(x.peer_trade.slice(0,8))}</td><td>${esc(x.symbol)} ${esc(x.side)}</td><td>${esc(x.entry_gap_s)}s</td><td>${esc(x.exit_gap_s)}s</td><td>${esc(x.source_lots)} / ${esc(x.peer_lots)}</td></tr>`).join('')}</tbody></table></div>`;
+      }
+      updateSolutionHelp();$('solutionResult').textContent='';$('solutionApply').disabled=false;
+    }catch(err){$('solutionResult').textContent=err.message;}
+  }
+  function updateSolutionHelp(){const opt=solutionContext?.options.find(x=>x.kind===$('solutionKind').value);$('solutionHelp').textContent=opt?.help||'';}
+  $('solutionKind').addEventListener('change',()=>{solutionRequest=crypto.randomUUID();updateSolutionHelp();});
+  $('solutionReason').addEventListener('input',()=>{solutionRequest=crypto.randomUUID();});
+  $('solutionClose').addEventListener('click',()=>{if(!solutionBusy)$('solutionDialog').close();});
+  $('solutionDialog').addEventListener('cancel',e=>{if(solutionBusy)e.preventDefault();});
+  $('solutionApply').addEventListener('click',async()=>{
+    if(solutionBusy||!solutionContext)return;
+    const kind=$('solutionKind').value,reason=$('solutionReason').value.trim();
+    if(kind==='review_model'){$('solutionDialog').close();openTrader(solutionContext.alert.person_id);return;}
+    if(kind==='review_treasury'){location.assign('team-treasury.html');return;}
+    if(kind==='review_operations'){location.assign('admin.html');return;}
+    if(reason.length<5){$('solutionResult').textContent='Enter a clear reason or warning message.';return;}
+    if(['pause','pause_pair','resume','halt_books','clear_similarity'].includes(kind)&&!confirm(solutionContext.options.find(x=>x.kind===kind).help+' Apply this action?'))return;
+    solutionBusy=true;$('solutionApply').disabled=true;
+    try{const r=await call('alert_solution',{alert_id:solutionContext.alert.id,kind,reason,request_id:solutionRequest,occurrence:solutionContext.alert.first_seen});$('solutionResult').textContent=r.message;await load(true);}
+    catch(err){$('solutionResult').textContent=err.message;}
+    finally{solutionBusy=false;$('solutionApply').disabled=false;}
+  });
+  async function loadApplications(offset){
+    $('applicationStatus').textContent='Loading…';
+    try{const r=await call('applications',{offset});applicationOffset=offset;
+      $('applicationList').innerHTML=`<div class="table-wrap"><table><thead><tr><th>Applicant</th><th>Challenge</th><th>Status</th><th></th></tr></thead><tbody>${r.applications.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.challenge_type)}</td><td>${esc(x.status)}</td><td><button class="button" data-identity="${esc(x.user_id)}">Review details</button></td></tr>`).join('')||'<tr><td colspan="4">No applications.</td></tr>'}</tbody></table></div>`;
+      $('applicationPrevious').disabled=offset===0;$('applicationNext').disabled=offset+50>=r.total;$('applicationStatus').textContent=`${r.total} applications`;
+    }catch(err){$('applicationList').replaceChildren();$('applicationStatus').textContent=err.message;}
+  }
+  $('applicationPrevious').addEventListener('click',()=>loadApplications(Math.max(0,applicationOffset-50)));
+  $('applicationNext').addEventListener('click',()=>loadApplications(applicationOffset+50));
+  const clearDocuments=()=>{documentGeneration++;clearTimeout(documentTimer);clearTimeout(viewerTimer);viewerGeneration++;$('applicationDetail').replaceChildren();};
+  $('applicationClose').addEventListener('click',()=>{$('applicationDialog').close();clearDocuments();});
+  $('applicationDialog').addEventListener('close',clearDocuments);
+  async function callAdmin(action,extra={}){
+    const {data:{session}}=await sb.auth.getSession();if(!session)throw new Error('Sign in again');
+    const response=await fetch(SB_URL+'/functions/v1/admin-console',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({action,...extra})});
+    const result=await response.json().catch(()=>null);if(!response.ok||!result?.ok){const error=new Error(result?.error||'Protected review unavailable');error.httpStatus=response.status;throw error;}return result;
+  }
+  $('applicationList').addEventListener('click',async e=>{
+    const b=e.target.closest('[data-identity]');if(!b)return;
+    const reason=prompt('Reason for reviewing this person’s application:','Challenge application review');if(!reason)return;
+    clearDocuments();const generation=documentGeneration;$('applicationStatus').textContent='Opening protected details…';b.disabled=true;
+    try{
+      const d=await call('application_detail',{user_id:b.dataset.identity,reason});let identity=null,identityError='';
+      try{identity=(await callAdmin('kyc_identity_reveal',{user_id:b.dataset.identity})).identity;}catch(error){identityError=error.message;}
+      if(!$('applicationDialog').open||generation!==documentGeneration)return;
+      const i=identity||{},name=[i.legal_first_name,i.legal_middle_names,i.legal_last_name].filter(Boolean).join(' ')||d.name||'Applicant';
+      $('applicationDetail').innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(d.email||'')+'</p>'+
+        (identity?'<p>DOB '+esc(i.date_of_birth||'—')+' · '+esc(i.phone_e164||'—')+'</p><p>'+esc([i.address_line_1,i.address_line_2,i.city,i.region,i.postal_code,i.country_code].filter(Boolean).join(', '))+'</p><p>Nationality: '+esc(i.nationality_code||'—')+'</p>':'<p>'+esc(identityError||'Identity profile unavailable')+'</p>')+
+        '<p>Identity review: '+esc(d.kyc?.status||'unverified')+'</p>'+
+        (d.applications||[]).map(a=>'<details><summary>'+esc(a.challenge_type)+' · '+esc(a.status)+'</summary><dl>'+Object.entries(a.application_details||{}).map(([k,v])=>'<dt>'+esc(k.replaceAll('_',' '))+'</dt><dd>'+esc(typeof v==='object'?JSON.stringify(v):v)+'</dd>').join('')+'</dl><p>'+esc(a.decision_note||'')+'</p></details>').join('')+
+        '<h4>Private documents</h4>'+(d.documents||[]).map(x=>'<button type="button" class="button" data-document="'+esc(x.id)+'">View '+esc(x.doc_type.replaceAll('_',' '))+'</button>').join('')+
+        '<div id="privateDocumentViewer"></div><p><a href="admin.html#applicationQueue">Open Operations to approve or reject the application</a></p>';
+      $('applicationStatus').textContent='Identity access is audited and rate limited. Each document opens separately for 60 seconds.';
+      documentTimer=setTimeout(()=>{clearDocuments();$('applicationStatus').textContent='Review session expired. Open the person again.';},Math.max(0,Date.parse(d.expires_at)-Date.now()));
+    }catch(err){if(generation===documentGeneration)$('applicationStatus').textContent=err.message;}finally{b.disabled=false;}
+  });
+  $('applicationDetail').addEventListener('click',async e=>{
+    const b=e.target.closest('[data-document]');if(!b)return;
+    clearTimeout(viewerTimer);const generation=++viewerGeneration,reviewGeneration=documentGeneration;
+    const viewer=$('privateDocumentViewer');viewer.replaceChildren();b.disabled=true;$('applicationStatus').textContent='Opening one private document…';
+    try{
+      const result=await callAdmin('kyc_document_url',{document_id:b.dataset.document});
+      if(!$('applicationDialog').open||generation!==viewerGeneration||reviewGeneration!==documentGeneration)return;
+      const url=new URL(result.url);if(url.origin!==SB_URL||!url.pathname.startsWith('/storage/v1/object/sign/kyc-documents/'))throw new Error('Private document link refused');
+      const title=document.createElement('h4');title.textContent=result.doc_type.replaceAll('_',' ');viewer.append(title);
+      if(/.(png|jpe?g|webp)$/i.test(url.pathname)){const image=document.createElement('img');image.src=url.href;image.alt='Protected identity document';image.referrerPolicy='no-referrer';image.style.cssText='max-width:100%;max-height:420px;object-fit:contain';viewer.append(image);}
+      const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.referrerPolicy='no-referrer';link.textContent='Open private document';viewer.append(link);
+      const close=document.createElement('button');close.type='button';close.className='button';close.textContent='Close document';close.addEventListener('click',()=>{viewerGeneration++;clearTimeout(viewerTimer);viewer.replaceChildren();});viewer.append(close);
+      $('applicationStatus').textContent='Document view audited. Link expires in 60 seconds.';
+      viewerTimer=setTimeout(()=>{if(generation===viewerGeneration){viewer.replaceChildren();$('applicationStatus').textContent='Document link expired. Click the document again for fresh access.';}},Math.min(60,Number(result.expires_in)||60)*1000);
+    }catch(error){if(generation===viewerGeneration)$('applicationStatus').textContent=error.message;}finally{b.disabled=false;}
+  });
   addEventListener('resize', () => { if (data) renderBooks(); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastLoad > 5000) load(); });
   setInterval(() => { if (document.visibilityState === 'visible') load(); }, REFRESH_MS);

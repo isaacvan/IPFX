@@ -144,8 +144,8 @@
       information_accurate: $('accuracyConfirm').checked,
       risk_disclosure_accepted: $('riskConfirm').checked,
       screening_acknowledged: $('screeningConsent').checked,
-      privacy_notice_version: '2026-09-challenge-kyc-v1',
-      terms_version: '2026-09',
+      privacy_notice_version: '2026-10-08-1.1',
+      terms_version: '2026-10-08-1.3',
       newsletter: $('newsletter').checked,
     };
     const { data, error } = await db.rpc('submit_challenge_application', {
@@ -153,7 +153,7 @@
       p_details: details,
       p_preset_id: sku,
     });
-    if (error) throw new Error('We could not submit your challenge application. Check your details and try again.');
+    if (error) throw new Error(String(error.message||'').includes('LEGAL_VERSION_UPDATED')?'The Terms were updated. Refresh this form and review the current Terms before submitting.':'We could not submit your challenge application. Check your details and try again.');
     return data;
   }
   function showReview(application) {

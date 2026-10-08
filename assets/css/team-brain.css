@@ -87,3 +87,10 @@ dialog{background:var(--panel);color:var(--fg);border:1px solid var(--line);bord
 .account-kind{border-left:3px solid #8994a8;padding-left:8px;margin-bottom:7px;color:#e2e8f2;font-weight:650}
 .account-kind.demo{border-color:#8994a8}.account-kind.infinity{border-color:#4d9dff}
 .account-kind small{display:block;font-weight:400;color:#9aabc5;font-size:11px;margin-top:3px}
+/* Sensitive review dialogs stay readable on desktop without extending beyond
+   the viewport. Protected document bodies clear when closed or expired. */
+#solutionDialog,#applicationDialog{background:#141b28;color:#e4e9f2;border:1px solid #526078;border-radius:14px;padding:24px;width:min(960px,90vw);max-height:88vh;overflow:auto}
+#solutionDialog::backdrop,#applicationDialog::backdrop{background:#0009}
+#solutionDialog label{display:block;margin:14px 0 6px}
+#solutionDialog select,#solutionDialog textarea{display:block;box-sizing:border-box;width:100%;margin-top:8px;background:#0f1520;color:inherit;border:1px solid #526078;border-radius:6px;padding:10px}
+#applicationDetail{border-top:1px solid #526078;margin-top:18px;padding-top:12px}

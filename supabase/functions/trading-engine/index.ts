@@ -2374,12 +2374,13 @@ async function usedMarginUsd(open: Tr[]): Promise<number> {
 }
 
 async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floating: number) {
-  const [{ data: closed }, { data: pending }, monthly] = await Promise.all([
+  const [{ data: closed }, { data: pending }, monthly, controls] = await Promise.all([
     db.from("trades").select("*").eq("account_id", acct.id).eq("status", "closed")
       .order("closed_at", { ascending: false }).limit(30),
     db.from("pending_orders").select("*").eq("account_id", acct.id).eq("status", "pending")
       .order("created_at", { ascending: false }),
     db.rpc("fn_infinity_breach_lockout", { p_user: acct.user_id }),
+    db.rpc("brain_trader_controls", { p_user: acct.user_id }),
   ]);
   if (monthly.error || !monthly.data) throw new Error("INFINITY_ELIGIBILITY_UNAVAILABLE");
   // Order ID per position: order_audit_events.id is this platform's Order
@@ -2416,6 +2417,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
   return {
     ok: true,
     infinity_lockout: monthly.data,
+    service_controls: controls.error ? { unavailable: true, notices: [] } : controls.data,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       // deno-lint-ignore no-explicit-any
@@ -3223,6 +3225,11 @@ const handleRequest = async (req: Request): Promise<Response> => {
     }
   }
 
+  if (["open", "place_pending"].includes(String(body.action))) {
+    const controls=await db.rpc("brain_trader_controls",{p_user:user.id});
+    if(controls.error||!controls.data)return err("Trading review status could not be confirmed. No order was placed.",503);
+    if(controls.data.paused)return err("New trades are paused for review: "+String(controls.data.reason||"Contact support. Existing positions can still close."),409);
+  }
   if (!requestedDemo && ((acct as Acct).challenge_type === "infinity" || isDemoAccount(acct as Acct)) &&
     ["open", "place_pending"].includes(String(body.action))) {
     const monthly = await db.rpc("fn_infinity_breach_lockout", { p_user: user.id });

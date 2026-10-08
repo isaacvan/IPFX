@@ -3,6 +3,7 @@
 // signed-in MFA (aal2) session, like ladder-admin.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, readJsonObject } from "../_shared/request-guards.ts";
+import { solutionOptions } from "../_shared/brain-solutions.ts";
 
 const ORIGINS = new Set(["https://ipfxcapital.com", "https://www.ipfxcapital.com", "http://localhost:3000", "http://localhost:8127"]);
 const JOBS = [
@@ -39,6 +40,74 @@ Deno.serve(async (req) => {
   const body = await readJsonObject(req, 4_096).catch(() => null) as Record<string, unknown> | null;
   if (!body) return json({ ok: false, error: "Invalid request" }, 400);
   const action = String(body.action || "overview");
+
+  if (action === "solution_context" || action === "alert_solution") {
+    const id=Number(body.alert_id);
+    if(!Number.isSafeInteger(id)||id<1) return json({ok:false,error:"Choose an alert"},400);
+    const {data:a,error:readError}=await db.from("ab_alerts").select("id,key,category,severity,person_id,first_seen,resolved_at,title").eq("id",id).maybeSingle();
+    if(readError) return json({ok:false,error:"Alert read unavailable"},503);
+    if(!a||a.resolved_at) return json({ok:false,error:"Alert resolved or changed; refresh"},409);
+    const options=solutionOptions(a);
+    if(action==="solution_context") {
+      let review=null;
+      if(a.key.startsWith("rules:similarity:")) {
+        const {data:r,error}=await db.from("trade_similarity_reviews").select("person_a,person_b,matches,matched_days,share,evidence,latest_match,review_note").eq("id",a.key.slice("rules:similarity:".length)).maybeSingle();
+        if(error) return json({ok:false,error:"Matching-trade evidence unavailable"},503);
+        review=r;
+      }
+      return json({ok:true,alert:a,options,review});
+    }
+    const kind=String(body.kind||""),reason=typeof body.reason==="string"?body.reason.trim():"";
+    if(!options.some(x=>x.kind===kind)||reason.length<5||reason.length>500||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.request_id||""))||
+       typeof body.occurrence!=="string"||!Number.isFinite(Date.parse(body.occurrence)))
+      return json({ok:false,error:"Choose an offered action and enter a reason (5–500 characters)"},400);
+    if(kind==="recheck") {
+      const {error:audit}=await db.from("admin_audit_log").insert({actor_id:user.id,action:"brain_alert_recheck",detail:{alert_id:id,reason}});
+      if(audit) return json({ok:false,error:"Audit unavailable"},503);
+      const {error}=await db.rpc("ab_alerts_scan");
+      return json({ok:!error,message:error?"Checks unavailable; fault remains unconfirmed":"Checks refreshed. A remaining alert still needs attention."},error?503:200);
+    }
+    const {data:r,error}=await db.rpc("ab_owner_alert_solution",{p_alert:id,p_kind:kind,p_reason:reason,p_actor:user.id,p_request:body.request_id,p_occurrence:body.occurrence});
+    if(error) return json({ok:false,error:"Action unconfirmed. Refresh before retrying."},503);
+    return json(r,r?.ok?200:409);
+  }
+
+  if(action==="applications") {
+    const offset=Number(body.offset??0);
+    if(!Number.isInteger(offset)||offset<0||offset>100000) return json({ok:false,error:"Invalid page"},400);
+    const {data:rows,error,count}=await db.from("challenge_enrolment_requests")
+      .select("id,user_id,challenge_type,status,created_at",{count:"exact"}).order("created_at",{ascending:false}).order("id").range(offset,offset+49);
+    if(error) return json({ok:false,error:"Application list unavailable"},503);
+    const ids=[...new Set((rows??[]).map(x=>x.user_id))];
+    const {data:names,error:nerr}=ids.length?await db.from("user_profiles").select("user_id,full_name").in("user_id",ids):{data:[],error:null};
+    if(nerr) return json({ok:false,error:"Applicant names unavailable"},503);
+    const by=new Map((names??[]).map(x=>[x.user_id,x.full_name]));
+    return json({ok:true,total:count,offset,applications:(rows??[]).map(x=>({...x,name:by.get(x.user_id)||"Applicant"}))});
+  }
+  if(action==="application_detail") {
+    const id=String(body.user_id||"");
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return json({ok:false,error:"Choose an applicant"},400);
+    const reason=typeof body.reason==="string"?body.reason.trim():"";
+    if(reason.length<5||reason.length>300) return json({ok:false,error:"Enter a reason for opening identity documents"},400);
+    const results=await Promise.all([
+      db.from("user_profiles").select("full_name").eq("user_id",id).maybeSingle(),
+      db.from("challenge_enrolment_requests").select("id,challenge_type,status,application_details,created_at,decision_note").eq("user_id",id).order("created_at",{ascending:false}).limit(20),
+      db.from("kyc_submissions").select("id,doc_type,created_at").eq("user_id",id).order("created_at",{ascending:false}).limit(30),
+      db.from("trader_kyc").select("status,note,updated_at").eq("user_id",id).maybeSingle(),
+      db.auth.admin.getUserById(id),
+    ]);
+    if(results.some(x=>x.error)) return json({ok:false,error:"Identity review unavailable"},503);
+    const {error:audit}=await db.from("admin_audit_log").insert({actor_id:user.id,action:"team_application_open",target_user_id:id,detail:{reason}});
+    if(audit)return json({ok:false,error:"Identity access refused because the audit could not be saved"},503);
+    const latest=new Map<string,{id:string;doc_type:string;created_at:string}>();
+    for(const d of results[2].data??[])if(!latest.has(d.doc_type))latest.set(d.doc_type,d);
+    // Full identity and document links use the existing admin-console reveal
+    // endpoints, retaining their strict owner/MFA, hourly/day limits and audit.
+    const documents=[...latest.values()].map(d=>({id:d.id,doc_type:d.doc_type,uploaded_at:d.created_at}));
+    return json({ok:true,user_id:id,name:results[0].data?.full_name??null,email:results[4].data.user?.email??null,
+      applications:results[1].data,kyc:results[3].data,documents,expires_at:new Date(Date.now()+300000).toISOString()});
+  }
 
   // "overview" = everything (about once a minute); "pulse" = the fast-moving parts only, for the 10-second refresh:
   // alerts, tiles, books, health. Traders, moves and replay series come with the next overview.

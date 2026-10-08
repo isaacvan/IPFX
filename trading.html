@@ -4499,6 +4499,7 @@ function engineMsg(txt,ok){
 // excluded here or every self-initiated close would toast twice.
 let prevOpenTradeIds=null;
 function announceAutoClosedTrades(state){
+  window.IPFXServiceNotices?.render(state.service_controls,state.account?.id);
   const openNow=new Set((state.open_trades||[]).map(t=>t.id));
   if(prevOpenTradeIds){
     const closedMap=new Map((state.closed_trades||[]).map(t=>[t.id,t]));
@@ -4556,6 +4557,7 @@ function openDesktopAuth(){
 }
 function closeDesktopAuth(){document.getElementById('desktopAuth')?.classList.remove('open');}
 function applyDesktopSession(session){
+  if(!session)window.IPFXServiceNotices?.clear();
   document.body.classList.toggle('signed-in',!!session);
   if(!session){lastQuoteTs=0;setFeed('closed',desktopMode()?'Connect account':'Sign in');if(desktopMode())openDesktopAuth();syncSignedOutUi();return;}
   document.getElementById('tbAcct').textContent=session.user?.user_metadata?.name||session.user?.email||'My Account';
@@ -7022,5 +7024,6 @@ setChartEngine(chartEngine);
 </div>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
+<script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
 </body>
 </html>

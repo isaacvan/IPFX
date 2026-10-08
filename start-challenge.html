@@ -1407,11 +1407,11 @@
                 <div class="checkbox-group"><input type="checkbox" id="screeningConsent" required><label for="screeningConsent">I acknowledge that IPFX may perform identity, sanctions and PEP screening and request additional evidence where necessary. <span class="required">*</span></label></div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" required>
-                    <label for="terms">I agree to the <a href="/terms.html">Terms & Conditions</a> and <a href="/privacy.html">Privacy Policy</a> <span class="required">*</span></label>
+                    <label for="terms">I agree to the <a href="/legal/2026-10-08/terms.html">Terms & Conditions</a> and <a href="/legal/2026-10-08/privacy.html">Privacy Policy</a> <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="cancellationWaiver" required>
-                    <label for="cancellationWaiver" id="cancellationLabel">I want my Challenge to start immediately once payment is confirmed, and I understand that I lose my 14-day right to a full refund as soon as I place my first trade (see Terms &amp; Conditions §6) <span class="required">*</span></label>
+                    <label for="cancellationWaiver" id="cancellationLabel">I expressly request an early start once approved. Where cancellation rights apply, a lawful proportionate charge may apply for services already supplied if I cancel. The right ends on full performance only under Terms §6 <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="newsletter">
@@ -1616,7 +1616,7 @@
         app.hidden = false;
         if (!document.querySelector('script[data-challenge-checkout]')) {
           const script = document.createElement('script');
-          script.src = '/assets/js/checkout-flow.js?v=20261001';
+          script.src = '/assets/js/checkout-flow.js?v=20261008-legal';
           script.dataset.challengeCheckout = 'owner-preview';
           document.body.appendChild(script);
         }
@@ -1759,8 +1759,8 @@
 </div>
   <div class="ipfx-launch-footer" aria-label="Legal and sharing">
     <span>&copy; 2026 IPFX Capital Ltd</span>
-    <a href="/privacy.html">Privacy</a>
-    <a href="/terms.html">Terms</a>
+    <a href="/legal/2026-10-08/privacy.html">Privacy</a>
+    <a href="/legal/2026-10-08/terms.html">Terms</a>
     <a href="/faq.html">FAQ</a>
     <a href="/contact.html">Contact</a>
     <a href="/risk-disclosure.html">Risk</a>
