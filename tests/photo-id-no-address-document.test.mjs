@@ -1,5 +1,13 @@
 import test from'node:test';import assert from'node:assert/strict';import fs from'node:fs';import{pathToFileURL}from'node:url';
 const user='22222222-2222-4222-8222-222222222222',file=user+'/id.jpg';
+test('application and dashboard request photo ID without an address-document field',()=>{
+ const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
+ assert.doesNotMatch(read('start-challenge.html'),/id="proofOfAddress"|id="proofAddressDate"/);
+ assert.doesNotMatch(read('assets/js/checkout-flow.js'),/\$\('proofOfAddress'\)|\$\('proofAddressDate'\)/);
+ assert.match(read('assets/js/checkout-flow.js'),/uploaded.push\(\{doc_type:docType,path\}\)/);
+ assert.doesNotMatch(read('dashboard.html'),/id="kycAddress"|getElementById\('kycAddress'\)/);
+ assert.match(read('dashboard.html'),/if\(!pick.id_front\)/);
+});
 test('photo ID alone is accepted; foreign paths, missing photo ID and expired ID remain rejected',async()=>{
  const{PGlite}=await import(pathToFileURL(process.env.DEMO_TEST_DEPS+'/node_modules/@electric-sql/pglite/dist/index.js').href),db=new PGlite();try{
  await db.exec(`create schema auth;create function auth.uid()returns uuid language sql as $$select '${user}'::uuid$$;
