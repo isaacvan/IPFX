@@ -2212,7 +2212,7 @@ function renderPayoutStats(kyc){
     document.getElementById('pout-avail').textContent=poutFmt(available);
     document.getElementById('pout-avail-sub').textContent=complete?'Stage 3 complete · subject to payout checks':'Stage 2 earnings held until Stage 3 completion';
     document.getElementById('pout-next').textContent=complete?'Now':'Stage 3';
-    document.getElementById('pout-next-sub').textContent=complete?'Minimum withdrawal $500':'Complete the full 6% target and published rules';
+    document.getElementById('pout-next-sub').textContent=complete?'Minimum withdrawal $500':'Complete the full 8% target and published rules';
     amountLabel.textContent=complete?'Amount available to withdraw':'Held Stage 2 earnings — not yet withdrawable';
     document.getElementById('poutAmtDisplay').textContent=poutFmt(complete?available:held);
     note.textContent=complete

@@ -3320,7 +3320,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
       .in("status", ["active", "passed"]).is("access_revoked_at", null)
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (infinityStage3?.status === "active") return err("Stage 2 earnings are held. Complete Stage 3 before requesting a payout; the minimum withdrawal is $500.", 409);
-    const stage3Complete = infinityStage3?.status === "passed" && Number(infinityStage3.balance) >= Number(infinityStage3.starting_balance) * 1.06;
+    const stage3Complete = infinityStage3?.status === "passed" && Number(infinityStage3.balance) >= Number(infinityStage3.starting_balance) * (1 + Number(infinityStage3.profit_target_pct ?? 6) / 100);
     const { data: stage3Payout } = stage3Complete ? await db.from("payouts").select("id")
       .eq("account_id", infinityStage3!.id).eq("programme_event", "INFINITY_STAGE3_COMPLETION_PAYOUT")
       .neq("status", "void").limit(1).maybeSingle() : { data: null };

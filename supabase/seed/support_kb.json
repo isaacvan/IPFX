@@ -740,7 +740,7 @@
     "bi-weekly",
     "biweekly"
    ],
-    "answer": "- **Stage 2 earnings are held**, not paid when Stage 2 finishes.\n- In **Stage 3**, reaching **5% closed profit** is necessary but not sufficient: the observation, consistency, KYC and payout checks must also pass.\n- Once approved, the Stage 2 share becomes the first Infinity payout.\n- Completing Stage 3 triggers the Stage 4 review.\n- A breach before release forfeits held earnings under the programme Terms.",
+    "answer": "- **Stage 2 earnings are held**, not paid when Stage 2 finishes.\n- In **Stage 3**, reaching **{{p:infinity_s3.target_pct}} closed profit** is necessary but not sufficient: the observation, consistency, KYC and payout checks must also pass.\n- Once approved, the Stage 2 share becomes the first Infinity payout.\n- Completing Stage 3 triggers the Stage 4 review.\n- A breach before release forfeits held earnings under the programme Terms.",
    "follow_ups": [
     "What is the quant review?",
     "What ID do you accept?"

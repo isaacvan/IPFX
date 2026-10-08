@@ -4,12 +4,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PRIOR, STAGE_TABLE, coverageStatus, forecastAccount, liabilityWithin, passAnalytic, posterior } from '../supabase/functions/_shared/treasury.ts';
 
-const s2 = (over = {}) => ({ accountId: 'x', personId: 'p', stage: 2, startingBalance: 5000, balance: 5000, peak: 5000, targetPct: 5, maxDdPct: 4, riskPct: 0.0035, traderR: [], ...over });
+const s2 = (over = {}) => ({ accountId: 'x', personId: 'p', stage: 2, startingBalance: 5000, balance: 5000, peak: 5000, targetPct: 6, maxDdPct: 4, riskPct: 0.0035, traderR: [], ...over }); // Stage 2 target is 6% since 2026-10-08
 
 test('prior-only graduation odds match the Monte Carlo chain the table was built from', () => {
   const g = STAGE_TABLE.grid;
   const chain = PRIOR.reduce((a, w, i) => a + w * STAGE_TABLE.p_pass['1'][i] * STAGE_TABLE.p_pass['2'][i] * STAGE_TABLE.p_pass['3'][i], 0);
-  assert.ok(Math.abs(chain - 0.0195) < 0.003, `single-attempt graduation ${chain}`);
+  assert.ok(Math.abs(chain - 0.0153) < 0.003, `single-attempt graduation ${chain}`);
   assert.equal(g.length, PRIOR.length);
 });
 
@@ -29,7 +29,8 @@ test('progress and evidence move the forecast in the right direction', () => {
 });
 
 test('payout per graduate follows the payout model', () => {
-  assert.equal(forecastAccount(s2(), 'cash_at_stage3').payoutIfGraduate, 0.85 * 850);
+  assert.equal(forecastAccount(s2(), 'cash_at_stage3').payoutIfGraduate, 700, '85% of ($300 + $800) = $935, capped at $700');
+  assert.equal(forecastAccount(s2({ stage: 3, startingBalance: 10000, balance: 10000, peak: 10000, targetPct: 8, s2Profit: 0 }), 'cash_at_stage3').payoutIfGraduate, 680, '85% of $800 when Stage 2 earned nothing, under the cap');
   assert.equal(forecastAccount(s2(), 'sponsored_account', 350).payoutIfGraduate, 350);
   const s4 = forecastAccount({ ...s2(), stage: 4, startingBalance: 25000, riskPct: 0.0025, traderR: Array(80).fill(0).map((_, i) => (i % 2 ? 1.2 : -1)) }, 'cash_at_stage3');
   assert.ok(s4.s4MonthlyPayout > 0);
