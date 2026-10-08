@@ -1,0 +1,3 @@
+-- Chatbot answers: the full Stage 3 target (8%) unlocks the payout request, not a 4% progress point (owner 2026-10-08).
+update public.support_kb set answer = replace(answer, '- At 4% closed profit, progress is visible but no withdrawal is unlocked', '- Reaching the full target unlocks a payout request once the published checks pass; earlier progress is visible but no withdrawal is unlocked until then') where id = 'infinity-stage3' and answer like '%At 4% closed profit%';
+update public.support_kb set answer = replace(answer, 'It cannot be withdrawn at 4% in Stage 3.', 'It cannot be withdrawn before you complete the full Stage 3 target.') where id = 'payout-how' and answer like '%withdrawn at 4%';

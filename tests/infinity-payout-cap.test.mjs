@@ -92,3 +92,17 @@ test('page guard still hides the pathway if the live presets ever differ from th
   assert.equal(e.infinityRulesSyncWarning.style.display, 'block');
   assert.equal(e['how-it-works'].style.display, 'none');
 });
+
+test('the full 8% target unlocks the payout request: no page, Term or chatbot answer says 4% is the withdrawal point', () => {
+  const unlock = read('supabase/migrations/20261008120000_infinity_payout_unlock_wording.sql');
+  assert.match(unlock, /Reaching the full target unlocks a payout request once the published checks pass/);
+  assert.match(unlock, /It cannot be withdrawn before you complete the full Stage 3 target\./);
+  const inf = read('infinity.html'), idx = read('index.html'), terms = read('terms.html');
+  assert.match(inf, /Reaching the full 8% target and passing every published check unlocks your payout request\./);
+  assert.match(inf, /You cannot withdraw it until you complete the full 8% Stage 3 target\./);
+  assert.match(idx, /Reaching the full 8% target and passing the published rules unlocks your payout request/);
+  assert.match(terms, /Payout Unlock [^<]*8% \(\$800\):<\/strong> Reaching the full 8% target and completing all published requirements unlocks a payout request\./);
+  for (const [n, h] of [['infinity.html', inf], ['index.html', idx], ['terms.html', terms]]) {
+    assert.doesNotMatch(h, /Reaching 4% does not unlock|withdraw it at the 4%|At 4% closed profit, progress is visible but no withdrawal|Progress Milestone/, n + ' still treats 4% as the withdrawal point');
+  }
+});
