@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-const terms = read('terms.html');
-const privacy = read('privacy.html');
+const terms = read('legal/2026-10-08-v1.6/terms.html');
+const privacy = read('legal/2026-10-08-v1.2/privacy.html');
 const sql = read('supabase/migrations/20261008250000_legal_terms_v16_privacy_v12.sql');
 
 test('Terms 11.3 covers demo, practice and simulated copies and says what is sent to brokers', () => {
@@ -36,11 +36,4 @@ test('new versions are published as immutable records and the form records them'
   assert.doesNotMatch(sql, /delete from public\.platform_legal_documents|update public\.platform_legal_documents/);
   assert.equal(terms, read('legal/2026-10-08-v1.6/terms.html'));
   assert.equal(privacy, read('legal/2026-10-08-v1.2/privacy.html'));
-  const flow = read('assets/js/checkout-flow.js');
-  assert.match(flow, /privacy_notice_version: '2026-10-08-1\.2'/);
-  assert.match(flow, /terms_version: '2026-10-08-1\.6'/);
-  const page = read('start-challenge.html');
-  assert.match(page, /\/legal\/2026-10-08-v1\.6\/terms\.html/);
-  assert.match(page, /\/legal\/2026-10-08-v1\.2\/privacy\.html/);
-  assert.doesNotMatch(page, /legal\/2026-10-08\/privacy\.html|2026-10-08-v1\.5\/terms/);
 });

@@ -36,16 +36,16 @@
   }
   async function uploadVerificationDocuments(user) {
     if (existingKyc) return;
-    const idFront = $('idFront').files[0], idBack = $('idBack').files[0], address = $('proofOfAddress').files[0];
-    validateDocument(idFront, 'Photo ID'); validateDocument(address, 'Proof of address');
+    const idFront = $('idFront').files[0], idBack = $('idBack').files[0];
+    validateDocument(idFront, 'Photo ID');
     if (idBack) validateDocument(idBack, 'ID back');
-    const docs = [['id_front',idFront],['proof_of_address',address],...(idBack?[['id_back',idBack]]:[])];
+    const docs = [['id_front',idFront],...(idBack?[['id_back',idBack]]:[])];
     const uploaded = [];
     for (const [docType,file] of docs) {
       const path = user.id + '/' + crypto.randomUUID() + '-' + docType + '.' + extensionFor(file);
       const {error} = await db.storage.from('kyc-documents').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
       if (error) throw new Error('Could not securely upload ' + docType.replaceAll('_',' ') + '. Please try again.');
-      uploaded.push({doc_type:docType,storage_path:path});
+      uploaded.push({doc_type:docType,path});
     }
     const {error} = await db.rpc('submit_kyc',{p_documents:uploaded});
     if (error) throw new Error('Your documents uploaded, but verification could not be submitted. Please try again; duplicates are safely ignored.');
@@ -136,7 +136,6 @@
       id_document_type: $('idDocumentType').value,
       id_issuing_country: $('idIssuingCountry').value,
       id_expiry_date: $('idExpiry').value,
-      proof_of_address_date: $('proofAddressDate').value,
       age_confirmed: $('ageConfirm').checked,
       terms_accepted: $('terms').checked,
       cancellation_waiver: $('cancellationWaiver').checked,
@@ -144,8 +143,8 @@
       information_accurate: $('accuracyConfirm').checked,
       risk_disclosure_accepted: $('riskConfirm').checked,
       screening_acknowledged: $('screeningConsent').checked,
-      privacy_notice_version: '2026-10-08-1.2',
-      terms_version: '2026-10-08-1.6',
+      privacy_notice_version: '2026-10-09-1.3',
+      terms_version: '2026-10-09-1.8',
       held_earnings_acknowledged: challengeTypeForSku(sku) === 'infinity' ? $('heldEarningsConfirm').checked : null,
       newsletter: $('newsletter').checked,
     };
@@ -286,7 +285,7 @@
   $('step2Back').addEventListener('click', () => step(1));
   $('step2Next').addEventListener('click', async () => {
     $('applicationError').style.display='none';
-    const fields = ['firstName','lastName','email','phone','dateOfBirth','addressLine1','city','postalCode','country','nationality','experience','employmentStatus','occupation','sourceOfFunds','expectedActivity','purpose','pepStatus','idDocumentType','idIssuingCountry','idExpiry','proofAddressDate'];
+    const fields = ['firstName','lastName','email','phone','dateOfBirth','addressLine1','city','postalCode','country','nationality','experience','employmentStatus','occupation','sourceOfFunds','expectedActivity','purpose','pepStatus','idDocumentType','idIssuingCountry','idExpiry'];
     for (const id of fields) {
       if (!$(id).value.trim() || !$(id).checkValidity()) { $(id).reportValidity(); $(id).focus(); return; }
     }
@@ -384,13 +383,18 @@
     const { data:{user} } = await db.auth.getUser();
     if (!user) return;
     $('email').value = user.email || ''; $('email').readOnly = true;
-    const [{data:p},{data:k}] = await Promise.all([
+    const [{data:p},{data:k},reset] = await Promise.all([
       db.rpc('get_my_identity_profile'),
       db.from('trader_kyc').select('status').eq('user_id',user.id).in('status',['pending','verified']).maybeSingle(),
+      db.rpc('get_my_infinity_reset'),
     ]);
     if (k) {
       existingKyc=true; $('kycExisting').style.display='block'; $('kycFiles').style.display='none';
       $('kycFiles').querySelectorAll('[required]').forEach(el=>el.required=false);
+    }
+    if(new URLSearchParams(location.search).get('type')==='infinity'&&reset.data?.reapplication_required){
+      const note=document.createElement('p');note.className='form-note';note.textContent='Infinity has restarted. Please enter and submit your details again for a fresh Stage 1 application. Previous challenge progress is archived; any existing identity documents still need to be current and match your details.';
+      $('step1').prepend(note);return;
     }
     if (!p?.complete) return;
     $('firstName').value=p.legal_first_name||''; $('middleNames').value=p.legal_middle_names||''; $('lastName').value=p.legal_last_name||'';

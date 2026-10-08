@@ -1691,7 +1691,10 @@ async function infinityStatus(db: Db, user: any) {
     .select("id,status,challenge_type,preset_id,created_at,access_revoked_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
-  const list = accts ?? [];
+  const {data:reset,error:resetError}=await db.rpc("infinity_reset_context",{p_user:user.id});
+  if(resetError||!reset)throw new Error("INFINITY_RESET_STATUS_UNAVAILABLE");
+  const retired=new Set<string>(reset.retired_account_ids??[]);
+  const list = (accts ?? []).filter((a:{id:string})=>!retired.has(a.id));
   const hasActive = list.some((a: { status: string; access_revoked_at?: string | null }) => a.status === "active" && !a.access_revoked_at);
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
@@ -1703,7 +1706,7 @@ async function infinityStatus(db: Db, user: any) {
     db.from("user_profiles").select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle(),
     db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle(),
     db.from("challenge_enrolment_requests").select("id,status,decision_note,trading_account_id")
-      .eq("user_id", user.id).eq("preset_id", "infinity_s1").maybeSingle(),
+      .eq("user_id", user.id).eq("preset_id", "infinity_s1").neq("status","withdrawn").maybeSingle(),
     db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle(),
     db.rpc("fn_infinity_breach_lockout", { p_user: user.id }),
   ]);
@@ -1730,6 +1733,7 @@ async function infinityStatus(db: Db, user: any) {
     application_note: application?.decision_note ?? null,
     application_id: application?.id ?? null,
     breach_lockout: monthly.data,
+    reapplication_required:reset.reapplication_required===true,
   };
 }
 // deno-lint-ignore no-explicit-any

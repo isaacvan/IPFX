@@ -21,7 +21,7 @@ test('all challenge families are represented but only Infinity has a public CTA'
 });
 
 test('application collects proportionate identity and suitability data', () => {
-  for (const id of ['middleNames','nationality','employmentStatus','occupation','sourceOfFunds','expectedActivity','purpose','pepStatus','idDocumentType','idIssuingCountry','idExpiry','proofAddressDate']) {
+  for (const id of ['middleNames','nationality','employmentStatus','occupation','sourceOfFunds','expectedActivity','purpose','pepStatus','idDocumentType','idIssuingCountry','idExpiry']) {
     assert.match(page, new RegExp('id="' + id + '"'));
   }
   for (const id of ['ownBehalf','accuracyConfirm','riskConfirm','screeningConsent']) assert.match(page, new RegExp('id="' + id + '" required'));
@@ -35,8 +35,8 @@ test('documents are private, limited and submitted before the application', () =
   assert.ok(flow.indexOf("await uploadVerificationDocuments(user)") < flow.indexOf('await submitChallengeReview()'));
   assert.match(migration, /KYC_DOCUMENTS_REQUIRED/);
   assert.match(migration, /doc_type='id_front'/);
-  assert.match(migration, /doc_type='proof_of_address'/);
-  assert.match(migration, /v_address_date<current_date-interval '3 months'/);
+  assert.doesNotMatch(page, /id="proofOfAddress"|id="proofAddressDate"/);
+  assert.match(flow, /uploaded.push\(\{doc_type:docType,path\}\)/);
 });
 
 test('declarations are enforced by the database and bypasses fail closed', () => {
