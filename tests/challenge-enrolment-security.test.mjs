@@ -43,7 +43,7 @@ test('sensitive admin PII routes require MFA and fail closed on audit failure', 
   assert.match(admin, /challenge_application_queue_view/);
   assert.match(admin, /trader_identity_view/);
   assert.match(admin, /Personal information is unavailable because the audit trail could not be written/);
-  assert.match(admin, /createSignedUrl\(d\.storage_path, 300\)/);
+  assert.match(admin, /createSignedUrl\(doc\.storage_path, 60\)/);
   assert.match(admin, /Access-Control-Allow-Origin": "https:\/\/ipfxcapital\.com"/);
 });
 

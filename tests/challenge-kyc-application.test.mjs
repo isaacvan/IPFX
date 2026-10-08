@@ -46,9 +46,9 @@ test('declarations are enforced by the database and bypasses fail closed', () =>
 });
 
 test('owner reviews suitability and expiring private document links', () => {
-  assert.match(admin, /createSignedUrls\(paths, 300\)/);
+  assert.match(admin, /createSignedUrl\(doc\.storage_path, 60\)/);   // one document, on request, 60 seconds
   assert.match(admin, /trader_kyc/);
-  assert.match(adminPage, /Private links expire in 5 minutes/);
+  assert.match(adminPage, /link lasts 60 seconds and every view is logged/);
   assert.match(adminPage, /Purpose:/);
   assert.match(adminPage, /PEP:/);
 });

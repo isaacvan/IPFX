@@ -39,7 +39,7 @@ const CORS: Record<string, string> = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (b: unknown, status = 200) =>
-  new Response(JSON.stringify(b), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(b), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 const err = (m: string, s = 400) => json({ ok: false, error: m }, s);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -601,13 +601,13 @@ Deno.serve(async (req) => {
   const action = body.action;
   const challengesLaunched = Date.now() >= Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026, 00:00 UK
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
-  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
+  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "kyc_queue", "kyc_document_url", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
   // Money movement is owner-only; resuming trading after a halt is owner-only (any admin may HALT).
   const ownerMoneyActions = new Set(["payout_approve", "payout_mark_paid"]);
   if (ownerMoneyActions.has(String(action)) && !isOwner) return err("Owner approval required for payouts", 403);
   if (action === "set_platform_halt" && body.halted !== true && !isOwner) return err("Only the owner can resume trading", 403);
-  const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log",
+  const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "kyc_document_url", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log",
     "payout_create", "payout_approve", "payout_mark_paid", "payout_void", "set_split", "set_investigation_hold", "grant_challenge", "reset_account", "close_account", "set_mirror"]);
   const needsMfa = sensitiveActions.has(String(action)) || (action === "set_platform_halt" && body.halted !== true);
   if (needsMfa && tokenAal(bearerToken) !== "aal2") {
@@ -1676,7 +1676,7 @@ Deno.serve(async (req) => {
         ? db.from("trader_kyc").select("user_id,status,note,updated_at").in("user_id", userIds)
         : Promise.resolve({ data: [] }),
       userIds.length
-        ? db.from("kyc_submissions").select("user_id,doc_type,storage_path,created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(3000)
+        ? db.from("kyc_submissions").select("id,user_id,doc_type,storage_path,created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(3000)
         : Promise.resolve({ data: [] }),
     ]);
     const identityByUser = new Map((identities ?? []).map((item) => [item.user_id, item]));
@@ -1688,13 +1688,8 @@ Deno.serve(async (req) => {
       const key = item.user_id + ':' + item.doc_type;
       if (!latestDocuments.has(key)) latestDocuments.set(key, item);
     }
+    // Documents are listed by id only. A link is created for ONE document, on request, by kyc_document_url.
     const uniqueDocuments = [...latestDocuments.values()];
-    const paths = uniqueDocuments.map((item) => String(item.storage_path));
-    const signedByPath = new Map<string, string | null>();
-    if (paths.length) {
-      const { data: signed } = await db.storage.from("kyc-documents").createSignedUrls(paths, 300);
-      for (const item of signed ?? []) signedByPath.set(String(item.path), item.signedUrl ?? null);
-    }
     const out = (rows ?? []).map((row) => ({
       ...row,
       email: emailByUser.get(row.user_id) ?? null,
@@ -1702,8 +1697,7 @@ Deno.serve(async (req) => {
       preset: presetById.get(row.preset_id) ?? null,
       kyc: kycByUser.get(row.user_id) ?? { status: 'unverified' },
       documents: uniqueDocuments.filter((item) => item.user_id === row.user_id).map((item) => ({
-        doc_type: item.doc_type, uploaded_at: item.created_at,
-        url: signedByPath.get(String(item.storage_path)) ?? null,
+        id: item.id, doc_type: item.doc_type, uploaded_at: item.created_at,
       })),
     }));
     const { error: auditError } = await db.from("admin_audit_log").insert({
@@ -1815,18 +1809,37 @@ Deno.serve(async (req) => {
     return json({ ok: true, status, account_id: accountId });
   }
 
+  // The ONLY place a link to an identity document is created: one document, on request, valid for 60 seconds.
+  // Owner + MFA (checked above), limited per hour and per day, and the audit row is written BEFORE the link
+  // is made (no audit row, no link). Rate-limit counters and every view are watched by the Brain.
+  if (action === "kyc_document_url") {
+    const documentId = String(body.document_id ?? "");
+    if (!UUID.test(documentId)) return err("Unknown document", 400);
+    try {
+      if (!await allowRequest(db, "admin:kyc_document_hour", user.id, 40, 3600)) return err("Document view limit reached for this hour. The limit protects identity documents.", 429);
+      if (!await allowRequest(db, "admin:kyc_document_day", user.id, 200, 86400)) return err("Document view limit reached for today. The limit protects identity documents.", 429);
+    } catch (error) {
+      console.error(JSON.stringify({ event: "kyc_document_rate_limit", request_id: traceId, code: safeErrorCode(error) }));
+      return err("Document protection unavailable", 503);
+    }
+    const { data: doc } = await db.from("kyc_submissions").select("id,user_id,doc_type,storage_path").eq("id", documentId).maybeSingle();
+    if (!doc) return err("Document not found", 404);
+    const clientIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+    const audited = await logAdminStrict("kyc_document_view", { targetUser: doc.user_id, detail: { document_id: doc.id, doc_type: doc.doc_type, ip: clientIp, ttl_seconds: 60 } });
+    if (!audited) return err("Documents are unavailable because the audit trail could not be written.", 503);
+    const { data: signed, error: signError } = await db.storage.from("kyc-documents").createSignedUrl(doc.storage_path, 60);
+    if (signError || !signed?.signedUrl) return err("Document could not be opened", 502);
+    return json({ ok: true, url: signed.signedUrl, expires_in: 60, doc_type: doc.doc_type });
+  }
+
   if (action === "kyc_queue") {
     const { data: pending } = await db.from("trader_kyc").select("user_id,status,updated_at").eq("status", "pending").order("updated_at");
     const out = [];
     for (const row of pending ?? []) {
       const { data: au } = await db.auth.admin.getUserById(row.user_id);
-      const { data: docs } = await db.from("kyc_submissions").select("doc_type,storage_path,created_at")
+      const { data: docs } = await db.from("kyc_submissions").select("id,doc_type,created_at")
         .eq("user_id", row.user_id).order("created_at", { ascending: false }).limit(8);
-      const files = [];
-      for (const d of docs ?? []) {
-        const { data: signed } = await db.storage.from("kyc-documents").createSignedUrl(d.storage_path, 300);
-        files.push({ doc_type: d.doc_type, uploaded_at: d.created_at, url: signed?.signedUrl ?? null });
-      }
+      const files = (docs ?? []).map((d: { id: string; doc_type: string; created_at: string }) => ({ id: d.id, doc_type: d.doc_type, uploaded_at: d.created_at }));
       const { data: profile } = await db.from("user_profiles").select("full_name,country_code").eq("user_id", row.user_id).maybeSingle();
       const { data: identity } = await db.from("trader_identity_private")
         .select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code")
