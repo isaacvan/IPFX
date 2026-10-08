@@ -354,14 +354,23 @@
     const c = data.costs, el = $('costs'); if (!el) return;
     const accts = c?.accounts || [];
     if (!accts.length) { el.innerHTML = '<div class="empty-ok">Connect your E8 funded account (role: E8 cost monitor) and at least one demo copy account on the Treasury page. Sampling starts within a minute.</div>'; return; }
-    const px = (v) => fin(v) ? Number(v).toPrecision(3) : '—';
-    const sp = (c.spreads || []).map((r) => `<tr><td><b>${esc(r.symbol)}</b></td><td class="num">${px(r.e8)}</td><td class="num">${px(r.demo)}</td><td class="num">${px(r.ipfx)}</td>
-      <td class="num ${fin(r.e8_vs_demo) && r.e8_vs_demo > 0 ? 'neg' : 'pos'}">${fin(r.e8_vs_demo) ? (r.e8_vs_demo > 0 ? '+' : '') + px(r.e8_vs_demo) : '—'}</td><td class="num ${fin(r.ipfx_vs_e8) && (r.ipfx_vs_e8 > 1.25 || r.ipfx_vs_e8 < 0.8) ? 'neg' : 'pos'}">${fin(r.ipfx_vs_e8) ? Math.round(r.ipfx_vs_e8 * 100) + '%' : '—'}</td><td class="num">${esc(r.samples)}</td></tr>`).join('');
-    const com = (c.commission || []).map((r) => `${esc({ monitor: 'E8', shadow: 'Demo', ladder: 'Prop' }[r.role] || r.role)}: ${fin(r.per_lot) ? '$' + Number(r.per_lot).toFixed(2) + ' per lot' : '—'} (${esc(r.fills)} fills)`).join(' · ');
-    el.innerHTML = `<div class="table-wrap" style="max-height:none"><table style="min-width:640px"><thead><tr><th>Instrument</th><th class="num">E8 spread</th><th class="num">Demo spread</th><th class="num">IPFX spread</th><th class="num">E8 − demo</th><th class="num" title="IPFX spread as a share of E8's. Aim for 80% to 125%.">IPFX vs E8</th><th class="num">Samples</th></tr></thead>
-      <tbody>${sp || '<tr><td colspan="7" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>'}</tbody></table></div>
-      <p class="small" style="margin-top:10px">Commission: ${com || 'no filled orders read yet (history is read every 15 minutes)'}</p>
-      <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) · last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' · ')}</p>`;
+    const px = (v) => fin(v) ? Number(v).toPrecision(3) : '\u2014';
+    const usd = (v) => fin(v) ? '$' + Number(v).toFixed(2) : '\u2014';
+    const allin = new Map((c.allin || []).map((r) => [r.symbol, r]));
+    const hasDemo = (c.spreads || []).some((r) => fin(r.demo));
+    const body = (c.spreads || []).map((r) => {
+      const a = allin.get(r.symbol), ratio = a && fin(a.ratio) ? Number(a.ratio) : null, off = ratio != null && (ratio > 1.25 || ratio < 0.8);
+      return `<tr><td><b>${esc(r.symbol)}</b></td><td class="num">${px(r.e8)}</td>${hasDemo ? `<td class="num">${px(r.demo)}</td>` : ''}<td class="num">${px(r.ipfx)}</td>
+        <td class="num">${usd(a?.e8_usd)}</td><td class="num">${usd(a?.ipfx_usd)}</td>
+        <td class="num ${off ? 'neg' : 'pos'}">${ratio != null ? Math.round(ratio * 100) + '%' : '\u2014'}</td><td class="num">${esc(r.samples)}</td></tr>`;
+    }).join('');
+    const cols = hasDemo ? 8 : 7;
+    el.innerHTML = `<div class="table-wrap" style="max-height:none"><table style="min-width:700px"><thead><tr><th>Instrument</th><th class="num">E8 spread</th>${hasDemo ? '<th class="num">Demo spread</th>' : ''}<th class="num">IPFX spread</th>
+      <th class="num" title="Spread plus commission for one standard lot (median)">E8 all-in / lot</th><th class="num" title="Spread plus commission for one standard lot (median)">IPFX all-in / lot</th>
+      <th class="num" title="IPFX all-in cost as a share of E8's. Aim for 80% to 125%.">IPFX vs E8</th><th class="num">Samples</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="${cols}" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>`}</tbody></table></div>
+      <p class="small" style="margin-top:10px"><b>All-in</b> = spread + commission for one standard lot, using the median of samples taken at the same moments, so a quiet-hours spike cannot skew it. IPFX's commission comes from your symbol settings. The <b>E8 commission is an estimate</b> ($5.50 per lot on forex, none assumed elsewhere) because E8's own order history does not report one.</p>
+      <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) \u00b7 last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' \u00b7 ')}</p>`;
   }
 
   function renderShadow() {
