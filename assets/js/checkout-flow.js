@@ -145,7 +145,7 @@
       risk_disclosure_accepted: $('riskConfirm').checked,
       screening_acknowledged: $('screeningConsent').checked,
       privacy_notice_version: '2026-10-08-1.1',
-      terms_version: '2026-10-08-1.3',
+      terms_version: '2026-10-08-1.4',
       newsletter: $('newsletter').checked,
     };
     const { data, error } = await db.rpc('submit_challenge_application', {

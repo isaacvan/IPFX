@@ -2373,6 +2373,23 @@ async function usedMarginUsd(open: Tr[]): Promise<number> {
   return total;
 }
 
+// When a stage is passed the next stage's account is created automatically. This lets the trading page say so, once, in
+// plain words (the page remembers that it has shown it). Only for accounts created from a passed account in the last 14 days.
+async function promotionNotice(db: Db, acct: Acct) {
+  try {
+    if (!acct.funded_from_account_id || isDemoAccount(acct)) return null;
+    if (Date.now() - Date.parse(String(acct.created_at ?? "")) > 14 * 86_400_000) return null;
+    const { data: from } = await db.from("trading_accounts").select("label,stage").eq("id", acct.funded_from_account_id).maybeSingle();
+    if (!from) return null;
+    return {
+      account_id: acct.id, from_label: from.label, from_stage: from.stage ?? null,
+      to_label: acct.label, to_stage: acct.stage ?? null, funded: acct.phase === "funded",
+      to_balance: Number(acct.starting_balance), target_pct: Number(acct.profit_target_pct ?? 0),
+      max_risk_pct: acct.max_risk_per_trade_pct == null ? null : Number(acct.max_risk_per_trade_pct),
+    };
+  } catch (_) { return null; }
+}
+
 async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floating: number) {
   const [{ data: closed }, { data: pending }, monthly, controls] = await Promise.all([
     db.from("trades").select("*").eq("account_id", acct.id).eq("status", "closed")
@@ -2418,6 +2435,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     ok: true,
     infinity_lockout: monthly.data,
     service_controls: controls.error ? { unavailable: true, notices: [] } : controls.data,
+    promotion_notice: await promotionNotice(db, acct),
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       // deno-lint-ignore no-explicit-any
@@ -2931,6 +2949,13 @@ const handleRequest = async (req: Request): Promise<Response> => {
       for (const r of page) ids.add(r.account_id);
       if (page.length < 1000) break;
     }
+    // Accounts that have reached their profit target but are flat are not in the open-trades list above. Visit them too,
+    // so a stage completes the moment its last requirement is met (for example the observation days), without the
+    // trader having to open the platform. enforce() and passGate still decide: this only makes the promotion on time.
+    try {
+      const { data: ready } = await db.rpc("fn_pass_candidates");
+      for (const r of ready ?? []) ids.add(String((r as { account_id: string }).account_id));
+    } catch (_) { /* the sweep never fails because of this extra pass */ }
     let alertsFired = 0;
     try { alertsFired = await evaluateAlerts(db, null); } catch (_) { /* alerts never block enforcement */ }
     const queue = [...ids].sort(() => Math.random() - 0.5);
