@@ -1682,15 +1682,20 @@ async function infinityStatus(db: Db, user: any) {
     a.preset_id === "infinity_s1" && a.created_at >= monthStart).length;
   const { data: preset } = await db.from("challenge_presets").select("*").eq("id", "infinity_s1").maybeSingle();
   const cap = Number(preset?.max_attempts_per_month ?? 1);
-  const [{ data: profile }, { data: identity }, { data: application }, { data: kyc }] = await Promise.all([
+  const [{ data: profile }, { data: identity }, { data: application }, { data: kyc }, monthly] = await Promise.all([
     db.from("user_profiles").select("restricted_jurisdiction,age_confirmed").eq("user_id", user.id).maybeSingle(),
     db.from("trader_identity_private").select("user_id").eq("user_id", user.id).maybeSingle(),
     db.from("challenge_enrolment_requests").select("id,status,decision_note,trading_account_id")
       .eq("user_id", user.id).eq("preset_id", "infinity_s1").maybeSingle(),
     db.from("trader_kyc").select("status").eq("user_id", user.id).maybeSingle(),
+    db.rpc("fn_infinity_breach_lockout", { p_user: user.id }),
   ]);
+  if (monthly.error || !monthly.data) throw new Error("INFINITY_ELIGIBILITY_UNAVAILABLE");
   let reason: string | null = null;
-  if (!preset) reason = "The Infinity Challenge is unavailable right now.";
+  if (monthly.data.locked) reason = monthly.data.blocked_until
+    ? "Account has been breached. Infinity restarts on " + new Date(monthly.data.blocked_until).toISOString().slice(0, 10) + " at 00:00 UTC."
+    : "Account has been breached. Your restart date needs review.";
+  else if (!preset) reason = "The Infinity Challenge is unavailable right now.";
   else if (!user.email_confirmed_at) reason = "Verify your email address first — check your inbox for the confirmation link.";
   else if (profile?.restricted_jurisdiction) reason = "Sorry — we can't offer challenges in your jurisdiction.";
   else if (!identity) reason = "Complete your identity and residential address before starting the challenge.";
@@ -1707,6 +1712,7 @@ async function infinityStatus(db: Db, user: any) {
     application_status: application?.status ?? null,
     application_note: application?.decision_note ?? null,
     application_id: application?.id ?? null,
+    breach_lockout: monthly.data,
   };
 }
 // deno-lint-ignore no-explicit-any
@@ -2035,11 +2041,17 @@ async function syncVenueConnection(db: Db, c: VenueConn): Promise<void> {
 
 async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number; unpriced: number }> {
   let quoteRiskUnavailable = false;
+  let infinityMonthlyBlocked = false;
   // The database checks persisted portfolio quotes before SL/TP can change
   // the portfolio. A crossed floor stays latched even if the price recovers.
   if (acct.challenge_type === "infinity" && acct.status === "active" && (acct.venue ?? "ipfx") === "ipfx") {
-    const { data: guard, error } = await db.rpc("fn_enforce_infinity_from_quotes", { p_account: acct.id });
+    const [{ data: guard, error }, monthly] = await Promise.all([
+      db.rpc("fn_enforce_infinity_from_quotes", { p_account: acct.id }),
+      db.rpc("fn_infinity_breach_lockout", { p_user: acct.user_id }),
+    ]);
     if (error || !guard) throw new Error("CHALLENGE_RISK_CHECK_UNAVAILABLE");
+    if (monthly.error || !monthly.data) throw new Error("INFINITY_ELIGIBILITY_UNAVAILABLE");
+    infinityMonthlyBlocked = monthly.data.locked === true;
     if (guard.status === "active" && guard.access_revoked_at) throw new Error("CHALLENGE_ACCESS_REVOKED");
     quoteRiskUnavailable = guard.checked === false && ["MARK_UNAVAILABLE", "RULES_UNAVAILABLE"].includes(guard.reason);
     for (const key of ["status", "balance", "breach_reason", "day_start_equity", "day_start_date", "trailing_peak", "trailing_peak_date",
@@ -2152,7 +2164,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   // Resting limit/stop orders are checked before marking to market, so a
   // fill this tick is included in the equity the rules are judged on.
-  if (!venueMode) open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)), !quoteRiskUnavailable);
+  if (!venueMode) open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)), !quoteRiskUnavailable && !infinityMonthlyBlocked);
 
   // mark to market
   let floating = 0;
@@ -2362,12 +2374,14 @@ async function usedMarginUsd(open: Tr[]): Promise<number> {
 }
 
 async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floating: number) {
-  const [{ data: closed }, { data: pending }] = await Promise.all([
+  const [{ data: closed }, { data: pending }, monthly] = await Promise.all([
     db.from("trades").select("*").eq("account_id", acct.id).eq("status", "closed")
       .order("closed_at", { ascending: false }).limit(30),
     db.from("pending_orders").select("*").eq("account_id", acct.id).eq("status", "pending")
       .order("created_at", { ascending: false }),
+    db.rpc("fn_infinity_breach_lockout", { p_user: acct.user_id }),
   ]);
+  if (monthly.error || !monthly.data) throw new Error("INFINITY_ELIGIBILITY_UNAVAILABLE");
   // Order ID per position: order_audit_events.id is this platform's Order
   // ID (see order-position-id-integrity.sql), trades.id is the Position
   // ID. A position can have several order events against it (open, an
@@ -2401,6 +2415,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
 
   return {
     ok: true,
+    infinity_lockout: monthly.data,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       // deno-lint-ignore no-explicit-any
@@ -3038,7 +3053,8 @@ const handleRequest = async (req: Request): Promise<Response> => {
     if (!(await claimOrderLock(db, user.id))) return err("Already processing — try again in a moment.", 429);
     try {
       const st = await infinityStatus(db, user);
-      if (!st.eligible) return err(st.reason ?? "Not eligible", 409);
+      if (!st.eligible) return new Response(JSON.stringify({ ok: false, error: st.reason ?? "Not eligible", infinity_lockout: st.breach_lockout }),
+        { status: 409, headers: { ...CORS, "Content-Type": "application/json" } });
       if (st.needs_age_confirmation) {
         if (body.confirm_age !== true) return err("Please confirm you are 18 or older.", 400);
         await db.from("user_profiles").update({ age_confirmed: true }).eq("user_id", user.id);
@@ -3207,6 +3223,14 @@ const handleRequest = async (req: Request): Promise<Response> => {
     }
   }
 
+  if (!requestedDemo && ((acct as Acct).challenge_type === "infinity" || isDemoAccount(acct as Acct)) &&
+    ["open", "place_pending"].includes(String(body.action))) {
+    const monthly = await db.rpc("fn_infinity_breach_lockout", { p_user: user.id });
+    if (monthly.error || !monthly.data) return err("Infinity eligibility could not be confirmed. No order was placed.", 503);
+    if (monthly.data.locked) return new Response(JSON.stringify({ ok: false, order_blocked: true,
+      error: monthly.data.message, infinity_lockout: monthly.data }),
+      { status: 409, headers: { ...CORS, "Content-Type": "application/json" } });
+  }
   const state = await enforce(db, acct as Acct);
   const action = body.action;
 

@@ -6,7 +6,7 @@ const html=fs.readFileSync(new URL('../trading.html',import.meta.url),'utf8');
 
 function engine(reply,{status=200,renderFailure=false}={}){
  const original={account:{id:'fixture',challenge_type:'demo'},open_trades:[{id:'existing-position'}]},messages=[];
- const ctx=vm.createContext({engineState:original,lastStateAt:123,freshToken:async()=> 'synthetic',selectedAccountMode:'demo',ENGINE_URL:'https://fixture.invalid',AbortController,setTimeout:()=>1,clearTimeout(){},Date,Array,localStorage:{setItem(){}},engineMsg:m=>messages.push(m),announceAutoClosedTrades(){},showVenueBanner(){},liveQuotesBySymbol:new Map(),renderPositions(){if(renderFailure)throw Error('synthetic rendering failure');},renderEngineAccount(){},fetch:async()=>({ok:status<400,status,json:async()=>reply})});
+ const ctx=vm.createContext({engineState:original,lastStateAt:123,freshToken:async()=> 'synthetic',selectedAccountMode:'demo',accountModeIntent:'demo',blockInfinityTradeAttempt:()=>false,showInfinityTradeWarning(){},ENGINE_URL:'https://fixture.invalid',AbortController,setTimeout:()=>1,clearTimeout(){},Date,Array,localStorage:{setItem(){}},engineMsg:m=>messages.push(m),announceAutoClosedTrades(){},showVenueBanner(){},liveQuotesBySymbol:new Map(),renderPositions(){if(renderFailure)throw Error('synthetic rendering failure');},renderEngineAccount(){},fetch:async()=>({ok:status<400,status,json:async()=>reply})});
  vm.runInContext(html.slice(html.indexOf('async function engineCall(body){'),html.indexOf('// Non-trading engine calls')),ctx);
  return{ctx,original,messages};
 }

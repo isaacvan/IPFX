@@ -26,7 +26,7 @@ test('an unconfirmed trading request never tells the trader that no order was pl
  const html=fs.readFileSync(new URL('../trading.html',import.meta.url),'utf8');
  const source=html.slice(html.indexOf('async function engineCall(body){'),html.indexOf('// Non-trading engine calls'));
  for(const name of ['AbortError','TypeError']){
-  let message='';const ctx=vm.createContext({freshToken:async()=> 'synthetic',selectedAccountMode:'demo',ENGINE_URL:'https://fixture.invalid',AbortController,setTimeout:()=>1,clearTimeout(){},engineMsg:m=>message=m,fetch:async()=>{const e=new Error('synthetic connection failure');e.name=name;throw e;}});
+  let message='';const ctx=vm.createContext({freshToken:async()=> 'synthetic',selectedAccountMode:'demo',accountModeIntent:'demo',blockInfinityTradeAttempt:()=>false,ENGINE_URL:'https://fixture.invalid',AbortController,setTimeout:()=>1,clearTimeout(){},engineMsg:m=>message=m,fetch:async()=>{const e=new Error('synthetic connection failure');e.name=name;throw e;}});
   vm.runInContext(source,ctx);assert.equal(await ctx.engineCall({action:'open'}),null);
   assert.match(message,/may have completed/);assert.match(message,/Check positions and history before retrying/);
   assert.doesNotMatch(message,/order not placed|check your connection and try again/i);

@@ -9,7 +9,7 @@ async function harness({guard,price=2000}={}){
  status:'open',opened_at:new Date().toISOString(),sl:null,tp:null}],calls=[];
  const snapshot=guard||{checked:true,status:'breached',breach_reason:'daily_loss',balance:100000,day_start_equity:100000,day_start_date:today,
  trailing_peak:100000,breach_equity:97500,breach_floor:97500,access_revoked_at:new Date().toISOString()};
- const db={rpc:async(name,args)=>{calls.push({name,args});return{data:snapshot};},from(table){
+ const db={rpc:async(name,args)=>{calls.push({name,args});return{data:name==='fn_infinity_breach_lockout'?{locked:false}:snapshot};},from(table){
   const filters=[];let patch=null;
   const result=()=>{if(table==='trades')return{data:trades.filter(t=>filters.every(([k,v])=>t[k]===v))};
    if(table==='trading_accounts'){if(patch)Object.assign(acct,patch);return{data:[{...acct}]};}return{data:[]};};
@@ -30,7 +30,7 @@ async function harness({guard,price=2000}={}){
 }
 test('actual engine consumes the committed breach before stops/pending and flattens even though access is revoked',async()=>{
  const r=await harness();assert.equal(r.acct.status,'breached');assert.equal(r.result.open.length,0);
- assert.deepEqual(r.calls.map(x=>x.name),['fn_enforce_infinity_from_quotes','close']);assert.equal(r.calls[1].reason,'breach');
+ assert.deepEqual(r.calls.map(x=>x.name),['fn_enforce_infinity_from_quotes','fn_infinity_breach_lockout','close']);assert.equal(r.calls[2].reason,'breach');
  assert.equal(r.acct.breach_equity,97500);
 });
 test('actual engine marks uncertain risk unpriced, blocks qualification and does not manufacture a breach',async()=>{

@@ -1720,6 +1720,17 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
   </form>
 </div>
 
+<div class="inf-freeze" id="infBreachAttempt" role="dialog" aria-modal="true" aria-labelledby="infBreachAttemptTitle">
+  <div class="inf-freeze-card">
+    <div class="inf-freeze-mark">!</div>
+    <h2 id="infBreachAttemptTitle">Account has been breached</h2>
+    <p id="infBreachAttemptText">Infinity trading is locked until the next month. No trade has been placed.</p>
+    <div class="inf-freeze-actions">
+      <button class="inf-freeze-btn primary" onclick="choosePracticeAfterBreach()">Practise on Demo</button>
+      <button class="inf-freeze-btn" id="infBreachAttemptClose" onclick="closeInfinityTradeWarning()">Close</button>
+    </div>
+  </div>
+</div>
 <div class="inf-freeze" id="infFreeze" role="dialog" aria-modal="true" aria-labelledby="infFreezeTitle">
   <div class="inf-freeze-card">
     <div class="inf-freeze-mark">!</div>
@@ -4443,6 +4454,10 @@ let ordLots=0.01,ordMidPrice=1.0850;
 const ENGINE_URL='https://agulweemteoeagscmppy.supabase.co/functions/v1/trading-engine?forceFunctionRegion=eu-west-1';
 let engineState=null,engineBusy=false;
 let selectedAccountMode=localStorage.getItem('ipfx-account-mode')==='demo'?'demo':'challenge';
+// Keep requested intent separate from an automatic fallback to practice.
+// Only choosing Demo explicitly allows practice orders after a breach.
+let accountModeIntent=['demo','challenge'].includes(localStorage.getItem('ipfx-account-intent'))?localStorage.getItem('ipfx-account-intent'):selectedAccountMode;
+localStorage.setItem('ipfx-account-intent',accountModeIntent);
 const SB_AUTH_KEY='sb-agulweemteoeagscmppy-auth-token';
 // Robust across every supabase-js storage format: raw JSON, base64- prefixed
 // (auth-js >= 2.54), and chunked keys (.0/.1). Falls back gracefully.
@@ -4601,6 +4616,7 @@ function showVenueBanner(account){
   }
 }
 async function engineCall(body){
+  if(['open','place_pending'].includes(body.action)&&blockInfinityTradeAttempt())return null;
   const tok=await freshToken();
   if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
   // A stalled connection (not an error — just hanging) previously left
@@ -4611,9 +4627,11 @@ async function engineCall(body){
   const killer=setTimeout(()=>ctrl.abort(),15000);
   let acknowledged=null;
   try{
-    const requestBody={...body,account_mode:selectedAccountMode};
+    const requestBody={...body,account_mode:['open','place_pending'].includes(body.action)&&accountModeIntent==='challenge'?'challenge':selectedAccountMode};
     const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(requestBody),signal:ctrl.signal});
     const j=await r.json().catch(()=>null);
+    if(j&&j.infinity_lockout){if(engineState)engineState.infinity_lockout=j.infinity_lockout;}
+    if(j&&j.order_blocked&&j.infinity_lockout?.locked){showInfinityTradeWarning(j.infinity_lockout);}
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
     if(!r.ok||!j||j.ok===false){engineMsg(r.status>=500?'No confirmation from the server. Check positions and history before retrying.':((j&&j.error)||'Order rejected'));return null;}
     acknowledged=j;
@@ -4636,14 +4654,17 @@ async function engineCall(body){
     }
     if(typeof refreshClientMarks==='function'&&liveQuotesBySymbol.size)refreshClientMarks();else renderPositions();
     renderEngineAccount();
-    if(j.order_blocked)engineMsg('Order not placed — the challenge breached and IPFX Markets switched you to demo.');
+    if(j.order_blocked){
+      if(j.infinity_lockout?.locked)showInfinityTradeWarning(j.infinity_lockout);
+      engineMsg('Account has been breached. No order has been placed.');return null;
+    }
     else if(j.switched_to_demo&&j.breach_notice&&sessionStorage.getItem('ipfx-breach-toast')!==j.breach_notice.source_account_id){
       sessionStorage.setItem('ipfx-breach-toast',j.breach_notice.source_account_id);
       engineMsg('Challenge access paused — switched to IPFX Demo.');
     }
     if(typeof renderJournal==='function')renderJournal();return j;
   }catch(e){
-    if(acknowledged){lastStateAt=0;engineMsg('Action confirmed. Account display needs a refresh.');return acknowledged;}
+    if(acknowledged){lastStateAt=0;if(acknowledged.order_blocked){engineMsg('Account has been breached. No order has been placed.');return null;}engineMsg('Action confirmed. Account display needs a refresh.');return acknowledged;}
     engineMsg(body.action==='state'?'Connection is slow — account state could not be refreshed.':
       (e&&e.name==='AbortError'?'No confirmation after 15s. The action may have completed. Check positions and history before retrying.':
       'Connection lost. The action may have completed. Check positions and history before retrying.'));
@@ -4923,6 +4944,7 @@ function updateTriggerHint(){
 }
 
 async function placeOrder(side){
+  if(blockInfinityTradeAttempt())return;
   if(engineBusy)return;
   if(typeof feedFresh==='function'&&!feedFresh()){engineMsg('Market data is stale — orders are paused until the feed recovers.');return;}
 
@@ -5534,8 +5556,9 @@ function renderEngineAccount(){
     limit.textContent=parts.join(' ')||'Limits active';
   }
   if(state){
-    const locked=a.status&&a.status!=='active'&&a.status!=='demo';
-    state.textContent=locked?String(a.status).replace(/_/g,' '):(L.require_stop_loss?'Stop required':'Ready');
+    const monthlyBlocked=accountModeIntent==='challenge'&&currentInfinityLock()?.locked;
+    const locked=monthlyBlocked||(a.status&&a.status!=='active'&&a.status!=='demo');
+    state.textContent=monthlyBlocked?'Infinity breached':locked?String(a.status).replace(/_/g,' '):(L.require_stop_loss?'Stop required':'Ready');
     state.className='op-limit-state '+(locked?'locked':'ready');
   }
   updateRiskPreview();
@@ -5549,6 +5572,8 @@ function renderEngineAccount(){
 }
 async function setAccountMode(mode){
   if(mode!=='challenge'&&mode!=='demo')return;
+  accountModeIntent=mode;localStorage.setItem('ipfx-account-intent',mode);
+  if(mode==='challenge'&&currentInfinityLock()?.locked)showInfinityTradeWarning(currentInfinityLock());
   selectedAccountMode=mode;
   localStorage.setItem('ipfx-account-mode',mode);
   document.getElementById('modeChallenge')?.classList.toggle('active',mode==='challenge');
@@ -5556,6 +5581,27 @@ async function setAccountMode(mode){
   await engineCall({action:'state'});
 }
 let infStripe=null,infElements=null,infPaymentElement=null,infCheckout=null,infCheckoutBusy=false,infContinuePrice='';
+function currentInfinityLock(){return engineState&&engineState.infinity_lockout;}
+function infinityRestartDate(lock){
+  const d=lock&&lock.blocked_until?new Date(lock.blocked_until):null;
+  return d&&isFinite(d.getTime())?d.toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'long',timeStyle:'short'})+' UTC':null;
+}
+function showInfinityTradeWarning(lock){
+  const modal=document.getElementById('infBreachAttempt');if(!modal)return;
+  const date=infinityRestartDate(lock);
+  document.getElementById('infBreachAttemptText').textContent=date
+    ? 'Your Infinity account has been breached. No trade has been placed. You can start a new approved challenge from '+date+'. Demo practice is still available.'
+    : 'Your Infinity account has been breached. No trade has been placed. Your restart date needs review. Demo practice is still available.';
+  document.getElementById('infFreeze')?.classList.remove('open');modal.classList.add('open');
+  try{if(lock.source_account_id)sessionStorage.setItem('ipfx-breach-dismissed',lock.source_account_id);}catch(_){}
+  document.getElementById('infBreachAttemptClose')?.focus();
+}
+function closeInfinityTradeWarning(){document.getElementById('infBreachAttempt')?.classList.remove('open');}
+async function choosePracticeAfterBreach(){closeInfinityTradeWarning();await setAccountMode('demo');}
+function blockInfinityTradeAttempt(){
+  const lock=currentInfinityLock();
+  if(accountModeIntent!=='demo'&&lock?.locked){showInfinityTradeWarning(lock);return true;}return false;
+}
 function currentBreach(){
   if(engineState&&engineState.breach_notice)return engineState.breach_notice;
   const a=engineState&&engineState.account;
@@ -5569,6 +5615,11 @@ function currentBreach(){
 function renderAccountFreeze(a){
   const modal=document.getElementById('infFreeze');
   if(!modal)return;
+  const attemptModal=document.getElementById('infBreachAttempt');
+  if(attemptModal?.classList.contains('open')){
+    if(currentInfinityLock()?.locked){modal.classList.remove('open');return;}
+    attemptModal.classList.remove('open');
+  }
   const breach=currentBreach();
   const dismissed=breach&&sessionStorage.getItem('ipfx-breach-dismissed')===breach.source_account_id;
   const show=!!breach&&!dismissed;
@@ -5586,12 +5637,15 @@ function renderAccountFreeze(a){
     (breach.open_positions_remaining===0?'All positions are closed. ':breach.open_positions_remaining>0?'Remaining positions are being closed. ':'Position closure is being checked. ')+
     'You are now on IPFX Demo.';
   const continueBtn=document.getElementById('infContinueBtn'),restartBtn=document.getElementById('infRestartBtn');
-  continueBtn.style.display=evaluation?'':'none';
+  const lock=currentInfinityLock(),monthLocked=breach.challenge_type==='infinity'&&lock?.locked;
+  continueBtn.style.display=evaluation&&!monthLocked?'':'none';
+  restartBtn.disabled=!!monthLocked;
   restartBtn.textContent=breach.challenge_type==='infinity'&&evaluation?'Restart from Stage 1':'Start a new '+label+' challenge';
   document.getElementById('infFreezeNote').textContent=evaluation
     ? 'Challenge/funded access stays paused. This failed account cannot be reactivated; trading requires a newly approved challenge account. Closed positions are never reopened. '+
       (breach.challenge_type==='infinity'?'Restarting returns you to Stage 1 and uses a monthly attempt.':'Starting again opens the official challenge page; paid challenges are never granted for free.')
     : 'Challenge/funded access stays paused. You can keep practising on demo, start a new challenge, or contact support for review.';
+  if(monthLocked)document.getElementById('infFreezeNote').textContent='Infinity is locked '+(infinityRestartDate(lock)?'until '+infinityRestartDate(lock):'until your restart date is reviewed')+'. Starting next month requires a new approved challenge; this failed account never reopens.';
 }
 function continueOnDemo(){
   const breach=currentBreach();
@@ -5678,6 +5732,7 @@ function challengeRestartUrl(a){
   return 'https://ipfxcapital.com/start-challenge.html';
 }
 async function restartChallenge(){
+  if(currentInfinityLock()?.locked){showInfinityTradeWarning(currentInfinityLock());return;}
   if(infCheckoutBusy)return;
   const a=currentBreach();
   if(!a)return;
