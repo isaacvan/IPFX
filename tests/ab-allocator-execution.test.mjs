@@ -63,7 +63,7 @@ test('hard caps: reserved atomically before every order, only a migration can ch
 
 test('engine routes A-book live hedge-first, B-book live reversed after the fill, and passes partial closes', () => {
   const e = read('supabase/functions/trading-engine/index.ts');
-  assert.match(e, /const abBook = await abRoute\(db, user\.id\);\s*\n\s*if \(abBook === "a" \|\| await hedgeOpenArmed\(db, A\)\)/);
+  assert.match(e, /const abBook = inBrainScope\(A\) \? await abRoute\(db, user\.id\) : null;\s*\n\s*if \(abBook === "a" \|\| await hedgeOpenArmed\(db, A\)\)/);
   assert.match(e, /if \(abBook === "b"\) bookLater\(\{ event: "open", book: "b"/);
   assert.match(e, /const legs = await bookLegs\(db, t\.id\);/);
   assert.match(e, /if \(legs\.b \|\| \(legs\.a && hedge\.state !== "filled"\)\) bookLater\(\{ event: "close"/);

@@ -145,7 +145,8 @@
       risk_disclosure_accepted: $('riskConfirm').checked,
       screening_acknowledged: $('screeningConsent').checked,
       privacy_notice_version: '2026-10-08-1.1',
-      terms_version: '2026-10-08-1.4',
+      terms_version: '2026-10-08-1.5',
+      held_earnings_acknowledged: challengeTypeForSku(sku) === 'infinity' ? $('heldEarningsConfirm').checked : null,
       newsletter: $('newsletter').checked,
     };
     const { data, error } = await db.rpc('submit_challenge_application', {
@@ -289,7 +290,9 @@
     for (const id of fields) {
       if (!$(id).value.trim() || !$(id).checkValidity()) { $(id).reportValidity(); $(id).focus(); return; }
     }
-    for (const id of ['ageConfirm','terms','cancellationWaiver','ownBehalf','accuracyConfirm','riskConfirm','screeningConsent']) {
+    const consentIds = ['ageConfirm','terms','cancellationWaiver','ownBehalf','accuracyConfirm','riskConfirm','screeningConsent'];
+    if (challengeTypeForSku(selectedSku()) === 'infinity') consentIds.push('heldEarningsConfirm');
+    for (const id of consentIds) {
       if (!$(id).checked) { $(id).focus(); $(id).reportValidity(); return; }
     }
     const btn = $('step2Next');
