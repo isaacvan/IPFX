@@ -1264,6 +1264,7 @@ async function breachNotice(db: Db, acct: Acct) {
     .select("reason,trigger_equity,breach_floor,triggered_at")
     .eq("account_id", acct.id).maybeSingle();
   const reason = String(event?.reason ?? acct.breach_reason ?? "rule_breach");
+  const remaining = await db.from("trades").select("id", { count: "exact", head: true }).eq("account_id", acct.id).eq("status", "open");
   return {
     source_account_id: acct.id,
     label: acct.label,
@@ -1275,6 +1276,7 @@ async function breachNotice(db: Db, acct: Acct) {
     trigger_equity: Number(event?.trigger_equity ?? acct.breach_equity ?? acct.balance),
     breach_floor: Number(event?.breach_floor ?? acct.breach_floor ?? 0),
     breached_at: event?.triggered_at ?? acct.breached_at ?? null,
+    open_positions_remaining: remaining.error ? null : (remaining.count ?? null),
   };
 }
 
@@ -1446,7 +1448,7 @@ function ruleGate(
 // Called from enforce() on every pass. Fills or rejects any resting order
 // whose trigger has been crossed.
 async function processPendingOrders(
-  db: Db, acct: Acct, open: Tr[], equityNow: number,
+  db: Db, acct: Acct, open: Tr[], equityNow: number, riskReady = true,
 ): Promise<Tr[]> {
   if (!isTradableAccount(acct)) return open;
   const { data: pendings } = await db.from("pending_orders")
@@ -1462,6 +1464,10 @@ async function processPendingOrders(
       }).eq("id", o.id).eq("status", "pending");
       continue;
     }
+
+    // Expiry still runs during a pricing outage, but no new position may
+    // fill until the complete Infinity portfolio can be checked reliably.
+    if (!riskReady) continue;
 
     const symbol = String(o.symbol);
     const inst = INSTRUMENTS[symbol];
@@ -1665,11 +1671,11 @@ async function insertAccountFromPreset(db: Db, userId: string, preset: any, feeU
 // deno-lint-ignore no-explicit-any
 async function infinityStatus(db: Db, user: any) {
   const { data: accts } = await db.from("trading_accounts")
-    .select("id,status,challenge_type,preset_id,created_at")
-    .eq("user_id", user.id).is("access_revoked_at", null)
+    .select("id,status,challenge_type,preset_id,created_at,access_revoked_at")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
   const list = accts ?? [];
-  const hasActive = list.some((a: { status: string }) => a.status === "active");
+  const hasActive = list.some((a: { status: string; access_revoked_at?: string | null }) => a.status === "active" && !a.access_revoked_at);
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const used = list.filter((a: { preset_id: string | null; created_at: string }) =>
@@ -2028,6 +2034,20 @@ async function syncVenueConnection(db: Db, c: VenueConn): Promise<void> {
 }
 
 async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number; unpriced: number }> {
+  let quoteRiskUnavailable = false;
+  // The database checks persisted portfolio quotes before SL/TP can change
+  // the portfolio. A crossed floor stays latched even if the price recovers.
+  if (acct.challenge_type === "infinity" && acct.status === "active" && (acct.venue ?? "ipfx") === "ipfx") {
+    const { data: guard, error } = await db.rpc("fn_enforce_infinity_from_quotes", { p_account: acct.id });
+    if (error || !guard) throw new Error("CHALLENGE_RISK_CHECK_UNAVAILABLE");
+    if (guard.status === "active" && guard.access_revoked_at) throw new Error("CHALLENGE_ACCESS_REVOKED");
+    quoteRiskUnavailable = guard.checked === false && ["MARK_UNAVAILABLE", "RULES_UNAVAILABLE"].includes(guard.reason);
+    for (const key of ["status", "balance", "breach_reason", "day_start_equity", "day_start_date", "trailing_peak", "trailing_peak_date",
+      "breached_at", "breach_equity", "breach_floor", "access_revoked_at"]) {
+      // deno-lint-ignore no-explicit-any
+      if (Object.prototype.hasOwnProperty.call(guard, key)) (acct as any)[key] = guard[key];
+    }
+  }
   const [{ data: openRows }] = await Promise.all([
     db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at"),
     warmQuotes(),
@@ -2132,11 +2152,11 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   // Resting limit/stop orders are checked before marking to market, so a
   // fill this tick is included in the equity the rules are judged on.
-  if (!venueMode) open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)));
+  if (!venueMode) open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)), !quoteRiskUnavailable);
 
   // mark to market
   let floating = 0;
-  let unpriced = 0;
+  let unpriced = quoteRiskUnavailable ? 1 : 0;
   for (const t of (venueMode ? [] : open)) {
     let q = await fetchQuote(t.symbol);
     if (q === null || quoteStale(q)) {
@@ -2166,7 +2186,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   const start = Number(acct.starting_balance);
   const todayUtc = new Date().toISOString().slice(0, 10);
 
-  if (acct.status === "active" && !isDemoAccount(acct)) {
+  if (acct.status === "active" && !isDemoAccount(acct) && !quoteRiskUnavailable) {
     // daily rollover (UTC). For trailing_eod accounts this is also the
     // ONLY moment the drawdown high-water mark is allowed to move —
     // that is exactly what "your drawdown locks in at end-of-day highs,
@@ -2858,9 +2878,9 @@ const handleRequest = async (req: Request): Promise<Response> => {
       .filter((x: string) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 25);
     const results: Record<string, unknown>[] = [];
     for (const id of ids) {
-      const { data: acct } = await hubDb.from("trading_accounts").select("*").eq("id", id).is("access_revoked_at", null).maybeSingle();
+      const { data: acct } = await hubDb.from("trading_accounts").select("*").eq("id", id).maybeSingle();
       // Demo accounts too: their stops, take-profits and pending orders must fire even when the trader is offline.
-      if (!acct || !(isTradableAccount(acct as Acct) || acct.status === "breached")) { results.push({ id, skipped: true }); continue; }
+      if (!acct || (acct.access_revoked_at && acct.status !== "breached") || !(isTradableAccount(acct as Acct) || acct.status === "breached")) { results.push({ id, skipped: true }); continue; }
       try {
         const r = await enforce(hubDb, acct as Acct);
         results.push({ id, open: r.open.length, equity: r.equity, status: (acct as Acct).status });
@@ -2903,10 +2923,9 @@ const handleRequest = async (req: Request): Promise<Response> => {
     for (const id of queue) {
       if (Date.now() > deadline) break;
       visited++;
-      const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id)
-        .is("access_revoked_at", null).maybeSingle();
+      const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id).maybeSingle();
       // Demo accounts included: enforce() closes their stops/targets and fills their orders (no loss limits apply).
-      if (!acct || !(isTradableAccount(acct as Acct) || acct.status === "breached")) continue;
+      if (!acct || (acct.access_revoked_at && acct.status !== "breached") || !(isTradableAccount(acct as Acct) || acct.status === "breached")) continue;
       const before = acct.status;
       await enforce(db, acct as Acct);
       if (before === "active") {
@@ -3165,7 +3184,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     // continuation source, but never become the selected trading account.
     const { data: last } = await db.from("trading_accounts")
       .select("*").eq("user_id", user.id).neq("phase", "demo")
-      .is("access_revoked_at", null)
+      .or("access_revoked_at.is.null,status.eq.breached")
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (last && last.status === "passed" && last.phase !== "funded") {
@@ -3190,6 +3209,15 @@ const handleRequest = async (req: Request): Promise<Response> => {
 
   const state = await enforce(db, acct as Acct);
   const action = body.action;
+
+  // A challenge order submitted after the account was already failed must
+  // not silently become a practice order. An explicit demo choice is allowed.
+  if (breachSource && !requestedDemo && isDemoAccount(acct as Acct) &&
+    ["open", "place_pending", "cancel_pending", "modify", "set_trailing", "partial_close", "close", "close_all"].includes(String(action))) {
+    return new Response(JSON.stringify({ ...(await statePayload(db, acct as Acct, state.open, state.equity, state.floating)),
+      breach_notice: await breachNotice(db, breachSource), switched_to_demo: true, order_blocked: true,
+    }), { headers: { ...CORS, "Content-Type": "application/json" } });
+  }
 
   // A live tick can breach the selected challenge during this very request.
   // Switch before any requested mutation is processed, so an order submitted

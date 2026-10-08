@@ -1,17 +1,22 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {fixture,account,user,root,slice} from './helpers/e8-db-fixture.mjs';
-async function setup(){
+async function setup({recover=false}={}){
  const f=await fixture({atomic:true});
  await f.db.exec(`create table low_test_time(at timestamptz);insert into low_test_time values('2026-10-08T10:00:00Z');
  create function low_test_clock() returns timestamptz language sql stable as 'select at from public.low_test_time';
  create table quote_ticks(symbol text,ts timestamptz,mid numeric,bid numeric,ask numeric);
+ create table trade_quote_windows(trade_id uuid,event text,ts timestamptz,bid numeric,ask numeric);
+ create table ipfx_sim_decision_quotes(trade_id uuid,source_row_id uuid,kind text,bid numeric,ask numeric,quote_ts timestamptz,server_ts timestamptz);
  create index on quote_ticks(symbol,ts desc);
  create view ipfx_sim_decision_results as select null::uuid trade_id,null::text status,null::numeric selected_gross_usd where false;
  create table ipfx_sim_pending_state(person_id uuid,captured_at timestamptz);
  insert into symbol_specs values('XAUUSD','USD',100),('GBPJPY','JPY',100000);
  `);
- await f.db.exec(fs.readFileSync(new URL('../supabase/migrations/20261008120000_trade_duration_and_lows.sql',import.meta.url),'utf8')
+ await f.db.exec(fs.readFileSync(new URL('../supabase/migrations/20261008121001_trade_duration_and_lows.sql',import.meta.url),'utf8')
   .replaceAll('clock_timestamp()','public.low_test_clock()'));
+ const recovery=()=>f.db.exec(fs.readFileSync(new URL('../supabase/migrations/20261008131001_recover_saved_trade_lows.sql',import.meta.url),'utf8')
+  .replaceAll('clock_timestamp()','public.low_test_clock()'));
+ if(recover)await recovery();
  const trade=async({id=root,symbol='EURUSD',side='buy',lots=.2,entry=1.1,age=600,closed=120}={})=>f.db.exec(`
  insert into trades(id,account_id,user_id,symbol,side,volume,status,open_price,opened_at,closed_at)
  values('${id}','${account}','${user}','${symbol}','${side}',${lots},'${closed==null?'open':'closed'}',${entry},
@@ -19,7 +24,7 @@ async function setup(){
  const tick=async(age,bid,ask,symbol='EURUSD')=>f.db.exec(`insert into quote_ticks values('${symbol}',low_test_clock()-interval '${age} seconds',(${bid}::numeric+${ask}::numeric)/2,${bid},${ask});`);
  const run=()=>f.db.query('select ipfx_trade_low_tick()');
  const activity=async()=>(await f.db.query('select ab_brain_live_activity($1) a',[user])).rows[0].a.source_trades;
- return {...f,trade,tick,run,activity};
+ return {...f,trade,tick,run,activity,recovery};
 }
 test('closed duration is exact; buy lows use bid, sell lows use ask and exclude before/after lifetime',async()=>{
  const f=await setup();try{
@@ -84,5 +89,29 @@ test('a changed entry cannot silently reuse an old-entry P&L low; invalid quotes
  await f.trade({id:'99999999-9999-4999-8999-999999999999',symbol:'XAUUSD',entry:2000});
  await f.tick(300,1990,1980,'XAUUSD');await f.tick(250,1990,'\'Infinity\'','XAUUSD');await f.run();
  const gold=(await f.activity()).find(x=>x.symbol==='XAUUSD');assert.equal(gold.lowest_pnl_usd,null);assert.equal(gold.lowest_pnl_status,'UNAVAILABLE_QUOTES');
+ }finally{await f.db.close();}
+});
+test('saved historical windows recover a genuine low with incomplete coverage and preserve existing good values',async()=>{
+ const f=await setup();try{
+ await f.trade({age:86400,closed:86000});await f.db.exec(`insert into trade_quote_windows values('${root}','open',low_test_clock()-interval '86300 seconds',1.098,1.0982)`);
+ await f.recovery();const row=(await f.activity())[0];assert.equal(row.lowest_pnl_usd,-40);assert.equal(row.lowest_pnl_status,'INCOMPLETE_HISTORY');
+ assert.equal(row.hold_seconds,400);await f.db.exec('delete from trade_quote_windows');assert.equal((await f.activity())[0].lowest_pnl_usd,-40);
+ }finally{await f.db.close();}
+});
+test('entry/exit decision quotes price a quiet trade, and late audit evidence wakes a completed row',async()=>{
+ const f=await setup({recover:true});try{
+ await f.trade();await f.run();assert.equal((await f.activity())[0].lowest_pnl_usd,null);
+ await f.db.exec(`insert into ipfx_sim_decision_quotes values('${root}','${root}','open',1.0998,1.1,low_test_clock()-interval '601 seconds',low_test_clock()-interval '600 seconds')`);
+ assert.equal((await f.db.query('select complete from ipfx_trade_lows')).rows[0].complete,false);await f.run();assert.equal((await f.activity())[0].lowest_pnl_usd,-4);
+ await f.db.exec(`insert into ipfx_sim_decision_quotes values('${root}','${root}','close',1.099,1.0992,low_test_clock()-interval '121 seconds',low_test_clock()-interval '119 seconds')`);
+ await f.run();assert.equal((await f.activity())[0].lowest_pnl_usd,-20);
+ }finally{await f.db.close();}
+});
+test('late saved windows also wake completed rows and do not leave a real quote low unavailable',async()=>{
+ const f=await setup({recover:true});try{
+ await f.trade();await f.run();assert.equal((await f.activity())[0].lowest_pnl_usd,null);
+ await f.db.exec(`insert into trade_quote_windows values('${root}','close',low_test_clock()-interval '300 seconds',1.098,1.0982)`);
+ assert.equal((await f.db.query('select complete from ipfx_trade_lows')).rows[0].complete,false);await f.run();
+ assert.equal((await f.activity())[0].lowest_pnl_usd,-40);
  }finally{await f.db.close();}
 });

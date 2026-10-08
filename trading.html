@@ -5580,14 +5580,16 @@ function renderAccountFreeze(a){
   const stage=Number(breach.stage||1);
   const evaluation=breach.phase==='evaluation'&&['infinity','traditional','futures','pac'].includes(breach.challenge_type);
   const money=v=>'$'+Math.abs(Number(v)||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('infFreezeTitle').textContent=label+' access paused';
+  document.getElementById('infFreezeTitle').textContent=label+' account failed';
   document.getElementById('infFreezeDetail').textContent=
-    reason+` in Stage ${stage}: equity reached ${money(breach.trigger_equity)} at the ${money(breach.breach_floor)} limit. All positions are closed, this account cannot place another order, and you are now on IPFX Demo.`;
+    reason+` in Stage ${stage}: equity reached ${money(breach.trigger_equity)} at the ${money(breach.breach_floor)} limit. This failed account cannot place another order. `+
+    (breach.open_positions_remaining===0?'All positions are closed. ':breach.open_positions_remaining>0?'Remaining positions are being closed. ':'Position closure is being checked. ')+
+    'You are now on IPFX Demo.';
   const continueBtn=document.getElementById('infContinueBtn'),restartBtn=document.getElementById('infRestartBtn');
   continueBtn.style.display=evaluation?'':'none';
   restartBtn.textContent=breach.challenge_type==='infinity'&&evaluation?'Restart from Stage 1':'Start a new '+label+' challenge';
   document.getElementById('infFreezeNote').textContent=evaluation
-    ? 'Challenge/funded access stays paused until you continue this stage, restart, or begin another approved challenge. Closed positions are never reopened. '+
+    ? 'Challenge/funded access stays paused. This failed account cannot be reactivated; trading requires a newly approved challenge account. Closed positions are never reopened. '+
       (breach.challenge_type==='infinity'?'Restarting returns you to Stage 1 and uses a monthly attempt.':'Starting again opens the official challenge page; paid challenges are never granted for free.')
     : 'Challenge/funded access stays paused. You can keep practising on demo, start a new challenge, or contact support for review.';
 }

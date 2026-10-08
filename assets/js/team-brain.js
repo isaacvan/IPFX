@@ -328,10 +328,10 @@
       : '<li class="empty-ok">No moves yet. Everyone starts on B-book demo (watching).</li>';
   }
   function renderHealth() {
-    const h = data.health, beatName = { 'ab-classifier': 'Classifier (moves traders between boxes)', 'brain-scan': 'Alert scan (this page)', hub: 'IPFX hub (live prices + position watcher)', 'cost-monitor': 'Cost monitor (E8 vs demo spreads and fees)', 'trade-lows': 'Trade lowest P&L tracking' };
+    const h = data.health, beatName = { 'ab-classifier': 'Classifier (moves traders between boxes)', 'brain-scan': 'Alert scan (this page)', hub: 'IPFX hub (live prices + position watcher)', 'cost-monitor': 'Cost monitor (E8 vs demo spreads and fees)', 'trade-lows': 'Trade lowest P&L tracking', 'infinity-quote-risk': 'Infinity drawdown checks on incoming prices' };
     const rows = h.jobs.map((j) => `<div class="health-row"><span class="sev ${j.ok ? 'good' : 'critical'}"><i>${j.ok ? '✓' : '!'}</i></span><span>${esc(j.title)}</span><span class="small">${j.age_s == null ? 'no run found' : 'ran ' + ago(new Date(Date.now() - j.age_s * 1000).toISOString())}</span></div>`);
     for (const b of h.heartbeats || []) {
-      const ok = b.ok && Date.now() - Date.parse(b.at) < (b.worker==='trade-lows'?60000:5*60000);
+      const ok = b.ok && Date.now() - Date.parse(b.at) < (['trade-lows','infinity-quote-risk'].includes(b.worker)?60000:5*60000);
       rows.push(`<div class="health-row"><span class="sev ${ok ? 'good' : 'critical'}"><i>${ok ? '✓' : '!'}</i></span><span>${esc(beatName[b.worker] || b.worker)}${b.worker === 'hub' && b.detail ? ' · ' + esc(b.detail.authed ?? 0) + ' traders connected · watcher ' + esc(b.detail.risk?.mode ?? '?') + ' · ' + esc(b.detail.risk?.trades ?? 0) + ' positions' : ''}${!b.ok && b.detail?.error ? ' · ' + esc(b.detail.error) : ''}</span><span class="small">${ago(b.at)}</span></div>`);
     }
     const pAge = h.prices_at ? (Date.now() - Date.parse(h.prices_at)) / 1000 : null, pOk = !h.market_open || (pAge != null && pAge < 120);
