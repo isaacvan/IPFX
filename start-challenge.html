@@ -615,19 +615,23 @@
         }
 
         .compliance-heading {
-            margin: 34px 0 8px;
+            margin: 34px 0 14px;
             padding-top: 28px;
             border-top: 1px solid var(--line);
             font-family: 'Space Grotesk', 'Inter', system-ui;
             font-size: 1.15rem;
+            line-height: 1.35;
             color: var(--fg);
         }
         .compliance-copy, .field-help {
             color: var(--muted);
-            font-size: .82rem;
-            line-height: 1.55;
+            font-size: .84rem;
+            line-height: 1.65;
         }
-        .compliance-copy { margin: 0 0 22px; }
+        .compliance-copy { margin: 0 0 22px; max-width: 62ch; }
+        /* `.form-section > p` (the page subtitle, margin -14px) is more specific than `.compliance-copy`, so it used to
+           pull every section description up over its heading. This restores the spacing for those descriptions only. */
+        .form-section > .compliance-copy { margin: 0 0 22px; font-size: .84rem; line-height: 1.65; color: var(--muted); }
         .field-help { margin-top: 7px; }
         .upload-card {
             padding: 18px;
@@ -1068,7 +1072,10 @@
             border: 1px solid rgba(37,99,235,0.3);
             display: flex; align-items: center; justify-content: center;
             font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--cobalt);
+            overflow: hidden; line-height: 1; white-space: nowrap;
         }
+        .os-tier-icon.is-mark { font-size: 1.7rem; }
+        .os-tier-icon.is-long { font-size: 0.78rem; }
         .os-tier-name { font-weight: 600; font-size: 1.02rem; }
         .os-tier-sub { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
         .os-line { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--muted); padding: 6px 0; }
@@ -1553,7 +1560,7 @@
       const section = document.querySelector('#step1 .form-section');
       const configs = {
         futures: { title:'Futures Challenge', copy:'Two phases with end-of-day trailing drawdown, disciplined trade-count requirements and an 85% funded profit split.', sub:'Futures Challenge · 2 phases', tiers:[['25k','fut_25k_p1',129,'25K'],['50k','fut_50k_p1',179,'50K'],['100k','fut_100k_p1',329,'100K'],['150k','fut_150k_p1',479,'150K']] },
-        infinity: { title:'Infinity Challenge', copy:'A free simulated evaluation. Complete verification first; an IPFX team member decides whether the challenge can start.', sub:'Infinity Challenge · Free application', tiers:[['infinity','infinity_s1',0,'Infinity']] },
+        infinity: { title:'Infinity Challenge', copy:'A free simulated evaluation. Complete verification first; an IPFX team member decides whether the challenge can start.', sub:'Free application · no payment required', tiers:[['infinity','infinity_s1',0,'Infinity']] },
         pac: { title:'Personalised Challenge', copy:'Choose your preferred capital level, then submit your identity and suitability details for a tailored analyst review.', sub:'Personalised Challenge · Application', tiers:[['25k','pac_25k',149,'25K'],['50k','pac_50k',249,'50K'],['100k','pac_100k',399,'100K'],['250k','pac_250k',699,'250K']] }
       };
       const config = configs[type];
@@ -1663,15 +1670,21 @@
     // checkout-flow.js already owns (selected tier card, #paySummaryTotal)
     // rather than duplicating its checkout logic.
     (function() {
-        var TIER_LABEL = {'10k':'$10K','25k':'$25K','50k':'$50K','100k':'$100K','200k':'$200K'};
+        var TIER_LABEL = {'10k':'$10K','25k':'$25K','50k':'$50K','100k':'$100K','150k':'$150K','200k':'$200K','250k':'$250K'};
         var empty = document.getElementById('osEmpty');
         var filled = document.getElementById('osFilled');
         function showTier(tier, price) {
             if (!tier) return;
             empty.style.display = 'none';
             filled.style.display = 'block';
-            document.getElementById('osTierIcon').textContent = TIER_LABEL[tier] ? TIER_LABEL[tier].replace('$','').replace('K','K') : tier;
-            document.getElementById('osTierName').textContent = (TIER_LABEL[tier] || tier) + ' Challenge';
+            var icon = document.getElementById('osTierIcon');
+            var isInfinity = tier === 'infinity';
+            // The tier code is lowercase and can be a whole word: show a mark for Infinity, a short size for the rest.
+            var text = isInfinity ? '∞' : (TIER_LABEL[tier] ? TIER_LABEL[tier].replace('$','') : String(tier).toUpperCase());
+            icon.textContent = text;
+            icon.classList.toggle('is-mark', isInfinity);
+            icon.classList.toggle('is-long', !isInfinity && text.length > 3);
+            document.getElementById('osTierName').textContent = isInfinity ? 'Infinity Challenge' : (TIER_LABEL[tier] || String(tier).toUpperCase()) + ' Challenge';
             if (price) {
                 document.getElementById('osFee').textContent = '$' + price;
                 document.getElementById('osTotal').textContent = '$' + price;
