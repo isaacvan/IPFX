@@ -18,7 +18,7 @@ body > nav > a.logo .logo-text { white-space: nowrap; line-height: 1.2; }
   /* Social links remain in the footer; reserve this row for navigation. */
   body > nav .nav-social, body > nav .nav-right-sep { display: none; }
 }
-@media (min-width: 769px) and (max-width: 1099px) {
+@media (min-width: 769px) and (max-width: 1199px) {
   body > nav:has(> .nav-center) { height: 104px; padding-top: 12px; padding-bottom: 50px; }
   body > nav > .nav-right { margin-left: auto; gap: .5rem; }
   body > nav > .nav-right #navAuthArea > a { max-width: 7rem; }
