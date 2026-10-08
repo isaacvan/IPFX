@@ -2540,15 +2540,15 @@
     </script>
 
     <script>
-    // Never mix the prospective published text with an older live preset.
+    // Never mix the published text with a different live preset. Expected live rules since 2026-10-08: Stage 1 4%, Stage 2 6%, Stage 3 8%.
     document.addEventListener('ipfx:presets', function(event) {
         var presets = event.detail || {};
         var s1 = presets.infinity_s1, s2 = presets.infinity_s2, s3 = presets.infinity_s3;
         if (!s1 || !s2 || !s3) return;
         var mismatch = Number(s1.profit_target_pct) !== 4 ||
-            Number(s2.profit_target_pct) !== 5 ||
+            Number(s2.profit_target_pct) !== 6 ||
             Number(s2.min_profitable_days_pct) !== 40 ||
-            Number(s3.profit_target_pct) !== 6;
+            Number(s3.profit_target_pct) !== 8;
         document.getElementById('infinityRulesSyncWarning').style.display = mismatch ? 'block' : 'none';
         document.getElementById('how-it-works').style.display = mismatch ? 'none' : '';
         document.getElementById('infinityRulesSection').style.display = mismatch ? 'none' : '';

@@ -61,3 +61,34 @@ test('public pages show Stage 2 = 6%, Stage 3 = 8% and the $700 maximum, with no
     assert.doesNotMatch(html, /\$250 \(5%\)|6% \(\$600\)|6% net profit \(\$600\)|5% net profit \(\$250\)|full 6% Stage 3 target|full 6% target/, name + ' still shows the old Infinity numbers');
   }
 });
+
+// The page hides the whole pathway when the live presets differ from what it expects. Run the real guard script.
+import vm from 'node:vm';
+function runGuard(presets) {
+  const html = read('infinity.html');
+  const start = html.indexOf("document.addEventListener('ipfx:presets', function(event) {");
+  assert.ok(start > 0, 'guard script exists');
+  const end = html.indexOf('</script>', start);
+  const style = (id) => ({ id, style: { display: 'initial' } });
+  const els = { infinityRulesSyncWarning: style('w'), 'how-it-works': style('h'), infinityRulesSection: style('s') };
+  let handler;
+  const document = { addEventListener: (n, f) => { handler = f; }, getElementById: (id) => els[id] };
+  vm.runInNewContext(html.slice(start, end), { document, Number });
+  handler({ detail: presets });
+  return els;
+}
+const live = { infinity_s1: { profit_target_pct: '4.00' }, infinity_s2: { profit_target_pct: '6.00', min_profitable_days_pct: '40.00' }, infinity_s3: { profit_target_pct: '8.00' } };
+
+test('page guard accepts the live 6% / 8% presets: pathway shown, warning hidden', () => {
+  const e = runGuard(live);
+  assert.equal(e.infinityRulesSyncWarning.style.display, 'none');
+  assert.equal(e['how-it-works'].style.display, '');
+  assert.equal(e.infinityRulesSection.style.display, '');
+});
+
+test('page guard still hides the pathway if the live presets ever differ from the published page', () => {
+  const old = { ...live, infinity_s2: { ...live.infinity_s2, profit_target_pct: '5.00' }, infinity_s3: { profit_target_pct: '6.00' } };
+  const e = runGuard(old);
+  assert.equal(e.infinityRulesSyncWarning.style.display, 'block');
+  assert.equal(e['how-it-works'].style.display, 'none');
+});
