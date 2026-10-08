@@ -3,8 +3,8 @@ const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const migration=read('supabase/migrations/20261008200041_published_legal_acceptance.sql');
 test('published legal sources name only the authorised operator and match pinned immutable sources',()=>{
  for(const kind of['terms','privacy']){const html=read(kind+'.html');assert.match(html,/Paul Adeniji/);assert.doesNotMatch(html,/\[Registered|Unpublished review draft|IPFX Capital Ltd|E8|HeroFX/);
-  assert.equal(html,read((kind==='terms'?'legal/2026-10-08-v1.5/':'legal/2026-10-08/')+kind+'.html'));const hash=crypto.createHash('sha256').update(html).digest('hex');assert.ok((migration+read('supabase/migrations/20261008201552_legal_terms_glossary_alignment.sql')+read('supabase/migrations/20261008240000_legal_terms_v15_infinity.sql')).includes(hash));}
- assert.match(read('assets/js/checkout-flow.js'),/terms_version: '2026-10-08-1.5'/);assert.match(read('start-challenge.html'),/legal\/2026-10-08-v1.5\/terms.html/);
+  assert.equal(html,read((kind==='terms'?'legal/2026-10-08-v1.6/':'legal/2026-10-08-v1.2/')+kind+'.html'));const hash=crypto.createHash('sha256').update(html).digest('hex');assert.ok((migration+read('supabase/migrations/20261008201552_legal_terms_glossary_alignment.sql')+read('supabase/migrations/20261008240000_legal_terms_v15_infinity.sql')+read('supabase/migrations/20261008250000_legal_terms_v16_privacy_v12.sql')).includes(hash));}
+ assert.match(read('assets/js/checkout-flow.js'),/terms_version: '2026-10-08-1.6'/);assert.match(read('start-challenge.html'),/legal\/2026-10-08-v1.6\/terms.html/);
 });
 test('acceptances enforce signed-in user/current versions, reject stale/false consent, deduplicate and remain immutable',async()=>{
  const{PGlite}=await import(pathToFileURL(process.env.DEMO_TEST_DEPS+'/node_modules/@electric-sql/pglite/dist/index.js').href),db=new PGlite();
