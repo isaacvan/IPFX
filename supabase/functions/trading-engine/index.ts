@@ -122,6 +122,8 @@ const INSTRUMENTS: Record<string, Inst> = {
   FRA40:  I("^FCHI",  1, 1.5, 10, "index", "EUR"),
   JPN225: I("^N225",  0, 8.0, 10, "index", "JPY"),
   US2000: I("^RUT",   1, 0.8, 10, "index"),
+  // Legacy crypto pricing is retained only to manage/close existing positions.
+  // New market and pending entries are blocked by instrumentGate and the DB.
   // crypto — 1 coin per lot (CFD convention), trades every day incl.
   // weekends: see marketOpen()'s crypto branch. Spreads are indicative
   // retail-CFD widths, not sourced from a live order book (this feed has
@@ -148,6 +150,7 @@ const INSTRUMENTS: Record<string, Inst> = {
 // accounts trade futures only); ZB/ZN are limited to $100K+ accounts, as advertised.
 const FUTURES_MIN_BALANCE: Record<string, number> = { ZB: 100_000, ZN: 100_000 };
 function instrumentGate(acct: { challenge_type?: string; starting_balance?: number }, symKey: string): string | null {
+  if (INSTRUMENTS[symKey]?.cls === "crypto") return "Crypto trading is not available on IPFX Markets.";
   const isFuture = INSTRUMENTS[symKey]?.cls === "future";
   const futuresAccount = (acct.challenge_type ?? "") === "futures";
   if (isFuture && !futuresAccount) return "CME futures can only be traded on a Futures Challenge account.";
@@ -1462,6 +1465,15 @@ async function processPendingOrders(
 
   let working = [...open];
   for (const o of pendings) {
+    // Reject disabled crypto before quotes, risk readiness or trigger checks.
+    // Orders saved before this policy must never create a new position.
+    if (INSTRUMENTS[String(o.symbol)]?.cls === "crypto") {
+      await db.from("pending_orders").update({
+        status: "rejected", reject_reason: "Crypto trading is not available on IPFX Markets.",
+        resolved_at: new Date().toISOString(),
+      }).eq("id", o.id).eq("status", "pending");
+      continue;
+    }
     // Expiry first — an expired order never fills.
     if (o.expires_at && new Date(o.expires_at).getTime() < Date.now()) {
       await db.from("pending_orders").update({

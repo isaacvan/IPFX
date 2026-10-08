@@ -3295,7 +3295,7 @@ window.addEventListener('load',()=>{
 
 // ── INSTRUMENT PICKER ──
 // Spotlight-style: type to filter, arrows to move, Enter to open the chart.
-const SYM_CAT_LABEL={forex:'Forex',metals:'Metals',indices:'Indices',crypto:'Crypto',futures:'Futures'};
+const SYM_CAT_LABEL={forex:'Forex',metals:'Metals',indices:'Indices',futures:'Futures'};
 let symCat='all', symHl=0, symRows=[], symPollTimer=0;
 const symStatus={};
 function symEntries(){
@@ -6346,14 +6346,6 @@ const WL_DATA={
     {sym:'CME:ZB',name:'US Treasury Bond (30Y)',base:107.031,d:3,sp:0.03125},
     {sym:'CME:ZN',name:'US Treasury Note (10Y)',base:105.828,d:3,sp:0.015625},
   ],
-  crypto:[
-    {sym:'OANDA:BTCUSD',name:'Bitcoin',base:77300,d:2,sp:25},
-    {sym:'OANDA:ETHUSD',name:'Ethereum',base:2455,d:2,sp:2.5},
-    {sym:'OANDA:LTCUSD',name:'Litecoin',base:53.10,d:2,sp:0.5},
-    {sym:'OANDA:ADAUSD',name:'Cardano',base:0.2089,d:4,sp:0.003},
-    {sym:'OANDA:SOLUSD',name:'Solana',base:99.87,d:2,sp:0.15},
-    {sym:'OANDA:DOTUSD',name:'Polkadot',base:1.146,d:3,sp:0.02},
-  ]
 };
 
 // The Buy/Sell buttons must never show the previous instrument's price.
