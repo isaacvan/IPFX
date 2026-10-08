@@ -614,6 +614,29 @@
             text-decoration: underline;
         }
 
+        .rules-box { margin-top: 28px; padding: 22px 22px 18px; border: 1px solid #1e3a8a; background: rgba(37,99,235,.07); border-radius: var(--radius); }
+        .rules-box h3 { font-size: 1.05rem; margin: 0 0 6px; }
+        .rules-box > p { color: var(--muted); font-size: .88rem; line-height: 1.6; margin: 0 0 14px; }
+        .rules-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+        .rules-table { width: 100%; border-collapse: collapse; font-size: .8rem; min-width: 640px; }
+        .rules-table th, .rules-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; }
+        .rules-table th:first-child, .rules-table td:first-child { text-align: left; color: var(--fg); }
+        .rules-table td { color: #cfcfd2; }
+        .rules-table th { color: var(--fg); background: rgba(255,255,255,.03); font-weight: 600; }
+        .rules-table tr:last-child td { border-bottom: 0; }
+        .rules-list { margin: 14px 0 0 18px; color: #cfcfd2; font-size: .86rem; line-height: 1.65; }
+        .rules-list li { margin-bottom: 4px; }
+        .rules-list strong { color: var(--fg); }
+        .rules-open { margin-top: 14px; background: transparent; border: 1px solid var(--cobalt); color: #93b4ff; border-radius: 10px; padding: 9px 16px; font: inherit; font-size: .88rem; cursor: pointer; }
+        .rules-open:hover { background: rgba(37,99,235,.15); }
+        .legal-modal-bg { position: fixed; inset: 0; z-index: 10000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.72); padding: 24px; }
+        .legal-modal-bg.open { display: flex; }
+        .legal-modal { width: min(980px, 100%); height: min(86vh, 900px); display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.6); }
+        .legal-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+        .legal-modal-head strong { font-size: .95rem; }
+        .legal-modal-close { background: var(--cobalt); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+        .legal-modal iframe { flex: 1; width: 100%; border: 0; background: var(--bg); }
+
         .compliance-heading {
             margin: 34px 0 14px;
             padding-top: 28px;
@@ -1397,21 +1420,53 @@
                         <div class="form-group upload-card"><label for="proofOfAddress">Proof of Address <span class="required">*</span></label><input type="file" id="proofOfAddress" accept=".jpg,.jpeg,.png,.webp,.heic,.pdf,application/pdf,image/jpeg,image/png,image/webp,image/heic" required></div>
                     </div>
                 </div>
+                <div class="rules-box" id="infinityRulesBox" style="display:none">
+                    <h3>Read before you start: the Infinity Challenge rules</h3>
+                    <p>Every stage has a profit target AND minimum days, exposure sessions and qualifying trades, a best-day limit and a stop-loss rule. All daily limits use UTC. Reaching the profit target alone does not complete a stage. When you meet every requirement you move up automatically.</p>
+                    <div class="rules-scroll"><table class="rules-table">
+                        <thead><tr><th>Rule</th><th>Stage 1</th><th>Stage 2</th><th>Stage 3</th><th>Stage 4</th></tr></thead>
+                        <tbody>
+                            <tr><td>Simulated starting balance</td><td>$1,000</td><td>$5,000</td><td>$10,000</td><td>$25,000 default, negotiated</td></tr>
+                            <tr><td>Net closed-profit target</td><td>4% ($40)</td><td>6% ($300)</td><td>8% ($800)</td><td>None</td></tr>
+                            <tr><td>Daily loss allowance</td><td>2.5% ($25)</td><td>2% ($100)</td><td>2% ($200)</td><td>2% ($500)</td></tr>
+                            <tr><td>Trailing drawdown allowance</td><td>5% ($50)</td><td>4% ($200)</td><td>4% ($400)</td><td>4% ($1,000)</td></tr>
+                            <tr><td>Drawdown peak updates</td><td>Intraday</td><td>Intraday</td><td>Intraday</td><td>End of day</td></tr>
+                            <tr><td>Base maximum risk per trade</td><td>0.50% ($5)</td><td>0.35% ($17.50)</td><td>0.35% ($35)</td><td>0.25% ($62.50)</td></tr>
+                            <tr><td>Minimum elapsed calendar days</td><td>14</td><td>21</td><td>14</td><td>None</td></tr>
+                            <tr><td>Minimum meaningful trading days</td><td>10</td><td>15</td><td>10</td><td>See payouts</td></tr>
+                            <tr><td>Minimum exposure sessions</td><td>30</td><td>60</td><td>40</td><td>None</td></tr>
+                            <tr><td>Minimum qualifying completed trades</td><td>30</td><td>60</td><td>40</td><td>None</td></tr>
+                            <tr><td>Best-day share of positive profit (max)</td><td>35%</td><td>25%</td><td>30%</td><td>See payouts</td></tr>
+                            <tr><td>Profitable-day requirement</td><td>None</td><td>40%</td><td>None</td><td>None</td></tr>
+                            <tr><td>Daily profit cap (new entries blocked)</td><td>1.4% ($14)</td><td>1.25% ($62.50)</td><td>1.25% ($125)</td><td>None</td></tr>
+                            <tr><td>Your profit share</td><td>None</td><td>85%, held</td><td>85%, up to payout cap</td><td>85%</td></tr>
+                        </tbody>
+                    </table></div>
+                    <ul class="rules-list">
+                        <li><strong>Stop-loss on every trade.</strong> A trade without one after 30 seconds is closed, its profit removed and it counts as a strike. Three strikes end your run.</li>
+                        <li><strong>Failing a stage</strong> closes that account for good and blocks new Infinity runs until the first day of the next month (00:00 UTC).</li>
+                        <li><strong>Held Stage 2 earnings are lost</strong> if you fail Stage 2 or Stage 3 before completing Stage 3.</li>
+                        <li><strong>Payout:</strong> after Stage 3, 85% of your combined Stage 2 and Stage 3 profit, minimum US$500 and maximum US$700, after identity checks.</li>
+                        <li><strong>Stage 4</strong> is agreed with you in writing; the figures above are the default terms.</li>
+                        <li><strong>IPFX may copy, hedge or take the opposite side of your trades</strong> for its own risk management, and you have no claim to any resulting profit.</li>
+                    </ul>
+                    <button type="button" class="rules-open" data-legal-open="/legal/2026-10-08-v1.5/terms.html" data-find="4.6 Infinity Challenge" data-title="Infinity Challenge rules (Terms &sect;4.6)">Read the full Infinity rules and Terms</button>
+                </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="ageConfirm" required>
                     <label for="ageConfirm">I confirm I am 18 years of age or older <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group"><input type="checkbox" id="ownBehalf" required><label for="ownBehalf">I am applying on my own behalf and the information and documents provided belong to me. <span class="required">*</span></label></div>
                 <div class="checkbox-group"><input type="checkbox" id="accuracyConfirm" required><label for="accuracyConfirm">I confirm the information is complete and accurate and I will notify IPFX if it changes. <span class="required">*</span></label></div>
-                <div class="checkbox-group"><input type="checkbox" id="riskConfirm" required><label for="riskConfirm">I understand this is a simulated trading evaluation, not a deposit or investment account, and I have read the <a href="/risk-disclosure.html" target="_blank" rel="noopener noreferrer">Risk Disclosure</a>. <span class="required">*</span></label></div>
+                <div class="checkbox-group"><input type="checkbox" id="riskConfirm" required><label for="riskConfirm">I understand this is a simulated trading evaluation, not a deposit or investment account, and I have read the <a href="/risk-disclosure.html" data-legal-open data-title="Risk Disclosure">Risk Disclosure</a>. <span class="required">*</span></label></div>
                 <div class="checkbox-group"><input type="checkbox" id="screeningConsent" required><label for="screeningConsent">I acknowledge that IPFX may perform identity, sanctions and PEP screening and request additional evidence where necessary. <span class="required">*</span></label></div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" required>
-                    <label for="terms">I agree to the <a href="/legal/2026-10-08-v1.5/terms.html">Terms & Conditions</a> and <a href="/legal/2026-10-08/privacy.html">Privacy Policy</a> <span class="required">*</span></label>
+                    <label for="terms">I agree to the <a href="/legal/2026-10-08-v1.5/terms.html" data-legal-open data-find="4.6 Infinity Challenge" data-title="Terms &amp; Conditions">Terms & Conditions</a> and <a href="/legal/2026-10-08/privacy.html" data-legal-open data-title="Privacy Policy">Privacy Policy</a> <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group" id="heldEarningsGroup" style="display:none">
                     <input type="checkbox" id="heldEarningsConfirm">
-                    <label for="heldEarningsConfirm">I understand that if I fail Stage 2 or Stage 3 before completing Stage 3, my held Stage 2 earnings are lost and are not payable (<a href="/legal/2026-10-08-v1.5/terms.html#s4" target="_blank" rel="noopener noreferrer">Terms &sect;4.6.5</a>). <span class="required">*</span></label>
+                    <label for="heldEarningsConfirm">I understand that if I fail Stage 2 or Stage 3 before completing Stage 3, my held Stage 2 earnings are lost and are not payable (<a href="/legal/2026-10-08-v1.5/terms.html#s4" data-legal-open data-find="4.6.5 Failure and Restart Rules" data-title="Terms &sect;4.6.5: Failure and Restart Rules">Terms &sect;4.6.5</a>). <span class="required">*</span></label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="cancellationWaiver" required>
@@ -1771,6 +1826,53 @@
     <a href="/risk-disclosure.html">Risk</a>
     <button type="button" class="ipfx-share-button" data-ipfx-share>Share this page</button>
   </div>
+<div class="legal-modal-bg" id="legalModalBg" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <div class="legal-modal">
+        <div class="legal-modal-head"><strong id="legalModalTitle">Terms</strong><button type="button" class="legal-modal-close" id="legalModalClose">Close and continue my application</button></div>
+        <iframe id="legalModalFrame" title="Legal document"></iframe>
+    </div>
+</div>
+<script>
+(function () {
+  var bg = document.getElementById('legalModalBg'), frame = document.getElementById('legalModalFrame'), title = document.getElementById('legalModalTitle');
+  var isInfinity = (new URLSearchParams(location.search).get('type') || 'infinity') === 'infinity';
+  var box = document.getElementById('infinityRulesBox');
+  if (box && isInfinity) box.style.display = '';
+  function focusPart(find) {
+    try {
+      var doc = frame.contentDocument; if (!doc) return;
+      var bar = doc.querySelector('.topbar'); if (bar) bar.style.display = 'none';
+      if (!find) return;
+      var heads = doc.querySelectorAll('h2,h3'), i, t;
+      for (i = 0; i < heads.length; i++) {
+        t = (heads[i].textContent || '').replace(/\s+/g, ' ');
+        if (t.indexOf(find) !== -1) {
+          heads[i].scrollIntoView({ block: 'start' });
+          heads[i].style.outline = '2px solid #2563eb'; heads[i].style.outlineOffset = '4px';
+          return;
+        }
+      }
+    } catch (_) { /* same-origin only; the document still opens at the top */ }
+  }
+  function openLegal(src, find, heading) {
+    title.textContent = heading || 'Terms';
+    frame.onload = function () { focusPart(find); };
+    frame.src = src.split('#')[0];
+    bg.classList.add('open');
+    document.getElementById('legalModalClose').focus();
+  }
+  function closeLegal() { bg.classList.remove('open'); frame.removeAttribute('src'); }
+  document.addEventListener('click', function (ev) {
+    var el = ev.target.closest ? ev.target.closest('[data-legal-open]') : null;
+    if (!el) return;
+    ev.preventDefault();
+    openLegal(el.getAttribute('data-legal-open') || el.getAttribute('href'), el.getAttribute('data-find'), el.getAttribute('data-title'));
+  });
+  document.getElementById('legalModalClose').addEventListener('click', closeLegal);
+  bg.addEventListener('click', function (ev) { if (ev.target === bg) closeLegal(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && bg.classList.contains('open')) closeLegal(); });
+})();
+</script>
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script defer src="/assets/js/live-pricing.js"></script>

@@ -61,3 +61,18 @@ test('earlier Terms versions stay untouched and the new one is the published cur
   assert.equal(read('terms.html'), read('legal/2026-10-08-v1.5/terms.html'));
   assert.ok(fs.existsSync(new URL('../legal/2026-10-08-v1.4/terms.html', import.meta.url)));
 });
+
+test('the Infinity rules appear on the application form before the tick boxes, and the legal links open in a pop-up on the same page', () => {
+  const boxAt = page.indexOf('id="infinityRulesBox"');
+  assert.ok(boxAt > 0 && boxAt < page.indexOf('id="ageConfirm"'), 'rules box comes before the consent boxes');
+  const box = page.slice(boxAt, page.indexOf('id="ageConfirm"'));
+  for (const row of ['4% ($40)', '6% ($300)', '8% ($800)', 'Minimum qualifying completed trades', 'End of day', '1.4% ($14)', '1.25% ($62.50)', '1.25% ($125)', '85%, up to payout cap']) assert.ok(box.includes(row), row);
+  assert.match(box, /Held Stage 2 earnings are lost/);
+  assert.match(box, /may copy, hedge or take the opposite side of your trades/);
+  assert.match(page, /if \(box && isInfinity\) box\.style\.display = ''/);
+  for (const title of ['Terms &amp; Conditions', 'Privacy Policy', 'Risk Disclosure']) assert.ok(page.includes('data-legal-open') && page.includes('data-title="' + title + '"'), title);
+  assert.match(page, /data-find="4\.6\.5 Failure and Restart Rules"/);
+  assert.match(page, /id="legalModalBg"[^]*id="legalModalFrame"/);
+  assert.match(page, /Close and continue my application/);
+  assert.match(page, /ev\.key === 'Escape'/);
+});
