@@ -39,6 +39,8 @@ export function readClient(env: TlEnv, before?: (path: string) => Promise<void>)
       rows(await read(`/trade/accounts/${accountId}/instruments`, { method: "GET" }, accessToken, accNum), "instruments"),
     config: async (accessToken: string, accNum: string) =>
       unwrap(await read("/trade/config", { method: "GET" }, accessToken, accNum)),
+    instrumentDetails: async (accessToken: string, accNum: string, routeId: number, instrumentId: string) =>
+      unwrap(await read(`/trade/instruments/${encodeURIComponent(instrumentId)}?routeId=${routeId}&locale=en`, { method: "GET" }, accessToken, accNum)),
     historyWithConfig: async (accessToken: string, accountId: string, accNum: string, config: unknown) =>
       configuredRows(config, await read(`/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum), "ordersHistoryConfig", "ordersHistory"),
     quote: async (accessToken: string, accNum: string, routeId: number, tradableInstrumentId: string | number) => {

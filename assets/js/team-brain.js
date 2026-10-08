@@ -361,7 +361,7 @@
     const body = (c.spreads || []).map((r) => {
       const a = allin.get(r.symbol), ratio = a && fin(a.ratio) ? Number(a.ratio) : null, off = ratio != null && (ratio > 1.25 || ratio < 0.8);
       return `<tr><td><b>${esc(r.symbol)}</b></td><td class="num">${px(r.e8)}</td>${hasDemo ? `<td class="num">${px(r.demo)}</td>` : ''}<td class="num">${px(r.ipfx)}</td>
-        <td class="num">${usd(a?.e8_usd)}</td><td class="num">${usd(a?.ipfx_usd)}</td>
+        <td class="num">${fin(a?.e8_usd)?usd(a.e8_usd):'Fee unknown'}</td><td class="num">${usd(a?.ipfx_usd)}</td>
         <td class="num ${off ? 'neg' : 'pos'}">${ratio != null ? Math.round(ratio * 100) + '%' : '\u2014'}</td><td class="num">${esc(r.samples)}</td></tr>`;
     }).join('');
     const cols = hasDemo ? 8 : 7;
@@ -369,7 +369,7 @@
       <th class="num" title="Spread plus commission for one standard lot (median)">E8 all-in / lot</th><th class="num" title="Spread plus commission for one standard lot (median)">IPFX all-in / lot</th>
       <th class="num" title="IPFX all-in cost as a share of E8's. Aim for 80% to 125%.">IPFX vs E8</th><th class="num">Samples</th></tr></thead>
       <tbody>${body || `<tr><td colspan="${cols}" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>`}</tbody></table></div>
-      <p class="small" style="margin-top:10px"><b>All-in</b> = spread + commission for one standard lot, using the median of samples taken at the same moments, so a quiet-hours spike cannot skew it. IPFX's commission comes from your symbol settings. The <b>E8 commission is an estimate</b> ($5.50 per lot on forex, none assumed elsewhere) because E8's own order history does not report one.</p>
+      <p class="small" style="margin-top:10px"><b>All-in</b> = spread + commission for one standard lot, using the median of samples taken at the same moments, so a quiet-hours spike cannot skew it. IPFX's commission comes from your symbol settings. The <b>E8 commission is an estimate</b> based on E8's published raw-spread schedule: $5 forex, $6 metals and most indices, $12 DOW, $30 crypto per lot round turn. These rates are not confirmed for your account. Missing fees stay unknown, not zero. Actual E8 contract sizes are observed separately; swap and slippage are not included.</p>
       <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) \u00b7 last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' \u00b7 ')}</p>`;
   }
 
@@ -463,6 +463,28 @@
     const through=ukTradeTime(x.low_observed_until);
     return `<span title="${esc('Before fees, for the lots on this row. Low at '+at+'; quotes processed through '+through)}">${exactUsd(x.lowest_pnl_usd,true)}${note}</span>`;
   }
+  const simulationReviewOpen=new Set();
+  document.addEventListener('toggle',event=>{
+    const id=event.target?.dataset?.simReview;if(!id||!event.target.isConnected)return;
+    if(event.target.open)simulationReviewOpen.add(id);else simulationReviewOpen.delete(id);
+  },true);
+  function simulationAccuracy(x) {
+    const a=x.accuracy;if(!a)return 'Net unverified · evidence unavailable';
+    const wait=v=>fin(v)?(Number(v)/1000).toFixed(2)+'s':'Unknown';
+    const money=v=>fin(v)?exactUsd(v,true):'Unknown';
+    const side=x.selected_book==='b'?(x.trader_side==='buy'?'sell':'buy'):x.trader_side;
+    const formula=side==='buy'?'(exit bid − entry ask) × exited lots × units per lot':'(entry bid − exit ask) × exited lots × units per lot';
+    const scale={BROKER_SPEC_OBSERVED_AT_ENTRY:'E8 specification observed before entry',LATER_SPEC_BACKCAST_ESTIMATE:'Later E8 specification applied to this older trade',STALE_ENTRY_SPEC_ESTIMATE:'Older E8 specification — needs confirmation',E8_SPEC_UNAVAILABLE:'E8 contract size not confirmed'}[a.scale_basis]||'Contract basis unknown';
+    return `<b>Net unverified</b>${fin(a.e8_after_commission_usd)?'<small class="small" style="display:block">'+money(a.e8_after_commission_usd)+' after estimated commission</small>':''}
+     <details data-sim-review="${esc(x.trade_id)}" ${simulationReviewOpen.has(x.trade_id)?'open':''}><summary>Review calculation</summary>
+     <p class="small">${esc(formula)}; sum partial exits. Costs are subtracted separately.</p>
+     <p class="small">${esc(scale)}. ${esc(a.broker_lot_size??'Unknown')} units per lot; ${esc(a.broker_quote_currency||'currency unknown')}. Observed ${esc(ukTradeTime(a.spec_observed_at))}. ${a.broker_size_valid===false?'Trade size is outside the observed broker limits.':a.broker_size_valid==null?'Broker lot limits not confirmed.':''}</p>
+     <p class="small">E8 entry sampling wait: ${wait(a.e8_entry_wait_ms)}; longest exit wait: ${wait(a.e8_exit_wait_ms)}. Oldest IPFX decision quote: ${wait(a.ipfx_quote_max_age_ms)} before processing. These waits are not measured broker execution latency.</p>
+     <p class="small">E8 commission: ${money(a.e8_commission_usd)}${fin(a.e8_commission_usd)?(a.commission_basis==='PUBLIC_RAW_SCHEDULE_ESTIMATE_NOT_ACCOUNT_CONFIRMED'?' (E8 published raw-spread schedule; account applicability unconfirmed)':' (configured, unconfirmed estimate)'):' — missing does not mean zero'}. E8 gross using observed USD contract: ${money(a.e8_gross_usd)}. IPFX after its recorded source commission: ${money(a.ipfx_after_commission_usd)} (before any additional costs).</p>
+     <p class="small">Slippage scenarios, not observed fills: 1 tick worse on entry and each exit ${money(a.one_tick_after_commission_usd)}; 5 ticks ${money(a.five_tick_after_commission_usd)}. The 1-tick round-trip penalty alone is ${money(a.one_tick_slippage_usd)}. Swap/rollover charges remain unverified. ${fin(a.remaining_cost_budget_usd)&&Number(a.remaining_cost_budget_usd)>0?'Remaining uncounted costs above '+money(a.remaining_cost_budget_usd)+' would remove the modelled profit.':'There is no positive profit cushion before remaining costs.'}</p>
+     <ul class="small">${(a.events||[]).map(e=>`<li>${esc(e.kind)} · ${esc(e.lots)} lots · event ${esc(ukTradeTime(e.event_at))}; E8 ${esc(e.bid??'unknown')} / ${esc(e.ask??'unknown')} observed ${esc(ukTradeTime(e.quote_at))}; IPFX ${esc(e.decision_bid??'unknown')} / ${esc(e.decision_ask??'unknown')} at ${esc(ukTradeTime(e.decision_quote_at))}</li>`).join('')}</ul>
+     </details>`;
+  }
   function liveActivity(d) {
     const a=d.activity;
     const sourceAccounts=new Map((d.accounts||[]).map(x=>[x.id,x]));
@@ -470,7 +492,7 @@
     return `<h3>Current account balances</h3><ul class="small">${(d.accounts||[]).map(x=>`<li>${esc(ACCT.label(x))} · ${esc(x.label||x.id)} · ${exactUsd(x.balance)} · ${esc(x.status)}</li>`).join('')||(d.accounts===null?'<li>Account info unavailable.</li>':'<li>No accounts.</li>')}</ul><h3>Current IPFX trades</h3><p class="small">Source closes save immediately. This list refreshes every 10 seconds; statistical scores use the ledger’s minute cycle. Dates and times use UK time (GMT/BST).</p>
      <div class="table-wrap"><table><thead><tr><th>Trade / account</th><th>Position</th><th>Lots</th><th>Status</th><th>Placed (UK)</th><th>Time open</th><th>Lowest P&L*</th><th>IPFX result</th></tr></thead><tbody>${(a.source_trades||[]).map(x=>`<tr><td title="${esc(x.account_id||'')}">${esc(x.id.slice(0,8))}${x.parent_trade_id?' · partial of '+esc(x.parent_trade_id.slice(0,8)):''}<small class="small" style="display:block">${sourceAccounts.has(x.account_id)?esc(ACCT.label(sourceAccounts.get(x.account_id))):'Account type unavailable'}</small></td><td>${esc(x.symbol)} ${esc(x.side)}</td><td>${esc(x.volume)}</td><td>${esc(x.status)}${x.close_reason?' · '+esc(x.close_reason):''}</td><td style="white-space:nowrap">${esc(ukTradeTime(x.opened_at)).replace(', ','<br>')}</td><td title="${esc('Opened: '+ukTradeTime(x.opened_at)+'; exited: '+(x.closed_at?ukTradeTime(x.closed_at):'still open'))}">${esc(holdTime(x,a.as_of))}${x.status==='open'?' · running':''}</td><td>${lowestPnl(x)}</td><td>${x.status==='closed'?exactUsd(x.pnl,true):'Open'}</td></tr>`).join('')||'<tr><td colspan="8">No source trades.</td></tr>'}</tbody></table></div>
      <p class="small">*Lowest recorded floating P&L before fees, for the lots shown. Partial exits are measured from the original entry to that exit. Missing older quotes show Unavailable or partial history. Values update after quote processing.</p>
-     <h3>Internal estimates</h3><div class="table-wrap"><table><thead><tr><th>Trade</th><th>Frozen model</th><th>Status</th><th>E8 sampled gross</th><th>IPFX decision gross</th><th>Net</th></tr></thead><tbody>${(a.simulations||[]).map(x=>`<tr><td>${esc(x.trade_id.slice(0,8))}</td><td>${x.selected_book==='a'?'A · same direction':'B · reverse'}</td><td>${esc(x.status)}</td><td>${exactUsd(x.selected_gross_usd,true)}</td><td>${exactUsd(x.decision_gross_usd,true)}</td><td>Unverified</td></tr>`).join('')||'<tr><td colspan="6">No archived estimates.</td></tr>'}</tbody></table></div>
+     <h3>Internal estimates</h3><p class="small">Sampled prices, not broker executions. Review each calculation for contract evidence, costs and sampling waits. Net remains unverified until fees, swaps and fills are confirmed.</p><div class="table-wrap"><table><thead><tr><th>Trade</th><th>Frozen model</th><th>Status</th><th>E8 sampled gross</th><th>IPFX decision gross</th><th>Net</th></tr></thead><tbody>${(a.simulations||[]).map(x=>`<tr><td>${esc(x.trade_id.slice(0,8))}</td><td>${x.selected_book==='a'?'A · same direction':'B · reverse'}</td><td>${esc(x.status)}</td><td>${exactUsd(x.accuracy?x.accuracy.e8_gross_usd:x.selected_gross_usd,true)}${x.accuracy?.scale_basis==='LATER_SPEC_BACKCAST_ESTIMATE'?'<small class="small" style="display:block">Later contract observation</small>':''}</td><td>${x.accuracy?.decision_timing_valid===false?'Quote timing unverified':exactUsd(x.decision_gross_usd,true)}</td><td>${simulationAccuracy(x)}</td></tr>`).join('')||'<tr><td colspan="6">No archived estimates.</td></tr>'}</tbody></table></div>
      <h3>Pending-order history</h3><ul class="small">${(a.pending||[]).map(x=>`<li>${esc(x.order_id.slice(0,8))} · ${esc(x.snapshot?.symbol)} · ${esc(x.status)} · ${esc(x.tracking_status)}</li>`).join('')||'<li>No observed pending orders.</li>'}</ul>`;
   }
   async function refreshDrawer() {

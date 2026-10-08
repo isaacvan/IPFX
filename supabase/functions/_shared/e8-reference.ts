@@ -28,9 +28,9 @@ export function referenceRules(raw: unknown): RateRule[] {
   }
   return out;
 }
-export function applicableRules(rules: RateRule[], route: "QUOTES" | "ORDERS_HISTORY" | "CONFIG" | "REFRESH"): RateRule[] {
+export function applicableRules(rules: RateRule[], route: "QUOTES" | "ORDERS_HISTORY" | "CONFIG" | "REFRESH" | "INSTRUMENT_DETAILS"): RateRule[] {
   const common = rules.filter(r => ["GLOBAL", "ALL", "ALL_REQUESTS", "GENERAL", "TOTAL"].includes(r.type));
-  const aliases = route === "ORDERS_HISTORY" ? [route, "GET_ORDERS_HISTORY", "ORDER_HISTORY", "HISTORICAL_ORDERS"] : [route];
+  const aliases = route === "ORDERS_HISTORY" ? [route, "GET_ORDERS_HISTORY", "ORDER_HISTORY", "HISTORICAL_ORDERS"] : route === "INSTRUMENT_DETAILS" ? [route, "GET_INSTRUMENT_DETAILS"] : [route];
   const exact = rules.filter(r => aliases.includes(r.type));
   // Unknown layouts/routes fail closed instead of inventing a request allowance.
   if (!exact.length && !common.length) return [];

@@ -22,6 +22,12 @@ test('provider rate config retains all applicable windows and rejects unknown la
  assert.equal(referenceRules({rateLimits:[{rateLimitType:'QUOTES',limit:20,intervalNum:1,measure:'HOURS'}]}).length,0);
  assert.equal(referenceRules({rateLimits:{QUOTES:{limit:2,intervalNum:1,measure:'SECONDS'}}}).length,1);
 });
+
+test('instrument specifications retain provider-specific and shared pacing windows',()=>{
+ const rules=[{type:'GET_INSTRUMENT_DETAILS',limit:2,windowMs:1000},{type:'GLOBAL',limit:20,windowMs:60000},{type:'QUOTES',limit:10,windowMs:1000}];
+ assert.deepEqual(applicableRules(rules,'INSTRUMENT_DETAILS').map(x=>x.type),['GLOBAL','GET_INSTRUMENT_DETAILS']);
+ assert.equal(applicableRules([{type:'QUOTES',limit:10,windowMs:1000}],'INSTRUMENT_DETAILS').length,0);
+});
 test('fill revisions keep changed fee/swap values and unknown fees remain incomplete',()=>{
  const row={id:'1234567890123456789',status:'filled',filledQty:.1,avgPrice:1.1,lastModified:1791388800000,tradableInstrumentId:1,commission:0,fee:0,swap:0};
  const names=new Map([['1','EURUSD']]);const first=measuredFill(row,1,'monitor',names);

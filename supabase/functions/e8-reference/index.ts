@@ -2,7 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
-import { applicableRules, measuredFill, referenceRules, type RateRule } from "../_shared/e8-reference.ts";
+import { applicableRules, finiteNumber, measuredFill, referenceRules, type RateRule } from "../_shared/e8-reference.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
 // E8 names the stock indices differently from the HeroFX feed that IPFX prices come from (matched on the start of the name).
 const E8_ALIASES: Record<string, string> = { DJI: "DOW", GER40: "DAX", JPN225: "NIKKEI", NSXUSD: "NSDQ", SPXUSD: "SP" };
@@ -33,7 +33,7 @@ Deno.serve(async req=>{
   const {data:a,error}=await db.from('ladder_accounts').select('*').eq('id',p.account_id).eq('role','monitor').eq('execution_enabled',false).eq('platform','tradelocker').maybeSingle();
   if(error||!a)throw Error('READ_ONLY_ACCOUNT_UNAVAILABLE');
   const before=async(path:string)=>{
-   const route=path.includes('/quotes?')?'QUOTES':path.endsWith('/ordersHistory')?'ORDERS_HISTORY':path.includes('/refresh')?'REFRESH':'CONFIG';
+   const route=path.includes('/quotes?')?'QUOTES':path.startsWith('/trade/instruments/')?'INSTRUMENT_DETAILS':path.endsWith('/ordersHistory')?'ORDERS_HISTORY':path.includes('/refresh')?'REFRESH':'CONFIG';
    let selected=applicableRules(rules,route);
    // Configuration/auth do not have route limits in the official SDK config. Pace bootstrap
    // reads conservatively; this is a local ceiling, never a claim of a provider entitlement.
@@ -98,6 +98,27 @@ Deno.serve(async req=>{
    }
    lastHistory=new Date().toISOString();historyError=null;
    }catch(e){const msg=(e as Error)?.message??'';historyError=/^[A-Z0-9_]+$/.test(msg)?msg:'FILL_HISTORY_UNAVAILABLE';}
+  }
+  // One specification read per run, after quotes/history. Preserve broker limits;
+  // missing metadata never stops quote collection or becomes a zero fee.
+  if(Date.now()-started<20000){
+   try{
+    const {data:evidence,error:metaError}=await db.from('e8_instrument_evidence').select('symbol,observed_at').eq('account_id',a.id).order('observed_at',{ascending:false}).limit(200);
+    if(metaError)throw Error('INSTRUMENT_EVIDENCE_UNAVAILABLE');
+    const latest=new Map<string,string>();for(const e of evidence??[])if(!latest.has(e.symbol))latest.set(e.symbol,e.observed_at);
+    const eligible=[...new Set([...(p.symbols as string[]),...slow])].filter(s=>!latest.has(s)||Date.now()-Date.parse(latest.get(s)!)>6*3600000);
+    for(const symbol of eligible){
+     const target=norm(E8_ALIASES[symbol]??TL_SYMBOLS[symbol]??symbol),exact=map.filter(m=>norm(String(m.symbol))===target);
+     const found=exact.length?exact:map.filter(m=>norm(String(m.symbol)).startsWith(target));
+     if(found.length!==1||found[0].info_route_id==null)continue;
+     const inst=found[0],details=await tl.instrumentDetails(token,String(a.acc_num),Number(inst.info_route_id),String(inst.tradable_instrument_id)) as Record<string,unknown>;
+     const lot=finiteNumber(details?.lotSize),ccy=String(details?.quotingCurrency??'').toUpperCase();
+     const {error:saveError}=await db.from('e8_instrument_evidence').insert({account_id:a.id,symbol,instrument_id:String(inst.tradable_instrument_id),
+      broker_symbol:String(inst.symbol),lot_size:lot!=null&&lot>0?lot:null,quote_currency:/^[A-Z]{3}$/.test(ccy)?ccy:null,details});
+     if(saveError)throw Error('INSTRUMENT_EVIDENCE_SAVE_FAILED');
+     await db.from('ab_heartbeats').upsert({worker:'e8-instruments',ok:true,at:new Date().toISOString(),detail:{symbol,lot_size:lot,quote_currency:ccy}});break;
+    }
+   }catch(e){const msg=(e as Error)?.message??'';await db.from('ab_heartbeats').upsert({worker:'e8-instruments',ok:false,at:new Date().toISOString(),detail:{error:/^[A-Z0-9_]+$/.test(msg)?msg:'INSTRUMENT_READ_UNAVAILABLE'}});}
   }
   if(!samples)status='NO_FRESH_QUOTES';
  }catch(e){const message=(e as Error)?.message??'';errorCode=/^[A-Z0-9_]+$/.test(message)?message:'READ_ONLY_MONITOR_FAILED';status='UNAVAILABLE';}

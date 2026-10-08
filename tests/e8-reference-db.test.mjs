@@ -10,9 +10,16 @@ test('E8 SQL rejects execution accounts, preserves quote/history and serialises 
  create table cost_samples(id bigint primary key);create table cost_fills(account_id bigint,role text,ref text);`);
  await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261007140000_e8_reference_monitor.sql',import.meta.url),'utf8'));
  await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261007160500_e8_monitor_cadence.sql',import.meta.url),'utf8'));
+ await db.exec(`create function e8_sim_append_only()returns trigger language plpgsql as $$begin raise exception 'append-only';end;$$;`);
+ await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261008233000_e8_instrument_evidence.sql',import.meta.url),'utf8'));
  await db.exec(`insert into ladder_accounts values(1,'E8','monitor',false,'tradelocker'),(2,'Copy','ladder',true,'tradelocker');`);
  await assert.rejects(db.exec(`insert into e8_monitor_profiles(account_id,scope) values(2,'demo')`),/read-only/);
  await db.exec(`insert into e8_monitor_profiles(account_id,scope,enabled) values(1,'E8',true)`);
+ await db.exec(`insert into e8_instrument_evidence(account_id,symbol,broker_symbol,instrument_id,lot_size,quote_currency,details)values(1,'XAUUSD','XAUUSD.C','1',100,'USD','{"lotSize":100}');`);
+ await assert.rejects(db.exec('delete from e8_instrument_evidence'),/append-only/);
+ const instrumentRules=JSON.stringify([{type:'GET_INSTRUMENT_DETAILS',limit:2,windowMs:1000}]);
+ assert.equal((await db.query("select e8_monitor_take('E8','INSTRUMENT_DETAILS',$1)r",[instrumentRules])).rows[0].r.ok,true);
+ assert.equal((await db.query("select e8_monitor_take('E8','INSTRUMENT_DETAILS',$1)r",[instrumentRules])).rows[0].r.ok,false);
  await assert.rejects(db.exec("update ladder_accounts set role='ladder',execution_enabled=true where id=1"),/execution account/);
  const p=(await db.query('select e8_monitor_claim() p')).rows[0].p;assert.equal(p.account_id,1);assert.ok(p.lease);
  const cadence=(await db.query('select extract(epoch from next_run)*1000 deadline,extract(epoch from clock_timestamp())*1000 claimed,interval_ms from e8_monitor_profiles where account_id=1')).rows[0];
