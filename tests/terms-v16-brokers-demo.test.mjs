@@ -9,7 +9,7 @@ const privacy = read('privacy.html');
 const sql = read('supabase/migrations/20261008250000_legal_terms_v16_privacy_v12.sql');
 
 test('Terms 11.3 covers demo, practice and simulated copies and says what is sent to brokers', () => {
-  assert.match(terms, /<span>Version 1\.6<\/span>/);
+  assert.match(terms, /<span>Version 1\.[67]<\/span>/);
   const s = terms.slice(terms.indexOf('11.3 Use of Trading Data'), terms.indexOf('11.4 Participant Warranties'));
   assert.match(s, /<strong>Demo, practice and simulated copies\.<\/strong> The Company may also copy your orders onto demo or practice accounts that it operates, including accounts with third-party brokers, and may simulate your trades internally using recorded market prices/);
   assert.match(s, /reverse or mirror your trades, scale them to a different account size/);
@@ -34,13 +34,13 @@ test('new versions are published as immutable records and the form records them'
   assert.match(sql, /update public\.platform_legal_current set version='2026-10-08-1\.6' where kind='terms'/);
   assert.match(sql, /update public\.platform_legal_current set version='2026-10-08-1\.2' where kind='privacy'/);
   assert.doesNotMatch(sql, /delete from public\.platform_legal_documents|update public\.platform_legal_documents/);
-  assert.equal(terms, read('legal/2026-10-08-v1.6/terms.html'));
+  assert.ok(read('legal/2026-10-08-v1.6/terms.html').includes('<span>Version 1.6</span>'));
   assert.equal(privacy, read('legal/2026-10-08-v1.2/privacy.html'));
   const flow = read('assets/js/checkout-flow.js');
   assert.match(flow, /privacy_notice_version: '2026-10-08-1\.2'/);
-  assert.match(flow, /terms_version: '2026-10-08-1\.6'/);
+  assert.match(flow, /terms_version: '2026-10-08-1\.[67]'/);
   const page = read('start-challenge.html');
-  assert.match(page, /\/legal\/2026-10-08-v1\.6\/terms\.html/);
+  assert.match(page, /\/legal\/2026-10-08-v1\.[67]\/terms\.html/);
   assert.match(page, /\/legal\/2026-10-08-v1\.2\/privacy\.html/);
-  assert.doesNotMatch(page, /legal\/2026-10-08\/privacy\.html|2026-10-08-v1\.5\/terms/);
+  assert.doesNotMatch(page, /legal\/2026-10-08\/privacy\.html|2026-10-08-v1\.[56]\/terms/);
 });

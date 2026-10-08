@@ -29,7 +29,7 @@ test('archived attempts cannot resume or trigger a new stage', () => {
   const engine = read('supabase/functions/trading-engine/index.ts');
   const admin = read('supabase/functions/admin-console/index.ts');
   const mirror = read('supabase/functions/live-mirror/index.ts');
-  assert.match(engine, /const \{ data: last \}[\s\S]{0,180}\.is\("access_revoked_at", null\)/);
+  assert.match(engine, /const \{ data: last \}[\s\S]{0,260}\.or\("access_revoked_at\.is\.null,status\.eq\.breached"\)/);
   assert.match(engine, /challengePreviewAllowed = Date\.now\(\) >= challengePublicLaunchAt/);
   assert.match(admin, /current\.challenge_type === "infinity" && !accountId && challengesLaunched/);
   assert.match(mirror, /source challenge inactive or archived/);

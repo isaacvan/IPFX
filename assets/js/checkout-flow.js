@@ -145,7 +145,7 @@
       risk_disclosure_accepted: $('riskConfirm').checked,
       screening_acknowledged: $('screeningConsent').checked,
       privacy_notice_version: '2026-10-08-1.2',
-      terms_version: '2026-10-08-1.6',
+      terms_version: '2026-10-08-1.7',
       held_earnings_acknowledged: challengeTypeForSku(sku) === 'infinity' ? $('heldEarningsConfirm').checked : null,
       newsletter: $('newsletter').checked,
     };

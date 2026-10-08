@@ -53,7 +53,7 @@ test('actual pending processor expires old orders but does not fill any order wh
  {id:'unexpired',status:'pending',expires_at:new Date(Date.now()+10000).toISOString()}];
  let fetched=0;const db={from(){let patch=null,id=null;const q={select(){return q;},eq(k,v){if(k==='id')id=v;return q;},order(){return q;},update(p){patch=p;return q;},
  then(resolve,reject){if(patch)Object.assign(pending.find(x=>x.id===id),patch);return Promise.resolve({data:pending}).then(resolve,reject);}};return q;}};
- const context=vm.createContext({Date,Number,String,Promise,isTradableAccount:()=>true,fetchQuote:async()=>{fetched++;throw new Error('Must not price a fill');}});
+ const context=vm.createContext({Date,Number,String,Promise,INSTRUMENTS:{},isTradableAccount:()=>true,fetchQuote:async()=>{fetched++;throw new Error('Must not price a fill');}});
  vm.runInContext(stripTypeScriptTypes(source.slice(start,end)),context);await context.processPendingOrders(db,{id:'fixture-account'},[],100000,false);
  assert.equal(pending[0].status,'expired');assert.equal(pending[1].status,'pending');assert.equal(fetched,0);
 });

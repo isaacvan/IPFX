@@ -38,9 +38,8 @@ test('employee view exposes hypotheses and paper comparisons without claiming pr
   assert.match(analytics,/never places a live trade/);
 });
 
-test('TradeSyncer button launches only the app and leaks no selected trader context',()=>{
-  assert.match(analytics,/Connect to TradeSyncer/);
-  assert.match(analytics,/tradesyncer:\/\/open/);
-  assert.doesNotMatch(analytics,/tradesyncer:\/\/open[^'"\s]*(account|user|token|handoff)/i);
+test('the analytics page has no TradeSyncer deep link (replaced by the TradeLocker approval flow) and leaks no selected trader context',()=>{
+  assert.doesNotMatch(analytics,/tradesyncer:\/\//i);
+  assert.match(analytics,/openConnect/);
 });
 
