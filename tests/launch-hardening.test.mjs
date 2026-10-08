@@ -196,7 +196,7 @@ test('Terms: Company may copy/route (A-book/B-book); traders may copy from outsi
   assert.match(terms, /takes effect on 15 October 2026, in accordance with Section 18/);
   assert.doesNotMatch(terms, /does not have any right under these Terms to: place, mirror/);
   assert.doesNotMatch(terms, /Absolute Prohibition/);
-  assert.match(terms, /You may copy trades onto your Evaluation or Funded Account from outside the Platform/);
+  assert.match(terms, /Accounts that independently copy the same permitted outside source are not in breach for that reason alone/);
   assert.match(terms, /Copying trades into or between IPFX accounts is prohibited/);
   assert.match(privacy, /move accounts between A-book and B-book models, as set out in Section 11\.3/);
   assert.doesNotMatch(privacy, /does not use your identifiable Trading Data to place, mirror/);

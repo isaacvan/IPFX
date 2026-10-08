@@ -1,5 +1,5 @@
 import test from'node:test';import assert from'node:assert/strict';import fs from'node:fs';import crypto from'node:crypto';import{pathToFileURL}from'node:url';
-const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const migration=read('supabase/migrations/20261008200041_published_legal_acceptance.sql');
 test('published legal sources name only the authorised operator and match pinned immutable sources',()=>{
  for(const kind of['terms','privacy']){const html=read(kind+'.html');assert.match(html,/Paul Adeniji/);assert.doesNotMatch(html,/\[Registered|Unpublished review draft|IPFX Capital Ltd|E8|HeroFX/);
