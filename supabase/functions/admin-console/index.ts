@@ -42,6 +42,21 @@ const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 const err = (m: string, s = 400) => json({ ok: false, error: m }, s);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const IDENTITY_FIELDS = "legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code";
+// What the review queues show by default. Date of birth, phone and street address never leave the server until the
+// owner clicks "Show details" (kyc_identity_reveal: owner + MFA, rate limited, audited first).
+// deno-lint-ignore no-explicit-any
+function maskIdentity(i: any) {
+  if (!i) return null;
+  const born = typeof i.date_of_birth === "string" ? Date.parse(i.date_of_birth + "T12:00:00Z") : NaN;
+  const phone = String(i.phone_e164 ?? "");
+  return {
+    user_id: i.user_id ?? null, legal_first_name: i.legal_first_name ?? null, legal_last_name: i.legal_last_name ?? null,
+    age: Number.isFinite(born) ? Math.floor((Date.now() - born) / 31_557_600_000) : null,
+    phone_hint: phone.length >= 4 ? "\u2022\u2022\u2022\u2022" + phone.slice(-3) : null,
+    city: i.city ?? null, country_code: i.country_code ?? null, nationality_code: i.nationality_code ?? null, masked: true,
+  };
+}
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -601,13 +616,13 @@ Deno.serve(async (req) => {
   const action = body.action;
   const challengesLaunched = Date.now() >= Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026, 00:00 UK
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
-  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "kyc_queue", "kyc_document_url", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
+  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
   // Money movement is owner-only; resuming trading after a halt is owner-only (any admin may HALT).
   const ownerMoneyActions = new Set(["payout_approve", "payout_mark_paid"]);
   if (ownerMoneyActions.has(String(action)) && !isOwner) return err("Owner approval required for payouts", 403);
   if (action === "set_platform_halt" && body.halted !== true && !isOwner) return err("Only the owner can resume trading", 403);
-  const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "kyc_document_url", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log",
+  const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log",
     "payout_create", "payout_approve", "payout_mark_paid", "payout_void", "set_split", "set_investigation_hold", "grant_challenge", "reset_account", "close_account", "set_mirror"]);
   const needsMfa = sensitiveActions.has(String(action)) || (action === "set_platform_halt" && body.halted !== true);
   if (needsMfa && tokenAal(bearerToken) !== "aal2") {
@@ -1693,7 +1708,7 @@ Deno.serve(async (req) => {
     const out = (rows ?? []).map((row) => ({
       ...row,
       email: emailByUser.get(row.user_id) ?? null,
-      identity: identityByUser.get(row.user_id) ?? null,
+      identity: maskIdentity(identityByUser.get(row.user_id)),
       preset: presetById.get(row.preset_id) ?? null,
       kyc: kycByUser.get(row.user_id) ?? { status: 'unverified' },
       documents: uniqueDocuments.filter((item) => item.user_id === row.user_id).map((item) => ({
@@ -1809,6 +1824,25 @@ Deno.serve(async (req) => {
     return json({ ok: true, status, account_id: accountId });
   }
 
+  // Full identity details for ONE applicant, on request. Owner + MFA (checked above), limited per hour and per day,
+  // and the audit row is written BEFORE the details are returned (no audit row, no details).
+  if (action === "kyc_identity_reveal") {
+    const targetId = String(body.user_id ?? "");
+    if (!UUID.test(targetId)) return err("Unknown applicant", 400);
+    try {
+      if (!await allowRequest(db, "admin:kyc_identity_hour", user.id, 60, 3600)) return err("Identity view limit reached for this hour. The limit protects personal information.", 429);
+      if (!await allowRequest(db, "admin:kyc_identity_day", user.id, 300, 86400)) return err("Identity view limit reached for today. The limit protects personal information.", 429);
+    } catch (error) {
+      console.error(JSON.stringify({ event: "kyc_identity_rate_limit", request_id: traceId, code: safeErrorCode(error) }));
+      return err("Identity protection unavailable", 503);
+    }
+    const { data: identity } = await db.from("trader_identity_private").select(IDENTITY_FIELDS).eq("user_id", targetId).maybeSingle();
+    if (!identity) return err("No identity details on file", 404);
+    const revealIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+    if (!await logAdminStrict("kyc_identity_reveal", { targetUser: targetId, detail: { ip: revealIp } })) return err("Personal information is unavailable because the audit trail could not be written.", 503);
+    return json({ ok: true, identity });
+  }
+
   // The ONLY place a link to an identity document is created: one document, on request, valid for 60 seconds.
   // Owner + MFA (checked above), limited per hour and per day, and the audit row is written BEFORE the link
   // is made (no audit row, no link). Rate-limit counters and every view are watched by the Brain.
@@ -1847,7 +1881,7 @@ Deno.serve(async (req) => {
       out.push({
         user_id: row.user_id, submitted_at: row.updated_at, email: au?.user?.email ?? null,
         full_name: profile?.full_name ?? au?.user?.user_metadata?.full_name ?? null, country: profile?.country_code ?? null,
-        identity: identity ?? null, documents: files,
+        identity: maskIdentity(identity ? { ...identity, user_id: row.user_id } : null), documents: files,
       });
     }
     const { error: queueAuditError } = await db.from("admin_audit_log").insert({

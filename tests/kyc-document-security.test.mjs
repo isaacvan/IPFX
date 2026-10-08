@@ -87,3 +87,29 @@ test('both alert migrations load in order on a real PostgreSQL engine', { skip: 
     assert.match(def, /'ring:' \|\| f\.id/);
   } finally { await db.close(); }
 });
+
+test('identity details are masked by the server; the full details need an audited, rate-limited click', () => {
+  // the queues return only a hint
+  assert.match(fn, /identity: maskIdentity\(identityByUser\.get\(row\.user_id\)\),/);
+  assert.match(fn, /identity: maskIdentity\(identity \? \{ \.\.\.identity, user_id: row\.user_id \} : null\), documents: files,/);
+  const mask = fn.slice(fn.indexOf('function maskIdentity'), fn.indexOf('function maskIdentity') + 900);
+  assert.match(mask, /age: Number\.isFinite\(born\)/);
+  assert.match(mask, /phone_hint: phone\.length >= 4/);
+  assert.doesNotMatch(mask.slice(mask.indexOf('return {')), /date_of_birth|phone_e164|address_line|postal_code/, 'the masked object carries no raw DOB, phone or street address');
+  // the reveal action
+  const r = fn.slice(fn.indexOf('if (action === "kyc_identity_reveal") {'), fn.indexOf('if (action === "kyc_document_url") {'));
+  assert.match(fn, /const ownerOnlyActions = new Set\([^)]*"kyc_identity_reveal"/);
+  assert.match(fn, /const sensitiveActions = new Set\([^)]*"kyc_identity_reveal"/);
+  assert.match(r, /allowRequest\(db, "admin:kyc_identity_hour", user\.id, 60, 3600\)/);
+  assert.match(r, /allowRequest\(db, "admin:kyc_identity_day", user\.id, 300, 86400\)/);
+  assert.match(r, /Identity protection unavailable", 503/);
+  assert.ok(r.indexOf('logAdminStrict("kyc_identity_reveal"') > 0 && r.indexOf('logAdminStrict("kyc_identity_reveal"') < r.indexOf('return json({ ok: true, identity })'), 'audit first, details second');
+  assert.match(r, /if \(!UUID\.test\(targetId\)\)/);
+  // the page
+  assert.match(page, /function identityCell\(i,userId\)/);
+  assert.match(page, /action:'kyc_identity_reveal',user_id:userId/);
+  assert.match(page, /hides in 60 seconds/);
+  assert.match(page, /setTimeout\(\(\)=>\{const e=document\.getElementById\('idc_'\+userId\)/);
+  assert.match(page, /60000\);/, 'the details hide again after 60 seconds');
+  assert.doesNotMatch(page, /k\.identity\.date_of_birth|k\.identity\.phone_e164|esc\(i\.date_of_birth\|\|'/, 'the queues no longer print raw DOB or phone');
+});

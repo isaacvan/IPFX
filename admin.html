@@ -1174,9 +1174,28 @@ async function loadKycQueue(){
   const names={id_front:'ID front',id_back:'ID back',proof_of_address:'Proof of address',selfie:'Selfie'};
   wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Trader</th><th>Identity &amp; address</th><th>Submitted</th><th>Documents (opened one at a time, link lasts 60 seconds, every view is logged)</th><th>Decision</th></tr></thead><tbody>${r.queue.map(k=>`<tr>
     <td><div>${esc(k.full_name||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(k.email||'')}</div><div class="mono" style="font-size:.65rem;color:var(--muted2)">${esc(k.user_id)}</div></td>
-    <td>${k.identity?`<div>${esc(k.identity.date_of_birth)} · ${esc(k.identity.phone_e164)}</div><div style="font-size:.72rem;color:var(--muted)">${esc([k.identity.address_line_1,k.identity.address_line_2,k.identity.city,k.identity.region,k.identity.postal_code,k.identity.country_code].filter(Boolean).join(', '))}</div>`:'<span style="color:var(--red)">Profile incomplete</span>'}</td><td>${esc(new Date(k.submitted_at).toLocaleString('en-GB'))}</td>
+    <td>${k.identity?identityCell(k.identity,k.user_id):'<span style="color:var(--red)">Profile incomplete</span>'}</td><td>${esc(new Date(k.submitted_at).toLocaleString('en-GB'))}</td>
     <td>${k.documents.map(d=>`<button type="button" class="btn btn-o" style="margin:0 .4rem .3rem 0" onclick="openKycDoc('${esc(d.id)}')">${esc(names[d.doc_type]||d.doc_type)}</button>`).join('')||'—'}</td>
     <td><button class="btn btn-g" onclick="kycDecide('${esc(k.user_id)}','verified')">Approve</button> <button class="btn btn-o" onclick="kycDecide('${esc(k.user_id)}','rejected')">Reject</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+// Personal details are masked by the server (age, last 3 phone digits, city). "Show details" asks for ONE applicant's
+// full details (owner + MFA, rate-limited, logged) and hides them again after 60 seconds.
+const maskedIdentity={};
+function identityMaskedHtml(i){
+  return `<div>Age ${esc(i.age==null?'\u2014':i.age)} \u00b7 ${esc(i.phone_hint||'\u2014')}</div><div style="font-size:.72rem;color:var(--muted)">${esc([i.city,i.country_code].filter(Boolean).join(', ')||'\u2014')}</div><div style="font-size:.68rem;color:var(--muted2)">Nationality: ${esc(i.nationality_code||'\u2014')}</div>`;
+}
+function identityCell(i,userId){
+  maskedIdentity[userId]=i;
+  return `<div id="idc_${esc(userId)}">${identityMaskedHtml(i)}<button type="button" class="btn btn-o" style="margin-top:.4rem" onclick="revealIdentity('${esc(userId)}')">Show details</button></div>`;
+}
+async function revealIdentity(userId){
+  const r=await call({action:'kyc_identity_reveal',user_id:userId});
+  const el=document.getElementById('idc_'+userId);
+  if(!r||!r.identity||!el)return;
+  const f=r.identity;
+  el.innerHTML=`<div>${esc(f.date_of_birth)} \u00b7 ${esc(f.phone_e164)}</div><div style="font-size:.72rem;color:var(--muted);max-width:320px;white-space:normal">${esc([f.address_line_1,f.address_line_2,f.city,f.region,f.postal_code,f.country_code].filter(Boolean).join(', '))}</div><div style="font-size:.68rem;color:var(--muted2)">Nationality: ${esc(f.nationality_code||'\u2014')} \u00b7 hides in 60 seconds</div>`;
+  clearTimeout(el._hide);
+  el._hide=setTimeout(()=>{const e=document.getElementById('idc_'+userId);if(e&&maskedIdentity[userId])e.innerHTML=identityMaskedHtml(maskedIdentity[userId])+`<button type="button" class="btn btn-o" style="margin-top:.4rem" onclick="revealIdentity('${esc(userId)}')">Show details</button>`;},60000);
 }
 // Identity documents are never pre-loaded. Each click asks the server for ONE short-lived link (owner + MFA,
 // rate-limited, logged). The tab is opened first so the browser does not block it, then pointed at the link.
@@ -1206,7 +1225,7 @@ async function loadApplicationQueue(){
   wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Challenge</th><th>Identity &amp; address</th><th>Suitability &amp; documents</th><th>Approved for this challenge?</th></tr></thead><tbody>${r.applications.map(a=>{const i=a.identity||{},d=a.application_details||{},yes=a.status==='approved',no=a.status==='denied',kyc=a.kyc||{};return`<tr>
     <td><div>${esc([i.legal_first_name,i.legal_last_name].filter(Boolean).join(' ')||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(a.email||'')}</div><div class="mono" style="font-size:.65rem;color:var(--muted2)">${esc(a.user_id)}</div></td>
     <td><div style="text-transform:capitalize;font-weight:700">${esc(a.challenge_type||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(a.preset?.label||a.preset_id||'—')}</div><div style="font-size:.68rem;color:var(--muted2)">${esc(new Date(a.created_at).toLocaleString())}</div></td>
-    <td><div>${esc(i.date_of_birth||'—')} · ${esc(i.phone_e164||'—')}</div><div style="font-size:.72rem;color:var(--muted);max-width:320px;white-space:normal">${esc([i.address_line_1,i.address_line_2,i.city,i.region,i.postal_code,i.country_code].filter(Boolean).join(', '))}</div><div style="font-size:.68rem;color:var(--muted2)">Nationality: ${esc(i.nationality_code||'—')}</div></td>
+    <td>${i&&(i.legal_first_name||i.phone_hint||i.age!=null)?identityCell(i,a.user_id):'<span style="color:var(--red)">No identity details</span>'}</td>
     <td style="max-width:390px;white-space:normal"><div style="font-weight:750;color:${kyc.status==='verified'?'var(--green)':kyc.status==='rejected'?'var(--red)':'var(--amber)'}">KYC: ${esc(String(kyc.status||'unverified').toUpperCase())}</div><div style="font-size:.72rem;color:var(--muted);margin-top:.35rem">${esc([d.employment_status,d.occupation,d.source_of_funds,d.expected_activity].filter(Boolean).join(' · ')||'Details unavailable')}</div><div style="font-size:.72rem;color:var(--muted)">Purpose: ${esc(d.purpose||'—')} · PEP: ${esc(d.pep_status||'—')}</div><div style="margin-top:.55rem">${(a.documents||[]).map(doc=>`<button type="button" class="btn btn-o" style="margin:0 .4rem .3rem 0" onclick="openKycDoc('${esc(doc.id)}')">View ${esc(docNames[doc.doc_type]||doc.doc_type)}</button>`).join('')||'<span style="color:var(--red)">No documents</span>'}</div><div style="font-size:.66rem;color:var(--muted2);margin-top:.3rem">A document opens only when you click it: the link lasts 60 seconds and every view is logged</div></td>
     <td><div style="margin-bottom:.55rem;font-weight:800;color:${yes?'var(--green)':no?'var(--red)':'var(--amber)'}">${yes?'YES':no?'NO':'AWAITING YOUR DECISION'}</div><button class="btn btn-g" onclick="applicationDecide('${esc(a.id)}','approved')">Yes</button> <button class="btn btn-o" onclick="applicationDecide('${esc(a.id)}','denied')">No</button>${a.decision_note?`<div style="font-size:.7rem;color:var(--muted);margin-top:.5rem;max-width:240px;white-space:normal">${esc(a.decision_note)}</div>`:''}</td></tr>`}).join('')}</tbody></table></div>`;
 }
