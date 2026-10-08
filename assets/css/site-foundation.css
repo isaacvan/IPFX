@@ -1,4 +1,29 @@
 /* Shared launch-readiness layer. It intentionally inherits each page's palette. */
+/* Public header: keep the brand/navigation legible as signed-in controls grow. */
+body > nav > a.logo { flex: 0 0 auto; white-space: nowrap; }
+body > nav > a.logo img { flex: 0 0 auto; }
+body > nav > a.logo .logo-text { white-space: nowrap; line-height: 1.2; }
+@media (min-width: 769px) {
+  body > nav:has(> .nav-center) { gap: clamp(1rem, 1.5vw, 1.75rem); padding-inline: clamp(1.25rem, 2vw, 2.5rem); }
+  body > nav > .nav-center { gap: clamp(.75rem, 1.1vw, 1.5rem); min-width: 0; }
+  body > nav > .nav-center > li > a { white-space: nowrap; }
+  body > nav > .nav-right { gap: .75rem; }
+  body > nav > .nav-right #navAuthArea { display: inline-flex; align-items: center; gap: .6rem; min-width: 0; }
+  body > nav > .nav-right #navAuthArea > a { max-width: 9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body > nav > .nav-right button, body > nav > .nav-right > a { white-space: nowrap; }
+  body > nav .nav-social { gap: .375rem; padding-left: .7rem; }
+  body > nav .nav-social a { width: 22px; }
+}
+@media (min-width: 769px) and (max-width: 1499px) {
+  /* Social links remain in the footer; reserve this row for navigation. */
+  body > nav .nav-social, body > nav .nav-right-sep { display: none; }
+}
+@media (min-width: 769px) and (max-width: 1099px) {
+  body > nav:has(> .nav-center) { height: 104px; padding-top: 12px; padding-bottom: 50px; }
+  body > nav > .nav-right { margin-left: auto; gap: .5rem; }
+  body > nav > .nav-right #navAuthArea > a { max-width: 7rem; }
+  body > nav > .nav-center { position: absolute; left: 20px; right: 20px; bottom: 12px; justify-content: center; gap: clamp(1rem, 2.4vw, 1.75rem); }
+}
 .ipfx-skip-link {
   position: fixed;
   top: 10px;
