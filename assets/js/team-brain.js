@@ -8,6 +8,7 @@
   const sb = FIXTURE ? null : window.supabase.createClient(SB_URL, SB_ANON);
   const REFRESH_MS = 10000, FULL_MS = 60000;   // light pulse every 10s; traders, moves and replay series every minute
   const $ = (id) => document.getElementById(id);
+  const ACCT=window.IPFXBrainAccountLabels;
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const fin = (v) => v != null && v !== '' && Number.isFinite(Number(v));
   const usd = (v, signed = false) => !fin(v) ? '—' : (signed && Number(v) > 0 ? '+' : '') + Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -151,6 +152,15 @@
     return `<span class="meter" title="Proof ${v >= 10 ? 'reached' : v.toFixed(1) + ' of 10'}"><span style="width:${(frac * 100).toFixed(0)}%"></span></span><span class="meter-l">${v >= 10 ? 'Proven' : v < 1 ? 'none' : v.toFixed(1)}</span>`;
   }
   const tagChips = (tags) => (tags || []).filter((t) => TAGS[t]).map((t) => `<span class="tag ${TAGS[t].sev}" title="${esc(TAGS[t].why)}">${esc(TAGS[t].label)}</span>`).join('');
+  function accountCell(accounts){
+    const list=ACCT.visible(accounts);
+    if(list===null)return '<span class="small">Account info unavailable</span>';
+    if(!list.length)return '<span class="small">No account yet</span>';
+    const latest=ACCT.latest(accounts),seen=new Set();
+    return list.filter(a=>{const key=ACCT.label(a)+'|'+a.status+'|'+!!a.access_revoked_at;if(seen.has(key))return false;seen.add(key);return true;})
+      .map(a=>`<div class="account-kind ${ACCT.kind(a)}">${esc(ACCT.label(a))}<small>${esc(a.status||'Status unknown')}${a.access_revoked_at?' · revoked':''}${Number(a.open_positions)>0?' · '+esc(a.open_positions)+' open':''}</small></div>`).join('')+
+      (latest?`<small class="small" title="${esc('Last order placed '+latest.last_order_at)}">Latest order: ${esc(ACCT.label(latest))}</small>`:'');
+  }
 
   // ---------- sections ----------
   function renderHero() {
@@ -293,7 +303,7 @@
   const proofOf = (t) => t.book_state === 'BB_LIVE' ? t.metrics?.proof_reverse : t.metrics?.proof_copy;
   function boardRows() {
     const q = $('search').value.trim().toLowerCase(), tg = $('tagFilter').value;
-    const rows = data.traders.filter((t) => (tab === 'ALL' || t.book_state === tab) && (!tg || (t.metrics?.tags || []).includes(tg))
+    const rows = data.traders.filter((t) => (tab === 'ALL' || t.book_state === tab) && ACCT.matches(t.accounts,$('accountFilter').value) && (!tg || (t.metrics?.tags || []).includes(tg))
       && (!q || (t.name || '').toLowerCase().includes(q) || t.person_id.startsWith(q)));
     const f = SORTERS[sortKey] || SORTERS.last, dir = sortDir === 'asc' ? 1 : -1;
     return rows.sort((a, b) => { const x = f(a), y = f(b); return x < y ? -dir : x > y ? dir : 0; });
@@ -309,6 +319,7 @@
     $('boardBody').innerHTML = rows.length ? rows.slice(0, shown).map((t) => {
       const m = t.metrics || {}, rev = t.book_state === 'BB_LIVE';
       return `<tr tabindex="0" data-person="${esc(t.person_id)}"><td class="who"><b>${esc(t.name)}</b><div class="tags">${tagChips(m.tags)}</div></td>
+        <td class="account-cell">${accountCell(t.accounts)}</td>
         <td class="box">${esc(STATES[t.book_state]?.label || t.book_state)}<small>${t.state_since ? 'for ' + dur(t.state_since) : ''}</small></td>
         <td class="num">${m.trades ?? 0}<div class="small">${m.trades_30d ?? 0} in 30d</div></td><td class="num">${pct(m.win_rate)}</td>
         <td class="num ${signCls(m.pnl_usd)}">${usd(m.pnl_usd, true)}</td><td class="num ${signCls(m.avg_r)}">${rr(m.avg_r)}</td><td>${spark(m.curve)}</td>
@@ -316,7 +327,7 @@
         <td class="proof">${meter(proofOf(t))}<div class="small">${rev ? 'reverse' : 'copy'} · ${m.replayed ?? 0} replays</div></td>
         <td class="num">${fin(m.max_dd_r) ? '−' + Number(m.max_dd_r).toFixed(1) + 'R' : '—'}</td><td class="num">${fin(m.expected_payout) && m.expected_payout > 0 ? usd(m.expected_payout) : '—'}</td>
         <td class="num">${ago(m.last_trade_at || t.last_trade_at)}</td></tr>`;
-    }).join('') : '<tr><td colspan="13" class="empty">No traders match.</td></tr>';
+    }).join('') : '<tr><td colspan="14" class="empty">No traders match.</td></tr>';
     $('boardCount').textContent = `Showing ${Math.min(shown, rows.length)} of ${rows.length} traders`;
     $('more').hidden = rows.length <= shown;
   }
@@ -440,9 +451,10 @@
   }
   function liveActivity(d) {
     const a=d.activity;
+    const sourceAccounts=new Map((d.accounts||[]).map(x=>[x.id,x]));
     if(!a)return '<p>Current trade activity unavailable.</p>';
-    return `<h3>Current account balances</h3><ul class="small">${(d.accounts||[]).map(x=>`<li>${esc(x.label||x.id)} · ${exactUsd(x.balance)} · ${esc(x.status)}</li>`).join('')||'<li>No challenge accounts.</li>'}</ul><h3>Current IPFX trades</h3><p class="small">Source closes save immediately. This list refreshes every 10 seconds; statistical scores use the ledger’s minute cycle.</p>
-     <div class="table-wrap"><table><thead><tr><th>Trade / account</th><th>Position</th><th>Lots</th><th>Status</th><th>Time open</th><th>Lowest P&L*</th><th>IPFX result</th></tr></thead><tbody>${(a.source_trades||[]).map(x=>`<tr><td title="${esc(x.account_id||'')}">${esc(x.id.slice(0,8))}${x.parent_trade_id?' · partial of '+esc(x.parent_trade_id.slice(0,8)):''}</td><td>${esc(x.symbol)} ${esc(x.side)}</td><td>${esc(x.volume)}</td><td>${esc(x.status)}${x.close_reason?' · '+esc(x.close_reason):''}</td><td title="${esc('Opened: '+(x.opened_at||'unavailable')+'; exited: '+(x.closed_at||'still open'))}">${esc(holdTime(x,a.as_of))}${x.status==='open'?' · running':''}</td><td>${lowestPnl(x)}</td><td>${x.status==='closed'?exactUsd(x.pnl,true):'Open'}</td></tr>`).join('')||'<tr><td colspan="7">No source trades.</td></tr>'}</tbody></table></div>
+    return `<h3>Current account balances</h3><ul class="small">${(d.accounts||[]).map(x=>`<li>${esc(ACCT.label(x))} · ${esc(x.label||x.id)} · ${exactUsd(x.balance)} · ${esc(x.status)}</li>`).join('')||(d.accounts===null?'<li>Account info unavailable.</li>':'<li>No accounts.</li>')}</ul><h3>Current IPFX trades</h3><p class="small">Source closes save immediately. This list refreshes every 10 seconds; statistical scores use the ledger’s minute cycle.</p>
+     <div class="table-wrap"><table><thead><tr><th>Trade / account</th><th>Position</th><th>Lots</th><th>Status</th><th>Time open</th><th>Lowest P&L*</th><th>IPFX result</th></tr></thead><tbody>${(a.source_trades||[]).map(x=>`<tr><td title="${esc(x.account_id||'')}">${esc(x.id.slice(0,8))}${x.parent_trade_id?' · partial of '+esc(x.parent_trade_id.slice(0,8)):''}<small class="small" style="display:block">${sourceAccounts.has(x.account_id)?esc(ACCT.label(sourceAccounts.get(x.account_id))):'Account type unavailable'}</small></td><td>${esc(x.symbol)} ${esc(x.side)}</td><td>${esc(x.volume)}</td><td>${esc(x.status)}${x.close_reason?' · '+esc(x.close_reason):''}</td><td title="${esc('Opened: '+(x.opened_at||'unavailable')+'; exited: '+(x.closed_at||'still open'))}">${esc(holdTime(x,a.as_of))}${x.status==='open'?' · running':''}</td><td>${lowestPnl(x)}</td><td>${x.status==='closed'?exactUsd(x.pnl,true):'Open'}</td></tr>`).join('')||'<tr><td colspan="7">No source trades.</td></tr>'}</tbody></table></div>
      <p class="small">*Lowest recorded floating P&L before fees, for the lots shown. Partial exits are measured from the original entry to that exit. Missing older quotes show Unavailable or partial history. Values update after quote processing.</p>
      <h3>Internal estimates</h3><div class="table-wrap"><table><thead><tr><th>Trade</th><th>Frozen model</th><th>Status</th><th>E8 sampled gross</th><th>IPFX decision gross</th><th>Net</th></tr></thead><tbody>${(a.simulations||[]).map(x=>`<tr><td>${esc(x.trade_id.slice(0,8))}</td><td>${x.selected_book==='a'?'A · same direction':'B · reverse'}</td><td>${esc(x.status)}</td><td>${exactUsd(x.selected_gross_usd,true)}</td><td>${exactUsd(x.decision_gross_usd,true)}</td><td>Unverified</td></tr>`).join('')||'<tr><td colspan="6">No archived estimates.</td></tr>'}</tbody></table></div>
      <h3>Pending-order history</h3><ul class="small">${(a.pending||[]).map(x=>`<li>${esc(x.order_id.slice(0,8))} · ${esc(x.snapshot?.symbol)} · ${esc(x.status)} · ${esc(x.tracking_status)}</li>`).join('')||'<li>No observed pending orders.</li>'}</ul>`;
@@ -479,7 +491,7 @@
       <div class="kv">${kv.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>
       <div class="two"><div><h3>Running total of results (R), last ${(m.curve || []).length} trades</h3><div class="chart" id="dCurve"></div></div><div><h3>Wins and losses by size</h3><div class="chart" id="dHist"></div></div></div>
       ${(d.alerts || []).length ? `<h3>Alerts</h3>${d.alerts.map((a) => alertRow(a, !!a.resolved_at)).join('')}` : ''}
-      <h3>Accounts</h3><table><thead><tr><th>Account</th><th>Type</th><th>Status</th><th class="num">Balance</th><th>Rule issue</th></tr></thead><tbody>${(d.accounts || []).map((a) => `<tr><td>${esc(a.label || String(a.id).slice(0, 8))}</td><td>${esc(a.challenge_type)}${a.stage ? ' · stage ' + esc(a.stage) : ''}</td><td>${esc(a.status)}${a.investigation_hold ? ' · <span class="tag critical">hold</span>' : ''}${a.access_revoked_at ? ' · revoked' : ''}</td><td class="num">${usd(a.balance)} <span class="small">of ${usd(a.starting_balance)}</span></td><td>${a.breach_reason ? `<span class="tag critical">${esc(a.breach_reason)}</span> ${esc(new Date(a.breached_at).toLocaleDateString('en-GB'))}` : '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No accounts.</td></tr>'}</tbody></table>
+      <h3>Accounts</h3><table><thead><tr><th>Account</th><th>Type</th><th>Status</th><th class="num">Balance</th><th>Rule issue</th></tr></thead><tbody>${(d.accounts || []).map((a) => `<tr><td>${esc(a.label || String(a.id).slice(0, 8))}</td><td>${esc(ACCT.label(a))}</td><td>${esc(a.status)}${a.investigation_hold ? ' · <span class="tag critical">hold</span>' : ''}${a.access_revoked_at ? ' · revoked' : ''}</td><td class="num">${usd(a.balance)} <span class="small">of ${usd(a.starting_balance)}</span></td><td>${a.breach_reason ? `<span class="tag critical">${esc(a.breach_reason)}</span> ${esc(new Date(a.breached_at).toLocaleDateString('en-GB'))}` : '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No accounts.</td></tr>'}</tbody></table>
       <h3>Recent trades</h3><div class="table-wrap" style="max-height:360px"><table><thead><tr><th>Closed</th><th>Trade</th><th class="num">Lots</th><th class="num">P&amp;L</th><th class="num">R</th><th class="num">Copy</th><th class="num">Reverse</th><th>Risk</th><th class="num">Held</th></tr></thead><tbody>${tradeRows || '<tr><td colspan="9" class="empty">No closed trades.</td></tr>'}</tbody></table></div>
       <h3>Moves</h3><ol class="moves">${(d.events || []).map((e) => `<li><time>${esc(new Date(e.at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }))}</time><div>${esc(STATES[e.from]?.label || e.from)} → <b>${esc(STATES[e.to]?.label || e.to)}</b><div class="small">${esc(e.reason)}</div></div></li>`).join('') || '<li class="small">No moves yet.</li>'}</ol>
       ${(d.book_orders || []).length ? `<h3>Book orders</h3><table><thead><tr><th>When</th><th>Book</th><th>Order</th><th>Status</th><th class="num">Result</th></tr></thead><tbody>${d.book_orders.map((o) => `<tr><td>${esc(new Date(o.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }))}</td><td>${esc(o.book)}</td><td>${esc(o.event)} ${esc(o.symbol)} ${esc(o.side)} ${esc(o.qty)}</td><td>${esc(o.status)}${o.error ? ' · ' + esc(o.error) : ''}</td><td class="num">${usd(o.pnl_usd, true)}</td></tr>`).join('')}</tbody></table>` : ''}
@@ -518,8 +530,8 @@
       let res = await call(full ? 'overview' : 'pulse');
       if (!full && res.metrics_as_of && res.metrics_as_of !== data.metrics_as_of) res = await call('overview');
       if (res.light) {
-        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders, events: data.events, costs: data.costs, shadow: data.shadow };
-        renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderHealth();
+        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders.map(t=>({...t,accounts:res.account_contexts&&Object.hasOwn(res.account_contexts,t.person_id)?res.account_contexts[t.person_id]:t.accounts??null})), events: data.events, costs: data.costs, shadow: data.shadow };
+        renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderHealth();renderBoard();
       } else { data = res; lastFull = Date.now(); render(); }
       lastLoad = Date.now(); notifyNew();
       $('status').textContent = (FIXTURE ? 'DESIGN PREVIEW · made-up data · ' : 'Owner-only · MFA protected · ') + 'updated ' + new Date().toLocaleTimeString('en-GB');
@@ -582,6 +594,7 @@
     if (e.key === 'Enter' && e.target.matches('tr[data-person],li[data-person]')) openTrader(e.target.dataset.person);
   });
   $('dClose').addEventListener('click', closeDrawer); $('scrim').addEventListener('click', closeDrawer);
+  $('accountFilter').addEventListener('change',()=>{shown=100;if(data)renderBoard();});
   addEventListener('resize', () => { if (data) renderBooks(); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastLoad > 5000) load(); });
   setInterval(() => { if (document.visibilityState === 'visible') load(); }, REFRESH_MS);

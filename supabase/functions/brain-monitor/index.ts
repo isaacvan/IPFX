@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     const [open, resolved, profiles, metrics, events, limits, settings, pol, reservations, livePnl, paper, orders, skips, snap, beats, prices, mkt, ladders, ...jobs] = await Promise.all([
       db.from("ab_alerts").select("id,key,severity,category,title,detail,person_id,value,first_seen,last_seen,acknowledged_at").is("resolved_at", null).limit(500),
       db.from("ab_alerts").select("id,severity,category,title,person_id,first_seen,resolved_at").gte("resolved_at", since24).order("resolved_at", { ascending: false }).limit(60),
-      db.from("ab_trader_profiles").select(light ? "book_state" : "person_id,book_state,state_since,state_reason,last_trade_at,manual_book_state,manual_since,manual_reason").returns<BrainProfile[]>(),
+      db.from("ab_trader_profiles").select(light ? "person_id,book_state" : "person_id,book_state,state_since,state_reason,last_trade_at,manual_book_state,manual_since,manual_reason").returns<BrainProfile[]>(),
       light ? db.from("ab_trader_metrics").select("as_of").order("as_of", { ascending: false }).limit(1) : db.from("ab_trader_metrics").select("*"),
       light ? none : db.from("ab_lifecycle_events").select("id,person_id,from_state,to_state,reason,created_at,policy_version").order("created_at", { ascending: false }).limit(100),
       db.from("ab_risk_limits").select("book,daily_loss_stop_usd,daily_profit_cap_usd,open_risk_max_usd,per_trade_max_usd,crowd_max,account_size_usd"),
@@ -71,6 +71,13 @@ Deno.serve(async (req) => {
 
     const costs = light ? null : await db.rpc("cost_summary", { p_days: 7 });
     const shadow = light ? null : await db.rpc("shadow_funded_summary", { p_days: 7, p_funded: 50000 });
+    const accountContexts: Record<string,unknown[]|null>={};
+    const people=(profiles.data??[]).map(p=>p.person_id);
+    for(let i=0;i<people.length;i+=500){
+      const batch=people.slice(i,i+500);for(const id of batch)accountContexts[id]=null;
+      const {data:contexts,error}=await db.rpc("ab_brain_account_context",{p_people:batch});
+      if(!error){for(const id of batch)accountContexts[id]=[];for(const row of contexts??[])accountContexts[row.person_id]=row.accounts;}
+    }
     const ids = [...new Set([...(light ? [] : (profiles.data ?? []).map((p) => p.person_id)), ...(open.data ?? []).map((a) => a.person_id).filter(Boolean),
       ...(resolved.data ?? []).map((a) => a.person_id).filter(Boolean)])];
     const names = new Map<string, string>();
@@ -80,7 +87,7 @@ Deno.serve(async (req) => {
     }
     const label = (id: string | null) => id ? names.get(id) ?? "Trader " + id.slice(0, 6) : null;
     const m = new Map((metrics.data ?? []).map((x) => [x.person_id, x]));
-    const traders = (profiles.data ?? []).map((p) => ({ ...p, name: label(p.person_id), metrics: m.get(p.person_id) ?? null }));
+    const traders = (profiles.data ?? []).map((p) => ({ ...p, name: label(p.person_id), metrics: m.get(p.person_id) ?? null, accounts: accountContexts[p.person_id] }));
     const counts: Record<string, number> = {};
     for (const p of profiles.data ?? []) counts[p.book_state] = (counts[p.book_state] ?? 0) + 1;
 
@@ -105,7 +112,7 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true, light, generated_at: new Date().toISOString(), metrics_as_of: light ? (metrics.data?.[0]?.as_of ?? null) : (metrics.data ?? []).reduce((a: string | null, x: { as_of: string }) => !a || x.as_of > a ? x.as_of : a, null), policy: pol.data, settings: settings.data, counts,
-      alerts, resolved: (resolved.data ?? []).map((a) => ({ ...a, name: label(a.person_id) })),
+      alerts, account_contexts: accountContexts, resolved: (resolved.data ?? []).map((a) => ({ ...a, name: label(a.person_id) })),
       health: {
         jobs: JOBS.map(([job, title, maxAge], i) => {
           const h = (jobs[i] as { data: Array<{ age_s: number | null; last_status: string | null }> | null }).data?.[0];
@@ -126,13 +133,14 @@ Deno.serve(async (req) => {
   if (action === "trader") {
     const person = String(body.person_id || "");
     if (!/^[0-9a-f-]{36}$/i.test(person)) return json({ ok: false, error: "Choose a trader" }, 400);
-    const [{ data, error }, routing, activity] = await Promise.all([
+    const [{ data, error }, routing, activity, context] = await Promise.all([
       db.rpc("ab_brain_person", { p_person: person }),db.rpc("ab_model_capabilities", { p_person: person }),
       db.rpc("ab_brain_live_activity", { p_person: person }),
+      db.rpc("ab_brain_account_context",{p_people:[person]}),
     ]);
     if (error || !data) return json({ ok: false, error: "Trader not found" }, 404);
     if (routing.error || activity.error) return json({ ok: false, error: "Trader routing/activity unavailable" }, 503);
-    return json({ ok: true, ...data, routing: routing.data, activity: activity.data });
+    return json({ ok: true, ...data, accounts: context.error ? null : (context.data?.[0]?.accounts??[]), routing: routing.data, activity: activity.data });
   }
 
   if (action === "set_model") {

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><link rel="stylesheet" href="/assets/css/team-brain.css?v=20261008a"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png"><link rel="stylesheet" href="/assets/css/team-books.css"><link rel="stylesheet" href="/assets/css/team-brain.css?v=20261008-accounts"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
 <body><header class="top"><div><div class="brand">IPFX Team · Brain</div><div class="subtitle" id="status" role="status">Checking secure access…</div></div><nav aria-label="Team pages"><a href="team-brain.html" aria-current="page">Brain</a><a href="trader-analytics.html">Analytics</a><a href="team-b-book.html">B-book</a><a href="team-a-book.html">A-book</a><a href="team-treasury.html">Treasury</a><a href="team-e8-monitor.html">E8 monitor</a><a href="admin.html">Operations</a></nav></header>
 <main class="brain">
   <section class="hero" id="hero" aria-live="polite">
@@ -62,12 +62,13 @@
   <section class="panel" aria-labelledby="boardH">
     <div class="panel-head"><h2 id="boardH">All traders</h2>
       <div class="chips" role="tablist" id="boxTabs"></div>
-      <div class="board-tools"><input id="search" type="search" placeholder="Search name or id" aria-label="Search traders"><select id="tagFilter" aria-label="Filter by tag"><option value="">Any tag</option></select></div></div>
+      <div class="board-tools"><input id="search" type="search" placeholder="Search name or id" aria-label="Search traders"><select id="accountFilter" aria-label="Filter by account or challenge"><option value="">Any account / challenge</option><option value="demo">Demo practice</option><option value="infinity">Infinity</option><option value="traditional">Traditional</option><option value="futures">Futures</option><option value="pac">PAC</option><option value="unknown">Unknown account type</option></select><select id="tagFilter" aria-label="Filter by tag"><option value="">Any tag</option></select></div></div>
     <div class="table-wrap"><table class="board" id="board"><thead><tr>
-      <th data-k="name">Trader</th><th data-k="box">Box</th><th data-k="trades" class="num">Trades</th><th data-k="win_rate" class="num">Win %</th><th data-k="pnl_usd" class="num">P&amp;L</th>
+      <th data-k="name">Trader</th><th>Account / challenge</th><th data-k="box">Routing model</th><th data-k="trades" class="num">Trades</th><th data-k="win_rate" class="num">Win %</th><th data-k="pnl_usd" class="num">P&amp;L</th>
       <th data-k="avg_r" class="num" title="Average result per trade in risk units">Avg R</th><th>Trend</th><th data-k="copy_r" class="num" title="What copying each trade made, after costs">Copy edge</th>
       <th data-k="reverse_r" class="num" title="What betting against each trade made, after costs">Reverse edge</th><th data-k="proof" title="Statistical proof that copying works: 10 = proven">Proof</th>
       <th data-k="max_dd_r" class="num" title="Worst peak-to-trough fall, in R">Max fall</th><th data-k="expected_payout" class="num" title="Chance of payout x payout size">Likely payout</th><th data-k="last" class="num">Last trade</th></tr></thead><tbody id="boardBody"></tbody></table></div>
+    <p class="small">Account filter selects people; performance totals include their account histories.</p>
     <div class="panel-foot"><span class="small" id="boardCount"></span><button class="button small-btn" id="more" type="button" hidden>Show more</button></div>
   </section>
 
@@ -85,5 +86,6 @@
 
 <dialog id="help" aria-labelledby="helpH"><h2 id="helpH">How to read the Brain</h2><div class="help-grid" id="helpBody"></div><form method="dialog"><button class="button primary">Got it</button></form></dialog>
 <div class="tip" id="tip" role="tooltip" hidden></div>
-<script src="/assets/js/team-brain.js?v=20261008c"></script>
+<script src="/assets/js/brain-account-labels.js?v=20261008a"></script>
+<script src="/assets/js/team-brain.js?v=20261008-accounts"></script>
 </body></html>

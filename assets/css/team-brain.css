@@ -83,3 +83,7 @@ dialog{background:var(--panel);color:var(--fg);border:1px solid var(--line);bord
 @media(max-width:1280px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.cols{grid-template-columns:1fr}.watch{grid-template-columns:1fr}}
 
 .model-controls{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:16px}.model-controls label{display:block;margin-bottom:5px}.model-controls input{width:100%;box-sizing:border-box;padding:9px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px}.model-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.model-buttons button:disabled{opacity:.45;cursor:not-allowed}
+.account-cell{min-width:180px;max-width:260px;white-space:normal}
+.account-kind{border-left:3px solid #8994a8;padding-left:8px;margin-bottom:7px;color:#e2e8f2;font-weight:650}
+.account-kind.demo{border-color:#8994a8}.account-kind.infinity{border-color:#4d9dff}
+.account-kind small{display:block;font-weight:400;color:#9aabc5;font-size:11px;margin-top:3px}
