@@ -27,7 +27,7 @@ test('slices are idempotent, never priced late, and priced after a late fill, be
 });
 
 test('engine sends the slice id on every partial close and the executor routes it', () => {
-  assert.match(engine, /shadowLater\(db, \{ event: "shadow_partial", source_trade_id: target\.id, slice_trade_id: closedSlice\.id \}\)/);
+  assert.match(engine, /shadowLater\(db, acct as Acct, \{ event: "shadow_partial", source_trade_id: target\.id, slice_trade_id: closedSlice\.id \}\)/);
   assert.match(exec, /body\.event === "shadow_partial"/);
 });
 

@@ -1168,7 +1168,12 @@ async function shadowOn(db: Db): Promise<boolean> {
   shadowCache = { at: Date.now(), v: (count ?? 0) > 0 };
   return shadowCache.v;
 }
-function shadowLater(db: Db, body: Record<string, unknown>) {
+// The Brain and every A/B / demo-copy automation work on Infinity challenge trades only (owner decision 2026-10-08).
+// Demo practice accounts and the Traditional / Futures programmes are never routed, copied or studied.
+const inBrainScope = (acct: { challenge_type?: string; phase?: string; status?: string }) =>
+  acct.challenge_type === "infinity" && acct.phase !== "demo" && acct.status !== "demo";
+function shadowLater(db: Db, acct: { challenge_type?: string; phase?: string; status?: string }, body: Record<string, unknown>) {
+  if (!inBrainScope(acct)) return;
   mirrorLater((async () => ((await shadowOn(db).catch(() => false)) ? await callBook(body) : null))());
 }
 async function bookLegs(db: Db, tradeId: string): Promise<{ a: boolean; b: boolean }> {
@@ -1564,7 +1569,7 @@ async function processPendingOrders(
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
     const sourceRiskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * Number(o.volume) * conv;
-    const abBook = await abRoute(db, acct.user_id);
+    const abBook = inBrainScope(acct) ? await abRoute(db, acct.user_id) : null;
     if (abBook === "a" || await hedgeOpenArmed(db, acct)) {
       // Copied account: the hedge fills first; the trader's entry is no better than the broker's.
       const hedge = abBook === "a"
@@ -1588,7 +1593,7 @@ async function processPendingOrders(
       mirrorLater(fireMirror(db, acct, inserted as Tr, "open", sourceRiskUsd));
       if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: sourceRiskUsd, price_scale_per_lot: inst.contract * conv });
     }
-    shadowLater(db, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
+    shadowLater(db, acct, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
     working.push(inserted as Tr);
   }
   return working;
@@ -1878,7 +1883,7 @@ async function closeTrade(
   if (hedge.state !== "filled") mirrorLater(fireMirror(db, acct, t, "close"));
   // B-book reverse legs (and any A-book leg left unpriced) close right after the trader's close.
   if (legs.b || (legs.a && hedge.state !== "filled")) bookLater({ event: "close", source_trade_id: t.id });
-  shadowLater(db, { event: "shadow_close", source_trade_id: t.id });
+  shadowLater(db, acct, { event: "shadow_close", source_trade_id: t.id });
   await logAudit(db, {
     trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "close",
     symbol: t.symbol, side: t.side, requested_volume: Number(t.volume),
@@ -3767,7 +3772,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
       await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);
 
       // Copied (A-book) account: hedge first, then fill the trader no better than the broker.
-      const abBook = await abRoute(db, user.id);
+      const abBook = inBrainScope(A) ? await abRoute(db, user.id) : null;
       if (abBook === "a" || await hedgeOpenArmed(db, A)) {
         const takingAsk = side === "buy";
         const started = Date.now();
@@ -3848,7 +3853,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
       mirrorLater(fireMirror(db, acct as Acct, { id: inserted.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: openPrice, close_price: null, sl, tp, status: "open", pnl: null } as Tr, "open", mirrorRiskUsd));
       // B-book live trader: reverse right after the trader's fill.
       if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: mirrorRiskUsd, price_scale_per_lot: inst.contract * conv });
-      shadowLater(db, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
+      shadowLater(db, A, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
       await logAudit(db, {
           trade_id: inserted?.id, user_id: user.id, account_id: (acct as Acct).id, event: "open",
           symbol, side, requested_volume: volume, requested_price: fill, fill_price: openPrice, quote: q, client_ip: clientIp,
@@ -4049,7 +4054,7 @@ const handleRequest = async (req: Request): Promise<Response> => {
     // Book legs shrink by the same fraction (gap fixed: partial closes used to leave the copy full size).
     const pLegs = await bookLegs(db, target.id);
     if (pLegs.a || pLegs.b) bookLater({ event: "partial_close", source_trade_id: target.id, fraction: vol / full, slice_id: closedSlice.id });
-    shadowLater(db, { event: "shadow_partial", source_trade_id: target.id, slice_trade_id: closedSlice.id });
+    shadowLater(db, acct as Acct, { event: "shadow_partial", source_trade_id: target.id, slice_trade_id: closedSlice.id });
     await logAudit(db, {
       trade_id: closedSlice.id, user_id: user.id, account_id: (acct as Acct).id, event: "partial_close",
       symbol: target.symbol, side: target.side, requested_volume: vol,

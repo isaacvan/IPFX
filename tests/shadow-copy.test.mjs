@@ -48,8 +48,8 @@ test('a trader closing before the demo order fills still gets the demo position 
 });
 
 test('engine dispatches after the trader fill (pending fill and market open) and on close, only while demo accounts are enabled', () => {
-  assert.equal((engine.match(/shadowLater\(db, \{ event: "shadow_open"/g) || []).length, 2);
-  assert.equal((engine.match(/shadowLater\(db, \{ event: "shadow_close"/g) || []).length, 1);
+  assert.equal((engine.match(/shadowLater\(db, (?:acct|A), \{ event: "shadow_open"/g) || []).length, 2);
+  assert.equal((engine.match(/shadowLater\(db, acct, \{ event: "shadow_close"/g) || []).length, 1);
   assert.match(engine, /\.eq\("role", "shadow"\)\.eq\("execution_enabled", true\)\.not\("access_token_ciphertext", "is", null\)/);
   assert.match(engine, /\(await shadowOn\(db\)\.catch\(\(\) => false\)\) \? await callBook\(body\) : null/);
   assert.match(exec, /body\.event === "shadow_open"/);
