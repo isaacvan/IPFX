@@ -19,24 +19,25 @@ test('risk analytics is restricted to the configured owner and MFA', () => {
   assert.match(page, /action:'risk_analytics'/);
 });
 
-test('Team Login checks owner access and completes password plus authenticator verification', () => {
+test('Team Login is owner-only, checks owner access on the server and completes authenticator verification', () => {
   assert.match(teamAccess, /IPFX_OWNER_EMAIL/);
   assert.match(teamAccess, /client\.auth\.getUser\(\)/);
   assert.match(teamAccess, /from\("admins"\)/);
-  assert.match(teamLogin, /<h1>Team Login<\/h1>/);
-  assert.match(teamLogin, /signInWithPassword/);
+  assert.match(teamLogin, /<h1>Team access<\/h1>/);
+  assert.match(teamLogin, /OWNER_EMAIL='paulade491@gmail\.com'/);
+  assert.doesNotMatch(teamLogin, /signInWithPassword/);
   assert.match(teamLogin, /functions\/v1\/team-access/);
   assert.match(teamLogin, /mfa\.challengeAndVerify/);
   assert.match(teamLogin, /mfa\.enroll\(\{factorType:'totp'/);
   assert.match(teamLogin, /location\.replace\(safeNext\)/);
-  assert.match(teamLogin, /safeNext=.*'\/admin\.html'/);
+  assert.match(teamLogin, /safeNext=.*trader-analytics\.html/);
   assert.doesNotMatch(teamLogin, /signup\.html|Sign up/);
 });
 
-test('homepage exposes Team Login in both navigation and footer', () => {
+test('homepage carries Team Login in both navigation and footer (shown to the owner only once signed in)', () => {
   const home = read('index.html');
   assert.match(home, /id="navTeamLogin"[^>]*href="\/team-login\.html"|href="\/team-login\.html"[^>]*id="navTeamLogin"/);
-  assert.match(home, /<li><a href="\/team-login\.html">Team Login<\/a><\/li>/);
+  assert.match(home, /<li hidden data-team-only><a href="\/team-login\.html">Team Login<\/a><\/li>/);
 });
 
 test('adaptive controls affect only own-account mirror opens and never block closes', () => {

@@ -1142,7 +1142,7 @@
         <div class="challenge-launch-date">Free Infinity applications open at launch</div>
         <p id="challengeLaunchCopy">Infinity is the only programme launching on 9 October. Traditional, Futures and PAC remain on hold.</p>
         <p class="challenge-launch-status" id="challengePreregisteredNote" hidden>Pre-registration submitted. Please verify your email, then sign in when applications open.</p>
-        <a class="challenge-preview-link" id="challengePreviewLogin" href="/team-login.html">Authorised team preview</a>
+        <a class="challenge-preview-link" id="challengePreviewLogin" href="/team-login.html" style="display:none">Authorised team preview</a>
         <a class="challenge-preview-link" id="challengeSigninLink" href="/login.html?next=%2Fdashboard.html" hidden>Sign in</a>
         <p class="challenge-launch-status" id="challengeLaunchStatus" role="status" aria-live="polite"></p>
     </div>
@@ -1713,6 +1713,7 @@
         });
         const access = await response.json().catch(() => null);
         if (!response.ok || !access?.team_access) return;
+        login.style.display = '';
         const { data: aal } = await db.auth.mfa.getAuthenticatorAssuranceLevel();
         if (aal?.currentLevel !== 'aal2') {
           status.textContent = 'Complete Team Login and its authenticator check to open the private preview.';
