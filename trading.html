@@ -601,6 +601,7 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .ch-req-ic.todo{background:rgba(255,255,255,.06);color:#606060;}
 .ch-req-txt{color:#c8c8c8;}
 .ch-req-txt b{color:#fff;}
+.ch-sub{display:block;margin-top:3px;font-size:.78em;line-height:1.45;color:#8d8d8d;}
 .ch-note{margin-top:.9rem;font-size:.72rem;color:#606060;line-height:1.5;border-top:1px solid var(--line);padding-top:.7rem;}
 .postbl-act-btn.act-edit:hover{color:var(--blue,#2563eb);border-color:var(--blue,#2563eb);}
 .postbl-act-btn.act-partial:hover{color:var(--gold,#f59e0b);border-color:var(--gold,#f59e0b);}
@@ -2962,13 +2963,14 @@ function renderChallenge(){
     const bestLimit=Number(rules.max_best_day_share||0);
     reqs.push({done:elapsed>=needElapsed,txt:`<b>${elapsed.toFixed(1)}/${needElapsed}</b> elapsed observation days`});
     reqs.push({done:meaningful>=needMeaningful,txt:`<b>${meaningful}/${needMeaningful}</b> meaningful trading days`});
-    reqs.push({done:sessions>=needSessions,txt:`<b>${sessions}/${needSessions}</b> independent exposure sessions (split or overlapping tickets do not count separately)`});
+    reqs.push({done:sessions>=needSessions,txt:`<b>${sessions}/${needSessions}</b> exposure sessions<span class="ch-sub">One session = one burst of trading. Trades open at the same time, or opened within 60 minutes of closing everything, count as <b>one</b>. Open a trade after being flat for more than 60 minutes to start the next one.</span>`});
     reqs.push({done:best!==null&&best<=bestLimit,txt:`Best positive day <b>${best===null?'not yet measurable':(best*100).toFixed(1)+'%'}</b> (maximum ${(bestLimit*100).toFixed(0)}%)`});
   } else if(a.challenge_type==='infinity'&&q==null){
     reqs.push({done:false,txt:'Qualification evidence unavailable — progress cannot be confirmed yet'});
   }
   for(const unmet of P.unmet||[]){
-    if(['OPEN_POSITIONS','ACCOUNT_BREACH'].includes(unmet))reqs.push({done:false,txt:escapeHtml(unmet.replaceAll('_',' ').toLowerCase())});
+    if(unmet==='OPEN_POSITIONS')reqs.push({done:false,txt:'Close all open trades. The stage completes the moment you are flat and everything else is met.'});
+    else if(unmet==='ACCOUNT_BREACH')reqs.push({done:false,txt:escapeHtml(unmet.replaceAll('_',' ').toLowerCase())});
   }
   if(!reqs.length) reqs.push({done:true,txt:'No progression requirements on this account'});
 
@@ -4654,6 +4656,7 @@ async function engineCall(body){
     }
     if(typeof refreshClientMarks==='function'&&liveQuotesBySymbol.size)refreshClientMarks();else renderPositions();
     renderEngineAccount();
+    try{maybeShowPromotion(j.promotion_notice);}catch(_){}
     if(j.order_blocked){
       if(j.infinity_lockout?.locked)showInfinityTradeWarning(j.infinity_lockout);
       engineMsg('Account has been breached. No order has been placed.');return null;
@@ -5597,6 +5600,22 @@ function showInfinityTradeWarning(lock){
   document.getElementById('infBreachAttemptClose')?.focus();
 }
 function closeInfinityTradeWarning(){document.getElementById('infBreachAttempt')?.classList.remove('open');}
+// Shown once per browser when a stage has just been passed and the next stage's account was created automatically.
+function maybeShowPromotion(n){
+  if(!n||!n.account_id||document.getElementById('ipfxPromo'))return;
+  let seen=false;try{seen=localStorage.getItem('ipfx-promo-seen-'+n.account_id)==='1';}catch(_){}
+  if(seen)return;
+  const title=n.funded?'You are funded!':'Stage '+(n.from_stage==null?'':n.from_stage)+' complete \u2014 you are now in Stage '+(n.to_stage==null?'':n.to_stage);
+  const bits=[];
+  if(n.to_balance)bits.push('New account: '+money(n.to_balance));
+  if(n.target_pct)bits.push('Target: '+n.target_pct+'%');
+  if(n.max_risk_pct!=null)bits.push('Max risk per trade: '+n.max_risk_pct+'%');
+  const box=document.createElement('div');box.id='ipfxPromo';box.setAttribute('role','status');
+  box.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;max-width:520px;width:calc(100% - 32px);background:#0f1a14;border:1px solid #10b981;border-radius:14px;padding:16px 18px;color:#e8f5ee;box-shadow:0 12px 40px rgba(0,0,0,.5);font:14px/1.5 Inter,system-ui,sans-serif';
+  box.innerHTML='<div style="font-weight:700;font-size:15px;margin-bottom:4px">\u2713 '+escapeHtml(title)+'</div><div style="opacity:.85">You moved up automatically \u2014 there is nothing to claim. '+escapeHtml(bits.join(' \u00b7 '))+'. Open the Challenge progress panel to see what this stage needs.</div><button type="button" id="ipfxPromoClose" style="margin-top:10px;background:#10b981;border:0;border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer">Got it</button>';
+  document.body.appendChild(box);
+  document.getElementById('ipfxPromoClose').onclick=function(){try{localStorage.setItem('ipfx-promo-seen-'+n.account_id,'1');}catch(_){}box.remove();};
+}
 async function choosePracticeAfterBreach(){closeInfinityTradeWarning();await setAccountMode('demo');}
 function blockInfinityTradeAttempt(){
   const lock=currentInfinityLock();
