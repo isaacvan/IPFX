@@ -1,7 +1,7 @@
 -- E8 reference monitor: sample every instrument both platforms share, not just 5 (owner question 2026-10-08).
 -- Two speeds keep the data manageable: the 5 main instruments stay every 10 seconds (what the trade replay leans on),
--- the other 19 are sampled every 30 seconds (enough for spread statistics). E8 allows 10 quote requests a second and the
--- monitor budgets 8, so this uses about 3 a second at its busiest. IPFX instruments E8 does not offer at all (DOTUSD,
+-- the other 19 are sampled two per run in rotation (each about every 100 seconds, enough for spread statistics). Doing all
+-- 19 in one burst was refused by the broker (HTTP 429), so the extra load is kept to 2 quote requests per run. IPFX instruments E8 does not offer at all (DOTUSD,
 -- FRA40, UK100, US2000, XPDUSD, XPTUSD) cannot be sampled. cost_samples is kept 21 days instead of 60 (the Brain panel
 -- reads 7) so the extra rows cost about 0.5 GB, not 3 GB.
 alter table public.e8_monitor_profiles add column if not exists slow_symbols text[] not null default '{}';

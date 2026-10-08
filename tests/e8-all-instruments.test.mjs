@@ -22,17 +22,23 @@ const matchE8 = (symbol) => {
   return exact.length ? exact : E8.filter((n) => norm(n).startsWith(target));
 };
 
-test('the main 5 stay every 10 seconds and 19 more are sampled every third run (30 seconds)', () => {
+test('the main 5 stay every 10 seconds and the other 19 are sampled two per run in rotation (gentle on the broker API)', () => {
   assert.match(sql, /alter table public\.e8_monitor_profiles add column if not exists slow_symbols text\[\] not null default '\{\}';/);
   const list = sql.match(/set slow_symbols = array\[([^\]]*)\]/)[1].match(/'(\w+)'/g).map((x) => x.replace(/'/g, ''));
   assert.equal(list.length, 19);
   assert.equal(new Set(list).size, 19, 'no duplicates');
   for (const main of ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'BTCUSD']) assert.ok(!list.includes(main), main + ' stays on the fast list only');
-  assert.match(worker, /const slowDue=Math\.floor\(started\/10000\)%3===0;/);
-  assert.match(worker, /const symbolsNow=\[\.\.\.\(p\.symbols as string\[\]\),\.\.\.\(slowDue\?\(\(p\.slow_symbols\?\?\[\]\) as string\[\]\):\[\]\)\];/);
+  assert.match(worker, /const slowPick=slow\.length\?\[0,1\]\.map\(i=>slow\[\(Math\.floor\(started\/10000\)\*2\+i\)%slow\.length\]\)/);
+  assert.match(worker, /const symbolsNow=\[\.\.\.\(p\.symbols as string\[\]\),\.\.\.slowPick\];/);
   assert.match(worker, /\.in\('symbol',symbolsNow\)/);
   assert.match(worker, /for\(const symbol of symbolsNow\)\{/);
   assert.doesNotMatch(worker, /for\(const symbol of p\.symbols as string\[\]\)/, 'the old fixed list loop is gone');
+  // simulate the rotation exactly as the worker computes it
+  const pick = (t) => [0, 1].map((i) => list[(Math.floor(t / 10000) * 2 + i) % list.length]).filter((x, i, a) => a.indexOf(x) === i);
+  const seen = new Set(); let maxPerRun = 0;
+  for (let run = 0; run < 10; run++) { const p = pick(1_700_000_000_000 + run * 10000); maxPerRun = Math.max(maxPerRun, 5 + p.length); p.forEach((x) => seen.add(x)); }
+  assert.equal(seen.size, 19, 'every slow instrument is sampled within 10 runs (about 100 seconds)');
+  assert.ok(maxPerRun <= 7, 'at most 5 fast + 2 slow quote requests in a run');
 });
 
 test('every sampled instrument matches exactly one E8 instrument; instruments E8 does not offer are the only ones left out', () => {

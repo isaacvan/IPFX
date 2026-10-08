@@ -56,9 +56,11 @@ Deno.serve(async req=>{
   if(!config||!configAt||Date.now()-Date.parse(configAt)>15*60000){config=await tl.config(token,String(a.acc_num));rules=referenceRules(config);configAt=new Date().toISOString();}
   if(!applicableRules(rules,'QUOTES').length)throw Error('BROKER_RATE_SCHEMA_UNAVAILABLE');
   const map=(a.instrument_map??[]) as Array<Record<string,unknown>>;
-  // The 5 main instruments every run (10 s); the slow list on every third run (30 s). Deterministic from the clock, so no stored state.
-  const slowDue=Math.floor(started/10000)%3===0;
-  const symbolsNow=[...(p.symbols as string[]),...(slowDue?((p.slow_symbols??[]) as string[]):[])];
+  // The 5 main instruments every run (10 s) plus TWO of the slow list in rotation, so every other instrument is refreshed about every
+  // 100 s. Deterministic from the clock (no stored state). Doing the whole slow list in one burst was refused by the broker (HTTP 429).
+  const slow=(p.slow_symbols??[]) as string[];
+  const slowPick=slow.length?[0,1].map(i=>slow[(Math.floor(started/10000)*2+i)%slow.length]).filter((x,i,a)=>a.indexOf(x)===i):[];
+  const symbolsNow=[...(p.symbols as string[]),...slowPick];
   const {data:ipfx,error:ipfxError}=await db.from('live_quotes').select('symbol,bid,ask,received_at').in('symbol',symbolsNow);
   const ix=new Map((ipfxError?[]:ipfx??[]).map(q=>[q.symbol,q]));
   for(const symbol of symbolsNow){
