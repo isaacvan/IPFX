@@ -11,7 +11,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const fin = (v) => v != null && v !== '' && Number.isFinite(Number(v));
   const usd = (v, signed = false) => !fin(v) ? '—' : (signed && Number(v) > 0 ? '+' : '') + Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-  const exactUsd = (v, signed=false) => !fin(v) ? '�' : (signed && Number(v)>0 ? '+' : '') + Number(v).toLocaleString('en-US', {style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2});
+  const exactUsd = (v, signed=false) => !fin(v) ? '—' : (signed && Number(v)>0 ? '+' : '') + Number(v).toLocaleString('en-US', {style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2});
   const rr = (v, d = 2) => !fin(v) ? '—' : (Number(v) > 0 ? '+' : '') + Number(v).toFixed(d) + 'R';
   const pct = (v) => !fin(v) ? '—' : Math.round(Number(v) * 100) + '%';
   const signCls = (v) => !fin(v) || Number(v) === 0 ? '' : Number(v) > 0 ? 'pos' : 'neg';
@@ -328,10 +328,10 @@
       : '<li class="empty-ok">No moves yet. Everyone starts on B-book demo (watching).</li>';
   }
   function renderHealth() {
-    const h = data.health, beatName = { 'ab-classifier': 'Classifier (moves traders between boxes)', 'brain-scan': 'Alert scan (this page)', hub: 'IPFX hub (live prices + position watcher)', 'cost-monitor': 'Cost monitor (E8 vs demo spreads and fees)' };
+    const h = data.health, beatName = { 'ab-classifier': 'Classifier (moves traders between boxes)', 'brain-scan': 'Alert scan (this page)', hub: 'IPFX hub (live prices + position watcher)', 'cost-monitor': 'Cost monitor (E8 vs demo spreads and fees)', 'trade-lows': 'Trade lowest P&L tracking' };
     const rows = h.jobs.map((j) => `<div class="health-row"><span class="sev ${j.ok ? 'good' : 'critical'}"><i>${j.ok ? '✓' : '!'}</i></span><span>${esc(j.title)}</span><span class="small">${j.age_s == null ? 'no run found' : 'ran ' + ago(new Date(Date.now() - j.age_s * 1000).toISOString())}</span></div>`);
     for (const b of h.heartbeats || []) {
-      const ok = b.ok && Date.now() - Date.parse(b.at) < 5 * 60000;
+      const ok = b.ok && Date.now() - Date.parse(b.at) < (b.worker==='trade-lows'?60000:5*60000);
       rows.push(`<div class="health-row"><span class="sev ${ok ? 'good' : 'critical'}"><i>${ok ? '✓' : '!'}</i></span><span>${esc(beatName[b.worker] || b.worker)}${b.worker === 'hub' && b.detail ? ' · ' + esc(b.detail.authed ?? 0) + ' traders connected · watcher ' + esc(b.detail.risk?.mode ?? '?') + ' · ' + esc(b.detail.risk?.trades ?? 0) + ' positions' : ''}${!b.ok && b.detail?.error ? ' · ' + esc(b.detail.error) : ''}</span><span class="small">${ago(b.at)}</span></div>`);
     }
     const pAge = h.prices_at ? (Date.now() - Date.parse(h.prices_at)) / 1000 : null, pOk = !h.market_open || (pAge != null && pAge < 120);
@@ -422,11 +422,28 @@
       <ul class="small">${['AB_LIVE','BB_LIVE'].map(k=>`<li><b>${esc(STATES[k].label)}:</b> ${esc(routing?.[k]?.reason || 'Unavailable')}</li>`).join('')}</ul>
       <p id="modelStatus" role="status"></p></section>`;
   }
+  function holdTime(x, asOf) {
+    const seconds=x.hold_seconds ?? ((Date.parse(x.closed_at || asOf)-Date.parse(x.opened_at))/1000);
+    if(seconds==null || !Number.isFinite(Number(seconds)) || Number(seconds)<0)return 'Unavailable';
+    let n=Math.floor(Number(seconds)); if(n===0)return '<1s';
+    const days=Math.floor(n/86400);n%=86400;const hours=Math.floor(n/3600);n%=3600;
+    const minutes=Math.floor(n/60), rest=n%60;
+    return [days?days+'d':'',hours?hours+'h':'',minutes?minutes+'m':'',rest?rest+'s':''].filter(Boolean).join(' ');
+  }
+  function lowestPnl(x) {
+    if(x.lowest_pnl_usd==null || !Number.isFinite(Number(x.lowest_pnl_usd)))
+      return x.lowest_pnl_status==='WAITING_QUOTES'?'Waiting for quotes':'Unavailable';
+    const note=(x.lowest_pnl_status==='INCOMPLETE_HISTORY'?' · partial history':'')+(x.low_processing_delayed?' · catching up':'');
+    const at=x.lowest_pnl_at?new Date(x.lowest_pnl_at).toLocaleString('en-GB'):'';
+    const through=x.low_observed_until?new Date(x.low_observed_until).toLocaleString('en-GB'):'';
+    return `<span title="${esc('Before fees, for the lots on this row. Low at '+at+'; quotes processed through '+through)}">${exactUsd(x.lowest_pnl_usd,true)}${note}</span>`;
+  }
   function liveActivity(d) {
     const a=d.activity;
     if(!a)return '<p>Current trade activity unavailable.</p>';
-    return `<h3>Current account balances</h3><ul class="small">${(d.accounts||[]).map(x=>`<li>${esc(x.label||x.id)} � ${exactUsd(x.balance)} � ${esc(x.status)}</li>`).join('')||'<li>No challenge accounts.</li>'}</ul><h3>Current IPFX trades</h3><p class="small">Source closes save immediately. This list refreshes every 10 seconds; statistical scores use the ledger’s minute cycle.</p>
-     <div class="table-wrap"><table><thead><tr><th>Trade / account</th><th>Position</th><th>Lots</th><th>Status</th><th>IPFX result</th></tr></thead><tbody>${(a.source_trades||[]).map(x=>`<tr><td>${esc(x.id.slice(0,8))}${x.parent_trade_id?' · partial of '+esc(x.parent_trade_id.slice(0,8)):''}</td><td>${esc(x.symbol)} ${esc(x.side)}</td><td>${esc(x.volume)}</td><td>${esc(x.status)}${x.close_reason?' · '+esc(x.close_reason):''}</td><td>${x.status==='closed'?exactUsd(x.pnl,true):'Open'}</td></tr>`).join('')||'<tr><td colspan="5">No source trades.</td></tr>'}</tbody></table></div>
+    return `<h3>Current account balances</h3><ul class="small">${(d.accounts||[]).map(x=>`<li>${esc(x.label||x.id)} · ${exactUsd(x.balance)} · ${esc(x.status)}</li>`).join('')||'<li>No challenge accounts.</li>'}</ul><h3>Current IPFX trades</h3><p class="small">Source closes save immediately. This list refreshes every 10 seconds; statistical scores use the ledger’s minute cycle.</p>
+     <div class="table-wrap"><table><thead><tr><th>Trade / account</th><th>Position</th><th>Lots</th><th>Status</th><th>Time open</th><th>Lowest P&L*</th><th>IPFX result</th></tr></thead><tbody>${(a.source_trades||[]).map(x=>`<tr><td title="${esc(x.account_id||'')}">${esc(x.id.slice(0,8))}${x.parent_trade_id?' · partial of '+esc(x.parent_trade_id.slice(0,8)):''}</td><td>${esc(x.symbol)} ${esc(x.side)}</td><td>${esc(x.volume)}</td><td>${esc(x.status)}${x.close_reason?' · '+esc(x.close_reason):''}</td><td title="${esc('Opened: '+(x.opened_at||'unavailable')+'; exited: '+(x.closed_at||'still open'))}">${esc(holdTime(x,a.as_of))}${x.status==='open'?' · running':''}</td><td>${lowestPnl(x)}</td><td>${x.status==='closed'?exactUsd(x.pnl,true):'Open'}</td></tr>`).join('')||'<tr><td colspan="7">No source trades.</td></tr>'}</tbody></table></div>
+     <p class="small">*Lowest recorded floating P&L before fees, for the lots shown. Partial exits are measured from the original entry to that exit. Missing older quotes show Unavailable or partial history. Values update after quote processing.</p>
      <h3>Internal estimates</h3><div class="table-wrap"><table><thead><tr><th>Trade</th><th>Frozen model</th><th>Status</th><th>E8 sampled gross</th><th>IPFX decision gross</th><th>Net</th></tr></thead><tbody>${(a.simulations||[]).map(x=>`<tr><td>${esc(x.trade_id.slice(0,8))}</td><td>${x.selected_book==='a'?'A · same direction':'B · reverse'}</td><td>${esc(x.status)}</td><td>${exactUsd(x.selected_gross_usd,true)}</td><td>${exactUsd(x.decision_gross_usd,true)}</td><td>Unverified</td></tr>`).join('')||'<tr><td colspan="6">No archived estimates.</td></tr>'}</tbody></table></div>
      <h3>Pending-order history</h3><ul class="small">${(a.pending||[]).map(x=>`<li>${esc(x.order_id.slice(0,8))} · ${esc(x.snapshot?.symbol)} · ${esc(x.status)} · ${esc(x.tracking_status)}</li>`).join('')||'<li>No observed pending orders.</li>'}</ul>`;
   }
