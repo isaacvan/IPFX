@@ -816,11 +816,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div id="poutKycNotice" style="display:none;padding:.9rem 1.1rem;border-radius:var(--r);margin-bottom:1rem;font-size:.85rem"></div>
       <div id="kycUpload" style="display:none;padding:1rem 1.1rem;border:1px solid var(--line);border-radius:var(--r);margin-bottom:1rem">
         <div style="font-weight:700;margin-bottom:.35rem">Verify your identity</div>
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">Upload a government-issued photo ID and a proof of address dated within the last 3 months (bank statement or utility bill). JPG, PNG, WEBP or PDF, up to 10 MB each. Documents are stored privately and only reviewed by IPFX compliance.</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">Upload a current government-issued photo ID. No proof-of-address document is required. JPG, PNG, WEBP or PDF, up to 10 MB each. Documents are stored privately and only reviewed by IPFX compliance.</div>
         <div style="display:grid;gap:.6rem;font-size:.8rem">
           <label>Photo ID — front <span style="color:#ef4444">*</span><br><input type="file" id="kycIdFront" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"></label>
           <label>Photo ID — back (if it has one)<br><input type="file" id="kycIdBack" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"></label>
-          <label>Proof of address <span style="color:#ef4444">*</span><br><input type="file" id="kycAddress" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"></label>
         </div>
         <button class="cbtn p" id="kycSubmitBtn" style="margin-top:.8rem" onclick="submitKyc()">Submit for verification</button>
         <div id="kycMsg" style="font-size:.8rem;margin-top:.5rem;display:none"></div>
@@ -2168,8 +2167,8 @@ async function loadPayoutsPage(){
 async function submitKyc(){
   const btn=document.getElementById('kycSubmitBtn'),msg=document.getElementById('kycMsg');
   const show=(t,c)=>{msg.style.display='';msg.style.color=c;msg.textContent=t;};
-  const pick={id_front:document.getElementById('kycIdFront').files[0],id_back:document.getElementById('kycIdBack').files[0],proof_of_address:document.getElementById('kycAddress').files[0]};
-  if(!pick.id_front||!pick.proof_of_address){show('Please add your photo ID (front) and a proof of address.','#f59e0b');return;}
+  const pick={id_front:document.getElementById('kycIdFront').files[0],id_back:document.getElementById('kycIdBack').files[0]};
+  if(!pick.id_front){show('Please add your photo ID (front).','#f59e0b');return;}
   for(const f of Object.values(pick)){if(f&&f.size>10*1024*1024){show('Each file must be 10 MB or smaller.','#f59e0b');return;}}
   btn.disabled=true;btn.textContent='Uploading…';
   const{data:{user}}=await sb.auth.getUser();
