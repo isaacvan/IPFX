@@ -231,6 +231,10 @@
       $('paySummaryTotal').textContent = 'Sign in to view';
     });
   });
+  // When there is only one choice (the free Infinity Challenge) it is selected for the applicant, so Continue is
+  // never greyed out waiting for a click on a card they have no reason to think they must press.
+  const onlyChoice = document.querySelectorAll('.tier-card');
+  if (onlyChoice.length === 1) onlyChoice[0].click();
   async function mountPayment() {
     if (elements || busy) return;
     if (!db || typeof window.Stripe !== 'function') {

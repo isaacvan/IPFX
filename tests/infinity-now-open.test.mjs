@@ -58,3 +58,10 @@ test('approving an Infinity application issues the account and sends the approva
   const life = read('supabase/functions/_shared/lifecycle-email.ts');
   assert.match(life, /never throws|Never throws/);
 });
+
+test('a single choice (Infinity) is already selected so Continue is never greyed out', () => {
+  const flow = read('assets/js/checkout-flow.js');
+  assert.match(flow, /const onlyChoice = document\.querySelectorAll\('\.tier-card'\);\s+if \(onlyChoice\.length === 1\) onlyChoice\[0\]\.click\(\);/);
+  // the selection handler that this click triggers is the one that enables Continue
+  assert.ok(flow.indexOf("$('step1Next').disabled = false;") < flow.indexOf('const onlyChoice'));
+});
