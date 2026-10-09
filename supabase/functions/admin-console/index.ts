@@ -1833,7 +1833,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, status, account_id: accountId });
   }
 
-  // Full identity details for ONE applicant, on request. Owner + MFA (checked above), limited per hour and per day,
+  // Full identity details for ONE applicant, on request. Owner + MFA (checked above), limited per day (owner removed the hourly cap),
   // and the audit row is written BEFORE the details are returned (no audit row, no details).
   if (action === "kyc_identity_reveal") {
     const targetId = String(body.user_id ?? "");
@@ -1859,7 +1859,6 @@ Deno.serve(async (req) => {
     const documentId = String(body.document_id ?? "");
     if (!UUID.test(documentId)) return err("Unknown document", 400);
     try {
-      if (!await allowRequest(db, "admin:kyc_document_hour", user.id, 40, 3600)) return err("Document view limit reached for this hour. The limit protects identity documents.", 429);
       if (!await allowRequest(db, "admin:kyc_document_day", user.id, 200, 86400)) return err("Document view limit reached for today. The limit protects identity documents.", 429);
     } catch (error) {
       console.error(JSON.stringify({ event: "kyc_document_rate_limit", request_id: traceId, code: safeErrorCode(error) }));

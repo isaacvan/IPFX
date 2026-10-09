@@ -30,7 +30,7 @@ test('document access is owner-only, needs MFA, is rate limited, and is audited 
   assert.match(fn, /const sensitiveActions = new Set\([^)]*"kyc_queue", "kyc_document_url"/);
   const a = fn.slice(fn.indexOf('if (action === "kyc_document_url") {'), fn.indexOf('if (action === "kyc_queue") {'));
   assert.match(a, /if \(!UUID\.test\(documentId\)\)/);
-  assert.match(a, /allowRequest\(db, "admin:kyc_document_hour", user\.id, 40, 3600\)/);
+  assert.doesNotMatch(a, /admin:kyc_document_hour/, "owner removed only the hourly document cap");
   assert.match(a, /allowRequest\(db, "admin:kyc_document_day", user\.id, 200, 86400\)/);
   assert.match(a, /catch \(error\)[\s\S]*Document protection unavailable", 503\)/, 'fails closed if the limiter is down');
   assert.ok(a.indexOf('logAdminStrict("kyc_document_view"') > 0 && a.indexOf('logAdminStrict("kyc_document_view"') < a.indexOf('createSignedUrl('), 'audit row written first');
