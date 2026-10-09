@@ -192,13 +192,14 @@
   }
   function renderTiles() {
     const c = data.counts || {}, t = data.treasury, jobs = data.health.jobs || [], beats = data.health.heartbeats || [];
+    const unresolvedCopies = Object.values(data.books?.execution || {}).reduce((n,x)=>n+Number(x.errors||0),0);
     const down = jobs.filter((j) => !j.ok).length + beats.filter((b) => !b.ok || Date.now() - Date.parse(b.at) > 5 * 60000).length;
     const total = jobs.length + beats.length;
-    const tStatus = { healthy: ['good', 'Healthy'], tight: ['warning', 'Tight'], short: ['critical', 'Short'], unknown: ['info', 'Reserve not entered'] }[t?.status || 'unknown'];
+    const tStatus = { healthy: ['good', 'Healthy'], tight: ['warning', 'Tight'], short: ['critical', 'Short'], unknown: ['warning', 'Reserve / data unverified'] }[t?.status || 'unknown'];
     const lad = data.books.ladder || { accounts: 0, copying: 0 };
     $('tiles').innerHTML = bookTile('a', 'A-book') + bookTile('b', 'B-book') +
       `<div class="tile"><span>Prop accounts</span><strong>${lad.copying} of ${lad.accounts}</strong><div class="sub2">copying now · open risk ${usd(data.books.open_risk?.ladder || 0)}</div><div class="sub2">30d result ${usd(data.books.execution?.ladder?.pnl ?? 0, true)}</div></div>` +
-      `<div class="tile"><span>Payout cover</span><strong>${esc(tStatus[1])}</strong><div class="sub2">Bad case 90d ${usd(t?.liab_90d_p90)} · cash ${usd(t?.assets_usd)}</div><div class="state sev ${tStatus[0]}"><i>${SEV[tStatus[0]].icon}</i>${t ? 'forecast ' + ago(t.as_of) : 'no forecast yet'}</div></div>` +
+      `<div class="tile"><span>Payout cover</span><strong>${esc(tStatus[1])}</strong><div class="sub2">Model estimate 90d ${usd(t?.liab_90d_p90)} · cash estimate ${usd(t?.assets_usd)}</div><div class="state sev ${tStatus[0]}"><i>${SEV[tStatus[0]].icon}</i>${t ? 'forecast ' + ago(t.as_of) : 'no forecast yet'}</div></div>` +
       `<div class="tile"><span>Traders by box</span><div class="counts">${['AB_LIVE', 'AB_DEMO', 'BB_LIVE', 'BB_DEMO', 'SUSPENDED'].map((k) => `<div title="${STATES[k].label}"><b>${c[k] || 0}</b><small>${STATES[k].tiny}</small></div>`).join('')}</div></div>` +
       `<div class="tile"><span>Brain health</span><strong>${down ? down + ' stopped' : 'All running'}</strong><div class="sub2">${total - down} of ${total} parts OK</div><div class="state sev ${down ? 'critical' : 'good'}"><i>${down ? '!' : '✓'}</i>${down ? 'See "Is the brain running?"' : 'Checked ' + ago(data.generated_at)}</div></div>`;
   }
@@ -343,7 +344,7 @@
     const rows = h.jobs.map((j) => `<div class="health-row"><span class="sev ${j.ok ? 'good' : 'critical'}"><i>${j.ok ? '✓' : '!'}</i></span><span>${esc(j.title)}</span><span class="small">${j.age_s == null ? 'no run found' : 'ran ' + ago(new Date(Date.now() - j.age_s * 1000).toISOString())}</span></div>`);
     for (const b of h.heartbeats || []) {
       const ok = b.ok && Date.now() - Date.parse(b.at) < (['trade-lows','infinity-quote-risk'].includes(b.worker)?60000:5*60000);
-      rows.push(`<div class="health-row"><span class="sev ${ok ? 'good' : 'critical'}"><i>${ok ? '✓' : '!'}</i></span><span>${esc(beatName[b.worker] || b.worker)}${b.worker === 'hub' && b.detail ? ' · ' + esc(b.detail.authed ?? 0) + ' traders connected · watcher ' + esc(b.detail.risk?.mode ?? '?') + ' · ' + esc(b.detail.risk?.trades ?? 0) + ' positions' : ''}${!b.ok && b.detail?.error ? ' · ' + esc(b.detail.error) : ''}</span><span class="small">${ago(b.at)}</span></div>`);
+      rows.push(`<div class="health-row"><span class="sev ${ok ? 'good' : 'critical'}"><i>${ok ? '✓' : '!'}</i></span><span>${esc(beatName[b.worker] || b.worker)}${b.worker === 'hub' && b.detail ? ' · ' + esc(b.detail.authed ?? 0) + ' traders connected · watcher ' + esc(b.detail.risk?.mode ?? '?') + ' · ' + esc(b.detail.risk?.trades ?? 0) + ' positions · ' + esc(b.detail.risk?.queue ?? 0) + ' waiting · ' + esc(b.detail.risk?.unresolvedErrors ?? 0) + ' unresolved' : ''}${!b.ok && b.detail?.error ? ' · ' + esc(b.detail.error) : ''}</span><span class="small">${ago(b.at)}</span></div>`);
     }
     const pAge = h.prices_at ? (Date.now() - Date.parse(h.prices_at)) / 1000 : null, pOk = !h.market_open || (pAge != null && pAge < 120);
     rows.push(`<div class="health-row"><span class="sev ${pOk ? 'good' : 'critical'}"><i>${pOk ? '✓' : '!'}</i></span><span>Live prices · market ${h.market_open ? 'open' : 'closed'}</span><span class="small">newest ${h.prices_at ? ago(h.prices_at) : 'never'}</span></div>`);
@@ -375,7 +376,7 @@
 
   function renderShadow() {
     const x = data.shadow, el = $('shadow'); if (!el) return;
-    if (!x || !x.coverage?.accounts) { el.innerHTML = '<div class="empty-ok">Connect the demo copy accounts on the Treasury page (role: Demo copy). Every trader is then copied at minimum size and this panel shows what their results would really have been on a funded account.</div>'; return; }
+    if (!x || !x.coverage?.accounts) { el.innerHTML = '<div class="empty-ok">Connect the demo copy accounts on the Treasury page (role: Demo copy). Every trader is then copied at minimum size and this panel shows an estimate scaled to funded size. Broker minimum lots cannot confirm partial fills or funded execution.</div>'; return; }
     const usd = (v) => fin(v) ? (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString() : '—';
     const cls = (v) => fin(v) && v < 0 ? 'neg' : 'pos';
     const nm = new Map((data.traders || []).map((t) => [t.person_id, t.name]));
@@ -388,7 +389,7 @@
       ${tile('Copied', esc(x.trades), esc(cov.traders) + ' traders on ' + esc(cov.accounts) + ' demo accounts · ' + esc(cov.failed) + ' copies failed', cov.failed ? 'neg' : '')}</div>
       <div class="table-wrap" style="max-height:none"><table style="min-width:560px"><thead><tr><th>Trader (largest gap first)</th><th class="num">Trades</th><th class="num">On IPFX</th><th class="num">Really, on E8</th><th class="num">Gap</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="5" class="empty">No finished copies yet.</td></tr>'}</tbody></table></div>
-      <p class="small" style="margin-top:10px">Partial closes are priced from the demo account's own bid/ask at that moment (no extra order; the demo lot is the minimum and cannot be split)${x.incomplete ? ` · ${esc(x.incomplete)} trade(s) left out because a partial close could not be priced in time` : ''}.</p>`;
+      <p class="small" style="margin-top:10px">Partial closes below the broker lot step are quote estimates sampled after the source exit; they are not confirmed broker fills (no extra order; the demo lot is the minimum and cannot be split)${x.incomplete ? ` · ${esc(x.incomplete)} trade(s) left out because a partial close could not be priced in time` : ''}.</p>`;
   }
 
   function render() {

@@ -1617,7 +1617,7 @@ Deno.serve(async (req) => {
         if ((users?.users?.length ?? 0) < 1000) break;
       }
     } catch (_) { /* email is optional */ }
-    const rows = [];
+    const rows: Record<string, unknown>[] = [];
     const styleUpserts = [];
     for (const account of accounts ?? []) {
       const accountTrades = (trades ?? []).filter((t: Record<string, unknown>) => t.account_id === account.id);
@@ -1673,12 +1673,16 @@ Deno.serve(async (req) => {
   }
 
   if (action === "application_queue") {
-    const { data: rows, error } = await db.from("challenge_enrolment_requests").select("*")
-      .in("status", ["pending", "approved", "denied"])
-      .order("updated_at", { ascending: false }).limit(500);
+    const queueStatus = String(body.status ?? "pending");
+    if (!["pending", "approved", "denied"].includes(queueStatus)) return err("Invalid application status");
+    const page = Math.min(10000, Math.max(0, Math.floor(Number(body.page) || 0)));
+    const pageSize = 50;
+    const { data: rows, error, count } = await db.from("challenge_enrolment_requests").select("*", { count: "exact" })
+      .eq("status", queueStatus).order("created_at", { ascending: true }).order("id", { ascending: true })
+      .range(page * pageSize, page * pageSize + pageSize - 1);
     if (error) return err("Could not load applications", 503);
-    const userIds = [...new Set((rows ?? []).map((row) => row.user_id))];
-    const presetIds = [...new Set((rows ?? []).map((row) => row.preset_id))];
+    const userIds = [...new Set((rows ?? []).map((row: Record<string, any>) => row.user_id))];
+    const presetIds = [...new Set((rows ?? []).map((row: Record<string, any>) => row.preset_id))];
     const [{ data: identities }, { data: presets }, { data: authUsers }, { data: kycRows }, { data: documentRows }] = await Promise.all([
       userIds.length
         ? db.from("trader_identity_private").select("user_id,legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code").in("user_id", userIds)
@@ -1686,7 +1690,7 @@ Deno.serve(async (req) => {
       presetIds.length
         ? db.from("challenge_presets").select("id,label,starting_balance,fee_usd").in("id", presetIds)
         : Promise.resolve({ data: [] }),
-      db.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      db.rpc("fn_application_contacts", { p_users: userIds }),
       userIds.length
         ? db.from("trader_kyc").select("user_id,status,note,updated_at").in("user_id", userIds)
         : Promise.resolve({ data: [] }),
@@ -1694,10 +1698,10 @@ Deno.serve(async (req) => {
         ? db.from("kyc_submissions").select("id,user_id,doc_type,storage_path,created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(3000)
         : Promise.resolve({ data: [] }),
     ]);
-    const identityByUser = new Map((identities ?? []).map((item) => [item.user_id, item]));
-    const presetById = new Map((presets ?? []).map((item) => [item.id, item]));
-    const emailByUser = new Map((authUsers?.users ?? []).map((item) => [item.id, item.email ?? null]));
-    const kycByUser = new Map((kycRows ?? []).map((item) => [item.user_id, item]));
+    const identityByUser = new Map((identities ?? []).map((item: Record<string, any>) => [item.user_id, item]));
+    const presetById = new Map((presets ?? []).map((item: Record<string, any>) => [item.id, item]));
+    const emailByUser = new Map((authUsers ?? []).map((item: { user_id: string; email: string | null }) => [item.user_id, item.email ?? null]));
+    const kycByUser = new Map((kycRows ?? []).map((item: Record<string, any>) => [item.user_id, item]));
     const latestDocuments = new Map<string, Record<string, unknown>>();
     for (const item of documentRows ?? []) {
       const key = item.user_id + ':' + item.doc_type;
@@ -1705,21 +1709,21 @@ Deno.serve(async (req) => {
     }
     // Documents are listed by id only. A link is created for ONE document, on request, by kyc_document_url.
     const uniqueDocuments = [...latestDocuments.values()];
-    const out = (rows ?? []).map((row) => ({
+    const out = (rows ?? []).map((row: Record<string, any>) => ({
       ...row,
       email: emailByUser.get(row.user_id) ?? null,
       identity: maskIdentity(identityByUser.get(row.user_id)),
       preset: presetById.get(row.preset_id) ?? null,
       kyc: kycByUser.get(row.user_id) ?? { status: 'unverified' },
-      documents: uniqueDocuments.filter((item) => item.user_id === row.user_id).map((item) => ({
+      documents: uniqueDocuments.filter((item) => item.user_id === row.user_id).map((item: Record<string, any>) => ({
         id: item.id, doc_type: item.doc_type, uploaded_at: item.created_at,
       })),
     }));
     const { error: auditError } = await db.from("admin_audit_log").insert({
-      actor_id: user.id, action: "challenge_application_queue_view", detail: { trader_ids: out.map((r) => r.user_id) },
+      actor_id: user.id, action: "challenge_application_queue_view", detail: { trader_ids: out.map((r: Record<string, any>) => r.user_id) },
     });
     if (auditError) return err("Applications are unavailable because the audit trail could not be written.", 503);
-    return json({ ok: true, applications: out });
+    return json({ ok: true, applications: out, status: queueStatus, page, page_size: pageSize, total: count ?? null, has_more: count == null ? out.length === pageSize : (page + 1) * pageSize < count });
   }
 
   if (action === "application_decide") {

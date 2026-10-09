@@ -36,6 +36,18 @@ Deno.serve(async (req) => {
   const audit = (action: string, detail: Record<string, unknown>) => db.from("admin_audit_log").insert({ actor_id: user.id, action, detail });
   const action = String(body.action || "overview");
 
+  if (action === "capacity_set") {
+    const book = String(body.book ?? ""), positions = Number(body.position_limit), margin = Number(body.margin_per_lot_usd), evidence = String(body.provider_evidence ?? "").trim().slice(0, 500);
+    if (!/^(a|b|[ls][0-9]+)$/.test(book) || !Number.isSafeInteger(positions) || positions < 1 || !Number.isFinite(margin) || margin <= 0 || evidence.length < 10) return json({ok:false,error:"Enter the documented position limit, conservative margin per lot and provider evidence."},400);
+    if (/^[ls]/.test(book)) {
+      const {data: account,error}=await db.from("ladder_accounts").select("role,api_env").eq("id",Number(book.slice(1))).maybeSingle();
+      if(error||!account||account.role!== (book[0]==="s"?"shadow":"ladder")||account.api_env!=="demo")return json({ok:false,error:"Capacity can only be configured for an owned execution demo, never the E8 monitor."},403);
+    }
+    const {error:auditError}=await audit("book_capacity_configure",{book,position_limit:positions,margin_per_lot_usd:margin,provider_evidence:evidence});
+    if(auditError)return json({ok:false,error:"Audit unavailable; nothing changed."},503);
+    const {error}=await db.from("book_capacity_limits").upsert({book,position_limit:positions,margin_per_lot_usd:margin,provider_evidence:evidence,updated_at:new Date().toISOString()});
+    return error?json({ok:false,error:"Capacity could not be saved."},503):json({ok:true,book,execution_enablement_changed:false});
+  }
   if (action === "overview") {
     const { data: snap } = await db.from("treasury_snapshots").select("*").order("as_of", { ascending: false }).limit(1).maybeSingle();
     const [forecasts, states, events, limits, settings, ls, ladders, rec, payouts, spons, reservations, dayPnl] = await Promise.all([

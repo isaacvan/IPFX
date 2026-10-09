@@ -5,6 +5,9 @@ import http from 'node:http';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 import { Risk } from './risk.mjs';
+import { riskJournal } from './risk-journal.mjs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const env = process.env;
 const PORT = Number(env.PORT || 8080);
@@ -42,17 +45,21 @@ async function engine(body) {
 // ---------- prices ----------
 const quotes = new Map();                         // symbol -> {s,b,a,m,sp,d,pt,rt,at}
 const subsBySymbol = new Map();                   // symbol -> Set<ws>
-const risk = new Risk({ quotes, rpc, engine, mode: RISK_MODE, log });
-const counters = { ingests: 0, quotesIn: 0, framesOut: 0, dropsSlow: 0, authOk: 0, authFail: 0 };
+const risk = new Risk({ quotes, rpc, engine, mode: RISK_MODE, log,
+  journal: RISK_MODE === 'active' ? riskJournal(env.RISK_JOURNAL_PATH || (process.platform === 'win32' ? join(tmpdir(),'ipfx-hub-'+process.pid,'risk-queue.json') : '/var/lib/ipfx-hub/risk-queue.json')) : null });
+const counters = { ingests: 0, quotesIn: 0, framesOut: 0, dropsSlow: 0, authOk: 0, authFail: 0, rejectedQuotes: 0 };
 let lastIngestAt = 0;
 
 function ingest(list) {
   const now = Date.now();
-  lastIngestAt = now; counters.ingests++;
+  counters.ingests++;
   const perClient = new Map();
   for (const x of list) {
-    if (!x || !SYMBOL_RE.test(x.s) || !(x.b > 0) || !(x.a > 0)) continue;
-    const q = { s: x.s, b: x.b, a: x.a, m: x.m ?? (x.b + x.a) / 2, sp: x.sp ?? x.a - x.b, d: x.d, pt: x.pt, rt: x.rt, at: now };
+    const previous = x && quotes.get(x.s);
+    if (!x || !SYMBOL_RE.test(x.s) || !Number.isFinite(x.b) || !Number.isFinite(x.a) || x.b <= 0 || x.a < x.b ||
+        !Number.isFinite(x.rt) || (previous && x.rt < previous.rt)) { counters.rejectedQuotes++; continue; }
+    lastIngestAt = now;
+    const q = { s: x.s, b: x.b, a: x.a, m: (x.b + x.a) / 2, sp: x.a - x.b, d: x.d, pt: x.pt, rt: x.rt, at: now };
     quotes.set(q.s, q); counters.quotesIn++;
     const frag = JSON.stringify({ s: q.s, b: q.b, a: q.a, m: q.m, sp: q.sp, d: q.d, pt: q.pt, rt: q.rt });
     for (const ws of subsBySymbol.get(q.s) ?? []) {
@@ -102,7 +109,7 @@ const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'appli
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') {
-      return send(res, 200, { ok: true, clients: wss.clients.size, quotes: quotes.size, ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: { mode: RISK_MODE, healthy: risk.healthy() } });
+      return send(res, 200, { ok: true, clients: wss.clients.size, quotes: quotes.size, ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: risk.summary(), admission: { accepted: counters.authOk, rejected: counters.authFail } });
     }
     if (req.method === 'POST' && (req.url === '/ingest' || req.url === '/event')) {
       if (!secretOk(req.headers['x-hub-secret'])) return send(res, 401, { ok: false });

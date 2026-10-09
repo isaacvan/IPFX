@@ -23,7 +23,7 @@ test('slices are idempotent, never priced late, and priced after a late fill, be
   assert.match(exec, /const SLICE_MAX_AGE_MS = 3 \* 60_000/);
   assert.match(fn('shadowOpen'), /if \(positionId\) await shadowPriceSlices/);
   assert.match(fn('shadowClose'), /await shadowPriceSlices\(db, tradeId\)/);
-  assert.match(fn('shadowReconcile'), /shadowPriceSlices\(db, w\)/);
+  assert.match(fn('shadowReconcile'), /shadowPriceSlices\(db, String\(w\)\)/);
 });
 
 test('engine sends the slice id on every partial close and the executor routes it', () => {
@@ -36,7 +36,7 @@ test('funded-size maths weights every exit by volume and leaves out unpriced tra
   assert.match(sql, /\(r\.final_vol \+ r\.slice_vol\) \* p_funded \/ r\.size_usd/);
   assert.match(sql, /where r\.all_priced/);
   assert.match(sql, /'incomplete'/);
-  assert.match(read('assets/js/team-brain.js'), /Partial closes are priced from the demo account's own bid\/ask/);
+  assert.match(read('assets/js/team-brain.js'), /they are not confirmed broker fills/);
 });
 
 test('A-book and B-book partial closes are unchanged (they already shrink by fraction)', () => {

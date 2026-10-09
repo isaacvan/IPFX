@@ -89,6 +89,22 @@ export async function positions(accessToken: string, accountId: string, accNum: 
   return rows(await request(`/trade/accounts/${accountId}/positions`, { method: "GET" }, accessToken, accNum), "positions");
 }
 
+export async function brokerCapacitySnapshot(accessToken: string, accountId: string, accNum: string) {
+  const requestedAt = new Date().toISOString();
+  const config = unwrap(await cachedConfig(accessToken, accNum));
+  const state = unwrap(await request(`/trade/accounts/${accountId}/state`, {method:'GET'}, accessToken, accNum));
+  const names = object(config.accountDetailsConfig).columns;
+  const values = state.accountDetailsData;
+  if (!Array.isArray(names) || !Array.isArray(values) || names.length !== values.length) throw new Error('ACCOUNT_STATE_SCHEMA_UNVERIFIED');
+  const details = Object.fromEntries(names.map((c,i)=>[String(object(c).id),values[i]]));
+  // Accept only an explicitly identified free-margin field; missing fields are not zero or unlimited.
+  const free = details.freeMargin ?? details.availableMargin;
+  if (free == null || !Number.isFinite(Number(free)) || Number(free)<0) throw new Error('FREE_MARGIN_UNVERIFIED');
+  const positions = configuredRows(config, await request(`/trade/accounts/${accountId}/positions`, {method:'GET'}, accessToken, accNum), 'positionsConfig', 'positions');
+  const orders = configuredRows(config, await request(`/trade/accounts/${accountId}/orders`, {method:'GET'}, accessToken, accNum), 'ordersConfig', 'orders');
+  return {observed_at:requestedAt,open_positions:positions.length,pending_orders:orders.length,free_margin_usd:Number(free),position_ids:positions.map(p=>String(p.id??p.positionId))};
+}
+
 export function configuredRows(configValue: unknown, dataValue: unknown, configKey: string, dataKey: string): Record<string, unknown>[] {
   const config = unwrap(configValue);
   const columns = object(config[configKey]).columns;
@@ -167,7 +183,7 @@ export type BrokerFill = { price: number; qty: number; positionId: string | null
 // filled closing order of a position. Polls briefly because a fill can take a moment to appear.
 export async function orderFill(
   accessToken: string, accountId: string, accNum: string,
-  want: { orderId?: string | null; positionId?: string | null; closing?: boolean },
+  want: { orderId?: string | null; positionId?: string | null; closing?: boolean; strictOrder?: boolean },
   waitsMs: number[] = [120, 250, 450, 700],
 ): Promise<BrokerFill | null> {
   const config = await cachedConfig(accessToken, accNum);
@@ -177,7 +193,7 @@ export async function orderFill(
     const list = configuredRows(config, data, "ordersHistoryConfig", "ordersHistory")
       .filter((o) => String(o.status ?? "").toLowerCase() === "filled" && Number(o.filledQty) > 0 && Number(o.avgPrice) > 0);
     let hit = want.orderId ? list.find((o) => String(o.id ?? o.orderId ?? "") === String(want.orderId)) : undefined;
-    if (!hit && want.positionId && want.closing) {
+    if (!hit && !want.strictOrder && want.positionId && want.closing) {
       hit = list.filter((o) => String(o.positionId ?? "") === String(want.positionId) && !(o.isOpen === true || String(o.isOpen) === "true"))
         .sort((a, b) => Number(b.lastModified ?? b.createdDate ?? 0) - Number(a.lastModified ?? a.createdDate ?? 0))[0];
     }

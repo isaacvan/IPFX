@@ -1214,15 +1214,19 @@ async function kycDecide(userId,status){
   const r=await call({action:'set_kyc_status',user_id:userId,status,note});
   if(r){toast(status==='verified'?'Trader verified':'Rejected — trader has been emailed',true);loadKycQueue();}
 }
+let applicationPage=0, applicationStatus='pending';
+function applicationPageChange(delta){applicationPage=Math.max(0,applicationPage+delta);loadApplicationQueue()}
+function applicationStatusChange(value){applicationStatus=value;applicationPage=0;loadApplicationQueue()}
 async function loadApplicationQueue(){
   const wrap=document.getElementById('applicationQueue');
   if(!wrap.dataset.loaded)wrap.innerHTML='<div class="msg" style="padding:1.25rem">Loading…</div>';
-  const r=await call({action:'application_queue'});
+  const r=await call({action:'application_queue',status:applicationStatus,page:applicationPage});
   if(!r){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Could not load applications. MFA is required.</div>';return}
   wrap.dataset.loaded='1';
-  if(!r.applications.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No challenge applications yet.</div>';return}
+  const controls=`<div style="display:flex;flex-wrap:wrap;gap:12px;padding:16px;align-items:center"><label>Applications <select onchange="applicationStatusChange(this.value)">${['pending','approved','denied'].map(s=>`<option value="${s}" ${s===applicationStatus?'selected':''}>${s}</option>`).join('')}</select></label><span>${r.total==null?'Count unavailable':esc(r.total)+' '+esc(applicationStatus)} · Page ${applicationPage+1}</span><button class="btn btn-o" onclick="applicationPageChange(-1)" ${applicationPage===0?'disabled':''}>Previous</button><button class="btn btn-o" onclick="applicationPageChange(1)" ${!r.has_more?'disabled':''}>Next</button></div>`;
+  if(!r.applications.length){wrap.innerHTML=controls+'<div class="msg" style="padding:1.25rem">No applications on this page.</div>';return}
   const docNames={id_front:'Photo ID',id_back:'ID back',proof_of_address:'Proof of address'};
-  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Challenge</th><th>Identity &amp; address</th><th>Suitability &amp; documents</th><th>Approved for this challenge?</th></tr></thead><tbody>${r.applications.map(a=>{const i=a.identity||{},d=a.application_details||{},yes=a.status==='approved',no=a.status==='denied',kyc=a.kyc||{};return`<tr>
+  wrap.innerHTML=controls+`<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Challenge</th><th>Identity &amp; address</th><th>Suitability &amp; documents</th><th>Approved for this challenge?</th></tr></thead><tbody>${r.applications.map(a=>{const i=a.identity||{},d=a.application_details||{},yes=a.status==='approved',no=a.status==='denied',kyc=a.kyc||{};return`<tr>
     <td><div>${esc([i.legal_first_name,i.legal_last_name].filter(Boolean).join(' ')||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(a.email||'')}</div><div class="mono" style="font-size:.65rem;color:var(--muted2)">${esc(a.user_id)}</div></td>
     <td><div style="text-transform:capitalize;font-weight:700">${esc(a.challenge_type||'—')}</div><div style="font-size:.72rem;color:var(--muted)">${esc(a.preset?.label||a.preset_id||'—')}</div><div style="font-size:.68rem;color:var(--muted2)">${esc(new Date(a.created_at).toLocaleString())}</div></td>
     <td>${i&&(i.legal_first_name||i.phone_hint||i.age!=null)?identityCell(i,a.user_id):'<span style="color:var(--red)">No identity details</span>'}</td>
@@ -1235,7 +1239,7 @@ async function applicationDecide(id,status){
   if(!yes){note=prompt('Optional reason for denying this challenge application:','');if(note===null)return}
   if(!confirm(yes?'Approve this trader for this exact challenge?':'Deny this trader for this exact challenge?'))return;
   const r=await call({action:'application_decide',application_id:id,status,note});
-  if(r){toast(yes?'Challenge approved':'Challenge denied',true);loadApplicationQueue();load()}
+  if(r){toast(yes?'Challenge approved':'Challenge denied',true);applicationPage=0;loadApplicationQueue();load()}
 }
 async function loadPromos(){
   const wrap=document.getElementById('promoList');

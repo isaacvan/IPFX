@@ -164,7 +164,7 @@
       <h2 style="margin-bottom:12px">${denied?'Approved for this challenge: No':'Application received'}</h2>
       <p style="max-width:560px;margin:0 auto;color:var(--muted);line-height:1.7">${denied
         ? (application.decision_note || 'This challenge request was not approved.')
-        : 'Your identity, address and challenge details have been submitted securely. We will review whether you can start this challenge within the next 24 hours.'}</p>
+        : 'Your identity, address and challenge details have been submitted securely. Your application is in the review queue; busy periods can take longer.'}</p>
       ${denied?'':'<p style="margin-top:14px;color:#94a3b8;font-size:.84rem">No payment has been requested and no trading account has been created.</p>'}
       <a href="/dashboard.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:24px">View application status</a>
     </div>`;

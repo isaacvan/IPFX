@@ -2,14 +2,20 @@
 // stop-loss deadline or loss limit is crossed (or close), it asks trading-engine's enforce() to act on that account.
 // Missing something is never fatal: the engine's 10s sweep and the traders' own price checks still run.
 export class Risk {
-  constructor({ quotes, rpc, engine, mode, log }) {
+  constructor({ quotes, rpc, engine, mode, log, journal = null }) {
     Object.assign(this, { quotes, rpc, engine, mode, log });
     this.specs = {};
     this.accounts = new Map(); this.trades = new Map(); this.pending = new Map();
     this.bySymbol = new Map(); this.pendBySymbol = new Map(); this.accTrades = new Map();
     this.peaks = new Map(); this.cooldown = new Map(); this.queue = new Map();
+    this.jobs = new Map(); this.retryRandom = Math.random;
+    this.journal = journal;
+    for (const row of journal?.load() ?? []) {
+      this.queue.set(row.id,row.reason);
+      this.jobs.set(row.id,{firstAt:row.firstAt,dueAt:Date.now(),failures:0});
+    }
     this.slDeadline = null; this.lastFull = 0; this.flushing = false;
-    this.stats = { triggers: {}, enforceCalls: 0, enforcedAccounts: 0, enforceErrors: 0, refreshes: 0, refreshErrors: 0 };
+    this.stats = { attemptedAccounts: 0, checkedAccounts: 0, terminalSkips: 0, responseErrors: 0, triggers: {}, enforceCalls: 0, enforcedAccounts: 0, enforceErrors: 0, refreshes: 0, refreshErrors: 0 };
   }
 
   async start() {
@@ -163,7 +169,7 @@ export class Risk {
   }
 
   // Only accounts the engine would act on: not suspended, and active, breached (flattening) or demo.
-  actionable(a) { return !!a && !a.revoked && ['active', 'breached', 'demo'].includes(a.status); }
+  actionable(a) { return !!a && (!a.revoked || a.status === 'breached') && ['active', 'breached', 'demo'].includes(a.status); }
 
   flag(accountId, reason) {
     if (!this.actionable(this.accounts.get(accountId))) return;
@@ -171,29 +177,67 @@ export class Risk {
     if ((this.cooldown.get(accountId) ?? 0) > now || this.queue.has(accountId)) return;
     this.cooldown.set(accountId, now + 2_000);
     this.queue.set(accountId, reason);
+    if (!this.jobs.has(accountId)) this.jobs.set(accountId, { firstAt: now, dueAt: now, failures: 0 });
     this.stats.triggers[reason] = (this.stats.triggers[reason] ?? 0) + 1;
   }
 
-  async flush() {
-    if (this.flushing || !this.queue.size) return;
-    const batch = [...this.queue.keys()].slice(0, 25);
-    for (const id of batch) this.queue.delete(id);
-    if (this.mode !== 'active') return;                          // shadow: count only, never act
-    this.flushing = true;
-    try {
-      const r = await this.engine({ action: 'hub_enforce', account_ids: batch });
-      this.stats.enforceCalls++; this.stats.enforcedAccounts += batch.length;
-      if (!r?.ok) this.stats.enforceErrors++;
-      await Promise.all(batch.map((id) => this.refreshAccount(id)));
-    } catch (e) { this.stats.enforceErrors++; this.log('enforce failed', String(e)); }
-    finally { this.flushing = false; }
-  }
+    finish(id) {this.queue.delete(id);this.jobs.delete(id);}
+    retry(id) {
+      const job=this.jobs.get(id)??{firstAt:Date.now(),failures:0};
+      job.failures++;
+      job.dueAt=Date.now()+Math.min(30000,500*2**Math.min(job.failures-1,8))*(.75+.5*this.retryRandom());
+      this.jobs.set(id,job);
+    }
+    async flush() {
+      if(this.flushing||!this.queue.size)return;
+      const batch=[];
+      for(const id of this.queue.keys()) {
+        if(!this.actionable(this.accounts.get(id))){this.finish(id);continue;}
+        if((this.jobs.get(id)?.dueAt??0)<=Date.now())batch.push(id);
+        if(batch.length===25)break;
+      }
+      if(!batch.length)return;
+      if(this.mode!=='active'){for(const id of batch)this.finish(id);return;}
+      this.flushing=true;
+      this.stats.attemptedAccounts+=batch.length;
+      try {
+        // Persist before dispatch, so a process restart cannot erase an ambiguous enforcement attempt.
+        this.journal?.save(this.queue,this.jobs);
+        const response=await this.engine({action:'hub_enforce',account_ids:batch});
+        this.stats.enforceCalls++;
+        const rows=new Map();
+        for(const row of Array.isArray(response?.results)?response.results:[]) {
+          if(rows.has(row.id))rows.set(row.id,null);else rows.set(row.id,row);
+        }
+        await Promise.all(batch.map(async id=> {
+          const row=rows.get(id);
+          const acknowledged=response?.ok===true&&row&&!row.error&&!row.skipped&&Number.isFinite(row.open)&&typeof row.status==='string';
+          // Always reconcile skipped/failed results too, so a vanished or revoked account is not retried forever.
+          let refreshed=false;
+          try {
+            const snapshot=await this.rpc('hub_snapshot',{p_account:id});
+            if(!snapshot||!Array.isArray(snapshot.accounts)||!Array.isArray(snapshot.trades)||!Array.isArray(snapshot.pending))throw Error('Malformed snapshot');
+            this.apply(snapshot,id);refreshed=true;
+          }catch {this.stats.refreshErrors++;}
+          if(refreshed&&!this.actionable(this.accounts.get(id))) {
+            this.stats.terminalSkips++;this.finish(id);return;
+          }
+          if(acknowledged&&refreshed){this.stats.checkedAccounts++;this.finish(id);}
+          else {this.stats.responseErrors++;this.stats.enforceErrors++;this.retry(id);}
+        }));
+      }catch {
+        this.stats.enforceErrors++;
+        for(const id of batch)this.retry(id);
+      }finally{
+        try{this.journal?.save(this.queue,this.jobs);}catch(e){this.stats.enforceErrors++;this.log('risk journal write failed',String(e));}
+        this.flushing=false;
+      }
+    }
 
-  healthy() { return Date.now() - this.lastFull < 90_000 && Object.keys(this.specs).length > 0; }
+  healthy() { return Date.now() - this.lastFull < 90_000 && Object.keys(this.specs).length > 0 && ![...this.jobs.values()].some(j => j.failures > 0 || Date.now() - j.firstAt > 5000); }
 
   summary() {
-    return { mode: this.mode, healthy: this.healthy(), accounts: this.accounts.size, trades: this.trades.size, pending: this.pending.size,
+    return { queue: this.queue.size, oldestQueuedMs: this.jobs.size ? Math.max(...[...this.jobs.values()].map(j => Date.now() - j.firstAt)) : 0, unresolvedErrors: [...this.jobs.values()].filter(j => j.failures > 0).length, mode: this.mode, healthy: this.healthy(), accounts: this.accounts.size, trades: this.trades.size, pending: this.pending.size,
       lastFullAgoS: this.lastFull ? Math.round((Date.now() - this.lastFull) / 1000) : null, ...this.stats };
   }
 }
-

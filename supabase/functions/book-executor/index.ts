@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { closePositionQty, marketOrder, orderFill, ordersByStrategy, placeMarketOrder, refresh, responseIds } from "../_shared/tradelocker.ts";
+import { reserveCapacity } from "../_shared/book-capacity.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
 import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { POLICY_V1, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
@@ -26,7 +27,7 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 const bookStrategy = (book: string, tradeId: string) => `ipfx${book}_${tradeId.replace(/-/g, "").slice(0, 26)}`;
 
-async function destination(db: Db, book: string) {
+async function destination(db: Db, book: string, exitOnly = false) {
   const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
   if (!key) return null;
   const shadow = /^s[0-9]+$/.test(book);
@@ -35,9 +36,11 @@ async function destination(db: Db, book: string) {
     // Demo copy accounts: no status or execution filter, so a paused account can still close what it holds.
     ? await db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("role", "shadow").maybeSingle()
     : ladder
-    ? await db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"]).maybeSingle()
+    ? await (exitOnly
+      ? db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("role", "ladder")
+      : db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"])).maybeSingle()
     : await db.from("team_book_destinations").select("*").eq("book", book).eq("status", "connected").eq("environment", "demo").maybeSingle();
-  if (!d || !d.access_token_ciphertext) return null;
+  if (!d || !d.access_token_ciphertext || d.role === "monitor" || (d.api_env ?? "demo") !== "demo") return null;
   let token = await decryptSecret(d.access_token_ciphertext, key);
   if (!d.access_expires_at || Date.parse(d.access_expires_at) - Date.now() < 30 * 60_000) {
     const next = await refresh(await decryptSecret(d.refresh_token_ciphertext, key));
@@ -133,9 +136,11 @@ async function open(db: Db, b: Record<string, unknown>) {
     if (!inst) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "instrument not available" }; }
     const qty = lotsFor(Number(t.volume), traderRisk, Number(res.allowed_usd), Number(inst.lot_step ?? 0.01), Number(inst.min_qty ?? 0.01));
     if (!(qty > 0)) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "below broker minimum" }; }
+    const capacity = await reserveCapacity(db, leg.book, tradeId, qty, dest);
+    if (!capacity?.ok) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "capacity: " + (capacity?.reason ?? "unavailable") }; }
     const { data: claim, error: claimErr } = await db.from("book_orders").insert({
       book: leg.book, source_trade_id: tradeId, person_id: person, event: "open", idempotency_key: `${leg.book}:${tradeId}:open`, symbol: t.symbol, side, qty,
-      multiplier: Number((Number(res.allowed_usd) / traderRisk).toFixed(3)), risk_usd: res.allowed_usd, status: "sent", price_scale_per_lot: scale > 0 ? scale : null,
+      multiplier: Number((Number(res.allowed_usd) / traderRisk).toFixed(3)), risk_usd: res.allowed_usd, status: "sent", source_initial_volume: Number(t.volume), lot_step: Number(inst.lot_step ?? 0.01), price_scale_per_lot: scale > 0 ? scale : null,
     }).select("id").single();
     if (claimErr?.code === "23505") { return { book: leg.book, skipped: "duplicate event" }; }
     if (claimErr || !claim) { return { book: leg.book, error: "claim failed" }; }
@@ -171,36 +176,35 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
   // Each leg closes on its own account; run them in parallel so many ladder accounts close together.
   const closeOne = async (leg: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
     const book = leg.book as "a" | "b";
-    const { data: done } = await db.from("book_orders").select("qty").eq("source_trade_id", tradeId).eq("book", book).in("event", ["partial_close", "close"]).in("status", ["closed", "sent", "reconciliation_required"]);
-    const remaining = Number(leg.qty) - (done ?? []).reduce((a: number, r: Record<string, unknown>) => a + Number(r.qty), 0);
-    if (!(remaining > 1e-9)) return null;
-    const fraction = event === "partial_close" ? Math.min(1, Math.max(0, Number(b.fraction))) : 1;
-    let qty = event === "close" ? remaining : Math.floor((Number(leg.qty) * fraction + 1e-9) / 0.01) * 0.01;
-    qty = Math.min(Number(qty.toFixed(6)), remaining);
-    if (!(qty > 0)) return null;
-    const slice = event === "close" ? "close" : `partial:${String(b.slice_id ?? Date.now())}`;
-    const { data: claim, error: claimErr } = await db.from("book_orders").insert({
-      book, source_trade_id: tradeId, person_id: leg.person_id, event, idempotency_key: `${book}:${tradeId}:${slice}`, symbol: leg.symbol,
-      side: leg.side === "buy" ? "sell" : "buy", qty, status: "sent", price_scale_per_lot: leg.price_scale_per_lot,
-    }).select("id").single();
-    if (claimErr?.code === "23505") { return { book, skipped: "duplicate event" }; }
-    if (claimErr || !claim) { return { book, error: "claim failed" }; }
-    const dest = await destination(db, book);
-    if (!dest) { await db.from("book_orders").update({ status: "reconciliation_required", error: "destination unavailable" }).eq("id", claim.id); return { book, error: "destination unavailable" }; }
+    const { data: planned, error: planError } = await db.rpc("fn_plan_book_exit", { p_open_id: leg.id, p_full: event === "close", p_slice: String(b.slice_id ?? "") });
+    if (planError || !planned?.ok) return { book, error: planned?.reason ?? "EXIT_PLAN_UNAVAILABLE" };
+    if (planned.skipped) return null;
+    const claim = planned.claim, qty = Number(claim.qty);
+    if (claim.dispatch_state === "confirmed") return { book, qty, fill_price: claim.fill_price, confirmed: true, duplicate: true };
+    if (claim.dispatch_state !== "planned") return { book, error: "EXIT_RECONCILIATION_REQUIRED" };
+    // No dispatch before resolving the owned position; a disconnected/paused account keeps a retryable plan.
+    const dest = await destination(db, book, true);
+    if (!dest) return { book, error: "DESTINATION_UNAVAILABLE", operation_id: claim.id };
+    const { data: dispatched, error: dispatchError } = await db.from("book_orders").update({ dispatch_state: "sent", updated_at: new Date().toISOString() })
+      .eq("id", claim.id).eq("dispatch_state", "planned").select("id");
+    if (dispatchError || !dispatched?.length) return { book, error: "EXIT_ALREADY_IN_FLIGHT" };
+    const remaining = Number(planned.remaining ?? qty);
     const started = Date.now();
     try {
-      const ids = responseIds(await closePositionQty(dest.token, dest.accNum, String(leg.broker_position_id), qty >= remaining - 1e-9 ? 0 : qty));
-      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true }).catch(() => null);
+      const ids = responseIds(await closePositionQty(dest.token, dest.accNum, String(leg.broker_position_id), qty));
+      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true, strictOrder: true }).catch(() => null);
+      const verified = !!fill && Math.abs(fill.qty - qty) < 1e-8 && !!ids.orderId && fill.orderId === ids.orderId;
       const dir = leg.side === "buy" ? 1 : -1;
       const pnl = fill && leg.fill_price != null && leg.price_scale_per_lot != null
         ? (fill.price - Number(leg.fill_price)) * dir * qty * Number(leg.price_scale_per_lot) : null;
-      await db.from("book_orders").update({ status: fill ? "closed" : "reconciliation_required", broker_order_id: ids.orderId,
+      const { error: receiptError } = await db.from("book_orders").update({ status: verified ? "closed" : "reconciliation_required", dispatch_state: verified ? "confirmed" : "unknown", broker_confirmed_qty: verified ? qty : null, broker_order_id: ids.orderId,
         broker_position_id: leg.broker_position_id, fill_price: fill?.price ?? null, pnl_usd: pnl == null ? null : Math.round(pnl * 100) / 100,
         latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
-      await db.rpc("ab_release_risk", { p_book: book, p_trade: tradeId, p_fraction: qty >= remaining - 1e-9 ? 1 : qty / remaining });
-      return { book, qty, fill_price: fill?.price ?? null, pnl_usd: pnl };
+      if (receiptError) return { book, error: "EXIT_RECEIPT_NOT_SAVED", operation_id: claim.id };
+      if (verified) await db.rpc("fn_finalize_book_exit", { p_exit_id: claim.id });
+      return verified ? { book, qty, fill_price: fill.price, pnl_usd: pnl, confirmed: true } : { book, error: "EXIT_RECONCILIATION_REQUIRED", operation_id: claim.id };
     } catch (e) {
-      await db.from("book_orders").update({ status: "reconciliation_required", error: String(e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", claim.id);
+      await db.from("book_orders").update({ status: "reconciliation_required", dispatch_state: "unknown", error: String(e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", claim.id);
       return { book, error: "broker result requires reconciliation" };
     }
   };
@@ -211,9 +215,9 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
   const aLegs = (legs ?? []).filter((l: Record<string, unknown>) => String(l.book) !== "b");
   const traderLong = aLegs.length ? aLegs[0].side === "buy" : true;
   const aFills = results.filter((r) => String((r as Record<string, unknown>).book) !== "b").map((r) => Number((r as Record<string, unknown>).fill_price)).filter((x) => x > 0);
-  const duplicateA = results.some((r) => String((r as Record<string, unknown>).book) !== "b" && (r as Record<string, unknown>).skipped === "duplicate event");
+  const duplicateA = results.some((r) => String(r.book) !== "b" && !!r.error);
   const fillA = aFills.length ? (traderLong ? Math.min(...aFills) : Math.max(...aFills)) : null;
-  return { ok: true, results, fill_price: fillA, duplicate_a: duplicateA };
+  return { ok: !results.some(r => !!r.error), results, fill_price: duplicateA ? null : fillA, duplicate_a: duplicateA };
 }
 
 // ---------- Shadow copy: every trader's trade at the broker's minimum size on a TradeLocker demo account ----------
@@ -233,9 +237,14 @@ async function shadowOpen(db: Db, b: Record<string, unknown>) {
   if (!dest) return { ok: true, skipped: "demo account not connected" };
   const inst = instrumentFor(dest.map, t.symbol);
   if (!inst) return { ok: true, skipped: "instrument not available" };
-  const side = t.side === "sell" ? "sell" : "buy";
+  const { data: profile, error: profileError } = await db.from("ab_trader_profiles").select("book_state").eq("person_id", who).maybeSingle();
+  if (profileError || profile?.book_state === "SUSPENDED") return { ok: false, error: "PROFILE_UNAVAILABLE_OR_SUSPENDED" };
+  const reverse = !String(profile?.book_state ?? "BB_DEMO").startsWith("AB_");
+  const side = reverse ? (t.side === "sell" ? "buy" : "sell") : (t.side === "sell" ? "sell" : "buy");
   const qty = Number(inst.min_qty ?? inst.lot_step ?? 0.01);
   if (!(qty > 0)) return { ok: true, skipped: "no minimum size" };
+  const capacity = await reserveCapacity(db, book, tradeId, qty, dest);
+  if (!capacity?.ok) return { ok: false, error: "capacity: " + (capacity?.reason ?? "unavailable") };
   const { data: claim, error: claimErr } = await db.from("shadow_orders").insert({
     source_trade_id: tradeId, person_id: who, account_id: acctId, event: "open", idempotency_key: `${book}:${tradeId}:open`,
     symbol: t.symbol, side, qty, status: "sent", price_scale_per_lot: scale,
@@ -304,21 +313,31 @@ async function shadowClose(db: Db, b: Record<string, unknown>) {
   const results: Array<Record<string, unknown>> = [];
   for (const leg of legs ?? []) {
     const book = "s" + leg.account_id;
-    const { data: claim, error: claimErr } = await db.from("shadow_orders").insert({
+    let { data: claim, error: claimErr } = await db.from("shadow_orders").insert({
       source_trade_id: tradeId, person_id: leg.person_id, account_id: leg.account_id, event: "close", idempotency_key: `${book}:${tradeId}:close`,
-      symbol: leg.symbol, side: leg.side === "buy" ? "sell" : "buy", qty: leg.qty, status: "sent", price_scale_per_lot: leg.price_scale_per_lot,
+      symbol: leg.symbol, side: leg.side === "buy" ? "sell" : "buy", qty: leg.qty, status: "sent", dispatch_state: "planned", price_scale_per_lot: leg.price_scale_per_lot,
     }).select("id").single();
-    if (claimErr?.code === "23505") { results.push({ book, skipped: "duplicate event" }); continue; }
-    if (claimErr || !claim) { results.push({ book, error: "claim failed" }); continue; }
+    if (claimErr?.code === "23505") {
+      const { data: old } = await db.from("shadow_orders").select("*").eq("idempotency_key", book + ":" + tradeId + ":close").maybeSingle();
+      if (old?.dispatch_state === "planned") Object.assign(claim ?? (claim = {}), old);
+      else { results.push({ book, error: old?.dispatch_state === "confirmed" ? null : "EXIT_RECONCILIATION_REQUIRED" }); continue; }
+    }
+    if ((claimErr && claimErr.code !== "23505") || !claim) { results.push({ book, error: "claim failed" }); continue; }
     const dest = await destination(db, book);
     if (!dest) { await db.from("shadow_orders").update({ status: "reconciliation_required", error: "destination unavailable" }).eq("id", claim.id); results.push({ book, error: "destination unavailable" }); continue; }
+    const { data: dispatched, error: dispatchError } = await db.from("shadow_orders").update({ dispatch_state: "sent" }).eq("id", claim.id).eq("dispatch_state", "planned").select("id");
+    if (dispatchError || !dispatched?.length) { results.push({ book, error: "EXIT_ALREADY_IN_FLIGHT" }); continue; }
     const started = Date.now();
     try {
       const ids = responseIds(await closePositionQty(dest.token, dest.accNum, String(leg.broker_position_id), 0));
-      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true }).catch(() => null);
-      await db.from("shadow_orders").update({ status: fill ? "closed" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: leg.broker_position_id,
+      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true, strictOrder: true }).catch(() => null);
+      const verified = !!fill && !!ids.orderId && fill.orderId === ids.orderId && Math.abs(fill.qty - Number(leg.qty)) < 1e-8;
+      await db.from("shadow_orders").update({ status: verified ? "closed" : "reconciliation_required", dispatch_state: verified ? "confirmed" : "unknown", broker_confirmed_qty: verified ? Number(leg.qty) : null, broker_order_id: ids.orderId, broker_position_id: leg.broker_position_id,
         fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString() }).eq("id", claim.id);
-      if (fill) await db.from("shadow_orders").update({ status: "closed", updated_at: new Date().toISOString() }).eq("id", leg.id);
+      if (verified) {
+        await db.from("shadow_orders").update({ status: "closed", updated_at: new Date().toISOString() }).eq("id", leg.id);
+        await db.from("book_position_slots").update({ state: "released" }).eq("book", book).eq("source_trade_id", tradeId);
+      }
       results.push({ book, fill_price: fill?.price ?? null });
     } catch (e) {
       await db.from("shadow_orders").update({ status: "reconciliation_required", error: String(e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", claim.id);
@@ -338,20 +357,20 @@ async function shadowReconcile(db: Db) {
     if (!dest) continue;
     const rows = await ordersByStrategy(dest.token, dest.accountId, dest.accNum, bookStrategy(book, o.source_trade_id)).catch(() => []);
     const filled = rows.filter((r) => String(r.status ?? "").toLowerCase() === "filled" &&
-      (o.event === "open" ? (r.isOpen === true || String(r.isOpen) === "true") : !(r.isOpen === true || String(r.isOpen) === "true")));
+      (o.event === "open" ? (r.isOpen === true || String(r.isOpen) === "true") : (!!o.broker_order_id && String(r.id ?? r.orderId) === String(o.broker_order_id) && Math.abs(Number(r.filledQty) - Number(o.qty)) < 1e-8 && !(r.isOpen === true || String(r.isOpen) === "true"))));
     if (filled.length) {
       const r = filled[0];
-      await db.from("shadow_orders").update({ status: o.event === "open" ? "filled" : "closed", broker_order_id: String(r.id ?? ""),
+      await db.from("shadow_orders").update({ status: o.event === "open" ? "filled" : "closed", ...(o.event === "open" ? {} : { dispatch_state: "confirmed", broker_confirmed_qty: Number(o.qty) }), broker_order_id: String(r.id ?? ""),
         broker_position_id: r.positionId == null ? o.broker_position_id : String(r.positionId), fill_price: Number(r.avgPrice) || null, error: null, updated_at: new Date().toISOString() }).eq("id", o.id);
       if (o.event === "close") await db.from("shadow_orders").update({ status: "closed" }).eq("source_trade_id", o.source_trade_id).eq("event", "open").eq("status", "filled");
       fixed.push({ id: o.id, found: true });
     } else if (Date.now() - Date.parse(o.created_at) > 10 * 60_000) {
-      await db.from("shadow_orders").update({ status: "error", error: (o.error ? o.error + " | " : "") + "no broker order found after 10 minutes", updated_at: new Date().toISOString() }).eq("id", o.id);
+      await db.from("shadow_orders").update({ status: "reconciliation_required", error: (o.error ? o.error + " | " : "") + "no broker order found after 10 minutes", updated_at: new Date().toISOString() }).eq("id", o.id);
       fixed.push({ id: o.id, found: false });
     }
   }
   const { data: waiting } = await db.from("shadow_slices").select("source_trade_id").is("exit_price", null).gt("created_at", new Date(Date.now() - SLICE_MAX_AGE_MS).toISOString()).limit(50);
-  for (const w of [...new Set((waiting ?? []).map((x: Record<string, unknown>) => String(x.source_trade_id)))]) fixed.push({ priced_slices: w, n: await shadowPriceSlices(db, w).catch(() => 0) });
+  for (const w of [...new Set((waiting ?? []).map((x: Record<string, unknown>) => String(x.source_trade_id)))]) fixed.push({ priced_slices: w, n: await shadowPriceSlices(db, String(w)).catch(() => 0) });
   const { data: legs } = await db.from("shadow_orders").select("source_trade_id").eq("event", "open").eq("status", "filled").limit(200);
   for (const leg of legs ?? []) {
     const { data: t } = await db.from("trades").select("status").eq("id", leg.source_trade_id).maybeSingle();
@@ -363,26 +382,28 @@ async function shadowReconcile(db: Db) {
 async function reconcile(db: Db) {
   const fixed: unknown[] = [];
   // 1) Orders whose broker response was lost: find them by strategy id.
-  const { data: stuck } = await db.from("book_orders").select("*").in("status", ["sent", "reconciliation_required"])
+  const { data: stuck } = await db.from("book_orders").select("*").in("status", ["sent", "reconciliation_required", "error"])
     .lt("created_at", new Date(Date.now() - 45_000).toISOString()).limit(20);
   for (const o of stuck ?? []) {
-    const dest = await destination(db, o.book);
+    const dest = await destination(db, o.book, o.event !== "open");
     if (!dest) continue;
     const rows = await ordersByStrategy(dest.token, dest.accountId, dest.accNum, bookStrategy(o.book, o.source_trade_id)).catch(() => []);
     const filled = rows.filter((r) => String(r.status ?? "").toLowerCase() === "filled" &&
-      (o.event === "open" ? (r.isOpen === true || String(r.isOpen) === "true") : !(r.isOpen === true || String(r.isOpen) === "true")));
+      (o.event === "open" ? (r.isOpen === true || String(r.isOpen) === "true") : (!!o.broker_order_id && String(r.id ?? r.orderId) === String(o.broker_order_id) && Math.abs(Number(r.filledQty) - Number(o.qty)) < 1e-8 && !(r.isOpen === true || String(r.isOpen) === "true"))));
     if (filled.length) {
       const r = filled[0];
-      await db.from("book_orders").update({ status: o.event === "open" ? "filled" : "closed", broker_order_id: String(r.id ?? ""),
+      await db.from("book_orders").update({ status: o.event === "open" ? "filled" : "closed", ...(o.event === "open" ? {} : { dispatch_state: "confirmed", broker_confirmed_qty: Number(o.qty) }), broker_order_id: String(r.id ?? ""),
         broker_position_id: r.positionId == null ? o.broker_position_id : String(r.positionId), fill_price: Number(r.avgPrice) || null,
         error: null, updated_at: new Date().toISOString() }).eq("id", o.id);
       fixed.push({ id: o.id, found: true });
     } else if (Date.now() - Date.parse(o.created_at) > 10 * 60_000) {
-      await db.from("book_orders").update({ status: "error", error: (o.error ? o.error + " | " : "") + "no broker order found after 10 minutes", updated_at: new Date().toISOString() }).eq("id", o.id);
-      if (o.event === "open") await db.rpc("ab_release_risk", { p_book: o.book, p_trade: o.source_trade_id });
+      await db.from("book_orders").update({ status: "reconciliation_required", error: (o.error ? o.error + " | " : "") + "no broker order found after 10 minutes", updated_at: new Date().toISOString() }).eq("id", o.id);
+      // Risk remains reserved until affirmative broker reconciliation; absence from history is insufficient.
       fixed.push({ id: o.id, found: false });
     }
   }
+  const { data: prepared } = await db.from("book_orders").select("source_trade_id,event,idempotency_key").neq("event", "open").eq("dispatch_state", "planned").limit(50);
+  for (const o of prepared ?? []) fixed.push(await closeLeg(db, { source_trade_id: o.source_trade_id, event: o.event, slice_id: String(o.idempotency_key).split("partial:")[1] ?? "" }));
   // 2) Orphans: a filled book leg whose IPFX trade is already closed but whose close never happened.
   const { data: legs } = await db.from("book_orders").select("source_trade_id,book").eq("event", "open").eq("status", "filled").limit(200);
   for (const leg of legs ?? []) {
@@ -390,7 +411,7 @@ async function reconcile(db: Db) {
       db.from("trades").select("status").eq("id", leg.source_trade_id).maybeSingle(),
       db.from("book_orders").select("id").eq("source_trade_id", leg.source_trade_id).eq("book", leg.book).eq("event", "close").limit(1),
     ]);
-    if (t?.status === "closed" && !(c ?? []).length) fixed.push({ orphan: leg.source_trade_id, ...(await closeLeg(db, { source_trade_id: leg.source_trade_id, event: "close" })) });
+    if (t?.status === "closed") fixed.push({ orphan: leg.source_trade_id, ...(await closeLeg(db, { source_trade_id: leg.source_trade_id, event: "close" })) });
   }
   fixed.push(...await shadowReconcile(db).catch(() => []));
   return { ok: true, fixed };

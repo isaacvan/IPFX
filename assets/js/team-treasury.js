@@ -24,13 +24,13 @@
 
   function render(d) {
     const s = d.snapshot, set = d.settings || {};
-    const statusText = { unknown: 'Unknown: enter reserve', healthy: 'Healthy', tight: 'Tight', short: 'Short' }[s?.status || 'unknown'];
+    const statusText = { unknown: 'Unknown: check reserve / data', healthy: 'Healthy', tight: 'Tight', short: 'Short' }[s?.status || 'unknown'];
     $('kpis').innerHTML = [
-      ['Payout cover', statusText], ['Expected payouts, 30 days', usd(s?.liab_30d)], ['Bad case, 90 days', usd(s?.liab_90d_p90)],
+      ['Payout cover', statusText], ['Expected payouts, 30 days', usd(s?.liab_30d)], ['Model estimate, 90 days', usd(s?.notes?.figures_unavailable ? null : s?.liab_90d_p90)], ['All graduates stress (not a forecast)', usd(s?.notes?.dependence_stress_usd)],
       ['Cash counted', usd(s?.assets_usd)], ['Payout model', set.payout_model === 'sponsored_account' ? 'Funded account at Stage 4' : 'Cash at Stage 3 (current Terms)'],
       ['New book risk', set.book_halt ? 'HALTED' : 'Allowed'],
     ].map(([k, v]) => `<div class="tile"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
-    $('modelNote').textContent = s ? `Forecast at ${when(s.as_of)} for ${s.open_accounts} open Infinity accounts. Cash counted = your reserve + prop-firm payouts received - evaluation fees paid. Demo results are never counted as cash.` : 'No forecast yet (runs every hour).';
+    $('modelNote').textContent = s ? `Forecast at ${when(s.as_of)} for ${s.open_accounts} open Infinity accounts. ${s.complete ? 'Complete model inputs' : 'INCOMPLETE — check data before acting'}${s.notes?.source_error ? ' · '+s.notes.source_error : ''}. Cash is an unreconciled estimate from recorded reserve, receipts and fees. Demo profits are excluded. The 90-day model assumes independent outcomes; correlated trader risk can be much higher.` : 'No forecast yet (runs every hour).';
     $('horizons').innerHTML = s ? [['7 days', s.liab_7d, null, null], ['30 days', s.liab_30d, s.liab_30d_p90, s.graduates_30d], ['60 days', s.liab_60d, null, null], ['90 days', s.liab_90d, s.liab_90d_p90, s.graduates_90d]]
       .map(([h, e, p, g]) => `<tr><td>${h}</td><td>${usd(e)}</td><td>${p == null ? '—' : usd(p)}</td><td>${g == null ? '—' : Number(g).toFixed(1)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No forecast yet.</td></tr>';
     if (set.starting_reserve_usd != null && document.activeElement !== $('reserveUsd')) $('reserveUsd').value = set.starting_reserve_usd;
@@ -40,7 +40,7 @@
     const la = d.ladder_accounts || [];
     const ROLE = { ladder: 'Prop (A-book)', shadow: 'Demo copy', monitor: 'E8 monitor (read-only)' };
     $('ladderRows').innerHTML = la.length ? la.map((a) => `<tr><td>${esc(a.label)} #${esc(a.id)}</td><td>${esc(ROLE[a.role] || a.role || 'Prop (A-book)')}${a.api_env === 'live' ? ' · live' : ''}</td><td>${usd(a.size_usd)}</td><td>${usd(a.fee_usd)}</td><td>${esc(a.status)}</td><td>${esc(a.signal_group)}</td><td>${a.execution_enabled ? 'ON' : 'off'}</td>
-      <td>${a.role === 'monitor' ? '<span class="small">Read-only</span>' : `<button class="button" data-la="${a.id}" data-on="${a.execution_enabled ? '0' : '1'}" type="button">${a.execution_enabled ? 'Stop copying' : 'Start copying'}</button>`}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No accounts yet.</td></tr>';
+      <td>${a.role === 'monitor' ? '<span class="small">Read-only</span>' : `<button class="button" data-capacity="${a.role==='shadow'?'s':'l'}${a.id}" type="button">Set verified capacity</button> <button class="button" data-la="${a.id}" data-on="${a.execution_enabled ? '0' : '1'}" type="button">${a.execution_enabled ? 'Stop copying' : 'Start copying'}</button>`}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No accounts yet.</td></tr>';
 
     const st = d.book_states || {};
     $('bookStates').innerHTML = Object.keys(STATE_LABEL).map((k) => `<div class="tile"><span>${STATE_LABEL[k]}</span><strong>${st[k] || 0}</strong></div>`).join('');
@@ -75,6 +75,13 @@
     finally { $('laPassword').value = ''; $('laSubmit').disabled = false; }
   });
   document.addEventListener('click', (e) => {
+    const capacity=e.target.closest('[data-capacity]');
+    if(capacity){
+      const limit=prompt('Maximum simultaneous positions plus pending orders, confirmed by this demo provider:');if(limit===null)return;
+      const margin=prompt('Conservative USD margin needed per lot across the instruments you will copy:');if(margin===null)return;
+      const evidence=prompt('Provider document/reference confirming these limits and permitted copying:');if(evidence===null)return;
+      act('capacity_set',{book:capacity.dataset.capacity,position_limit:Number(limit),margin_per_lot_usd:Number(margin),provider_evidence:evidence},'Capacity saved. Copying enablement was not changed.');return;
+    }
     const la = e.target.closest('[data-la]'); if (la) act('ladder_update', { id: Number(la.dataset.la), execution_enabled: la.dataset.on === '1' }, 'Saved');
     const sp = e.target.closest('[data-sp]'); if (sp) act('sponsorship_decide', { id: Number(sp.dataset.sp), status: 'purchased' }, 'Marked as bought');
   });

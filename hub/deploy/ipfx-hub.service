@@ -17,6 +17,8 @@ ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 ReadOnlyPaths=/opt/ipfx-hub
+StateDirectory=ipfx-hub
+StateDirectoryMode=0700
 
 [Install]
 WantedBy=multi-user.target

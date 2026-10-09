@@ -5904,8 +5904,8 @@ function ticketPollDue(){
   const pushing=(rtQuoteChan||hubLive())&&Date.now()-lastPushedQuoteAt<3000;
   const exposed=((engineState&&engineState.open_trades)||[]).length>0||((engineState&&engineState.pending_orders)||[]).length>0;
   if(pushing&&!exposed)return since>=15000;
-  if(Date.now()-lastUserActivity>300000)return since>=3000;
   if(pushing&&hubRisk&&hubLive())return since>=10000;
+  if(Date.now()-lastUserActivity>300000)return since>=3000;
   if(pushing)return since>=2250;
   return true;
 }

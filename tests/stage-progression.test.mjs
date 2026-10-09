@@ -14,14 +14,16 @@ const terms = read('terms.html');
 test('the background sweep also visits accounts that reached their target while flat, so a stage completes on time', () => {
   const sweep = engine.slice(engine.indexOf('if (body.action === "sweep") {'), engine.indexOf('// privileged client for writes'));
   assert.match(sweep, /db\.rpc\("fn_pass_candidates"\)/);
-  assert.match(sweep, /ids\.add\(String\(\(r as \{ account_id: string \}\)\.account_id\)\)/);
-  assert.match(sweep, /catch \(_\) \{ \/\* the sweep never fails because of this extra pass \*\/ \}/);
+  assert.match(sweep, /ids\.add\(String\(row\.account_id\)\)/);
+  assert.match(sweep, /stage:\"pass_candidates\"/, "failed candidacy checks are visible");
   assert.match(sweep, /await enforce\(db, acct as Acct\)/, 'candidates go through the normal enforce() and pass gate');
 });
 
 test('promotion stays gated by the full pass gate and is automatic: next stage account is the newest active account', () => {
   assert.match(engine, /Number\(acct\.balance\) >= round2\(start \* \(1 \+ Number\(acct\.profit_target_pct\) \/ 100\)\) &&\s+open\.length === 0/);
-  assert.match(engine, /const gate = await passGate\(db, acct\);\s+if \(gate\.ok\) \{\s+acct\.status = "passed";\s+await provisionNextStage\(db, acct\);/);
+  assert.match(engine, /const gate = await passGate\(db, acct\);\s+if \(gate\.ok\) \{/);
+  assert.match(engine, /db\.rpc\("fn_advance_infinity_stage"/);
+  assert.match(engine, /await provisionNextStage\(db, acct\);\s+acct\.status = "passed";/, 'atomic advancement persists before the in-memory passed status');
   assert.match(engine, /\.eq\("status", "active"\)\s+\.neq\("phase", "demo"\)\.is\("access_revoked_at", null\)\s+\.order\("created_at", \{ ascending: false \}\)\.limit\(1\)/);
 });
 

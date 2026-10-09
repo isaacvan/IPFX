@@ -1306,6 +1306,12 @@ const TIER_FEE: Record<string, number> = { "10k": 79, "25k": 149, "50k": 249, "1
 // Idempotent: if a descendant already exists this is a no-op, which
 // protects against enforce() running twice in a race.
 async function provisionNextStage(db: Db, evalAcct: Acct): Promise<void> {
+  if (evalAcct.challenge_type === "infinity" && Number(evalAcct.stage) <= 3) {
+    const { data, error } = await db.rpc("fn_advance_infinity_stage", { p_account: evalAcct.id, p_expected_user: evalAcct.user_id });
+    if (error) throw new Error("STAGE_ADVANCE_UNAVAILABLE: " + error.code);
+    if (!data?.ok) throw new Error("STAGE_ADVANCE_REFUSED: " + (data?.reason ?? "unknown"));
+    return;
+  }
   const { data: existing } = await db.from("trading_accounts")
     .select("id").eq("funded_from_account_id", evalAcct.id).maybeSingle();
   if (existing) return;
@@ -1776,7 +1782,7 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
     return { ok: false, status: 403, error: "Choose this challenge on the website and complete the identity-document application before review." };
   }
   if (application.status === "pending") {
-    return { ok: false, status: 403, error: "Your challenge request is waiting for review. We aim to decide within 24 hours." };
+    return { ok: false, status: 403, error: "Your challenge request is waiting for review. We review applications in order; busy periods can take longer." };
   }
   if (application.status === "denied") {
     return { ok: false, status: 403, error: application.decision_note || "This challenge request was not approved." };
@@ -1812,6 +1818,7 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
   // pre-launch alignment also attaches v4 to existing test accounts.
   const qualification = await db.rpc("qualification_progress_v2", { p_account: acct.id });
   if (qualification.error || !qualification.data) unmet.push("Qualification verification unavailable");
+  else if (acct.challenge_type === "infinity" && Number(acct.stage) <= 3 && !qualification.data.applies) unmet.push("Qualification contract missing");
   else if (qualification.data.applies && !qualification.data.eligible) {
     unmet.push(...(qualification.data.unmet ?? ["Extended qualification incomplete"]));
   }
@@ -1849,6 +1856,11 @@ async function closeTrade(
   db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null, clientIp?: string | null,
   exec?: { shortfallUsd?: number },
 ): Promise<boolean> {
+  const { data: intent, error: intentError } = await db.rpc("fn_request_ipfx_full_close", {
+    p_trade: t.id, p_account: acct.id, p_user: acct.user_id, p_volume: Number(t.volume),
+    p_decision: { reason, exit, quote: q ?? null, at: new Date().toISOString() },
+  });
+  if (intentError || !intent?.ok) return false;
   // Copied trade: close the hedge first and fill the trader no better than the broker did.
   const legs = await bookLegs(db, t.id);
   let hedge: HedgeClose;
@@ -1917,7 +1929,7 @@ async function strikeOutRun(db: Db, acct: Acct, open: Tr[]): Promise<Tr[]> {
   if (claim.error) { console.error("[sl-strikes] breach claim failed", { account_id: acct.id, message: claim.error.message }); return open; }
   acct.status = "breached";
   acct.breach_reason = "stop_loss_rule";
-  if (claim.data === true) {
+  {
     for (const t of open) {
       let q = await fetchQuote(t.symbol);
       if (q === null) q = await lastKnownQuote(t.symbol);
@@ -2147,9 +2159,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
         done = await closeTrade(db, acct, t, ex, "no_stop_loss", q);
         if (!done) { still.push(t); continue; }
         // deno-lint-ignore no-explicit-any
-        const { data: strikes } = await db.rpc("fn_record_sl_strike", { p_account: acct.id, p_trade: t.id, p_stripped: Number((t as any).stripped_profit ?? 0) });
+        const { data: strikes, error: strikeError } = await db.rpc("fn_record_sl_strike", { p_account: acct.id, p_trade: t.id, p_stripped: Number((t as any).stripped_profit ?? 0) });
         // deno-lint-ignore no-explicit-any
-        (acct as any).sl_strikes = Number(strikes ?? 0);
+        if (strikeError || !Number.isFinite(Number(strikes)) || strikes == null) throw new Error("STOP_WARNING_VERIFICATION_FAILED");
+        (acct as any).sl_strikes = Number(strikes);
         if (Number(strikes) >= SL_STRIKES_MAX && acct.status === "active") strikeOut = true;
         continue;
       }
@@ -2336,8 +2349,15 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       // accruing payout-eligible profit) until it is breached.
       const gate = await passGate(db, acct);
       if (gate.ok) {
-        acct.status = "passed";
-        await provisionNextStage(db, acct);
+        if (acct.challenge_type === "infinity") {
+          await provisionNextStage(db, acct);
+          acct.status = "passed";
+        } else {
+          const { data: passed, error } = await db.from("trading_accounts").update({ status: "passed" }).eq("id", acct.id).eq("status", "active").select("id");
+          if (error || !passed?.length) throw new Error("STAGE_STATUS_CHANGED");
+          acct.status = "passed";
+          await provisionNextStage(db, acct);
+        }
         const { data: nextAcct } = await db.from("trading_accounts")
           .select("label,phase").eq("funded_from_account_id", acct.id).maybeSingle();
         if (nextAcct?.phase === "funded") {
@@ -2934,7 +2954,8 @@ const handleRequest = async (req: Request): Promise<Response> => {
       .filter((x: string) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 25);
     const results: Record<string, unknown>[] = [];
     for (const id of ids) {
-      const { data: acct } = await hubDb.from("trading_accounts").select("*").eq("id", id).maybeSingle();
+      const { data: acct, error: lookupError } = await hubDb.from("trading_accounts").select("*").eq("id", id).maybeSingle();
+      if (lookupError) { results.push({ id, error: "ACCOUNT_LOOKUP_FAILED" }); continue; }
       // Demo accounts too: their stops, take-profits and pending orders must fire even when the trader is offline.
       if (!acct || (acct.access_revoked_at && acct.status !== "breached") || !(isTradableAccount(acct as Acct) || acct.status === "breached")) { results.push({ id, skipped: true }); continue; }
       try {
@@ -2945,61 +2966,52 @@ const handleRequest = async (req: Request): Promise<Response> => {
     return out({ ok: true, results });
   }
 
-  if (body.action === "sweep") {
-    const secret = req.headers.get("x-cron-secret");
-    const expected = Deno.env.get("CRON_SECRET");
-    if (!expected || secret !== expected) return err("Not authorized", 401);
-
-    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    // The sweep runs every few seconds; a lease stops a slow run and the next
-    // one enforcing the same account at once. Missing lease function = run.
-    const lease = await db.rpc("claim_engine_sweep", { p_seconds: 55 });
-    if (!lease.error && lease.data === false) {
-      return new Response(JSON.stringify({ ok: true, skipped: "previous sweep still running" }),
-        { headers: { ...CORS, "Content-Type": "application/json" } });
-    }
-    // Page through open trades instead of packing every account id into one
-    // URL filter (which fails past a few hundred accounts), and visit accounts
-    // in random order under a time budget so a slow run never leaves the same
-    // accounts unchecked every time.
-    const ids = new Set<string>();
-    for (let from = 0; ; from += 1000) {
-      const { data: page, error: pageErr } = await db.from("trades").select("account_id")
-        .eq("status", "open").order("id").range(from, from + 999);
-      if (pageErr || !page || !page.length) break;
-      for (const r of page) ids.add(r.account_id);
-      if (page.length < 1000) break;
-    }
-    // Accounts that have reached their profit target but are flat are not in the open-trades list above. Visit them too,
-    // so a stage completes the moment its last requirement is met (for example the observation days), without the
-    // trader having to open the platform. enforce() and passGate still decide: this only makes the promotion on time.
-    try {
-      const { data: ready } = await db.rpc("fn_pass_candidates");
-      for (const r of ready ?? []) ids.add(String((r as { account_id: string }).account_id));
-    } catch (_) { /* the sweep never fails because of this extra pass */ }
-    let alertsFired = 0;
-    try { alertsFired = await evaluateAlerts(db, null); } catch (_) { /* alerts never block enforcement */ }
-    const queue = [...ids].sort(() => Math.random() - 0.5);
-    const deadline = Date.now() + 40_000;
-    let visited = 0;
-    let breached = 0;
-    for (const id of queue) {
-      if (Date.now() > deadline) break;
-      visited++;
-      const { data: acct } = await db.from("trading_accounts").select("*").eq("id", id).maybeSingle();
-      // Demo accounts included: enforce() closes their stops/targets and fills their orders (no loss limits apply).
-      if (!acct || (acct.access_revoked_at && acct.status !== "breached") || !(isTradableAccount(acct as Acct) || acct.status === "breached")) continue;
-      const before = acct.status;
-      await enforce(db, acct as Acct);
-      if (before === "active") {
-        const { data: after } = await db.from("trading_accounts").select("status").eq("id", id).maybeSingle();
-        if (after?.status === "breached") breached++;
-      }
-    }
-    if (!lease.error) await db.rpc("release_engine_sweep");
-    return new Response(JSON.stringify({ ok: true, swept: visited, unvisited: queue.length - visited, breached, alerts_fired: alertsFired }),
-      { headers: { ...CORS, "Content-Type": "application/json" } });
+if (body.action === "sweep") {
+ const secret=req.headers.get("x-cron-secret"),expected=Deno.env.get("CRON_SECRET");
+ if(!expected||secret!==expected)return err("Not authorized",401);
+ const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+ const lease=await db.rpc("claim_engine_sweep",{p_seconds:55});
+ if(lease.error||(lease.data!==true&&lease.data!==false))return new Response(JSON.stringify({ok:false,error:"SWEEP_LEASE_UNAVAILABLE"}),{headers:{...CORS,"Content-Type":"application/json"}});
+ if(lease.data===false)return new Response(JSON.stringify({ok:true,skipped:"previous sweep still running"}),{headers:{...CORS,"Content-Type":"application/json"}});
+ const failures=[],warnings=[];let visited=0,checked=0,breached=0,unvisited=0,alertsFired=0;
+ try {
+  const ids=new Set();
+  for(const [table,status]of [["trades","open"],["pending_orders","pending"]]) {
+   for(let from=0;;from+=1000){
+    const {data:page,error}=await db.from(table).select("account_id").eq("status",status).order("id").range(from,from+999);
+    if(error){failures.push({stage:"scan",table,code:error.code??"SCAN_FAILED"});break;}
+    if(!page?.length)break;
+    for(const row of page)ids.add(row.account_id);
+    if(page.length<1000)break;
+   }
   }
+  try{const{data:ready,error}=await db.rpc("fn_pass_candidates");if(error)failures.push({stage:"pass_candidates",code:error.code??"QUERY_FAILED"});else for(const row of ready??[])ids.add(String(row.account_id));}
+  catch{failures.push({stage:"pass_candidates",code:"QUERY_FAILED"});}
+  try{alertsFired = await evaluateAlerts(db, null);}catch{warnings.push("ALERT_CHECK_FAILED");}
+  const queue=[...ids].sort(()=>Math.random()-.5),deadline=Date.now()+40000;
+  for(const id of queue){
+   if(Date.now()>deadline)break;
+   visited++;
+   try{
+    const{data:acct,error}=await db.from("trading_accounts").select("*").eq("id",id).maybeSingle();
+    if(error){failures.push({id,stage:"account",code:error.code??"LOOKUP_FAILED"});continue;}
+    if(!acct||(acct.access_revoked_at && acct.status !== "breached")||!(isTradableAccount(acct as Acct) || acct.status === "breached"))continue;
+    const before=acct.status;await enforce(db, acct as Acct);checked++;
+    if(before==="active"){
+     const{data:after,error}=await db.from("trading_accounts").select("status").eq("id",id).maybeSingle();
+     if(error)warnings.push("BREACH_COUNT_REFRESH_FAILED");else if(after?.status==="breached")breached++;
+    }
+   }catch{failures.push({id,stage:"enforce",code:"ACCOUNT_ENFORCE_FAILED"});}
+  }
+  unvisited=queue.length-visited;
+ }catch{failures.push({stage:"sweep",code:"SWEEP_FAILED"});}
+ finally {
+  try{const{error}=await db.rpc("release_engine_sweep");if(error)failures.push({stage:"release",code:error.code??"LEASE_RELEASE_FAILED"});}
+  catch{failures.push({stage:"release",code:"LEASE_RELEASE_FAILED"});}
+ }
+ return new Response(JSON.stringify({ok:failures.length===0,swept:visited,checked,unvisited,breached,alerts_fired:alertsFired,failures,warnings}),{headers:{...CORS,"Content-Type":"application/json"}});
+}
+
 
   // privileged client for writes (bypasses RLS — server is the only writer)
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -3111,12 +3123,12 @@ const handleRequest = async (req: Request): Promise<Response> => {
         .select("id,status,decision_note,trading_account_id")
         .eq("user_id", user.id).eq("preset_id", "infinity_s1").maybeSingle();
       if (!application) {
-        return err("Complete the challenge application, declarations and identity-document upload on the website first. Once submitted, it will be reviewed within the next 24 hours.", 409);
+        return err("Complete the challenge application, declarations and identity-document upload on the website first. Once submitted, it joins the review queue. You will see the decision on your dashboard.", 409);
       }
       if (application.status === "pending") {
         return new Response(JSON.stringify({
           ok: true, pending_review: true, application,
-          message: "Your challenge request is waiting for review. We aim to decide within 24 hours.",
+          message: "Your challenge request is waiting for review. We review applications in order; busy periods can take longer.",
         }), { headers: { ...CORS, "Content-Type": "application/json" } });
       }
       if (application.status === "denied") {
