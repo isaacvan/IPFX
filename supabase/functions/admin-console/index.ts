@@ -1802,6 +1802,11 @@ Deno.serve(async (req) => {
       await db.from("challenge_enrolment_requests").update({
         trading_account_id: accountId, updated_at: new Date().toISOString(),
       }).eq("id", applicationId);
+      // Tell the trader straight away that they are approved and can trade. Never blocks or fails the decision; until an
+      // email provider is configured the message is recorded in email_events as "queued".
+      await sendLifecycleEmail(db, "infinity_approved", current.user_id, {
+        trading_url: "https://ipfxcapital.com/trading.html", dashboard_url: "https://ipfxcapital.com/dashboard.html",
+      });
     }
     if (accountId && status === "denied") {
       await db.from("trading_accounts").update({

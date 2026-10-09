@@ -1681,10 +1681,10 @@
       }
       if (Date.now() >= launchAt && programme === 'infinity') { openPreview(); return; }
       if (Date.now() >= launchAt && programme !== 'infinity') {
-        document.getElementById('challengeLaunchTitle').innerHTML = 'Programme<br>on hold';
-        document.querySelector('.challenge-launch-date').textContent = 'Infinity is the only open challenge';
-        document.getElementById('challengeLaunchCopy').textContent = 'Traditional, Futures and PAC applications and payments remain paused. No replacement launch date has been announced.';
-        status.textContent = 'Choose the Infinity Challenge to apply from 9 October 2026.';
+        document.getElementById('challengeLaunchTitle').innerHTML = 'Not open<br>yet';
+        document.querySelector('.challenge-launch-date').textContent = 'Infinity is open now';
+        document.getElementById('challengeLaunchCopy').textContent = 'Traditional, Futures and PAC are not open yet. Pre-register free and we will tell you when they launch, or start the Infinity Challenge now.';
+        status.innerHTML = '<a href="/signup.html?interest=' + encodeURIComponent(programme) + '" style="color:#93b4ff">Pre-register free</a> &middot; <a href="/start-challenge.html?type=infinity" style="color:#93b4ff">Start the Infinity Challenge</a>';
       }
       try {
         const db = window.supabase.createClient(

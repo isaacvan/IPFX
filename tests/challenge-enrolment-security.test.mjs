@@ -53,8 +53,8 @@ test('Infinity remains selectable while paused programme CTAs are disabled', () 
   const pac = read('personalised-challenge.html');
   assert.match(infinity, /start-challenge\.html\?type=infinity/);
   assert.doesNotMatch(futures, /start-challenge\.html\?type=futures#25k/);
-  assert.match(futures, /Futures Challenge applications and payments are on hold/);
+  assert.match(futures, /Futures applications and payments are not open yet/);
   assert.doesNotMatch(pac, /start-challenge\.html\?type=pac/);
-  assert.match(pac, /Personalised Application Challenge applications and payments are on hold/);
+  assert.match(pac, /Personalised Application Challenge applications and payments are not open yet/);
   assert.match(read('start-challenge.html'), /data-sku="trad_10k_p1"/);
 });

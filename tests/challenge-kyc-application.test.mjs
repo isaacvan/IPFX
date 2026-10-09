@@ -17,7 +17,7 @@ test('all challenge families are represented but only Infinity has a public CTA'
   assert.match(flow, /if \(sku\.startsWith\('infinity_'\)\) return 'infinity'/);
   assert.match(read('infinity.html'), /start-challenge\.html\?type=infinity/);
   assert.doesNotMatch(read('personalised-challenge.html'), /start-challenge\.html\?type=pac#100k/);
-  assert.match(read('personalised-challenge.html'), /applications and payments are on hold/);
+  assert.match(read('personalised-challenge.html'), /applications and payments are not open yet/);
 });
 
 test('application collects proportionate identity and suitability data', () => {

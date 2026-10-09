@@ -745,10 +745,10 @@
                 <img src="/desktop/build/icon.png" alt="IPFX Capital">
             </div>
 
-            <div class="launch-badge">Infinity launches 9 October 2026</div>
-            <h1 id="signupHeading">Pre-register for Infinity</h1>
-            <p class="subtitle" id="signupSubtitle">Create your free account ahead of the launch</p>
-            <p class="pre-register-info" id="signupInfo">Submit this form first. We will then show you the launch date and ask you to verify your email. Pre-registration does not start a challenge.</p>
+            <div class="launch-badge" id="signupBadge">Infinity Challenge is now open</div>
+            <h1 id="signupHeading">Create Your Account</h1>
+            <p class="subtitle" id="signupSubtitle">Get started with IPFX Capital</p>
+            <p class="pre-register-info" id="signupInfo">Create your account and verify your email before applying for an available challenge.</p>
 
             <div id="alertBox" class="alert"></div>
 
@@ -829,7 +829,7 @@
 
                 <div id="tsWidget" class="ts-widget" hidden></div>
 
-                <button type="submit" class="btn-signup" id="submitBtn">Pre-register free</button>
+                <button type="submit" class="btn-signup" id="submitBtn">Create Account</button>
             </form>
 
             <div class="divider">or</div>
@@ -922,7 +922,16 @@
         const beforeInfinityLaunch = Date.now() < Date.parse('2026-10-08T23:00:00Z');
         const launchAfterSignup = beforeInfinityLaunch &&
             (!urlParams.has('next') || /^\/start-challenge\.html(?:\?|$)/.test(safeNext));
-        if (!beforeInfinityLaunch) {
+        // Pre-registration is only for programmes that are not open yet. Infinity is open: it is a normal sign-up.
+        const interestNames = { traditional: 'the Traditional Challenge', futures: 'the Futures Challenge', pac: 'the Personalised Application Challenge' };
+        const interest = Object.prototype.hasOwnProperty.call(interestNames, urlParams.get('interest') || '') ? urlParams.get('interest') : null;
+        if (interest) {
+            document.getElementById('signupBadge').textContent = 'Infinity is open now. ' + interestNames[interest].replace('the ', '') + ' coming soon';
+            document.getElementById('signupHeading').textContent = 'Pre-register for ' + interestNames[interest].replace('the ', '');
+            document.getElementById('signupSubtitle').textContent = 'Be first to know when it opens';
+            document.getElementById('signupInfo').textContent = 'Create your free account and we will tell you when ' + interestNames[interest] + ' opens. Pre-registering does not start a challenge. The Infinity Challenge is open now if you want to start straight away.';
+            document.getElementById('submitBtn').textContent = 'Pre-register free';
+        } else if (!beforeInfinityLaunch) {
             document.getElementById('signupHeading').textContent = 'Create Your Account';
             document.getElementById('signupSubtitle').textContent = 'Get started with IPFX Capital';
             document.getElementById('signupInfo').textContent = 'Create your account and verify your email before applying for an available challenge.';
@@ -1266,6 +1275,7 @@
                             age_confirmed: true,
                             terms_version: '1.1',
                             privacy_version: '1.0',
+                            interest: interest,
                             referral_code: referralCodeInput.value.trim().toUpperCase() || null,
                             promo_code: validatedPromo ? validatedPromo.code : null,
                             promo_account_type: validatedPromo ? (promoAccountType || 'traditional') : null,
@@ -1309,7 +1319,7 @@
                 showAlert(errMsg, 'error');
                 resetTurnstile();
                 submitBtn.disabled = false;
-                submitBtn.textContent = beforeInfinityLaunch ? 'Pre-register free' : 'Create Account';
+                submitBtn.textContent = (interest || beforeInfinityLaunch) ? 'Pre-register free' : 'Create Account';
             }
         });
     </script>
