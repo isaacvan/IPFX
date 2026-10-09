@@ -76,8 +76,8 @@ export function marketOrder(input: { qty: number; routeId: number; side: "buy" |
   return {
     qty: input.qty, routeId: input.routeId, side: input.side, validity: "IOC", type: "market", price: 0,
     tradableInstrumentId: input.tradableInstrumentId, strategyId: strategyId(input.sourceTradeId),
-    ...(Number.isFinite(input.sl) ? { stopLoss: input.sl } : {}),
-    ...(Number.isFinite(input.tp) ? { takeProfit: input.tp } : {}),
+    ...(Number.isFinite(input.sl) ? { stopLoss: input.sl, stopLossType: "absolute" } : {}),
+    ...(Number.isFinite(input.tp) ? { takeProfit: input.tp, takeProfitType: "absolute" } : {}),
   };
 }
 

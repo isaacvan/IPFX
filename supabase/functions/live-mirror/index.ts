@@ -21,7 +21,7 @@
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decideMirrorRisk, matchingMacroEvent } from "../_shared/trader-risk.ts";
+import { decideMirrorRisk, matchingMacroEvent, type SimpleTraderCategory } from "../_shared/trader-risk.ts";
 import { brokerCopyEvidenceReady } from "../_shared/broker-copy-evidence.ts";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { closePosition, marketOrder, orderFill, placeMarketOrder, orderHistoryRows, positionAndOrderRows, refresh, responseIds, strategyId } from "../_shared/tradelocker.ts";
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
   let riskDecision = { action: "skip" as "allow" | "reduce" | "skip", multiplier: 0, reasons: ["risk-control evidence unavailable; fail closed"], unusual_size_multiple: null as number | null };
   let tierVolumeMultiplier = 0;
   let sourceAccountId: string | null = null;
-  let category = "unclassified";
+  let category: SimpleTraderCategory = "unclassified";
   let policyMode: "observe" | "adaptive" | "blocked" = "observe";
   try {
 
@@ -187,7 +187,8 @@ Deno.serve(async (req) => {
       db.from("macro_calendar_events").select("provider_event_id,event_at,country,currency,importance,event_name").gte("event_at", from).lte("event_at", to),
     ]);
     policyMode = ["observe", "adaptive", "blocked"].includes(policy?.mode) ? policy.mode : "observe";
-    category = profile?.category || "unclassified";
+    category = ["scalper", "news_event_trader", "swing_trader", "high_frequency_trader", "unclassified"].includes(profile?.category)
+      ? profile?.category as SimpleTraderCategory : "unclassified";
     const currentTrade = sourceTrade || { id: source_trade_id, symbol, volume: volumeIn, opened_at: openedAt };
     const nearHighImpactNews = !!matchingMacroEvent(currentTrade, (macroEvents ?? []).filter((e: Record<string, unknown>) => Number(e.importance) >= 3), 30);
     riskDecision = decideMirrorRisk({
@@ -224,8 +225,8 @@ Deno.serve(async (req) => {
       const brokerHealthy = riskSnapshot?.api_healthy === true && riskSnapshot?.account_currency === "GBP";
       const lossRoom = Number(riskSnapshot?.daily_pnl || 0) > -600 && Number(riskSnapshot?.drawdown_from_copy_start || 0) > -1000;
       const providerRoom = Number(riskSnapshot?.provider_daily_loss_remaining_gbp) > 0 && Number(riskSnapshot?.provider_total_drawdown_remaining_gbp) > 0 &&
-        2.75 * plannedOpenRisk <= 0.80 * Number(riskSnapshot.provider_daily_loss_remaining_gbp) &&
-        2.75 * plannedOpenRisk <= 0.50 * Number(riskSnapshot.provider_total_drawdown_remaining_gbp);
+        2.75 * plannedOpenRisk <= 0.80 * Number(riskSnapshot?.provider_daily_loss_remaining_gbp) &&
+        2.75 * plannedOpenRisk <= 0.50 * Number(riskSnapshot?.provider_total_drawdown_remaining_gbp);
       const currentAuthority = Boolean(consent) && tierDecision?.policy_id === validatedPolicy?.id &&
         tierDecision?.assessment_id === detectorAssessment?.id && brokerCopyEvidence && Number(reserve?.coverage || 0) >= 1.25 &&
         sourceAccount && ["active", "passed"].includes(sourceAccount.status) && !sourceAccount.access_revoked_at && sourceAccount.investigation_hold !== true;
@@ -284,6 +285,9 @@ Deno.serve(async (req) => {
     if (!encryptionKey) return new Response(JSON.stringify({ ok: false, error: "connector encryption unavailable" }), { status: 503 });
     const { data: connection } = await db.from("tradelocker_demo_connections").select("*").eq("id", target.tradelocker_connection_id).eq("environment", "demo").eq("status", "connected").maybeSingle();
     if (!connection) return new Response(JSON.stringify({ ok: false, error: "TradeLocker demo connection unavailable" }), { status: 409 });
+    const { count: monitored, error: monitorError } = await db.from("ladder_accounts").select("id", { count: "exact", head: true })
+      .eq("role", "monitor").eq("account_id", String(connection.tradelocker_account_id)).eq("api_env", "demo");
+    if (monitorError || !Number.isSafeInteger(monitored) || Number(monitored) !== 0) throw new Error("MONITORED_ACCOUNT_READ_ONLY_OR_UNVERIFIED");
     let accessToken = await decryptSecret(connection.access_token_ciphertext, encryptionKey);
     const refreshToken = await decryptSecret(connection.refresh_token_ciphertext, encryptionKey);
     if (!connection.access_expires_at || new Date(connection.access_expires_at).getTime() - Date.now() < 30 * 60_000) {

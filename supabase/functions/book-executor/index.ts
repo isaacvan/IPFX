@@ -25,7 +25,11 @@ function constantTimeEqual(a: string, b: string): boolean {
   for (let i = 0; i < Math.max(ea.length, eb.length); i++) diff |= (ea[i] ?? 0) ^ (eb[i] ?? 0);
   return diff === 0;
 }
-const bookStrategy = (book: string, tradeId: string) => `ipfx${book}_${tradeId.replace(/-/g, "").slice(0, 26)}`;
+const bookStrategy = (book: string, tradeId: string) => {
+  const prefix = `ipfx${book}_`, available = 31 - prefix.length;
+  if (available < 16) throw new Error("BOOK_IDENTIFIER_TOO_LONG");
+  return prefix + tradeId.replace(/-/g, "").slice(0, available);
+};
 
 async function destination(db: Db, book: string, exitOnly = false) {
   const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
