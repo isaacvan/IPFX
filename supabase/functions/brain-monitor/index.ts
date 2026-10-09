@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
       light ? none : db.rpc("ab_paper_book_daily", { p_days: 90 }),
       db.from("book_orders").select("book,event,status,pnl_usd,latency_ms,created_at").gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString()).limit(20000),
       db.from("ab_copy_skips").select("book,reason").gte("created_at", since24).limit(20000),
-      db.from("treasury_snapshots").select("as_of,status,liab_30d,liab_90d,liab_90d_p90,assets_usd,open_accounts").order("as_of", { ascending: false }).limit(1).maybeSingle(),
+      db.from("treasury_snapshots").select("as_of,status,complete,notes,liab_30d,liab_90d,liab_90d_p90,assets_usd,open_accounts").order("as_of", { ascending: false }).limit(1).maybeSingle(),
       db.from("ab_heartbeats").select("worker,ok,at,detail"),
       db.from("live_quotes").select("received_at").order("received_at", { ascending: false }).limit(1).maybeSingle(),
       db.rpc("ab_fx_market_open"),

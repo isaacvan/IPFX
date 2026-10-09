@@ -26,7 +26,7 @@
     const s = d.snapshot, set = d.settings || {};
     const statusText = { unknown: 'Unknown: check reserve / data', healthy: 'Healthy', tight: 'Tight', short: 'Short' }[s?.status || 'unknown'];
     $('kpis').innerHTML = [
-      ['Payout cover', statusText], ['Expected payouts, 30 days', usd(s?.liab_30d)], ['Model estimate, 90 days', usd(s?.notes?.figures_unavailable ? null : s?.liab_90d_p90)], ['All graduates stress (not a forecast)', usd(s?.notes?.dependence_stress_usd)],
+      ['Payout cover', statusText], ['Expected payouts, 30 days', usd(s?.notes?.figures_unavailable ? null : s?.liab_30d)], ['Model estimate, 90 days', usd(s?.notes?.figures_unavailable ? null : s?.liab_90d_p90)], ['All graduates stress (not a forecast)', usd(s?.notes?.dependence_stress_usd)],
       ['Cash counted', usd(s?.assets_usd)], ['Payout model', set.payout_model === 'sponsored_account' ? 'Funded account at Stage 4' : 'Cash at Stage 3 (current Terms)'],
       ['New book risk', set.book_halt ? 'HALTED' : 'Allowed'],
     ].map(([k, v]) => `<div class="tile"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');

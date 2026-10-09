@@ -41,6 +41,10 @@ async function destination(db: Db, book: string, exitOnly = false) {
       : db.from("ladder_accounts").select("*").eq("id", Number(book.slice(1))).eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"])).maybeSingle()
     : await db.from("team_book_destinations").select("*").eq("book", book).eq("status", "connected").eq("environment", "demo").maybeSingle();
   if (!d || !d.access_token_ciphertext || d.role === "monitor" || (d.api_env ?? "demo") !== "demo") return null;
+  // A second connection to the same monitored account must not bypass its read-only role.
+  const { count: monitored, error: monitorError } = await db.from("ladder_accounts").select("id", { count: "exact", head: true })
+    .eq("role", "monitor").eq("account_id", String(d.account_id)).eq("api_env", d.api_env ?? "demo");
+  if (monitorError || !Number.isSafeInteger(monitored) || Number(monitored) !== 0) return null;
   let token = await decryptSecret(d.access_token_ciphertext, key);
   if (!d.access_expires_at || Date.parse(d.access_expires_at) - Date.now() < 30 * 60_000) {
     const next = await refresh(await decryptSecret(d.refresh_token_ciphertext, key));

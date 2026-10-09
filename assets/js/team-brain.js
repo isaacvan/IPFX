@@ -199,7 +199,7 @@
     const lad = data.books.ladder || { accounts: 0, copying: 0 };
     $('tiles').innerHTML = bookTile('a', 'A-book') + bookTile('b', 'B-book') +
       `<div class="tile"><span>Prop accounts</span><strong>${lad.copying} of ${lad.accounts}</strong><div class="sub2">copying now · open risk ${usd(data.books.open_risk?.ladder || 0)}</div><div class="sub2">30d result ${usd(data.books.execution?.ladder?.pnl ?? 0, true)}</div></div>` +
-      `<div class="tile"><span>Payout cover</span><strong>${esc(tStatus[1])}</strong><div class="sub2">Model estimate 90d ${usd(t?.liab_90d_p90)} · cash estimate ${usd(t?.assets_usd)}</div><div class="state sev ${tStatus[0]}"><i>${SEV[tStatus[0]].icon}</i>${t ? 'forecast ' + ago(t.as_of) : 'no forecast yet'}</div></div>` +
+      `<div class="tile"><span>Payout cover</span><strong>${esc(tStatus[1])}</strong><div class="sub2">Model estimate 90d ${usd(t?.notes?.figures_unavailable ? null : t?.liab_90d_p90)} · cash estimate ${usd(t?.assets_usd)}</div>${t?.notes?.source_error ? `<div class="sub2">Data unavailable: ${esc(t.notes.source_error)}</div>` : ''}<div class="state sev ${tStatus[0]}"><i>${SEV[tStatus[0]].icon}</i>${t ? 'forecast ' + ago(t.as_of) : 'no forecast yet'}</div></div>` +
       `<div class="tile"><span>Traders by box</span><div class="counts">${['AB_LIVE', 'AB_DEMO', 'BB_LIVE', 'BB_DEMO', 'SUSPENDED'].map((k) => `<div title="${STATES[k].label}"><b>${c[k] || 0}</b><small>${STATES[k].tiny}</small></div>`).join('')}</div></div>` +
       `<div class="tile"><span>Brain health</span><strong>${down ? down + ' stopped' : 'All running'}</strong><div class="sub2">${total - down} of ${total} parts OK</div><div class="state sev ${down ? 'critical' : 'good'}"><i>${down ? '!' : '✓'}</i>${down ? 'See "Is the brain running?"' : 'Checked ' + ago(data.generated_at)}</div></div>`;
   }
@@ -256,7 +256,7 @@
       const cum = seriesFor(book, days); let peak = 0, dd = 0; for (const v of cum) { peak = Math.max(peak, v); dd = Math.max(dd, peak - v); }
       return `<div class="bstat"><h3><i style="width:14px;height:2px;background:${color};display:inline-block"></i>${title}</h3><dl>
         <dt>Real trades closed (30d)</dt><dd>${e.closed ?? 0}</dd><dt>Win rate</dt><dd>${e.closed ? pct(e.wins / e.closed) : '—'}</dd>
-        <dt>Real result (30d)</dt><dd class="${signCls(e.pnl)}">${usd(e.pnl ?? 0, true)}</dd><dt>Broken orders</dt><dd>${e.errors ?? 0}</dd>
+        <dt>Broker gross result (30d)</dt><dd class="${signCls(e.pnl)}">${usd(e.pnl ?? 0, true)}</dd><dt>Broken orders</dt><dd>${e.errors ?? 0}</dd>
         <dt>Order speed (typical / slow)</dt><dd>${fin(e.p50_latency_ms) ? Math.round(e.p50_latency_ms) + ' / ' + Math.round(e.p95_latency_ms) + ' ms' : '—'}</dd>
         <dt>Replay trades (${range}d)</dt><dd>${pt}</dd><dt>Replay avg per trade</dt><dd class="${signCls(pr)}">${pt ? rr(pr / pt) : '—'}</dd>
         <dt>Biggest fall (${mode === 'live' ? '$' : 'R'})</dt><dd>${mode === 'live' ? usd(-dd) : rr(-dd, 1)}</dd></dl></div>`;
