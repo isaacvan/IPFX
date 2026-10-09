@@ -1833,7 +1833,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, status, account_id: accountId });
   }
 
-  // Full identity details for ONE applicant, on request. Owner + MFA (checked above), limited per day (owner removed the hourly cap),
+  // Full identity details for ONE applicant, on request. Owner + MFA (checked above), limited per hour and per day,
   // and the audit row is written BEFORE the details are returned (no audit row, no details).
   if (action === "kyc_identity_reveal") {
     const targetId = String(body.user_id ?? "");
@@ -1853,13 +1853,13 @@ Deno.serve(async (req) => {
   }
 
   // The ONLY place a link to an identity document is created: one document, on request, valid for 60 seconds.
-  // Owner + MFA (checked above), limited per hour and per day, and the audit row is written BEFORE the link
+  // Owner + MFA (checked above), limited per day with no hourly document cap; the audit row is written BEFORE the link
   // is made (no audit row, no link). Rate-limit counters and every view are watched by the Brain.
   if (action === "kyc_document_url") {
     const documentId = String(body.document_id ?? "");
     if (!UUID.test(documentId)) return err("Unknown document", 400);
     try {
-      if (!await allowRequest(db, "admin:kyc_document_day", user.id, 200, 86400)) return err("Document view limit reached for today. The limit protects identity documents.", 429);
+      if (!await allowRequest(db, "admin:kyc_document_day", user.id, 350, 86400)) return err("Document view limit reached for today. The limit protects identity documents.", 429);
     } catch (error) {
       console.error(JSON.stringify({ event: "kyc_document_rate_limit", request_id: traceId, code: safeErrorCode(error) }));
       return err("Document protection unavailable", 503);
