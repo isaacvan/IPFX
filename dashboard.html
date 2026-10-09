@@ -2164,26 +2164,33 @@ async function loadPayoutsPage(){
   renderPayoutHistory((history&&history.payouts)||[]);
 }
 
+const kycUploadedFiles=new Map();
 async function submitKyc(){
   const btn=document.getElementById('kycSubmitBtn'),msg=document.getElementById('kycMsg');
   const show=(t,c)=>{msg.style.display='';msg.style.color=c;msg.textContent=t;};
   const pick={id_front:document.getElementById('kycIdFront').files[0],id_back:document.getElementById('kycIdBack').files[0]};
   if(!pick.id_front){show('Please add your photo ID (front).','#f59e0b');return;}
   for(const f of Object.values(pick)){if(f&&f.size>10*1024*1024){show('Each file must be 10 MB or smaller.','#f59e0b');return;}}
+  if(btn.disabled)return;
   btn.disabled=true;btn.textContent='Uploading…';
-  const{data:{user}}=await sb.auth.getUser();
   const docs=[];
   try{
+    const{data:{user},error:sessionError}=await sb.auth.getUser();
+    if(sessionError||!user)throw new Error('Your session has expired. Sign in again before submitting documents.');
     for(const[type,f]of Object.entries(pick)){
       if(!f)continue;
       const ext=(f.name.split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'bin';
-      const path=`${user.id}/${type}-${Date.now()}.${ext}`;
-      const{error}=await sb.storage.from('kyc-documents').upload(path,f,{upsert:false,contentType:f.type||undefined});
-      if(error)throw new Error('Upload failed: '+error.message);
+      let cached=kycUploadedFiles.get(type);
+      if(!cached||cached.userId!==user.id||cached.file!==f){cached={userId:user.id,file:f,path: user.id+'/'+crypto.randomUUID()+'-'+type+'.'+ext,complete:false};kycUploadedFiles.set(type,cached);}
+      const path=cached.path;
+      if(!cached.complete){
+        const{error}=await sb.storage.from('kyc-documents').upload(path,f,{upsert:false,contentType:f.type||undefined});
+        if(error&&String(error.statusCode)!=='409'&&!/already exists|duplicate/i.test(String(error.message||'')))throw new Error('Could not upload your document. Please retry.');
+        cached.complete=true;
+      }
       docs.push({doc_type:type,path});
     }
-    const{error}=await sb.rpc('submit_kyc',{p_documents:docs});
-    if(error)throw new Error(error.message.includes('KYC_')?'Some documents were missing — please try again.':error.message);
+    await window.IPFXVerification.submit(sb,docs);
     show('Thank you — your documents are submitted. We usually review within 1–2 business days.','#10b981');
     document.getElementById('kycUpload').style.display='none';
     renderPayoutStats({status:'pending'});
@@ -2364,5 +2371,6 @@ function submitAffForm(e){
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script defer src="/assets/js/support-chat.js"></script>
+<script src="/assets/js/verification-upload.js?v=20261009-id-recovery"></script>
 </body>
 </html>

@@ -1411,7 +1411,7 @@
                     <div class="form-grid" id="kycMetadata">
                         <div class="form-group"><label for="idDocumentType">ID Type <span class="required">*</span></label><select id="idDocumentType" required><option value="">Select document</option><option value="passport">Passport</option><option value="driving_licence">Driving licence</option><option value="national_id">National identity card</option></select></div>
                         <div class="form-group"><label for="idIssuingCountry">Issuing Country <span class="required">*</span></label><select id="idIssuingCountry" required><option value="">Select country</option></select></div>
-                        <div class="form-group"><label for="idExpiry">ID Expiry Date <span class="required">*</span></label><input type="date" id="idExpiry" required></div>
+                        <div class="form-group"><label for="idExpiry">ID Expiry Date <span id="idExpiryRequired" class="required">*</span></label><input type="date" id="idExpiry" required><div id="idNoExpiryOption" hidden><label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="idHasNoExpiry" style="width:auto">My national identity card has no expiry date</label><div class="field-help">Only select this if no expiry date is printed on your national ID. Do not enter an invented date. Your document is still reviewed by the team.</div></div></div>
                     </div>
                     <div class="form-grid" id="kycFiles">
                         <div class="form-group upload-card"><label for="idFront">Photo ID <span class="required">*</span></label><input type="file" id="idFront" accept=".jpg,.jpeg,.png,.webp,.heic,.pdf,application/pdf,image/jpeg,image/png,image/webp,image/heic" required></div>
@@ -1653,6 +1653,7 @@
     })();
     </script>
 
+    <script src="/assets/js/verification-upload.js?v=20261009-id-recovery"></script>
     <script>
     (async function challengeLaunchGate() {
       const launchAt = Date.parse('2026-10-08T23:00:00Z');
@@ -1674,7 +1675,7 @@
         app.hidden = false;
         if (!document.querySelector('script[data-challenge-checkout]')) {
           const script = document.createElement('script');
-          script.src = '/assets/js/checkout-flow.js?v=20261009-reset';
+          script.src = '/assets/js/checkout-flow.js?v=20261009-id-recovery';
           script.dataset.challengeCheckout = 'owner-preview';
           document.body.appendChild(script);
         }

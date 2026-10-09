@@ -31,7 +31,8 @@ test('application collects proportionate identity and suitability data', () => {
 test('documents are private, limited and submitted before the application', () => {
   assert.match(flow, /storage\.from\('kyc-documents'\)\.upload/);
   assert.match(flow, /10 \* 1024 \* 1024/);
-  assert.match(flow, /db\.rpc\('submit_kyc'/);
+  assert.match(flow, /IPFXVerification\.submit\(db,uploaded\)/);
+  assert.match(read('assets/js/verification-upload.js'), /db\.rpc\('submit_kyc'/);
   assert.ok(flow.indexOf("await uploadVerificationDocuments(user)") < flow.indexOf('await submitChallengeReview()'));
   assert.match(migration, /KYC_DOCUMENTS_REQUIRED/);
   assert.match(migration, /doc_type='id_front'/);

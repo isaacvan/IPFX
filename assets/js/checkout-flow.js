@@ -7,6 +7,7 @@
   let tier = null, quote = null, stripe = null, elements = null, element = null;
   let checkout = null, generation = 0, busy = false, verifiedEmail = '', existingKyc = false;
   const REQUEST_TIMEOUT_MS = 12000;
+  const uploadedFiles = new Map();
   function step(n) {
     document.querySelectorAll('.step-content').forEach(el => el.classList.toggle('active', el.id === 'step' + n));
     document.querySelectorAll('.step').forEach((el, i) => {
@@ -42,13 +43,20 @@
     const docs = [['id_front',idFront],...(idBack?[['id_back',idBack]]:[])];
     const uploaded = [];
     for (const [docType,file] of docs) {
-      const path = user.id + '/' + crypto.randomUUID() + '-' + docType + '.' + extensionFor(file);
-      const {error} = await db.storage.from('kyc-documents').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
-      if (error) throw new Error('Could not securely upload ' + docType.replaceAll('_',' ') + '. Please try again.');
+      let cached=uploadedFiles.get(docType);
+      if(!cached||cached.userId!==user.id||cached.file!==file) {
+        cached={userId:user.id,file,path:user.id + '/' + crypto.randomUUID() + '-' + docType + '.' + extensionFor(file),complete:false};
+        uploadedFiles.set(docType,cached);
+      }
+      const path=cached.path;
+      if(!cached.complete) {
+        const {error}=await db.storage.from('kyc-documents').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+        if(error&&String(error.statusCode)!=='409'&&!/already exists|duplicate/i.test(String(error.message||'')))throw new Error('Could not securely upload ' + docType.replaceAll('_',' ') + '. Please try again.');
+        cached.complete=true;
+      }
       uploaded.push({doc_type:docType,path});
     }
-    const {error} = await db.rpc('submit_kyc',{p_documents:uploaded});
-    if (error) throw new Error('Your documents uploaded, but verification could not be submitted. Please try again; duplicates are safely ignored.');
+    await window.IPFXVerification.submit(db,uploaded);
     existingKyc = true;
   }
   // International dialling codes, used to turn a nationally-formatted number (e.g. UK "07700 900123")
@@ -135,7 +143,8 @@
       pep_status: $('pepStatus').value,
       id_document_type: $('idDocumentType').value,
       id_issuing_country: $('idIssuingCountry').value,
-      id_expiry_date: $('idExpiry').value,
+      id_expiry_date: $('idHasNoExpiry').checked ? null : $('idExpiry').value,
+      id_has_no_expiry: $('idHasNoExpiry').checked,
       age_confirmed: $('ageConfirm').checked,
       terms_accepted: $('terms').checked,
       cancellation_waiver: $('cancellationWaiver').checked,
@@ -153,6 +162,7 @@
       p_details: details,
       p_preset_id: sku,
     });
+    if (error && /DOCUMENT_DATES_INVALID|NON_EXPIRING_ID_INVALID/.test(String(error.message||''))) throw new Error('Check your ID expiry date. For a national ID with no expiry date, select the no-expiry option.');
     if (error) throw new Error(String(error.message||'').includes('LEGAL_VERSION_UPDATED')?'The Terms were updated. Refresh this form and review the current Terms before submitting.':'We could not submit your challenge application. Check your details and try again.');
     return data;
   }
@@ -287,12 +297,26 @@
   $('payForm').addEventListener('submit', e => e.preventDefault());
   $('step1Next').addEventListener('click', () => step(2));
   $('step2Back').addEventListener('click', () => step(1));
+  function syncIdExpiry() {
+    const national=$('idDocumentType').value==='national_id';
+    $('idNoExpiryOption').hidden=!national;
+    if(!national)$('idHasNoExpiry').checked=false;
+    const noExpiry=national&&$('idHasNoExpiry').checked;
+    $('idExpiry').disabled=noExpiry;$('idExpiry').required=!noExpiry;$('idExpiryRequired').hidden=noExpiry;
+    if(noExpiry)$('idExpiry').value='';
+  }
+  $('idDocumentType').addEventListener('change',syncIdExpiry);
+  $('idHasNoExpiry').addEventListener('change',syncIdExpiry);
+  syncIdExpiry();
   $('step2Next').addEventListener('click', async () => {
+    if($('step2Next').disabled)return;
     $('applicationError').style.display='none';
-    const fields = ['firstName','lastName','email','phone','dateOfBirth','addressLine1','city','postalCode','country','nationality','experience','employmentStatus','occupation','sourceOfFunds','expectedActivity','purpose','pepStatus','idDocumentType','idIssuingCountry','idExpiry'];
+    const fields = ['firstName','lastName','email','phone','dateOfBirth','addressLine1','city','postalCode','country','nationality','experience','employmentStatus','occupation','sourceOfFunds','expectedActivity','purpose','pepStatus','idDocumentType','idIssuingCountry'];
     for (const id of fields) {
       if (!$(id).value.trim() || !$(id).checkValidity()) { $(id).reportValidity(); $(id).focus(); return; }
     }
+    const expiryError=window.IPFXVerification.expiryProblem($('idDocumentType').value,$('idHasNoExpiry').checked,$('idExpiry').value);
+    if(expiryError){$('applicationError').textContent=expiryError;$('applicationError').style.display='block';$('idExpiry').focus();return;}
     const consentIds = ['ageConfirm','terms','cancellationWaiver','ownBehalf','accuracyConfirm','riskConfirm','screeningConsent'];
     if (challengeTypeForSku(selectedSku()) === 'infinity') consentIds.push('heldEarningsConfirm');
     for (const id of consentIds) {
