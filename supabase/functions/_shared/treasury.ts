@@ -11,7 +11,9 @@
 // Calibrated on 600 synthetic traders: predicted 3.1% vs actual 2.2% graduation, i.e. errs high, which is
 // the safe direction for a reserve.
 
-export const STAGE_TABLE = {"grid": [-0.4, -0.38, -0.36, -0.34, -0.32, -0.3, -0.28, -0.26, -0.24, -0.22, -0.2, -0.18, -0.16, -0.14, -0.12, -0.1, -0.08, -0.06, -0.04, -0.02, 0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24, 0.26, 0.28, 0.3, 0.32, 0.34, 0.36, 0.38, 0.4, 0.42, 0.44, 0.46, 0.48, 0.5, 0.52, 0.54, 0.56, 0.58, 0.6], "p_pass": {"1": [0.0007, 0.0003, 0.0027, 0.003, 0.0033, 0.0057, 0.0083, 0.0133, 0.017, 0.024, 0.0393, 0.0453, 0.065, 0.0847, 0.1027, 0.16, 0.198, 0.2513, 0.2957, 0.3463, 0.4137, 0.4767, 0.555, 0.6303, 0.6857, 0.7357, 0.762, 0.8283, 0.862, 0.8867, 0.9167, 0.9343, 0.947, 0.9603, 0.9777, 0.977, 0.982, 0.9917, 0.9923, 0.993, 0.9943, 0.9963, 0.996, 0.9973, 0.998, 0.9997, 0.9993, 0.999, 1.0, 0.9997, 1.0], "2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0003, 0.0003, 0.0008, 0.0012, 0.0018, 0.003, 0.0065, 0.0125, 0.02, 0.0325, 0.054, 0.0843, 0.1217, 0.1647, 0.2383, 0.3098, 0.3847, 0.4748, 0.5532, 0.647, 0.7203, 0.7872, 0.8317, 0.8678, 0.9057, 0.9298, 0.9525, 0.962, 0.9742, 0.9823, 0.9878, 0.992, 0.9937, 0.9943, 0.9962, 0.9985, 0.9988, 0.9992, 0.9997, 0.9997, 1.0, 0.9998, 0.9998, 1.0, 0.9997], "3": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002, 0.0, 0.0002, 0.0007, 0.0015, 0.0028, 0.0057, 0.0133, 0.0223, 0.0387, 0.0567, 0.0955, 0.1427, 0.1998, 0.2877, 0.368, 0.4573, 0.5563, 0.6458, 0.724, 0.7867, 0.8383, 0.876, 0.9157, 0.9355, 0.9553, 0.9693, 0.977, 0.9875, 0.9915, 0.9945, 0.994, 0.9977, 0.9973, 0.9978, 0.9988, 0.9988, 0.9998, 0.9997, 0.9997, 1.0, 1.0, 1.0]}, "days_if_pass": {"1": [22.0, 16.0, 21.2, 23.0, 18.2, 18.8, 19.8, 19.9, 22.9, 20.5, 22.9, 24.5, 23.9, 25.9, 26.8, 26.4, 27.5, 28.2, 27.7, 29.0, 28.9, 28.0, 27.1, 26.9, 26.1, 25.6, 25.3, 24.3, 23.4, 22.3, 21.2, 20.5, 19.7, 18.9, 18.2, 17.8, 17.2, 16.7, 16.5, 15.9, 15.7, 15.3, 15.2, 15.0, 15.0, 14.7, 14.7, 14.5, 14.4, 14.5, 14.4], "2": [null, null, null, null, null, null, 41.0, 50.0, 40.8, 54.7, 37.5, 47.6, 45.6, 46.2, 50.0, 51.9, 53.8, 56.6, 57.2, 56.3, 58.3, 58.6, 56.9, 56.1, 54.0, 52.4, 50.9, 48.1, 45.5, 43.8, 41.2, 39.1, 37.4, 35.7, 35.0, 33.4, 32.5, 31.4, 31.0, 30.4, 29.8, 29.6, 29.3, 29.1, 29.0, 28.7, 28.7, 28.7, 28.7, 28.6, 28.6], "3": [null, null, null, null, null, null, null, null, 34.0, null, 25.0, 47.5, 59.8, 56.7, 67.1, 64.8, 65.8, 69.2, 72.1, 70.1, 70.0, 71.9, 71.4, 70.0, 67.4, 66.0, 62.8, 60.3, 56.7, 53.2, 49.8, 47.5, 44.7, 41.6, 39.6, 37.0, 35.1, 33.2, 31.6, 30.2, 28.7, 27.7, 26.7, 25.6, 24.7, 24.1, 23.5, 22.8, 22.4, 21.9, 21.5]}} as const;
+// Stage rows: "1", "2" (Stage 2 at 6%), "2@7" (Stage 2 at 7%, runs from 2026-10-11), "3" (Stage 3 at 8%).
+// Stage 2/3 rows come from scripts/treasury-stage-table.py (seeded; rerun to regenerate).
+export const STAGE_TABLE = {"grid": [-0.4, -0.38, -0.36, -0.34, -0.32, -0.3, -0.28, -0.26, -0.24, -0.22, -0.2, -0.18, -0.16, -0.14, -0.12, -0.1, -0.08, -0.06, -0.04, -0.02, 0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24, 0.26, 0.28, 0.3, 0.32, 0.34, 0.36, 0.38, 0.4, 0.42, 0.44, 0.46, 0.48, 0.5, 0.52, 0.54, 0.56, 0.58, 0.6], "p_pass": {"1": [0.0007, 0.0003, 0.0027, 0.003, 0.0033, 0.0057, 0.0083, 0.0133, 0.017, 0.024, 0.0393, 0.0453, 0.065, 0.0847, 0.1027, 0.16, 0.198, 0.2513, 0.2957, 0.3463, 0.4137, 0.4767, 0.555, 0.6303, 0.6857, 0.7357, 0.762, 0.8283, 0.862, 0.8867, 0.9167, 0.9343, 0.947, 0.9603, 0.9777, 0.977, 0.982, 0.9917, 0.9923, 0.993, 0.9943, 0.9963, 0.996, 0.9973, 0.998, 0.9997, 0.9993, 0.999, 1.0, 0.9997, 1.0], "2": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0003, 0.0003, 0.0008, 0.0012, 0.0018, 0.003, 0.0065, 0.0125, 0.02, 0.0325, 0.054, 0.0843, 0.1217, 0.1647, 0.2383, 0.3098, 0.3847, 0.4748, 0.5532, 0.647, 0.7203, 0.7872, 0.8317, 0.8678, 0.9057, 0.9298, 0.9525, 0.962, 0.9742, 0.9823, 0.9878, 0.992, 0.9937, 0.9943, 0.9962, 0.9985, 0.9988, 0.9992, 0.9997, 0.9997, 1.0, 0.9998, 0.9998, 1.0, 0.9997], "3": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002, 0.0, 0.0002, 0.0007, 0.0015, 0.0028, 0.0057, 0.0133, 0.0223, 0.0387, 0.0567, 0.0955, 0.1427, 0.1998, 0.2877, 0.368, 0.4573, 0.5563, 0.6458, 0.724, 0.7867, 0.8383, 0.876, 0.9157, 0.9355, 0.9553, 0.9693, 0.977, 0.9875, 0.9915, 0.9945, 0.994, 0.9977, 0.9973, 0.9978, 0.9988, 0.9988, 0.9998, 0.9997, 0.9997, 1.0, 1.0, 1.0], "2@7": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002, 0.0002, 0.0002, 0.0008, 0.0022, 0.0027, 0.0063, 0.0107, 0.0198, 0.0352, 0.0558, 0.083, 0.1335, 0.1898, 0.2557, 0.3342, 0.4273, 0.51, 0.5992, 0.686, 0.755, 0.8092, 0.848, 0.888, 0.9242, 0.943, 0.9585, 0.9732, 0.9813, 0.9848, 0.9912, 0.9938, 0.9948, 0.9958, 0.9983, 0.9982, 0.9997, 0.9992, 0.9998, 0.9997, 0.9998, 1.0, 1.0, 0.9998]}, "days_if_pass": {"1": [22.0, 16.0, 21.2, 23.0, 18.2, 18.8, 19.8, 19.9, 22.9, 20.5, 22.9, 24.5, 23.9, 25.9, 26.8, 26.4, 27.5, 28.2, 27.7, 29.0, 28.9, 28.0, 27.1, 26.9, 26.1, 25.6, 25.3, 24.3, 23.4, 22.3, 21.2, 20.5, 19.7, 18.9, 18.2, 17.8, 17.2, 16.7, 16.5, 15.9, 15.7, 15.3, 15.2, 15.0, 15.0, 14.7, 14.7, 14.5, 14.4, 14.5, 14.4], "2": [null, null, null, null, null, null, 41.0, 50.0, 40.8, 54.7, 37.5, 47.6, 45.6, 46.2, 50.0, 51.9, 53.8, 56.6, 57.2, 56.3, 58.3, 58.6, 56.9, 56.1, 54.0, 52.4, 50.9, 48.1, 45.5, 43.8, 41.2, 39.1, 37.4, 35.7, 35.0, 33.4, 32.5, 31.4, 31.0, 30.4, 29.8, 29.6, 29.3, 29.1, 29.0, 28.7, 28.7, 28.7, 28.7, 28.6, 28.6], "3": [null, null, null, null, null, null, null, null, 34.0, null, 25.0, 47.5, 59.8, 56.7, 67.1, 64.8, 65.8, 69.2, 72.1, 70.1, 70.0, 71.9, 71.4, 70.0, 67.4, 66.0, 62.8, 60.3, 56.7, 53.2, 49.8, 47.5, 44.7, 41.6, 39.6, 37.0, 35.1, 33.2, 31.6, 30.2, 28.7, 27.7, 26.7, 25.6, 24.7, 24.1, 23.5, 22.8, 22.4, 21.9, 21.5], "2@7": [null, null, null, null, null, null, null, 43.0, 46.0, 30.0, 38.2, 46.6, 65.5, 50.5, 57.3, 58.7, 64.3, 62.1, 63.6, 63.9, 65.0, 64.7, 64.8, 61.7, 59.5, 58.8, 56.5, 54.0, 51.0, 47.9, 45.9, 43.8, 40.9, 39.0, 37.2, 35.8, 34.5, 33.3, 32.4, 31.5, 30.7, 30.3, 30.0, 29.7, 29.2, 29.2, 28.9, 28.8, 28.7, 28.8, 28.6]}} as const;
 
 const SIGMA = 1.1;
 const GRID: number[] = STAGE_TABLE.grid as unknown as number[];
@@ -35,16 +37,25 @@ export function passAnalytic(a: number, b: number, mu: number): number {
   return Math.exp(-lambda * a);
 }
 
-// Infinity payout constants (challenge_presets infinity_s2 = 7% of $5,000 since 2026-10-10, infinity_s3 = 8% of $10,000).
-export const STAGE2_TARGET_USD = 350, STAGE3_TARGET_USD = 800, STAGE3_MIN_PAYOUT = 500, STAGE3_MAX_PAYOUT = 700;
+// Infinity payout constants: legacy Stage 2 target 6% of $5,000 (rule set B runs: 7% = $350, see stage2TargetPct), Stage 3 8% of $10,000.
+export const STAGE2_TARGET_USD = 300, STAGE3_TARGET_USD = 800, STAGE3_MIN_PAYOUT = 500, STAGE3_MAX_PAYOUT = 700;
 export type StageRules = { stage: 1 | 2 | 3; target: number; maxDd: number; riskPct: number };
-// STAGE_TABLE and FRESH still describe the pre-2026-10-10 Stage 2 rules (6% target, 25% best day, $12.50 bar);
-// the generator is not in this repo, so regenerate both together before relying on Stage 2 pass odds.
-const FRESH: Record<number, { a: number; b: number }> = { 1: { a: 8, b: 10 }, 2: { a: 17.1429, b: 11.4286 }, 3: { a: 22.8571, b: 11.4286 } };
+// Fresh-account distances in R (target / risk, drawdown / risk) for each STAGE_TABLE row.
+const FRESH: Record<string, { a: number; b: number }> = { "1": { a: 8, b: 10 }, "2": { a: 17.1429, b: 11.4286 }, "2@7": { a: 20, b: 11.4286 }, "3": { a: 22.8571, b: 11.4286 } };
+// Rule set B: runs whose Stage 1 account opened on or after this instant get the 7% Stage 2 target; earlier runs keep 6%.
+export const S2_RULE_B_CUTOVER = Date.parse("2026-10-11T00:00:00Z");
+export function stage2TargetPct(acc: { stage: number; targetPct: number; createdAt?: string | null }): number {
+  if (acc.stage === 2 && Number.isFinite(acc.targetPct) && acc.targetPct > 0) return acc.targetPct;
+  if (acc.stage === 1) { const t = Date.parse(String(acc.createdAt ?? "")); return Number.isFinite(t) && t >= S2_RULE_B_CUTOVER ? 7 : 6; }
+  return 6; // Stage 3 uses s2Profit; a missing value falls back to the legacy 6% target.
+}
+const tableKey = (stage: number, s2Target: number) => (stage === 2 && s2Target >= 7 ? "2@7" : String(stage));
 
 export type AccountState = {
   accountId: string; personId: string; stage: number; startingBalance: number; balance: number; peak: number;
   targetPct: number; maxDdPct: number; riskPct: number; s2Profit?: number | null; traderR: number[];
+  /** Account opening time; for Stage 1 it decides which Stage 2 target the run will get. */
+  createdAt?: string | null;
 };
 export type AccountForecast = { accountId: string; personId: string; stage: number; pGraduate: number; expectedDays: number;
   payoutIfGraduate: number; expectedPayout: number; s4MonthlyPayout: number; muMean: number; trades: number };
@@ -63,13 +74,14 @@ export function forecastAccount(acc: AccountState, model: "cash_at_stage3" | "sp
   const R = acc.startingBalance * acc.riskPct;
   const aRem = Math.max(0, (acc.targetPct / 100 * acc.startingBalance - (acc.balance - acc.startingBalance)) / R);
   const bRem = Math.max(0, (acc.balance - (acc.peak - acc.maxDdPct / 100 * acc.startingBalance)) / R);
-  const f = FRESH[acc.stage] ?? FRESH[1];
+  const s2Target = stage2TargetPct(acc);
+  const f = FRESH[tableKey(acc.stage, s2Target)] ?? FRESH["1"];
   let pG = 0, eDays = 0;
   for (let i = 0; i < GRID.length; i++) {
     if (post[i] < 1e-9) continue;
     const mu = GRID[i];
-    const tbl = (s: number) => (STAGE_TABLE.p_pass as Record<string, readonly number[]>)[String(s)][i];
-    const dys = (s: number) => Number((STAGE_TABLE.days_if_pass as Record<string, readonly (number | null)[]>)[String(s)][i] ?? 60);
+    const tbl = (s: number) => (STAGE_TABLE.p_pass as Record<string, readonly number[]>)[tableKey(s, s2Target)][i];
+    const dys = (s: number) => Number((STAGE_TABLE.days_if_pass as Record<string, readonly (number | null)[]>)[tableKey(s, s2Target)][i] ?? 60);
     const ratio = tbl(acc.stage) / Math.max(1e-6, passAnalytic(f.a, f.b, mu));
     let p = Math.min(1, Math.max(0, passAnalytic(aRem, bRem, mu) * ratio));
     let d = dys(acc.stage) * Math.max(0.25, aRem / f.a);
@@ -77,8 +89,9 @@ export function forecastAccount(acc: AccountState, model: "cash_at_stage3" | "sp
     pG += post[i] * p; eDays += post[i] * p * d;
   }
   const expectedDays = pG > 0 ? eDays / pG : 0;
-  // Stage 3 payout: 85% of (Stage 2 profit + Stage 3 profit) at the 6% / 8% targets, capped at $700, $500 minimum.
-  const rawPayout = 0.85 * ((acc.stage >= 3 ? (acc.s2Profit ?? STAGE2_TARGET_USD) : STAGE2_TARGET_USD) + STAGE3_TARGET_USD);
+  // Stage 3 payout: 85% of (Stage 2 profit + Stage 3 profit) at the run's Stage 2 target / 8%, capped at $700, $500 minimum.
+  const s2Usd = s2Target / 100 * 5000;
+  const rawPayout = 0.85 * ((acc.stage >= 3 ? (acc.s2Profit ?? s2Usd) : s2Usd) + STAGE3_TARGET_USD);
   const payoutIfGraduate = model === "sponsored_account" ? sponsorFee : rawPayout >= STAGE3_MIN_PAYOUT ? Math.min(rawPayout, STAGE3_MAX_PAYOUT) : 0;
   return { ...base, pGraduate: pG, expectedDays, payoutIfGraduate, expectedPayout: pG * payoutIfGraduate, s4MonthlyPayout: 0 };
 }

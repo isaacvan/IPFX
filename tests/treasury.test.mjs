@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PRIOR, STAGE_TABLE, coverageStatus, forecastAccount, liabilityWithin, passAnalytic, posterior } from '../supabase/functions/_shared/treasury.ts';
+import { PRIOR, STAGE_TABLE, S2_RULE_B_CUTOVER, stage2TargetPct, coverageStatus, forecastAccount, liabilityWithin, passAnalytic, posterior } from '../supabase/functions/_shared/treasury.ts';
 
 const s2 = (over = {}) => ({ accountId: 'x', personId: 'p', stage: 2, startingBalance: 5000, balance: 5000, peak: 5000, targetPct: 6, maxDdPct: 4, riskPct: 0.0035, traderR: [], ...over }); // Stage 2 target is 6% since 2026-10-08
 
@@ -29,7 +29,7 @@ test('progress and evidence move the forecast in the right direction', () => {
 });
 
 test('payout per graduate follows the payout model', () => {
-  assert.equal(forecastAccount(s2(), 'cash_at_stage3').payoutIfGraduate, 700, '85% of ($350 + $800) = $977.50, capped at $700');
+  assert.equal(forecastAccount(s2(), 'cash_at_stage3').payoutIfGraduate, 700, '85% of ($300 + $800) = $935, capped at $700');
   assert.equal(forecastAccount(s2({ stage: 3, startingBalance: 10000, balance: 10000, peak: 10000, targetPct: 8, s2Profit: 0 }), 'cash_at_stage3').payoutIfGraduate, 680, '85% of $800 when Stage 2 earned nothing, under the cap');
   assert.equal(forecastAccount(s2(), 'sponsored_account', 350).payoutIfGraduate, 350);
   const s4 = forecastAccount({ ...s2(), stage: 4, startingBalance: 25000, riskPct: 0.0025, traderR: Array(80).fill(0).map((_, i) => (i % 2 ? 1.2 : -1)) }, 'cash_at_stage3');
@@ -61,4 +61,29 @@ test('wiring: treasury worker, tilt within caps, B-book pause when short, loud i
   assert.match(c, /if \(sigErr\) return json\(\{ error: "integrity signals unavailable: "/);
   const sql = readFileSync(new URL('../supabase/migrations/20261004100500_ab_person_of_grant.sql', import.meta.url), 'utf8');
   assert.match(sql, /grant execute on function public\.ab_person_of\(uuid\) to service_role;/);
+});
+
+// Rule set B (2026-10-10): Stage 2 is 7% for runs whose Stage 1 opened from 2026-10-11, 6% before.
+test('a fresh 7% Stage 2 account reproduces the 7% table row exactly, and is harder than 6%', () => {
+  const post = posterior([]);
+  const row = (k) => post.reduce((a, w, i) => a + w * STAGE_TABLE.p_pass[k][i] * STAGE_TABLE.p_pass['3'][i], 0);
+  const seven = forecastAccount(s2({ targetPct: 7 }), 'cash_at_stage3').pGraduate;
+  assert.ok(Math.abs(seven - row('2@7')) < 1e-6);
+  assert.ok(seven < forecastAccount(s2(), 'cash_at_stage3').pGraduate);
+});
+
+test('Stage 1 runs forecast Stage 2 at the target they will actually get', () => {
+  const s1 = (createdAt) => ({ ...s2(), stage: 1, startingBalance: 1000, balance: 1000, peak: 1000, targetPct: 4, maxDdPct: 5, riskPct: 0.005, createdAt });
+  assert.equal(stage2TargetPct(s1('2026-10-09T12:00:00Z')), 6);
+  assert.equal(stage2TargetPct(s1(new Date(S2_RULE_B_CUTOVER).toISOString())), 7);
+  assert.equal(stage2TargetPct(s1(null)), 6, 'unknown opening time keeps the legacy target');
+  const legacy = forecastAccount(s1('2026-10-09T12:00:00Z'), 'cash_at_stage3').pGraduate;
+  const ruleB = forecastAccount(s1('2026-10-12T12:00:00Z'), 'cash_at_stage3').pGraduate;
+  assert.ok(ruleB < legacy, `${ruleB} < ${legacy}`);
+});
+
+test('the Stage 2 and Stage 3 rows are produced by the committed generator', () => {
+  const gen = readFileSync(new URL('../scripts/treasury-stage-table.py', import.meta.url), 'utf8');
+  assert.match(gen, /\("2", S2, 6\), \("3", S3, 8\), \("2@7", S2, 7\)/);
+  for (const k of ['2', '2@7', '3']) assert.equal(STAGE_TABLE.p_pass[k].length, STAGE_TABLE.grid.length);
 });

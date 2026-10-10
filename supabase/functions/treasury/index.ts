@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
   const accounts: Record<string, unknown>[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db.from("treasury_open_accounts")
-      .select("id,person_id,stage,starting_balance,balance,trailing_peak,profit_target_pct,max_drawdown_pct,max_risk_per_trade_pct")
+      .select("id,person_id,stage,starting_balance,balance,trailing_peak,profit_target_pct,max_drawdown_pct,max_risk_per_trade_pct,created_at")
       .order("id").range(from, from + 999);
     if (error) return unavailable("ACCOUNTS_UNAVAILABLE");
     accounts.push(...(data ?? []));
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       accountId: String(a.id), personId: person, stage: Number(a.stage), startingBalance: Number(a.starting_balance),
       balance: Number(a.balance), peak: Math.max(Number(a.trailing_peak ?? a.balance), Number(a.balance)),
       targetPct: Number(a.profit_target_pct), maxDdPct: Number(a.max_drawdown_pct), riskPct: Number(a.max_risk_per_trade_pct) / 100,
-      traderR: rByPerson.get(person) ?? [],
+      traderR: rByPerson.get(person) ?? [], createdAt: a.created_at == null ? null : String(a.created_at),
     };
     return forecastAccount(state, model, Number(settings?.sponsor_fee_usd ?? 350));
   });
