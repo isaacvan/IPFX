@@ -1848,7 +1848,7 @@
                             <div class="step-badge">2</div>
                             <div class="step-capital">$5,000</div>
                             <h3>Get Funded</h3>
-                            <p>6% target. 15 trading days and 60 exposure sessions. At least 40% of trading days profitable. Best day capped at 25% of positive profit.</p>
+                            <p>7% target. 15 trading days and 60 exposure sessions. At least 40% of trading days profitable. Best day capped at 35% of positive profit.</p>
                         </div>
 
                         <div class="step-card reveal">
@@ -1945,13 +1945,13 @@
                     </div>
 
                     <p class="phase-description">
-                        Trade a $5,000 simulated account with a provisional 85% profit share. Reach 6% while completing at least 21 elapsed calendar days, 15 meaningful trading days and 60 exposure sessions (separate bursts of trading, explained in the FAQ below). At least 40% of trading days must be profitable (for new accounts, a profitable day means more than $12.50 net closed profit); the best day may not exceed 25% of total positive profit. Your held earnings are shown on the payout page after you pass Stage 2, but cannot be withdrawn until full Stage 3 completion and the $500 minimum.
+                        Trade a $5,000 simulated account with a provisional 85% profit share. Reach 7% while completing at least 21 elapsed calendar days, 15 meaningful trading days and 60 exposure sessions (separate bursts of trading, explained in the FAQ below). At least 40% of trading days must be profitable (a profitable day means more than $2.50 net closed profit); the best day may not exceed 35% of total positive profit. Runs started before 11 October 2026 keep their 6% Stage 2 target. Your held earnings are shown on the payout page after you pass Stage 2, but cannot be withdrawn until full Stage 3 completion and the $500 minimum.
                     </p>
 
                     <div class="phase-details-grid">
                         <div class="detail-item">
                             <span>Profit Target</span>
-                            <span data-preset="infinity_s2" data-field="target">$300 (6%)</span>
+                            <span data-preset="infinity_s2" data-field="target">$350 (7%)</span>
                         </div>
                         <div class="detail-item">
                             <span>Profit Split</span>
@@ -2552,13 +2552,13 @@
     </script>
 
     <script>
-    // Never mix the published text with a different live preset. Expected live rules since 2026-10-08: Stage 1 4%, Stage 2 6%, Stage 3 8%.
+    // Never mix the published text with a different live preset. Expected live rules since 2026-10-10: Stage 1 4%, Stage 2 7%, Stage 3 8%.
     document.addEventListener('ipfx:presets', function(event) {
         var presets = event.detail || {};
         var s1 = presets.infinity_s1, s2 = presets.infinity_s2, s3 = presets.infinity_s3;
         if (!s1 || !s2 || !s3) return;
         var mismatch = Number(s1.profit_target_pct) !== 4 ||
-            Number(s2.profit_target_pct) !== 6 ||
+            Number(s2.profit_target_pct) !== 7 ||
             Number(s2.min_profitable_days_pct) !== 40 ||
             Number(s3.profit_target_pct) !== 8;
         document.getElementById('infinityRulesSyncWarning').style.display = mismatch ? 'block' : 'none';

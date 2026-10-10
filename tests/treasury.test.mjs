@@ -29,7 +29,7 @@ test('progress and evidence move the forecast in the right direction', () => {
 });
 
 test('payout per graduate follows the payout model', () => {
-  assert.equal(forecastAccount(s2(), 'cash_at_stage3').payoutIfGraduate, 700, '85% of ($300 + $800) = $935, capped at $700');
+  assert.equal(forecastAccount(s2(), 'cash_at_stage3').payoutIfGraduate, 700, '85% of ($350 + $800) = $977.50, capped at $700');
   assert.equal(forecastAccount(s2({ stage: 3, startingBalance: 10000, balance: 10000, peak: 10000, targetPct: 8, s2Profit: 0 }), 'cash_at_stage3').payoutIfGraduate, 680, '85% of $800 when Stage 2 earned nothing, under the cap');
   assert.equal(forecastAccount(s2(), 'sponsored_account', 350).payoutIfGraduate, 350);
   const s4 = forecastAccount({ ...s2(), stage: 4, startingBalance: 25000, riskPct: 0.0025, traderR: Array(80).fill(0).map((_, i) => (i % 2 ? 1.2 : -1)) }, 'cash_at_stage3');

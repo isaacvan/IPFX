@@ -35,9 +35,11 @@ export function passAnalytic(a: number, b: number, mu: number): number {
   return Math.exp(-lambda * a);
 }
 
-// Infinity payout constants (challenge_presets infinity_s2 = 6% of $5,000, infinity_s3 = 8% of $10,000).
-export const STAGE2_TARGET_USD = 300, STAGE3_TARGET_USD = 800, STAGE3_MIN_PAYOUT = 500, STAGE3_MAX_PAYOUT = 700;
+// Infinity payout constants (challenge_presets infinity_s2 = 7% of $5,000 since 2026-10-10, infinity_s3 = 8% of $10,000).
+export const STAGE2_TARGET_USD = 350, STAGE3_TARGET_USD = 800, STAGE3_MIN_PAYOUT = 500, STAGE3_MAX_PAYOUT = 700;
 export type StageRules = { stage: 1 | 2 | 3; target: number; maxDd: number; riskPct: number };
+// STAGE_TABLE and FRESH still describe the pre-2026-10-10 Stage 2 rules (6% target, 25% best day, $12.50 bar);
+// the generator is not in this repo, so regenerate both together before relying on Stage 2 pass odds.
 const FRESH: Record<number, { a: number; b: number }> = { 1: { a: 8, b: 10 }, 2: { a: 17.1429, b: 11.4286 }, 3: { a: 22.8571, b: 11.4286 } };
 
 export type AccountState = {

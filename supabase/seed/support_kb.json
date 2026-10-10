@@ -647,7 +647,7 @@
     "funded simulation",
     "stage 2 rules"
    ],
-    "answer": "**Stage 2 — {{p:infinity_s2.balance}} simulated account:**\n- Profit target {{p:infinity_s2.target_pct}} ({{p:infinity_s2.target_amt}}); provisional {{p:infinity_s2.split_pct}} profit share\n- Max daily loss {{p:infinity_s2.daily_pct}}; max drawdown {{p:infinity_s2.dd_pct}} ({{p:infinity_s2.dd_mode}})\n- Minimum {{p:infinity_s2.min_days}} trading days and {{p:infinity_s2.min_trades}} independent exposure sessions\n- At least {{p:infinity_s2.prof_days_pct}} of trading days must be profitable\n- Max risk per trade {{p:infinity_s2.risk_pct}}, stop-loss required\n- Best day no more than 25% of positive profit\n\nStage 2 earnings are held. They become eligible for review only after the 5% Stage 3 milestone and its observation requirements are satisfied.",
+    "answer": "**Stage 2 — {{p:infinity_s2.balance}} simulated account:**\n- Profit target {{p:infinity_s2.target_pct}} ({{p:infinity_s2.target_amt}}); provisional {{p:infinity_s2.split_pct}} profit share\n- Max daily loss {{p:infinity_s2.daily_pct}}; max drawdown {{p:infinity_s2.dd_pct}} ({{p:infinity_s2.dd_mode}})\n- Minimum {{p:infinity_s2.min_days}} trading days and {{p:infinity_s2.min_trades}} independent exposure sessions\n- At least {{p:infinity_s2.prof_days_pct}} of trading days must be profitable\n- Max risk per trade {{p:infinity_s2.risk_pct}}, stop-loss required\n- Best day no more than 35% of positive profit\n\nStage 2 earnings are held. They become eligible for review only after the 5% Stage 3 milestone and its observation requirements are satisfied.",
    "follow_ups": [
     "How do Infinity payouts work?"
    ]

@@ -38,19 +38,19 @@ test('chatbot answers state 8% via the preset placeholder and the $700 cap', () 
   assert.doesNotMatch(read('supabase/seed/support_kb.json'), /reaching \*\*5% closed profit\*\*/);
 });
 
-test('public pages show Stage 2 = 6%, Stage 3 = 8% and the $700 maximum, with no stale Infinity numbers', () => {
+test('public pages show Stage 2 = 7%, Stage 3 = 8% and the $700 maximum, with no stale Infinity numbers', () => {
   const inf = read('infinity.html'), idx = read('index.html'), terms = read('terms.html'), dash = read('dashboard.html');
-  assert.match(inf, /<p>6% target\. 15 trading days and 60 exposure sessions\./);
+  assert.match(inf, /<p>7% target\. 15 trading days and 60 exposure sessions\./);
   assert.match(inf, /<p>8% target\. Stage 2 earnings remain visible but held\./);
-  assert.match(inf, /Reach 6% while completing at least 21 elapsed calendar days/);
-  assert.match(inf, /data-field="target">\$300 \(6%\)<\/span>/);
+  assert.match(inf, /Reach 7% while completing at least 21 elapsed calendar days/);
+  assert.match(inf, /data-field="target">\$350 \(7%\)<\/span>/);
   assert.match(inf, /Complete the <strong>8% \(\$800\) target<\/strong>/);
   assert.match(inf, /data-field="target_rev">8% \(\$800\)<\/span>/);
   assert.match(inf, /maximum of <strong>\$700<\/strong>/);
   assert.match(inf, /full 8% Stage 3 target[^<]*up to a maximum of \$700/);
-  assert.match(idx, /stage-subtitle">6% target\. Min 15 trading days/);
+  assert.match(idx, /stage-subtitle">7% target\. Min 15 trading days/);
   assert.match(idx, /stage-subtitle">8% target\. Stage 2 earnings stay visible but held\.[^<]*maximum of \$700/);
-  assert.match(terms, /Profit Target:<\/strong> 6% net profit \(\$300\)/);
+  assert.match(terms, /Profit Target:<\/strong> 7% net profit \(\$350\) on closed trades for Infinity runs whose Stage 1 account was opened on or after 11 October 2026[^<]*keep the 6% \(\$300\) target/);
   assert.match(terms, /Full Profit Target:<\/strong> 8% net profit \(\$800\)/);
   assert.match(terms, /up to a maximum of US\$700/);
   assert.match(terms, /capped at US\$700/);
@@ -77,9 +77,9 @@ function runGuard(presets) {
   handler({ detail: presets });
   return els;
 }
-const live = { infinity_s1: { profit_target_pct: '4.00' }, infinity_s2: { profit_target_pct: '6.00', min_profitable_days_pct: '40.00' }, infinity_s3: { profit_target_pct: '8.00' } };
+const live = { infinity_s1: { profit_target_pct: '4.00' }, infinity_s2: { profit_target_pct: '7.00', min_profitable_days_pct: '40.00' }, infinity_s3: { profit_target_pct: '8.00' } };
 
-test('page guard accepts the live 6% / 8% presets: pathway shown, warning hidden', () => {
+test('page guard accepts the live 7% / 8% presets: pathway shown, warning hidden', () => {
   const e = runGuard(live);
   assert.equal(e.infinityRulesSyncWarning.style.display, 'none');
   assert.equal(e['how-it-works'].style.display, '');
@@ -105,4 +105,20 @@ test('the full 8% target unlocks the payout request: no page, Term or chatbot an
   for (const [n, h] of [['infinity.html', inf], ['index.html', idx], ['terms.html', terms]]) {
     assert.doesNotMatch(h, /Reaching 4% does not unlock|withdraw it at the 4%|At 4% closed profit, progress is visible but no withdrawal|Progress Milestone/, n + ' still treats 4% as the withdrawal point');
   }
+});
+
+// Stage 2 rule set B (2026-10-10): $2.50 profitable-day bar, 35% best day, 7% target for runs from 11 October.
+test('Stage 2 rule set B is the same in the migration, Terms, pages and chatbot', () => {
+  const m = read('supabase/migrations/20261010150000_infinity_stage2_rule_b.sql');
+  assert.match(m, /set profit_target_pct = 7 where id = 'infinity_s2' and profit_target_pct = 6/);
+  assert.match(m, /'infinity-v5-s2', challenge_type, stage, 'published', min_elapsed_days, min_trading_days, min_sessions, 0\.35/);
+  assert.match(m, /a_1\.challenge_type = 'infinity'::text AND a_1\.stage = 2[^\n]*starting_balance \* 0\.0005/);
+  assert.match(m, /n\.id=''infinity_s2'' and a\.stage=1 and a\.created_at<timestamptz ''2026-10-11 00:00:00\+00'' then n\.profit_target_pct:=6/);
+  const terms = read('terms.html');
+  assert.match(terms, /must exceed 0\.05% of the starting balance \(\$2\.50 in Stage 2\)/);
+  assert.match(terms, /best trading day may not exceed 35% of total positive daily profit\.<\/li>\n\s*<li><strong>Maximum Risk per Trade:<\/strong> 0\.35% of starting balance \(\$17\.50\)/);
+  assert.match(read('infinity.html'), /a profitable day means more than \$2\.50 net closed profit\); the best day may not exceed 35%/);
+  assert.match(read('start-challenge.html'), /<td>Best-day share of positive profit \(max\)<\/td><td>35%<\/td><td>35%<\/td>/);
+  assert.match(read('supabase/seed/support_kb.json'), /Best day no more than 35% of positive profit/);
+  for (const f of ['infinity.html', 'index.html', 'start-challenge.html']) assert.doesNotMatch(read(f), /\$12\.50 net closed profit|above 25% of total profit|25% of positive profit/, f);
 });
