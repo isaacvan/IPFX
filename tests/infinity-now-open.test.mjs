@@ -65,3 +65,12 @@ test('a single choice (Infinity) is already selected so Continue is never greyed
   // the selection handler that this click triggers is the one that enables Continue
   assert.ok(flow.indexOf("$('step1Next').disabled = false;") < flow.indexOf('const onlyChoice'));
 });
+
+test('United States residents can select their country on the application form; only sanctioned countries are disabled', () => {
+  const start = read('start-challenge.html');
+  assert.match(start, /const restricted = new Set\(\['CU','IR','KP','SY'\]\);/);
+  assert.match(start, /if\(id==='country'&&restricted\.has\(code\)\)\{option\.disabled=true;/);
+  assert.doesNotMatch(start, /code==='US'/);
+  assert.match(start, /\['US','United States'\]/);
+  assert.match(read('signup.html'), /RESTRICTED_COUNTRIES = \{ CU: 'Cuba', IR: 'Iran', KP: 'North Korea', SY: 'Syria' \}/);
+});

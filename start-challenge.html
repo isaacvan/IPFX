@@ -1648,7 +1648,7 @@
       const restricted = new Set(['CU','IR','KP','SY']);
       for (const id of ['country','nationality','idIssuingCountry']) {
         const select=document.getElementById(id);
-        countries.forEach(([code,name])=>{const option=document.createElement('option');option.value=code;option.textContent=name;if(id==='country'&&(restricted.has(code)||code==='US')){option.disabled=true;option.textContent+=' (not currently available)'}select.appendChild(option)});
+        countries.forEach(([code,name])=>{const option=document.createElement('option');option.value=code;option.textContent=name;if(id==='country'&&restricted.has(code)){option.disabled=true;option.textContent+=' (not currently available)'}select.appendChild(option)});
       }
     })();
     </script>
