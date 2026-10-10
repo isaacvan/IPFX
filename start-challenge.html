@@ -1057,7 +1057,13 @@
             font-size: 1rem;
             min-height: 50px;
         }
-        select { -webkit-appearance: none; appearance: none; }
+        select { -webkit-appearance: none; appearance: none; color-scheme: dark; }
+        /* Native desktop menus need opaque colours, not the field's translucent background. */
+        select option, select optgroup {
+            background-color: #111318;
+            color: #f4f4f5;
+        }
+        select option:disabled { color: #a1a1aa; }
         label { font-size: 0.85rem; }
 
         /* Payment method rows presented like Apple's checkout radios */
