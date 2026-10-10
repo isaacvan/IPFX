@@ -360,11 +360,11 @@ async function submitBacktest(){
       body:JSON.stringify({first_name:fname,last_name:lname,email,strategy_name:name,instruments:instruments||null,timeframe:tf||null,language:lang||null,description:desc,status:'pending',submitted_at:new Date().toISOString()})
     });
     if(res.ok||res.status===201){document.getElementById('formContent').style.display='none';document.getElementById('formSuccess').classList.add('show');}
-    else{throw new Error('HTTP '+res.status);}
+    else{const err=await res.json().catch(()=>null);throw new Error(String(err&&err.message||'HTTP '+res.status));}
   }catch(e){
     btn.disabled=false;
     btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit for Backtest';
-    alert('Something went wrong. Please try again or contact us directly.');
+    alert(/BACKTEST_RATE_LIMITED/.test(String(e&&e.message))?'You have already sent three backtest requests today. Please try again tomorrow, or email enquiries@ipfxcapital.com.':'Something went wrong. Please try again or contact us directly at enquiries@ipfxcapital.com.');
   }
 }
 const nav=document.getElementById('mainNav');
