@@ -4,6 +4,7 @@ import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { applicableRules, finiteNumber, measuredFill, referenceRules, type RateRule } from "../_shared/e8-reference.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
+import { decodeAccountState } from "../_shared/e8-account-totals.ts";
 // E8 names the stock indices differently from the HeroFX feed that IPFX prices come from (matched on the start of the name).
 const E8_ALIASES: Record<string, string> = { DJI: "DOW", GER40: "DAX", JPN225: "NIKKEI", NSXUSD: "NSDQ", SPXUSD: "SP" };
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
@@ -22,10 +23,12 @@ Deno.serve(async req=>{
  if(!p)return json({ok:true,status:'IDLE'});
  const started=Date.now();let rules:RateRule[]=p.rate_rules??[],samples=0,fills=0,lastQuote:string|null=null,lastHistory:string|null=null;
  let config=p.broker_config,configAt=p.config_at,status='READY',errorCode:string|null=null,historyError:string|null=p.history_error_code;
+ let stateAttempt=p.last_state_attempt_at??null,stateAt=p.last_state_at??null,stateError:string|null=p.state_error_code??null;
  const finish=async()=>{
   const {data:saved,error}=await db.from('e8_monitor_profiles').update({lease:null,lease_until:null,last_run:new Date().toISOString(),
    last_quote_at:lastQuote??p.last_quote_at,last_history_at:lastHistory??p.last_history_at,broker_config:config,rate_rules:rules,
    config_at:configAt,status,error_code:errorCode,history_error_code:historyError,
+   last_state_attempt_at:stateAttempt,last_state_at:stateAt,state_error_code:stateError,
    ...(errorCode?{next_run:new Date(Date.now()+60000).toISOString()}:{}),updated_at:new Date().toISOString()}).eq('account_id',p.account_id).eq('lease',p.lease).gt('lease_until',new Date().toISOString()).select('account_id');
   if(error||saved?.length!==1)throw Error('MONITOR_STATE_WRITE_FAILED');
  };
@@ -33,7 +36,7 @@ Deno.serve(async req=>{
   const {data:a,error}=await db.from('ladder_accounts').select('*').eq('id',p.account_id).eq('role','monitor').eq('execution_enabled',false).eq('platform','tradelocker').maybeSingle();
   if(error||!a)throw Error('READ_ONLY_ACCOUNT_UNAVAILABLE');
   const before=async(path:string)=>{
-   const route=path.includes('/quotes?')?'QUOTES':path.startsWith('/trade/instruments/')?'INSTRUMENT_DETAILS':path.endsWith('/ordersHistory')?'ORDERS_HISTORY':path.includes('/refresh')?'REFRESH':'CONFIG';
+   const route=path.includes('/quotes?')?'QUOTES':path.startsWith('/trade/instruments/')?'INSTRUMENT_DETAILS':path.endsWith('/ordersHistory')?'ORDERS_HISTORY':path.endsWith('/state')?'ACCOUNT_STATE':path.includes('/refresh')?'REFRESH':'CONFIG';
    let selected=applicableRules(rules,route);
    // Configuration/auth do not have route limits in the official SDK config. Pace bootstrap
    // reads conservatively; this is a local ceiling, never a claim of a provider entitlement.
@@ -98,6 +101,21 @@ Deno.serve(async req=>{
    }
    lastHistory=new Date().toISOString();historyError=null;
    }catch(e){const msg=(e as Error)?.message??'';historyError=/^[A-Z0-9_]+$/.test(msg)?msg:'FILL_HISTORY_UNAVAILABLE';}
+  }
+  // At most one extra supported GET per minute, after quotes/history. Isolated from quote availability.
+  if(Date.now()-started<20000&&(!stateAttempt||Date.now()-Date.parse(stateAttempt)>=60000)){
+   stateAttempt=new Date().toISOString();
+   try{
+    if(!applicableRules(rules,'ACCOUNT_STATE').length)throw Error('ACCOUNT_STATE_RATE_UNAVAILABLE');
+    const requested=new Date().toISOString(),reply=await tl.accountState(token,String(a.account_id),String(a.acc_num));
+    const received=new Date().toISOString(),measured=decodeAccountState(config,reply);
+    const {error:save}=await db.from('e8_account_snapshots').insert({account_id:a.id,requested_at:requested,received_at:received,amounts:measured.values,
+     currency:measured.currency,period_basis:measured.period_basis,reconciliation:measured.reconciliation});
+    if(save)throw Error('ACCOUNT_STATE_SAVE_FAILED');
+    stateAt=received;stateError=measured.reconciliation.status==='INCOMPLETE'?'ACCOUNT_COST_FIELDS_MISSING':null;
+    await db.from('ab_heartbeats').upsert({worker:'e8-account-state',ok:stateError==null,at:received,detail:{status:measured.reconciliation.status,error:stateError}});
+   }catch(e){const msg=(e as Error)?.message??'';stateError=/^[A-Z0-9_]+$/.test(msg)?msg:'ACCOUNT_STATE_UNAVAILABLE';
+    await db.from('ab_heartbeats').upsert({worker:'e8-account-state',ok:false,at:new Date().toISOString(),detail:{error:stateError}});}
   }
   // One specification read per run, after quotes/history. Preserve broker limits;
   // missing metadata never stops quote collection or becomes a zero fee.

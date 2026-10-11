@@ -23,6 +23,7 @@
    (p.error_code?' · <span class="bad">'+esc(p.error_code)+'</span>':'')+(p.history_error_code?' · history: '+esc(p.history_error_code):'')+
    '<br><small>Last quote: '+esc(p.last_quote_at?new Date(p.last_quote_at).toLocaleString('en-GB',{timeZone:'Europe/London'}):'not received')+' · last history: '+esc(p.last_history_at?new Date(p.last_history_at).toLocaleString('en-GB',{timeZone:'Europe/London'}):'not received')+' · UK time</small></p>').join(''):accounts.length?'Read-only connection saved. Choose it above and click Start sampling; monitoring is not confirmed until a recent quote appears.':'No E8 connection saved. Enter your broker login yourself to connect.';
   refreshQuoteAge();
+  if($('accountTotals'))$('accountTotals').innerHTML=window.IPFXE8AccountTotals?.render(latest.summary?.account_totals)||'Account totals unavailable.';
   $('history').textContent=(latest.summary?.fills||0)+' broker fills retained · '+(latest.summary?.fee_complete_fills||0)+' have all commission/fee/swap fields · '+(latest.summary?.revisions||0)+' archived revisions. Missing fees are unknown.';
   const sim=latest.simulation;
   $('simulationStatus').textContent=sim?sim.positions+' positions · '+sim.events+' lifecycle events archived · refresh every 10 seconds.':'Automatic archive unavailable.';

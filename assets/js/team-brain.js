@@ -382,6 +382,7 @@
       <tbody>${body || `<tr><td colspan="${cols}" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>`}</tbody></table></div>
       <p class="small" style="margin-top:10px"><b>All-in</b> = spread + commission for one standard lot, using the median of samples taken at the same moments, so a quiet-hours spike cannot skew it. IPFX's commission comes from your symbol settings. The <b>E8 commission is an estimate</b> based on E8's published raw-spread schedule: $5 forex, $6 metals and most indices, $12 DOW, $30 crypto per lot round turn. These rates are not confirmed for your account. Missing fees stay unknown, not zero. Actual E8 contract sizes are observed separately; swap and slippage are not included.</p>
       ${renderFeeEvidence(c)}
+      ${window.IPFXE8AccountTotals?.render(data.e8_totals)||'<p class="small">Reported E8 totals unavailable.</p>'}
       <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) \u00b7 last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' \u00b7 ')}</p>`;
   }
 

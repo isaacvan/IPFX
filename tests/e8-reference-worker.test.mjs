@@ -1,6 +1,7 @@
 // Runs the production handler with a broker/database double. No real account/network.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {stripTypeScriptTypes} from 'node:module';
 import {applicableRules,measuredFill,referenceRules} from '../supabase/functions/_shared/e8-reference.ts';
+import {decodeAccountState} from '../supabase/functions/_shared/e8-account-totals.ts';
 async function harness(options={}){
  const now=new Date().toISOString(),calls=[],writes=[];
  const profile={account_id:1,lease:'lease',scope:'E8',symbols:['EURUSD'],last_quote_at:null,last_history_at:null,
@@ -19,13 +20,14 @@ async function harness(options={}){
   }};
  let handler;
  const tl={config:async()=>profile.broker_config,refresh:async()=>{throw Error('UNEXPECTED_REFRESH');},
+  accountState:async()=>{calls.push({name:'broker_state'});if(options.stateError)throw Error(options.stateError);return options.stateReply??{d:{accountDetailsData:[.07,.01,.06]}};},
   quote:async()=>{calls.push({name:'broker_quote'});if(options.brokerError)throw Error(options.brokerError);return {bid:1.1,ask:1.1002};},
   historyWithConfig:async()=>{calls.push({name:'broker_history'});if(options.historyError)throw Error(options.historyError);return[{id:'long-order-id',status:'filled',filledQty:.1,avgPrice:1.1,commission:0,fee:0,swap:options.swap??0,tradableInstrumentId:'10',lastModified:Date.now()}];}};
  const context=vm.createContext({Response,TextEncoder,Uint8Array,crypto:globalThis.crypto,Date,Map,JSON,Error,Number,String,Array,Math,setTimeout,
   Deno:{env:{get:n=>({COST_MONITOR_SECRET:'x'.repeat(32),TRADELOCKER_TOKEN_ENCRYPTION_KEY:'fixture'}[n]??'fixture')},serve:h=>handler=h},
-  createClient:()=>db,readClient:(_env,before)=>({ ...tl,quote:async(...args)=>{await before('/trade/quotes?routeId=1');return tl.quote(...args);},historyWithConfig:async(...args)=>{await before('/trade/accounts/99/ordersHistory');return tl.historyWithConfig(...args);}}),
+  createClient:()=>db,readClient:(_env,before)=>({ ...tl,accountState:async(...args)=>{await before('/trade/accounts/99/state');return tl.accountState(...args);},quote:async(...args)=>{await before('/trade/quotes?routeId=1');return tl.quote(...args);},historyWithConfig:async(...args)=>{await before('/trade/accounts/99/ordersHistory');return tl.historyWithConfig(...args);}}),
   decryptSecret:async()=> 'private-fixture-never-exposed',encryptSecret:async()=> 'cipher-fixture',jwtExpiresAt:()=>now,
-  applicableRules,measuredFill,referenceRules,TL_SYMBOLS:{EURUSD:'EURUSD'}});
+  applicableRules,measuredFill,referenceRules,decodeAccountState,TL_SYMBOLS:{EURUSD:'EURUSD'}});
  const source=fs.readFileSync(new URL('../supabase/functions/e8-reference/index.ts',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'');
  const js=stripTypeScriptTypes(source);
  vm.runInContext(js,context);
@@ -54,4 +56,20 @@ test('fee history failure stays visible while usable quote observations are reta
 });
 test('a replaced/expired worker lease cannot acknowledge successful state',async()=>{
  const h=await harness({expiredLease:true});const r=await h.run();assert.equal(r.status,503);assert.equal(r.body.error,'MONITOR_STATE_WRITE_FAILED');
+});
+
+const stateProfile=()=>({rate_rules:[{type:'QUOTES',limit:20,windowMs:1000},{type:'GET_ORDERS_HISTORY',limit:2,windowMs:60000},{type:'GET_ACCOUNTS_STATE',limit:4,windowMs:2000}],
+ broker_config:{accountDetailsConfig:{columns:['todayGross','todayNet','todayFees'].map(id=>({id}))}},config_at:new Date().toISOString()});
+test('account-state read is paced, whitelisted, append-only and independent of quote availability',async()=>{
+ const h=await harness({profile:stateProfile()});assert.equal((await h.run()).status,200);
+ assert.equal(h.calls.filter(x=>x.name==='broker_state').length,1);assert.ok(h.calls.some(x=>x.name==='e8_monitor_take'&&x.args.p_route==='ACCOUNT_STATE'));
+ const saved=h.writes.find(x=>x.table==='e8_account_snapshots');assert.equal(saved.operation,'insert');assert.equal(saved.body.amounts.todayNet,.01);assert.equal(saved.body.reconciliation.status,'CONSISTENT_POSITIVE_FEE');assert.equal(saved.body.currency,null);
+ const profile=h.writes.find(x=>x.table==='e8_monitor_profiles');assert.equal(profile.body.state_error_code,null);assert.ok(profile.body.last_state_at);
+ h.profile.last_state_attempt_at=new Date().toISOString();await h.run();assert.equal(h.calls.filter(x=>x.name==='broker_state').length,1,'no new state GET inside minute');
+});
+test('state errors, missing costs and failed archive are visible without losing successfully observed quotes',async()=>{
+ for(const options of[{stateError:'TRADELOCKER_HTTP_429'},{failTable:'e8_account_snapshots'},{stateReply:{d:{accountDetailsData:[.07,.01,null]}}}]){
+  const h=await harness({...options,profile:stateProfile()});const r=await h.run();assert.equal(r.status,200);assert.equal(r.body.samples,1);assert.ok(h.writes.find(x=>x.table==='e8_monitor_profiles').body.state_error_code);assert.ok(h.writes.some(x=>x.table==='ab_heartbeats'&&x.body.worker==='e8-account-state'&&!x.body.ok));
+ }
+ const h=await harness();await h.run();assert.equal(h.calls.filter(x=>x.name==='broker_state').length,0,'missing route budget prevents added provider calls');
 });
