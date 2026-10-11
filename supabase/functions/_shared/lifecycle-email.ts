@@ -13,12 +13,12 @@ function escapeHtml(v: unknown): string {
     .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
 
-function render(template: string, vars: Record<string, unknown>, html = false): string {
+export function render(template: string, vars: Record<string, unknown>, html = false): string {
   return String(template ?? "").replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
     (_m, k) => html ? escapeHtml(vars[k]) : String(vars[k] ?? ""));
 }
 
-function emailShell(subject: string, preheader: string | null, body: string): string {
+export function emailShell(subject: string, preheader: string | null, body: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;background:#f5f7fb;color:#101828;font-family:Inter,Arial,sans-serif"><span style="display:none!important;color:transparent;opacity:0;height:0;width:0;overflow:hidden">${escapeHtml(preheader ?? "")}</span><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:32px 12px"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb"><tr><td style="padding:28px 30px 18px;border-bottom:1px solid #e5e7eb"><div style="font-size:18px;font-weight:700;letter-spacing:.02em;color:#0b1220">IPFX Capital</div><div style="font-size:13px;color:#667085;margin-top:6px">Simulated trading evaluations</div></td></tr><tr><td style="padding:28px 30px;font-size:15px;line-height:1.65;color:#101828">${body}</td></tr><tr><td style="padding:18px 30px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.55;color:#667085">IPFX Capital provides simulated trading evaluations and performance-based rewards. IPFX Capital does not hold client deposits, provide brokerage services, or offer investment advice.</td></tr></table></td></tr></table></body></html>`;
 }
 
