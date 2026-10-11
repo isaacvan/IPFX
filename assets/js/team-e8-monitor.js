@@ -21,7 +21,7 @@
   const profiles=latest.summary?.accounts||[];
   $('health').innerHTML=profiles.length?profiles.map(p=>'<p><b>'+esc(p.label)+'</b> · '+esc(p.status)+' · '+(p.enabled?'sampling on':'paused')+
    (p.error_code?' · <span class="bad">'+esc(p.error_code)+'</span>':'')+(p.history_error_code?' · history: '+esc(p.history_error_code):'')+
-   '<br><small>Last quote: '+esc(p.last_quote_at?new Date(p.last_quote_at).toLocaleString('en-GB'):'not received')+' · last history: '+esc(p.last_history_at?new Date(p.last_history_at).toLocaleString('en-GB'):'not received')+'</small></p>').join(''):'Connect the E8 account, then start sampling.';
+   '<br><small>Last quote: '+esc(p.last_quote_at?new Date(p.last_quote_at).toLocaleString('en-GB',{timeZone:'Europe/London'}):'not received')+' · last history: '+esc(p.last_history_at?new Date(p.last_history_at).toLocaleString('en-GB',{timeZone:'Europe/London'}):'not received')+' · UK time</small></p>').join(''):accounts.length?'Read-only connection saved. Choose it above and click Start sampling; monitoring is not confirmed until a recent quote appears.':'No E8 connection saved. Enter your broker login yourself to connect.';
   refreshQuoteAge();
   $('history').textContent=(latest.summary?.fills||0)+' broker fills retained · '+(latest.summary?.fee_complete_fills||0)+' have all commission/fee/swap fields · '+(latest.summary?.revisions||0)+' archived revisions. Missing fees are unknown.';
   const sim=latest.simulation;
@@ -42,7 +42,7 @@
  $('connect').addEventListener('submit',async e=>{e.preventDefault();$('connectBtn').disabled=true;try{
   const result=await call('ladder-admin',{action:'ladder_add',role:'monitor',label:$('label').value,size_usd:Number($('size').value),fee_usd:0,signal_group:0,
    email:$('email').value,password:$('password').value,server:$('server').value,account_id:$('account').value});
-  $('password').value='';await load();if(result.id)$('monitorAccount').value=String(result.id);
+  $('password').value='';await load();if(result.id)$('monitorAccount').value=String(result.id);$('status').textContent='Read-only connection saved. Choose the account and start sampling, then confirm a recent quote. Browser logout alone does not stop server sampling.';
  }catch(err){$('status').textContent=err.message;}finally{$('password').value='';$('connectBtn').disabled=false;}});
  async function configure(enabled){const id=Number($('monitorAccount').value);if(!id)throw Error('Connect and choose the E8 account first');
   const symbols=$('symbols').value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);

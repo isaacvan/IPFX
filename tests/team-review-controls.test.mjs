@@ -70,9 +70,12 @@ test('invalid/stale actions and audit failure cannot silently apply a warning or
  assert.equal((await db.query('select book_halt from ab_settings')).rows[0].book_halt,false);
  }finally{await db.close();}});
 async function matching(db,{days=3,aliasPeer=false,offset=3}={}){
+ const today=new Date();
+ // Anchor at UTC noon so the single-day fixture stays on one calendar day even near midnight.
+ const anchor=Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate(),12);
  for(let k=0;k<6;k++){
   const day=days===1?1:(k%days)+1,hour=Math.floor(k/days)*2;
-  const timestamp=new Date(Date.now()-day*86400000-hour*3600000).toISOString();
+  const timestamp=new Date(anchor-day*86400000-hour*3600000).toISOString();
   await db.query(`insert into trades(account_id,opened_at,closed_at,status)values($1,$3::timestamptz,$3::timestamptz+interval '2 minutes','closed'),($2,$3::timestamptz+($4::text||' seconds')::interval,$3::timestamptz+interval '2 minutes 5 seconds','closed')`,[aid,aliasPeer?aliasAccount:bid,timestamp,offset]);
  }
 }

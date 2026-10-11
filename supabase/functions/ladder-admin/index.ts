@@ -7,6 +7,7 @@ import { allowRequest, readJsonObject } from "../_shared/request-guards.ts";
 import { encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { infoRoute, tradeRoute } from "../_shared/tradelocker.ts";
 import { loginAnyEnv, readClient } from "../_shared/tradelocker-read.ts";
+import { launchReadiness } from "../_shared/launch-readiness.ts";
 
 const ORIGINS = new Set(["https://ipfxcapital.com", "https://www.ipfxcapital.com", "http://localhost:3000", "http://localhost:8127"]);
 function aal(token: string): string {
@@ -49,11 +50,12 @@ Deno.serve(async (req) => {
     return error?json({ok:false,error:"Capacity could not be saved."},503):json({ok:true,book,execution_enablement_changed:false});
   }
   if (action === "overview") {
-    const { data: snap } = await db.from("treasury_snapshots").select("*").order("as_of", { ascending: false }).limit(1).maybeSingle();
-    const [forecasts, states, events, limits, settings, ls, ladders, rec, payouts, spons, reservations, dayPnl] = await Promise.all([
+    const { data: snap, error: snapshotError } = await db.from("treasury_snapshots").select("*").order("as_of", { ascending: false }).limit(1).maybeSingle();
+    if (snapshotError) return json({ok:false,error:"Treasury data could not be read. Previous figures are not current."},503);
+    const [forecasts, totals, events, limits, settings, ls, ladders, rec, payouts, spons, reviewDestinations] = await Promise.all([
       snap ? db.from("treasury_account_forecasts").select("account_id,person_id,stage,p_graduate,expected_days,payout_if_graduate,expected_payout,mu_mean,trades")
         .eq("snapshot_id", snap.id).order("expected_payout", { ascending: false }).limit(25) : Promise.resolve({ data: [] }),
-      db.from("ab_trader_profiles").select("book_state"),
+      db.rpc("treasury_book_totals"),
       db.from("ab_lifecycle_events").select("person_id,from_state,to_state,reason,created_at").order("created_at", { ascending: false }).limit(20),
       db.from("ab_risk_limits").select("*"),
       db.from("ab_settings").select("book_halt,starting_reserve_usd,payout_model,sponsor_fee_usd,sl_deadline_seconds").maybeSingle(),
@@ -62,32 +64,45 @@ Deno.serve(async (req) => {
       db.from("ladder_recommendations").select("*").order("as_of", { ascending: false }).limit(1).maybeSingle(),
       db.from("ladder_payouts").select("id,ladder_account_id,amount_usd,received_at,note").order("received_at", { ascending: false }).limit(20),
       db.from("graduate_sponsorships").select("id,account_id,user_id,status,fee_usd,note,created_at").order("created_at", { ascending: false }).limit(50),
-      db.from("ab_risk_reservations").select("book,risk_usd").eq("status", "active"),
-      db.from("book_daily_pnl").select("book,day,pnl_usd").eq("day", new Date().toISOString().slice(0, 10)),
+      db.from("team_book_destinations").select("book,status,environment"),
     ]);
-    const counts: Record<string, number> = {};
-    for (const r of states.data ?? []) counts[r.book_state] = (counts[r.book_state] ?? 0) + 1;
+    if ([forecasts,totals,events,limits,settings,ls,ladders,rec,payouts,spons,reviewDestinations].some(r => 'error' in r && r.error) || !totals.data) {
+      return json({ok:false,error:"Treasury data is incomplete. No zero balances or empty account lists have been substituted."},503);
+    }
+    const [capacity, reference] = await Promise.all([
+      db.from("book_capacity_limits").select("book,position_limit,margin_per_lot_usd,provider_evidence,updated_at"),
+      db.rpc("e8_reference_summary"),
+    ]);
+    const readiness = launchReadiness({settings:settings.data,accounts:ladders.data ?? [],reviewDestinations:reviewDestinations.data ?? [],
+      capacity:capacity.error ? null : capacity.data,reference:reference.error ? null : reference.data,
+      developerConfigured:Boolean(Deno.env.get("TRADELOCKER_DEVELOPER_API_KEY")),
+      signupSecretsConfigured:Boolean(Deno.env.get("TURNSTILE_SECRET_KEY") && Deno.env.get("SIGNUP_HOOK_SECRET")),
+      errors:[...(capacity.error ? ["Broker capacity diagnostics unavailable"] : []),...(reference.error ? ["E8 monitor diagnostics unavailable"] : [])]});
+    const counts = totals.data.book_states;
     const names = new Map<string, string>();
     const ids = [...new Set([...(spons.data ?? []).map((s) => s.user_id), ...(forecasts.data ?? []).map((f) => f.person_id)])];
     if (ids.length) { const { data } = await db.from("user_profiles").select("user_id,full_name").in("user_id", ids); for (const p of data ?? []) names.set(p.user_id, p.full_name); }
-    const openRisk: Record<string, number> = {};
-    for (const r of reservations.data ?? []) openRisk[r.book] = (openRisk[r.book] ?? 0) + Number(r.risk_usd);
+    const openRisk = totals.data.open_risk;
     return json({ ok: true, snapshot: snap, forecasts: (forecasts.data ?? []).map((f) => ({ ...f, name: names.get(f.person_id) ?? null })),
       book_states: counts, events: events.data ?? [], limits: limits.data ?? [], settings: settings.data, ladder_settings: ls.data,
-      ladder_accounts: ladders.data ?? [], recommendation: rec.data, payouts: payouts.data ?? [],
-      sponsorships: (spons.data ?? []).map((s) => ({ ...s, name: names.get(s.user_id) ?? null })), open_risk: openRisk, day_pnl: dayPnl.data ?? [] });
+      ladder_accounts: ladders.data ?? [], review_destinations:reviewDestinations.data ?? [], recommendation: rec.data, payouts: payouts.data ?? [],
+      sponsorships: (spons.data ?? []).map((s) => ({ ...s, name: names.get(s.user_id) ?? null })), open_risk: openRisk, day_pnl: totals.data.day_pnl, readiness });
   }
   if (action === "set_reserve") {
     const usd = Number(body.usd);
     if (!(usd >= 0) || usd > 100_000_000) return json({ ok: false, error: "Enter a reserve amount in USD" }, 400);
-    await db.from("ab_settings").update({ starting_reserve_usd: usd, updated_at: new Date().toISOString() }).eq("singleton", true);
-    await audit("treasury_set_reserve", { usd });
+    const {error:auditError}=await audit("treasury_set_reserve", { usd, phase:"intent" });
+    if(auditError)return json({ok:false,error:"Audit unavailable; reserve was not changed."},503);
+    const {data:saved,error:saveError}=await db.from("ab_settings").update({ starting_reserve_usd: usd, updated_at: new Date().toISOString() }).eq("singleton", true).select("singleton").maybeSingle();
+    if(saveError||!saved)return json({ok:false,error:"Reserve save could not be confirmed. Refresh and check before retrying."},503);
     return json({ ok: true });
   }
   if (action === "halt") {
     const on = body.on === true;
-    await db.from("ab_settings").update({ book_halt: on, updated_at: new Date().toISOString() }).eq("singleton", true);
-    await audit("ab_book_halt", { on });
+    const {error:auditError}=await audit("ab_book_halt", { on, phase:"intent" });
+    if(auditError)return json({ok:false,error:"Audit unavailable; halt setting was not changed."},503);
+    const {data:saved,error:saveError}=await db.from("ab_settings").update({ book_halt: on, updated_at: new Date().toISOString() }).eq("singleton", true).select("singleton").maybeSingle();
+    if(saveError||!saved)return json({ok:false,error:"Halt setting could not be confirmed. Refresh and check before retrying."},503);
     return json({ ok: true, book_halt: on });
   }
   if (action === "ladder_add") {
@@ -137,28 +152,37 @@ Deno.serve(async (req) => {
     const id = Number(body.id); const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (typeof body.execution_enabled === "boolean") patch.execution_enabled = body.execution_enabled;
     if (patch.execution_enabled === true) {
-      const { data: cur } = await db.from("ladder_accounts").select("role").eq("id", id).maybeSingle();
+      const { data: cur, error:readError } = await db.from("ladder_accounts").select("role").eq("id", id).maybeSingle();
+      if(readError||!cur)return json({ok:false,error:"Account role could not be verified; copying was not changed."},503);
       if (cur?.role === "monitor") return json({ ok: false, error: "The E8 monitor account is read-only and can never receive copies" }, 400);
     }
     if (["evaluation", "funded", "breached", "closed"].includes(String(body.status))) patch.status = body.status;
     if (!(id > 0) || Object.keys(patch).length < 2) return json({ ok: false, error: "Nothing to change" }, 400);
-    await db.from("ladder_accounts").update(patch).eq("id", id);
-    await audit("ladder_account_update", { id, ...patch });
+    const {error:auditError}=await audit("ladder_account_update", { id, ...patch, phase:"intent" });
+    if(auditError)return json({ok:false,error:"Audit unavailable; account was not changed."},503);
+    const {data:saved,error:saveError}=await db.from("ladder_accounts").update(patch).eq("id", id).select("id").maybeSingle();
+    if(saveError||!saved)return json({ok:false,error:"Account update could not be confirmed. Refresh and check before retrying."},503);
     return json({ ok: true });
   }
   if (action === "payout_add") {
     const amount = Number(body.amount_usd), id = body.ladder_account_id == null ? null : Number(body.ladder_account_id);
-    if (!(amount > 0)) return json({ ok: false, error: "Enter the amount received in USD" }, 400);
-    await db.from("ladder_payouts").insert({ ladder_account_id: id, amount_usd: amount, note: String(body.note || "").slice(0, 200) || null });
-    await audit("ladder_payout_add", { ladder_account_id: id, amount_usd: amount });
+    if (!Number.isFinite(amount) || !(amount > 0) || id != null && (!Number.isSafeInteger(id) || id < 1)) return json({ ok: false, error: "Enter the amount received in USD and a valid account id" }, 400);
+    const {error:auditError}=await audit("ladder_payout_add", { ladder_account_id: id, amount_usd: amount, phase:"intent" });
+    if(auditError)return json({ok:false,error:"Audit unavailable; receipt was not recorded."},503);
+    const {data:saved,error:saveError}=await db.from("ladder_payouts").insert({ ladder_account_id: id, amount_usd: amount, note: String(body.note || "").slice(0, 200) || null }).select("id").single();
+    if(saveError||!saved)return json({ok:false,error:"Receipt save could not be confirmed. Refresh and check before retrying."},503);
     return json({ ok: true });
   }
   if (action === "sponsorship_decide") {
     const id = Number(body.id), status = String(body.status);
     if (!(id > 0) || !["purchased", "declined", "pending"].includes(status)) return json({ ok: false, error: "Choose purchased or declined" }, 400);
-    await db.from("graduate_sponsorships").update({ status, fee_usd: body.fee_usd == null ? null : Number(body.fee_usd), note: String(body.note || "").slice(0, 200) || null,
-      decided_at: new Date().toISOString() }).eq("id", id);
-    await audit("graduate_sponsorship_decide", { id, status });
+    const fee=body.fee_usd == null ? null : Number(body.fee_usd);
+    if(fee != null && (!Number.isFinite(fee) || fee < 0))return json({ok:false,error:"Enter a nonnegative fee in USD"},400);
+    const {error:auditError}=await audit("graduate_sponsorship_decide", { id, status, phase:"intent" });
+    if(auditError)return json({ok:false,error:"Audit unavailable; sponsorship was not changed."},503);
+    const {data:saved,error:saveError}=await db.from("graduate_sponsorships").update({ status, fee_usd: fee, note: String(body.note || "").slice(0, 200) || null,
+      decided_at: new Date().toISOString() }).eq("id", id).select("id").maybeSingle();
+    if(saveError||!saved)return json({ok:false,error:"Sponsorship save could not be confirmed. Refresh and check before retrying."},503);
     return json({ ok: true });
   }
   return json({ ok: false, error: "Unknown action" }, 400);
