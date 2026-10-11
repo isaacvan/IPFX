@@ -12,6 +12,7 @@
   const STATE_LABEL = { BB_DEMO: 'B-book demo', BB_LIVE: 'B-book live', AB_DEMO: 'A-book demo', AB_LIVE: 'A-book live', SUSPENDED: 'Suspended' };
   let last = null, busy = false, acting = false, lastLoadedAt = null;
   const htmlCache = new Map();
+  let validationModeVersion=null,validationPersonVersion=null,validationDataCurrent=false;
   function setHtml(id, html) { if(htmlCache.get(id)!==html){ $(id).innerHTML=html; htmlCache.set(id,html); } }
 
   async function call(action, extra = {}) {
@@ -25,6 +26,7 @@
   }
 
   function render(d) {
+    renderValidation(d.validation,d.validation_error);
     const readiness = d.readiness;
     $('setupStatus').textContent = readiness ? (readiness.diagnostics_complete ? 'Current setup checks · ' : 'Some setup checks unavailable · ') + when(readiness.as_of) + ' UK time. Configuration checks are not a launch approval.' : 'Setup diagnostics unavailable. Refresh after the backend update; no readiness has been assumed.';
     const links = new Set(['team-e8-monitor.html','team-e8-monitor.html#settings','team-brain.html','signup.html','#accountSetup','#ladderRows','#reserveForm']);
@@ -64,16 +66,36 @@
   async function load() {
     if (busy) return; busy = true; $('refresh').disabled = true; $('status').textContent = 'Loading…';
     try { last = await call('overview'); render(last); lastLoadedAt = new Date().toISOString(); $('status').textContent = 'Owner-only · MFA protected · updated ' + when(lastLoadedAt) + ' UK time'; }
-    catch (e) { $('status').textContent = (e.name === 'TimeoutError' ? 'Treasury request timed out.' : e.message) + (lastLoadedAt ? ' Last successful refresh: ' + when(lastLoadedAt) + ' UK time. Displayed figures may be stale.' : ''); $('setupStatus').textContent = 'Current setup status unavailable. Any earlier checks below are stale; do not use them to enable copying.'; }
+    catch (e) { $('status').textContent = (e.name === 'TimeoutError' ? 'Treasury request timed out.' : e.message) + (lastLoadedAt ? ' Last successful refresh: ' + when(lastLoadedAt) + ' UK time. Displayed figures may be stale.' : ''); $('setupStatus').textContent = 'Current setup status unavailable. Any earlier checks below are stale; do not use them to enable copying.'; validationDataCurrent=false;$('validationModeSave').disabled=true;$('validationPersonSave').disabled=true;$('validationStatus').textContent='Validation settings unavailable or stale. Refresh before saving.'; }
     finally { busy = false; $('refresh').disabled = false; }
   }
   async function act(action, extra, okMsg) {
     if (acting) return false; acting = true;
     const buttons=[...document.querySelectorAll('form button[type="submit"],#haltBtn,[data-la],[data-sp],[data-capacity]')]; buttons.forEach(b=>b.disabled=true);
     try { await call(action, extra); $('status').textContent = okMsg; await load(); return true; } catch (e) { $('status').textContent = (e.name === 'TimeoutError' ? 'Save timed out. Refresh and check before retrying.' : e.message); return false; }
-    finally { acting=false; buttons.forEach(b=>b.disabled=false); }
+    finally { acting=false; buttons.forEach(b=>b.disabled=false); if(!validationDataCurrent){$('validationModeSave').disabled=true;$('validationPersonSave').disabled=true;} }
   }
   $('refresh').addEventListener('click', load);
+  function renderValidation(v,error){
+    const current=v?.settings;
+    validationDataCurrent=!!current&&['off','paper'].includes(current.mode)&&Number.isSafeInteger(Number(current.version));
+    $('validationModeSave').disabled=!validationDataCurrent;$('validationPersonSave').disabled=!validationDataCurrent;
+    if(!validationDataCurrent){$('validationStatus').textContent=error||'Validation journal unavailable or mode unsupported. No recording or execution has been assumed.';$('validationStats').textContent='';return;}
+    if(validationModeVersion===null)$('validationMode').value=current.mode;
+    const stale=[validationModeVersion,validationPersonVersion].some(x=>x!==null&&x!==Number(current.version));
+    $('validationStatus').textContent=(current.mode==='off'?'OFF · no new streams':'PAPER · source observations only')+' · '+(stale?'Settings changed while editing. Reload before saving. ': '')+(v.capture_failure_recorded?'Capture failed: evidence coverage is unconfirmed. ':'')+'Broker dispatch and net verification are unavailable.';
+    const counts=v.work_states||{};
+    setHtml('validationStats',[['Selected people',v.enabled_enrolments],['Recorded streams',v.streams],['Source events',v.events],['Paper intentions',v.paper_intentions],['Uncertain work',counts.unknown??0],['Oldest pending',v.oldest_pending_at?when(v.oldest_pending_at)+' UK':'None recorded']].map(([label,value])=>`<div class="tile"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join(''));
+  }
+  const draftMode=()=>{if(validationModeVersion===null)validationModeVersion=Number(last?.validation?.settings?.version)};
+  const draftPerson=()=>{if(validationPersonVersion===null)validationPersonVersion=Number(last?.validation?.settings?.version)};
+  for(const id of ['validationMode','validationModeReason'])$(id).addEventListener('input',draftMode);
+  for(const id of ['validationEnabled','validationSelection','validationPersonReason'])$(id).addEventListener('input',draftPerson);
+  $('validationReload').addEventListener('click',()=>{validationModeVersion=null;validationPersonVersion=null;load();});
+  $('validationModeForm').addEventListener('submit',async e=>{e.preventDefault();const version=validationModeVersion??Number(last?.validation?.settings?.version);if(await act('validation_mode',{mode:$('validationMode').value,reason:$('validationModeReason').value.trim(),expected_version:version},'Paper recording mode saved; broker execution unchanged.')){if(validationDataCurrent){validationModeVersion=null;renderValidation(last?.validation);}}});
+  $('validationFindForm').addEventListener('submit',async e=>{e.preventDefault();$('validationFind').disabled=true;try{const r=await call('validation_find',{query:$('validationName').value.trim()});setHtml('validationMatches',(r.results||[]).map(p=>`<p><button class="button" type="button" data-validation-person="${esc(p.user_id)}" data-validation-name="${esc(p.full_name||'Registered trader')}">Choose ${esc(p.full_name||'registered trader')}</button></p>`).join('')||'<p>No matching registered trader.</p>');}catch(error){$('validationMatches').textContent=error.message;}finally{$('validationFind').disabled=false;}});
+  $('validationMatches').addEventListener('click',e=>{const b=e.target.closest('[data-validation-person]');if(!b)return;$('validationPersonId').value=b.dataset.validationPerson;$('validationPersonName').value=b.dataset.validationName;draftPerson();});
+  $('validationPersonForm').addEventListener('submit',async e=>{e.preventDefault();if(!$('validationPersonId').value){$('validationStatus').textContent='Find and choose a registered trader first.';return;}const version=validationPersonVersion??Number(last?.validation?.settings?.version);if(await act('validation_enrol',{person_id:$('validationPersonId').value,enabled:$('validationEnabled').value==='true',selection:$('validationSelection').value,reason:$('validationPersonReason').value.trim(),expected_version:version},'Future-stream selection saved; live model unchanged.')){if(validationDataCurrent){validationPersonVersion=null;renderValidation(last?.validation);}}});
   $('reserveForm').addEventListener('submit', (e) => { e.preventDefault(); act('set_reserve', { usd: Number($('reserveUsd').value) }, 'Reserve saved'); });
   $('payoutForm').addEventListener('submit', async (e) => { e.preventDefault(); if(await act('payout_add', { amount_usd: Number($('poAmount').value), ladder_account_id: $('poAccount').value ? Number($('poAccount').value) : null }, 'Payout recorded')) $('poAmount').value = ''; });
   $('haltBtn').addEventListener('click', () => act('halt', { on: !(last?.settings?.book_halt) }, 'Saved'));
