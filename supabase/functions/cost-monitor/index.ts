@@ -3,6 +3,7 @@
 // trader's copies ("shadow") and with IPFX's own feed: spreads sampled at the same moment, and commission /
 // overnight fees from each account's filled orders. Uses the read-only TradeLocker client (no order functions).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reportedNumber } from "../_shared/reported-number.ts";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
@@ -22,7 +23,7 @@ function instrumentFor(map: Array<Record<string, unknown>>, symbol: string) {
   const want = norm(TL_SYMBOLS[symbol] ?? symbol);
   return map.find((m) => norm(String(m.symbol)) === want) ?? map.find((m) => norm(String(m.symbol)).startsWith(want));
 }
-const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = reportedNumber;
 
 Deno.serve(async (req) => {
   const secret = Deno.env.get("COST_MONITOR_SECRET") ?? "";
