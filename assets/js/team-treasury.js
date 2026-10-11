@@ -11,6 +11,8 @@
   const when = (v) => v ? new Date(v).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/London' }) : '—';
   const STATE_LABEL = { BB_DEMO: 'B-book demo', BB_LIVE: 'B-book live', AB_DEMO: 'A-book demo', AB_LIVE: 'A-book live', SUSPENDED: 'Suspended' };
   let last = null, busy = false, acting = false, lastLoadedAt = null;
+  const htmlCache = new Map();
+  function setHtml(id, html) { if(htmlCache.get(id)!==html){ $(id).innerHTML=html; htmlCache.set(id,html); } }
 
   async function call(action, extra = {}) {
     const { data: { session } } = await sb.auth.getSession();
@@ -26,7 +28,7 @@
     const readiness = d.readiness;
     $('setupStatus').textContent = readiness ? (readiness.diagnostics_complete ? 'Current setup checks · ' : 'Some setup checks unavailable · ') + when(readiness.as_of) + ' UK time. Configuration checks are not a launch approval.' : 'Setup diagnostics unavailable. Refresh after the backend update; no readiness has been assumed.';
     const links = new Set(['team-e8-monitor.html','team-e8-monitor.html#settings','team-brain.html','signup.html','#accountSetup','#ladderRows','#reserveForm']);
-    $('setupRows').innerHTML = readiness ? readiness.checks.map(c => `<tr><td>${esc(c.title)}</td><td>${esc({checked:'Checked configuration / data',action:'Action needed',unknown:'Unavailable'}[c.state] || 'Unavailable')}</td><td>${esc(c.detail)}</td><td>${links.has(c.href) ? `<a class="button" href="${esc(c.href)}">Open next step</a>` : 'Review setup'}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No current setup diagnostics.</td></tr>';
+    setHtml('setupRows', readiness ? readiness.checks.map(c => `<tr><td>${esc(c.title)}</td><td>${esc({checked:'Checked configuration / data',action:'Action needed',unknown:'Unavailable'}[c.state] || 'Unavailable')}</td><td>${esc(c.detail)}</td><td>${links.has(c.href) ? `<a class="button" href="${esc(c.href)}">Open next step</a>` : 'Review setup'}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No current setup diagnostics.</td></tr>');
     const s = d.snapshot, set = d.settings || {};
     const statusText = { unknown: 'Unknown: check reserve / data', healthy: 'Healthy', tight: 'Tight', short: 'Short' }[s?.status || 'unknown'];
     $('kpis').innerHTML = [
