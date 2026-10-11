@@ -37,6 +37,33 @@ Deno.serve(async (req) => {
   const audit = (action: string, detail: Record<string, unknown>) => db.from("admin_audit_log").insert({ actor_id: user.id, action, detail });
   const action = String(body.action || "overview");
 
+  if(action==="validation_find"){
+    const term=typeof body.query==="string"?body.query.trim():"";
+    const search=term.replace(/[\\%_]/g,"");
+    if(search.length<3||term.length>80)return json({ok:false,error:"Enter at least three characters of the registered name."},400);
+    const {data:results,error}=await db.from("user_profiles").select("user_id,full_name").ilike("full_name","%"+search+"%").limit(20);
+    return error?json({ok:false,error:"Registered trader search is unavailable."},503):json({ok:true,results:results??[]});
+  }
+
+  if (action === "validation_mode" || action === "validation_enrol") {
+    const version=Number(body.expected_version),reason=typeof body.reason === "string" ? body.reason.trim().slice(0,500) : "";
+    if(!Number.isSafeInteger(version)||version<1||reason.length<5)return json({ok:false,error:"Refresh the validation settings and enter a clear reason."},400);
+    let response;
+    if(action==="validation_mode"){
+      if(!["off","paper"].includes(String(body.mode)))return json({ok:false,error:"Only Off or paper recording is available. Broker execution cannot be enabled here."},400);
+      response=await db.rpc("fn_ab_validation_set_mode",{p_mode:body.mode,p_expected_version:version,p_actor:user.id,p_reason:reason});
+    }else{
+      const person=String(body.person_id??"");
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(person)||typeof body.enabled!=="boolean"||!["follow_state","a","b"].includes(String(body.selection)))return json({ok:false,error:"Choose a registered trader and a paper direction."},400);
+      const mapped=await db.rpc("ab_person_of",{p_user:person});
+      if(mapped.error||!mapped.data)return json({ok:false,error:"Trader mapping is unavailable; nothing changed."},503);
+      response=await db.rpc("fn_ab_validation_enrol",{p_person:mapped.data,p_enabled:body.enabled,p_selection:body.selection,p_expected_version:version,p_actor:user.id,p_reason:reason});
+    }
+    if(response.error)return json({ok:false,error:"Validation settings or audit could not be saved. Refresh before retrying."},503);
+    if(!response.data?.ok)return json({ok:false,error:"Validation settings changed. Refresh before retrying."},409);
+    return json({...response.data,can_dispatch:false});
+  }
+
   if (action === "capacity_set") {
     const book = String(body.book ?? ""), positions = Number(body.position_limit), margin = Number(body.margin_per_lot_usd), evidence = String(body.provider_evidence ?? "").trim().slice(0, 500);
     if (!/^(a|b|[ls][0-9]+)$/.test(book) || !Number.isSafeInteger(positions) || positions < 1 || !Number.isFinite(margin) || margin <= 0 || evidence.length < 10) return json({ok:false,error:"Enter the documented position limit, conservative margin per lot and provider evidence."},400);
@@ -69,9 +96,10 @@ Deno.serve(async (req) => {
     if ([forecasts,totals,events,limits,settings,ls,ladders,rec,payouts,spons,reviewDestinations].some(r => 'error' in r && r.error) || !totals.data) {
       return json({ok:false,error:"Treasury data is incomplete. No zero balances or empty account lists have been substituted."},503);
     }
-    const [capacity, reference] = await Promise.all([
+    const [capacity, reference, validation] = await Promise.all([
       db.from("book_capacity_limits").select("book,position_limit,margin_per_lot_usd,provider_evidence,updated_at"),
       db.rpc("e8_reference_summary"),
+      db.rpc("fn_ab_validation_summary"),
     ]);
     const readiness = launchReadiness({settings:settings.data,accounts:ladders.data ?? [],reviewDestinations:reviewDestinations.data ?? [],
       capacity:capacity.error ? null : capacity.data,reference:reference.error ? null : reference.data,
@@ -86,7 +114,8 @@ Deno.serve(async (req) => {
     return json({ ok: true, snapshot: snap, forecasts: (forecasts.data ?? []).map((f) => ({ ...f, name: names.get(f.person_id) ?? null })),
       book_states: counts, events: events.data ?? [], limits: limits.data ?? [], settings: settings.data, ladder_settings: ls.data,
       ladder_accounts: ladders.data ?? [], review_destinations:reviewDestinations.data ?? [], recommendation: rec.data, payouts: payouts.data ?? [],
-      sponsorships: (spons.data ?? []).map((s) => ({ ...s, name: names.get(s.user_id) ?? null })), open_risk: openRisk, day_pnl: totals.data.day_pnl, readiness });
+      sponsorships: (spons.data ?? []).map((s) => ({ ...s, name: names.get(s.user_id) ?? null })), open_risk: openRisk, day_pnl: totals.data.day_pnl, readiness,
+      validation:validation.error ? null : validation.data,validation_error:validation.error ? "Paper validation journal is unavailable; no coverage or execution has been assumed." : null });
   }
   if (action === "set_reserve") {
     const usd = Number(body.usd);
