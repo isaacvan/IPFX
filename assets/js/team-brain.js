@@ -351,6 +351,12 @@
     $('health').innerHTML = rows.join('');
   }
 
+  function renderFeeEvidence(c) {
+    const count = (v) => fin(v) && Number(v) >= 0 ? esc(Number(v)) : 'Not recorded';
+    const rows = (c?.commission || []).map((r) => `<tr><td>${esc(r.role === 'monitor' ? 'E8 monitor' : r.role === 'shadow' ? 'Demo copy' : r.role)}</td><td class="num">${count(r.fills)}</td><td class="num">${count(r.commission_fills)}</td><td class="num">${count(r.swap_fills)}</td><td>${r.commission_complete === true && r.swap_complete === true ? 'Reported fields present; trade reconciliation still required' : 'Incomplete · net unverified'}</td></tr>`).join('');
+    return `<h3>Reported fee evidence</h3><div class="table-wrap"><table><thead><tr><th>Source</th><th>History fills</th><th>Commission reported</th><th>Swap reported</th><th>Meaning</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No fee history yet. Missing fees are not zero.</td></tr>'}</tbody></table></div><p class="small">Reported counts describe saved fields, not complete round-trip costs or reconciled net P&amp;L. A per-filled-lot average does not prove the fee for an entire trade.</p>`;
+  }
+
   function renderCosts() {
     const c = data.costs, el = $('costs'); if (!el) return;
     const accts = c?.accounts || [];
@@ -371,6 +377,7 @@
       <th class="num" title="IPFX all-in cost as a share of E8's. Aim for 80% to 125%.">IPFX vs E8</th><th class="num">Samples</th></tr></thead>
       <tbody>${body || `<tr><td colspan="${cols}" class="empty">No samples yet. The first arrive within a minute of connecting.</td></tr>`}</tbody></table></div>
       <p class="small" style="margin-top:10px"><b>All-in</b> = spread + commission for one standard lot, using the median of samples taken at the same moments, so a quiet-hours spike cannot skew it. IPFX's commission comes from your symbol settings. The <b>E8 commission is an estimate</b> based on E8's published raw-spread schedule: $5 forex, $6 metals and most indices, $12 DOW, $30 crypto per lot round turn. These rates are not confirmed for your account. Missing fees stay unknown, not zero. Actual E8 contract sizes are observed separately; swap and slippage are not included.</p>
+      ${renderFeeEvidence(c)}
       <p class="small">Accounts: ${accts.map((a) => `${esc(a.label)} (${a.role === 'monitor' ? 'E8 monitor' : 'demo copy'}${a.api_env === 'live' ? ', live' : ''}) \u00b7 last sample ${a.last_sample ? ago(a.last_sample) : 'none yet'}`).join(' \u00b7 ')}</p>`;
   }
 
@@ -378,18 +385,18 @@
     const x = data.shadow, el = $('shadow'); if (!el) return;
     if (!x || !x.coverage?.accounts) { el.innerHTML = '<div class="empty-ok">Connect the demo copy accounts on the Treasury page (role: Demo copy). Every trader is then copied at minimum size and this panel shows an estimate scaled to funded size. Broker minimum lots cannot confirm partial fills or funded execution.</div>'; return; }
     const usd = (v) => fin(v) ? (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString() : '—';
-    const cls = (v) => fin(v) && v < 0 ? 'neg' : 'pos';
+    const cls = (v) => !fin(v) || Number(v) === 0 ? '' : Number(v) < 0 ? 'neg' : 'pos';
     const nm = new Map((data.traders || []).map((t) => [t.person_id, t.name]));
     const cov = x.coverage;
     const tile = (label, v, note, c) => `<div class="tile"><span>${label}</span><strong class="${c || ''}">${v}</strong><div class="sub2">${note}</div></div>`;
-    const rows = (x.people || []).map((r) => `<tr><td>${esc(nm.get(r.person_id) || 'Trader ' + String(r.person_id).slice(0, 6))}</td><td class="num">${esc(r.trades)}</td><td class="num ${cls(r.ipfx_scaled)}">${usd(r.ipfx_scaled)}</td><td class="num ${cls(r.funded_net)}">${usd(r.funded_net)}</td><td class="num ${r.gap > 0 ? 'neg' : 'pos'}">${usd(r.gap)}</td></tr>`).join('');
-    el.innerHTML = `<div class="tiles" style="margin:0 0 12px">${tile('On IPFX', usd(x.ipfx_scaled), 'what traders were shown, scaled to $' + Number(x.funded_size).toLocaleString(), cls(x.ipfx_scaled))}
-      ${tile('Really, on E8', usd(x.funded_net), 'demo result scaled up, minus E8 extra costs', cls(x.funded_net))}
-      ${tile('IPFX is easier by', usd(x.gap), 'the part of IPFX profit that real fills would not give', x.gap > 0 ? 'neg' : 'pos')}
+    const rows = (x.people || []).map((r) => `<tr><td>${esc(nm.get(r.person_id) || 'Trader ' + String(r.person_id).slice(0, 6))}</td><td>${r.model === 'a' ? 'A · same direction' : r.model === 'b' ? 'B · reverse' : 'Model not recorded'}</td><td class="num">${esc(r.trades)}</td><td class="num ${cls(r.ipfx_scaled)}">${usd(r.ipfx_scaled)}</td><td class="num ${cls(r.copy_scaled)}">${usd(r.copy_scaled)}</td><td>Unverified</td></tr>`).join('');
+    el.innerHTML = `<div class="tiles" style="margin:0 0 12px">${tile('IPFX result scaled', usd(x.ipfx_scaled), 'source result scaled to $' + Number(x.funded_size).toLocaleString(), cls(x.ipfx_scaled))}
+      ${tile('Demo gross estimate', usd(x.copy_scaled), 'recorded demo prices scaled under contract and FX assumptions', cls(x.copy_scaled))}
+      ${tile('E8 execution and net', 'Unverified', 'demo prices and aggregate fees do not prove funded execution or net', '')}
       ${tile('Copied', esc(x.trades), esc(cov.traders) + ' traders on ' + esc(cov.accounts) + ' demo accounts · ' + esc(cov.failed) + ' copies failed', cov.failed ? 'neg' : '')}</div>
-      <div class="table-wrap" style="max-height:none"><table style="min-width:560px"><thead><tr><th>Trader (largest gap first)</th><th class="num">Trades</th><th class="num">On IPFX</th><th class="num">Really, on E8</th><th class="num">Gap</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5" class="empty">No finished copies yet.</td></tr>'}</tbody></table></div>
-      <p class="small" style="margin-top:10px">Partial closes below the broker lot step are quote estimates sampled after the source exit; they are not confirmed broker fills (no extra order; the demo lot is the minimum and cannot be split)${x.incomplete ? ` · ${esc(x.incomplete)} trade(s) left out because a partial close could not be priced in time` : ''}.</p>`;
+      <div class="table-wrap" style="max-height:none"><table style="min-width:650px"><thead><tr><th>Trader</th><th>Frozen model</th><th class="num">Trades</th><th class="num">IPFX result scaled</th><th class="num">Demo gross estimate</th><th>E8 net</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" class="empty">No complete recorded estimates yet.</td></tr>'}</tbody></table></div>
+      <p class="small" style="margin-top:10px">The model comes from the side saved when the copy opened. A and B results are separated. Contract size, conversion and small-lot scaling remain assumptions. Partial closes below the broker lot step are quote estimates sampled after the source exit; they are not confirmed broker fills (no extra order; the demo lot is the minimum and cannot be split)${x.incomplete ? ` · ${esc(x.incomplete)} trade(s) excluded because source exits, prices or quantities are incomplete` : ''}. Unknown commission, swap and execution evidence never becomes zero fees or verified E8 net.</p>`;
   }
 
   function render() {
