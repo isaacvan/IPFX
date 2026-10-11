@@ -2,6 +2,7 @@ export type ReviewAlert = { key: string; category: string; person_id: string | n
 export function solutionOptions(a: ReviewAlert): Array<{kind:string;label:string;help:string}> {
  const options=[{kind:'recheck',label:'Refresh checks',help:'Reruns the alert scan; it does not repair a stopped service or retry a broker order.'}];
  if(a.person_id) options.unshift({kind:'review_model',label:'Review trader and routing',help:'Open performance and the existing model controls. No model changes until you explicitly save one.'});
+ if(a.key.startsWith('trader:b-review:'))return options;
  if(a.severity==='good')return options;
  if(a.key.startsWith('rules:team-pause:')) options.unshift({kind:'resume',label:'Remove team entry pause',help:'Requires a review reason. Failed challenges, investigation holds and monthly lockouts stay in force.'});
  else if(a.person_id) {

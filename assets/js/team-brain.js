@@ -279,7 +279,11 @@
   function renderWatch() {
     const has = (t, tag) => (t.metrics?.tags || []).includes(tag);
     const good = data.traders.filter((t) => has(t, 'STAR') || has(t, 'EARNER')).sort((a, b) => Number(b.metrics.proof_copy || 0) - Number(a.metrics.proof_copy || 0));
-    $('wlGood').innerHTML = good.length ? good.map((t) => has(t, 'STAR') ? wlItem(t, 'Proven copy edge', rr(t.metrics.copy_r) + '/trade', 'pos') : wlItem(t, 'Proven B-book earner', rr(t.metrics.reverse_r) + '/trade', 'pos')).join('')
+    const reviews=data.traders.filter(t=>['WATCH','POLICY_REVIEW'].includes(t.metrics?.b_review?.status)&&t.book_state==='BB_DEMO'&&
+      Date.now()-Date.parse(t.metrics.as_of)>=0&&Date.now()-Date.parse(t.metrics.as_of)<180000&&t.metrics.b_review.policy_version===data.policy?.version);
+    const goodItems=reviews.map(t=>wlItem(t,t.metrics.b_review.status==='WATCH'?'Watch reverse estimates':'Review for B-book live',rr(t.metrics.reverse_r)+'/trade · replay','pos'));
+    goodItems.push(...good.map((t) => has(t, 'STAR') ? wlItem(t, 'Copy replay evidence', rr(t.metrics.copy_r) + '/trade', 'pos') : wlItem(t, 'B-book replay evidence', rr(t.metrics.reverse_r) + '/trade', 'pos')));
+    $('wlGood').innerHTML = goodItems.length ? goodItems.join('')
       : '<li class="empty-ok" style="cursor:default">No one has proven skill yet. Proof needs 40+ replayed trades over 20+ days per trader.</li>';
     const risk = [];
     for (const t of data.traders) {
@@ -451,6 +455,21 @@
       <p id="modelStatus" role="status"></p></section>`;
   }
   const ukTradeTimeFormat = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', timeZoneName: 'short' });
+  function renderBReview(m,p,routing,ref) {
+    const r=m.b_review,labels={WATCH:'Watch reverse performance',POLICY_REVIEW:'Review for B-book live',SELECTED:'B-book live selected',BUILDING:'Building reverse evidence',BLOCKED:'Integrity review required',OTHER_MODEL:'Another model takes priority',UNAVAILABLE:'Evidence unavailable'};
+    if(!r)return '<h3>B-book live review</h3><p class="small">Assessment not available yet.</p>';
+    const fresh=Number.isFinite(Date.parse(m.as_of))&&Date.now()-Date.parse(m.as_of)>=0&&Date.now()-Date.parse(m.as_of)<180000;
+    const matching=(r.status==='SELECTED'?p.book_state==='BB_LIVE':['WATCH','POLICY_REVIEW','BUILDING'].includes(r.status)?p.book_state==='BB_DEMO':true)&&r.policy_version===data?.policy?.version;
+    const checks=(r.checks||[]).map(c=>`<li>${c.passed?'✓':'Pending'} · ${esc(c.label)}: ${fin(c.value)?Number(c.value).toFixed(3):'Not measured / not applicable'} · threshold ${fin(c.target)?esc(c.target):'No numerical limit'}</li>`).join('');
+    const reference=ref?`<p class="small">Last ${esc(ref.window_days)} days: ${esc(ref.source_closed_roots)} closed source trades; ${esc(ref.captured_roots)} captured for E8 estimates (${esc(ref.b_roots)} B, ${esc(ref.a_roots)} A). Showing up to ${esc(ref.sample_limit)} B trades.</p>
+      <ul class="small"><li>E8 reverse gross estimate: ${exactUsd(ref.gross_usd,true)}</li><li>After estimated commission: ${exactUsd(ref.after_estimated_commission_usd,true)}</li><li>Five adverse ticks per fill, after estimated commission: ${exactUsd(ref.five_tick_stress_usd,true)}</li>
+      <li>Complete sampled gross: ${esc(ref.complete_gross_roots)} / ${esc(ref.sampled_roots)}. Later contract observations: ${esc(ref.backcast_roots)}; unconfirmed size checks: ${esc(ref.unconfirmed_size_roots)}.</li></ul>`:'<p class="small">E8 reference summary unavailable.</p>';
+    return `<section><h3>B-book live review · ${esc(fresh&&matching?(labels[r.status]||'Unavailable'):'Stale assessment — refresh required')}</h3>
+      <p>${esc(r.reason)}</p><p class="small">Policy ${esc(r.policy_version)} · IPFX quote replay. This does not prove E8 broker net profit or enable live execution.</p>
+      <details><summary>What criteria are met?</summary><ul class="small">${checks}</ul></details>${reference}
+      <p class="small"><b>Actual E8 net: Unverified.</b> Commission applicability, swaps and actual execution slippage still need confirmation. Sampling waits are shown under Review calculation.</p>
+      <p class="small"><b>B-book live destination:</b> ${esc(routing?.BB_LIVE?.reason||'Unavailable')}. Use the existing model controls below after review.</p></section>`;
+  }
   function ukTradeTime(value) {
     const timestamp=value ? Date.parse(value) : NaN;
     return Number.isFinite(timestamp) ? ukTradeTimeFormat.format(timestamp) : 'Unavailable';
@@ -508,6 +527,7 @@
     const id=activePerson; drawerBusy=true;
     try { const d=await call('trader',{person_id:id}); if(activePerson!==id||modelBusy)return;
       if($('dLive'))$('dLive').innerHTML=liveActivity(d);
+      if($('dBReview'))$('dBReview').innerHTML=renderBReview(d.metrics||{},d.profile||{},d.routing,d.b_reference);
       // Avoid replacing a reason input or button while the owner is using the controls.
       if(!document.activeElement?.closest('.model-controls')) {
         const reason=$('modelReason')?.value||'';drawerData=d;renderTrader(traderById().get(id),d);
@@ -530,7 +550,7 @@
       <td class="num ${signCls(x.trader_pnl_usd)}">${usd(x.trader_pnl_usd, true)}</td><td class="num">${rr(x.trader_r)}</td><td class="num">${rr(x.same_r)}</td><td class="num">${rr(x.reverse_r)}</td>
       <td>${x.risk_basis === 'STOP_LOSS' ? 'Stop loss' : '<span class="tag warning">No SL</span>'}</td><td class="num">${fin(x.hold_seconds) ? (x.hold_seconds < 120 ? Math.round(x.hold_seconds) + 's' : Math.round(x.hold_seconds / 60) + 'm') : '—'}</td></tr>`).join('');
     $('dBody').innerHTML = `
-      ${modelControls(p,d.routing)}<div id="dLive">${liveActivity(d)}</div>
+      <div id="dBReview">${renderBReview(m,p,d.routing,d.b_reference)}</div>${modelControls(p,d.routing)}<div id="dLive">${liveActivity(d)}</div>
       <div class="why-box"><b>${esc(STATES[p.book_state]?.label || '')}</b> since ${p.state_since ? esc(new Date(p.state_since).toLocaleDateString('en-GB')) : '—'} · ${esc(STATES[p.book_state]?.why || '')}<br><span class="small">Why: ${esc(p.state_reason || 'Everyone starts here')}</span></div>
       <div class="kv">${kv.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>
       <div class="two"><div><h3>Running total of results (R), last ${(m.curve || []).length} trades</h3><div class="chart" id="dCurve"></div></div><div><h3>Wins and losses by size</h3><div class="chart" id="dHist"></div></div></div>

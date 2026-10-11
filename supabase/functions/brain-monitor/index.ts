@@ -202,14 +202,16 @@ Deno.serve(async (req) => {
   if (action === "trader") {
     const person = String(body.person_id || "");
     if (!/^[0-9a-f-]{36}$/i.test(person)) return json({ ok: false, error: "Choose a trader" }, 400);
-    const [{ data, error }, routing, activity, context] = await Promise.all([
+    const [{ data, error }, routing, activity, context, bReference] = await Promise.all([
       db.rpc("ab_brain_person", { p_person: person }),db.rpc("ab_model_capabilities", { p_person: person }),
       db.rpc("ab_brain_live_activity", { p_person: person }),
       db.rpc("ab_brain_account_context",{p_people:[person]}),
+      db.rpc("ab_b_review_reference",{p_person:person}),
     ]);
     if (error || !data) return json({ ok: false, error: "Trader not found" }, 404);
     if (routing.error || activity.error) return json({ ok: false, error: "Trader routing/activity unavailable" }, 503);
-    return json({ ok: true, ...data, accounts: context.error ? null : (context.data?.[0]?.accounts??[]), routing: routing.data, activity: activity.data });
+    return json({ ok: true, ...data, accounts: context.error ? null : (context.data?.[0]?.accounts??[]), routing: routing.data, activity: activity.data,
+      b_reference:bReference.error?null:bReference.data });
   }
 
   if (action === "set_model") {

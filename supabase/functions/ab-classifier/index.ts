@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decide, herdClusters, POLICY_V1, type BookState, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
 import { personMetrics, type LedgerRow } from "../_shared/brain.ts";
+import { bLiveReview } from "../_shared/b-live-review.ts";
 type IntegritySignal = { person_id: string; investigation_hold: boolean | null; critical_flag: boolean | null; stage2_profit_pct: number | null };
 
 function constantTimeEqual(a: string, b: string): boolean {
@@ -98,7 +99,7 @@ async function run(db: any): Promise<Response> {
 
 // Brain control room metrics: every person's performance, evidence and tags (see _shared/brain.ts).
 // deno-lint-ignore no-explicit-any
-async function writeMetrics(db: any, profiles: Array<{ person_id: string }>, state: Map<string, BookState>, points: Map<string, LedgerPoint[]>,
+async function writeMetrics(db: any, profiles: Array<{ person_id: string; book_state: string; state_since: string; last_ab_exit_at: string | null; manual_book_state?: string | null }>, state: Map<string, BookState>, points: Map<string, LedgerPoint[]>,
   // deno-lint-ignore no-explicit-any
   sig: Map<string, any>, herd: Set<string>, policy: Policy): Promise<number> {
   const rows = new Map<string, LedgerRow[]>();
@@ -134,7 +135,13 @@ async function writeMetrics(db: any, profiles: Array<{ person_id: string }>, sta
       state: state.get(p.person_id) ?? "BB_DEMO", herd: herd.has(p.person_id), hold: !!s?.investigation_hold, criticalFlag: !!s?.critical_flag,
       breaches7d: breaches.get(p.person_id) ?? 0, expectedPayout: pay?.e ?? null, pGraduate: pay?.p ?? null,
     }, policy);
-    return { person_id: p.person_id, as_of: asOf, ...m };
+    const currentState=state.get(p.person_id) ?? 'BB_DEMO';
+    const review=bLiveReview({ state:currentState, stateSince:currentState===p.book_state?Date.parse(p.state_since):Date.parse(asOf),
+      lastAbExitAt:p.last_ab_exit_at?Date.parse(p.last_ab_exit_at):null, now:Date.parse(asOf), points:points.get(p.person_id)??[],
+      suspend:s?.investigation_hold?'investigation':s?.critical_flag?'safety flag':null,
+      stage2ProfitPct:s?.stage2_profit_pct==null?null:Number(s.stage2_profit_pct),herd:herd.has(p.person_id),
+    },policy,!!p.manual_book_state);
+    return { person_id: p.person_id, as_of: asOf, ...m, b_review:review };
   });
   for (let i = 0; i < out.length; i += 500) {
     const { error } = await db.from("ab_trader_metrics").upsert(out.slice(i, i + 500), { onConflict: "person_id" });
