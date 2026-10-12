@@ -4,12 +4,12 @@ const OWNER='paulade491@gmail.com';
 // The Team Login page opens only for the owner (owner request 2026-10-08): signed out goes to the normal login and comes
 // back, any other account goes home, and the owner proceeds to the access check and authenticator code.
 function loginFixture({failure='network',email=OWNER,allow=true}={}){
- const elements=new Map(),navigation=[],body={style:{visibility:'hidden'}};let signOuts=0,fetches=0;
+ const elements=new Map(),navigation=[],body={style:{visibility:'hidden'}};let signOuts=0,fetches=0,level='aal1';
  const get=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,style:{},on:false,classList:{toggle(_name,on){get(id).on=on;}},focus(){},addEventListener(name,fn){this[name]=fn;}});return elements.get(id);};
  const sdk={auth:{getSession:async()=>({data:{session:email?{access_token:'synthetic-session',user:{email}}:null}}),
   signOut:async()=>{signOuts++;},
-  mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal1'},error:null}),listFactors:async()=>({data:{totp:[{id:'fixture-factor',status:'verified'}]},error:null}),
-   challengeAndVerify:async()=>({data:{},error:null})}}};
+  mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:level},error:null}),listFactors:async()=>({data:{totp:[{id:'fixture-factor',status:'verified'}]},error:null}),
+   challengeAndVerify:async()=>{level='aal2';return{data:{},error:null};}}}};
  const context=vm.createContext({window:{supabase:{createClient:()=>sdk}},document:{getElementById:get,body},location:{search:'?next=%2Fteam-e8-monitor.html',replace:u=>navigation.push(u)},
   URLSearchParams,AbortSignal,Error,String,encodeURIComponent,fetch:async()=>{fetches++;if(failure==='network')throw new TypeError('Failed to fetch');return new Response(JSON.stringify({team_access:allow}),{status:failure==='service'?503:200});}});
  const html=fs.readFileSync(new URL('../team-login.html',import.meta.url),'utf8'),source=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];vm.runInContext(source,context);

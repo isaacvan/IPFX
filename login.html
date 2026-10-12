@@ -281,7 +281,7 @@
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
             : null;
         const requestedNext = new URLSearchParams(location.search).get('next') || '/dashboard.html';
-        const safeNext = requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+        const safeNext = requestedNext.startsWith('/') && !/^[/\\]{2}/.test(requestedNext) && !/[\\\u0000-\u001f\u007f]/.test(requestedNext)
             ? requestedNext : '/dashboard.html';
         document.querySelectorAll('a[href="signup.html"]').forEach(a => {
             a.href = 'signup.html?next=' + encodeURIComponent(safeNext);
