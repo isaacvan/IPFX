@@ -2489,6 +2489,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
 
   return {
     ok: true,
+    server_time: new Date().toISOString(),
     infinity_lockout: monthly.data,
     service_controls: controls.error ? { unavailable: true, notices: [] } : controls.data,
     promotion_notice: await promotionNotice(db, acct),
@@ -2507,6 +2508,9 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         target_balance: Number(acct.profit_target_pct) > 0
           ? round2(start * (1 + Number(acct.profit_target_pct) / 100)) : null,
         max_dd_floor: ddFloor,
+        drawdown_allowance_usd: round2(ddAmount),
+        daily_loss_allowance_usd: round2(start * Number(acct.daily_loss_pct) / 100),
+        stop_loss_deadline_seconds: acct.challenge_type === "infinity" ? await slDeadlineSeconds(db) : null,
         drawdown_mode: mode,
         trailing_peak: mode === "static" ? null : round2(peak),
         daily_floor: round2(Number(acct.day_start_equity) - start * Number(acct.daily_loss_pct) / 100),

@@ -545,6 +545,9 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .postbl-act{display:flex;gap:.4rem;}
 .postbl-act-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .12s;}
 .postbl-act-btn:hover{color:var(--red);border-color:var(--red);}
+.op-risk.near{border-color:#d97706;color:#f5c473;background:rgba(217,119,6,.12);}
+.rule-reminders{padding:.6rem .9rem;background:#18140c;border-bottom:1px solid #725325;font-size:.8rem;line-height:1.45;color:#f5c473;}
+.rule-reminders[hidden]{display:none}.rule-reminders ul{margin:.35rem 0;padding-left:1.2rem}.rule-reminders li+li{margin-top:.3rem}.rule-reminders li.critical{color:#ff9b9b}.rule-reminders li.reminder{color:#b7c9ed}.rule-reminders button{background:none;border:0;color:#93b4ff;font:inherit;cursor:pointer;text-decoration:underline;}
 /* breach warning rail — sits above the chart, only when it matters */
 .brw{display:none;align-items:center;gap:.7rem;padding:.5rem .9rem;font-size:.8rem;font-weight:600;border-bottom:1px solid transparent;}
 .brw.show{display:flex;}
@@ -1648,6 +1651,7 @@ body.light .sym-row:hover,body.light .sym-row.hl{background:rgba(0,0,0,.05)}
 body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
+<script src="/assets/js/challenge-warnings.js?v=20261012"></script>
 </head>
 <body>
 
@@ -1764,6 +1768,11 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
       <span class="brw-txt" id="brwTxt"></span>
       <button class="brw-act" onclick="flattenAll()">Close all</button>
     </div>
+    <section class="rule-reminders" id="ruleReminders" hidden aria-label="Challenge rule warnings">
+      <strong>Protect your Infinity Challenge</strong>
+      <ul id="ruleReminderList" aria-live="polite" aria-atomic="true"></ul>
+      <button type="button" onclick="openRuleReminders()">Review my rules and progress</button>
+    </section>
     <div class="chart-toolbar" id="chartToolbar">
       <button class="tf-btn" onclick="setTf('1S',this)" title="1 Second — each candle = 1 second. Built from IPFX's own live prices (last 45 minutes).">1s</button>
       <button class="tf-btn" onclick="setTf('15S',this)" title="15 Seconds — built from IPFX's own live prices (last 6 hours).">15s</button>
@@ -2807,6 +2816,9 @@ function updateRiskPreview(){
     box.className='op-risk over';
     document.getElementById('opRiskNote').textContent=
       `Over the ${L.max_risk_per_trade_pct}% cap of ${money(cap)} — reduce size or tighten the stop, or the engine will reject it.`;
+  } else if(cap!=null&&risk>=Number(cap)*.8){
+    box.className='op-risk near';
+    document.getElementById('opRiskNote').textContent=`Close to your ${money(cap)} per-trade limit. Leave room for costs and slippage; reduce size or tighten the stop. This limit reduces as loss room is used.`;
   } else {
     box.className='op-risk';
     const pctEq=a.equity?((risk/(+a.equity))*100).toFixed(2):null;
@@ -2835,7 +2847,7 @@ function renderBreachWarning(a,L,eq,start){
   }
   rail.querySelector('.brw-act').style.display='';
 
-  const ddRoom=eq-(+L.max_dd_floor), ddTotal=Math.max(start-(+L.max_dd_floor),1);
+  const ddRoom=eq-(+L.max_dd_floor), ddTotal=Number(L.drawdown_allowance_usd)||Math.max(start-(+L.max_dd_floor),1);
   const dayRoom=eq-(+L.daily_floor), dayTotal=Math.max((+a.day_start_equity)-(+L.daily_floor),1);
   const ddFrac=ddRoom/ddTotal, dayFrac=dayRoom/dayTotal;
 
@@ -2870,8 +2882,38 @@ function renderDailyCapNotice(){
     button.disabled=!!message;button.title=message||'';
   });
 }
+let ruleWarningSeen={};
+try{ruleWarningSeen=JSON.parse(sessionStorage.getItem('ipfx-rule-warning-seen')||'{}')||{};}catch(_){}
+let ruleWarningSignature='';
+function openRuleReminders(){
+  const tab=document.querySelector('.btab[onclick*="challenge"]');
+  if(tab)switchBtab('challenge',tab);
+  const panel=document.getElementById('bp-challenge');if(panel)panel.scrollIntoView({block:'nearest'});
+}
+function renderRuleReminders(){
+  const panel=document.getElementById('ruleReminders'),list=document.getElementById('ruleReminderList');
+  if(!panel||!list||!window.IPFXRuleWarnings)return;
+  const now=Date.now(),server=Date.parse(engineState&&engineState.server_time);
+  const markedNow=Number.isFinite(server)?server+Math.max(0,now-lastStateAt):now;
+  const warnings=window.IPFXRuleWarnings.build(engineState,markedNow);
+  panel.hidden=!warnings.length;
+  const signature=JSON.stringify(warnings);
+  if(signature!==ruleWarningSignature){
+    list.replaceChildren();
+    warnings.forEach(w=>{const li=document.createElement('li');li.className=w.level;li.textContent=w.message;list.appendChild(li);});
+    ruleWarningSignature=signature;
+  }
+  const a=engineState&&engineState.account;
+  const notice=window.IPFXRuleWarnings.announcement(warnings,a&&a.id,now,ruleWarningSeen);
+  if(notice){
+    engineMsg(notice.message,false,notice.level==='critical'?'critical':'warning');
+    try{sessionStorage.setItem('ipfx-rule-warning-seen',JSON.stringify(ruleWarningSeen));}catch(_){}
+  }
+}
+setInterval(()=>{if(engineState&&document.visibilityState==='visible')renderRuleReminders();},1000);
 function renderChallenge(){
   renderDailyCapNotice();
+  renderRuleReminders();
   const a=engineState&&engineState.account;
   const wrapT=document.getElementById('ch-title');
   if(!wrapT)return;
@@ -4496,10 +4538,10 @@ function engineToken(){
     return sess&&sess.access_token?sess.access_token:null;
   }catch(_){return null;}
 }
-function engineMsg(txt,ok){
+function engineMsg(txt,ok,kind){
   let el=document.getElementById('engToast');
   if(!el){el=document.createElement('div');el.id='engToast';el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:.6rem 1.1rem;border-radius:8px;font-size:.78rem;font-weight:600;box-shadow:0 4px 24px rgba(0,0,0,.35);transition:opacity .3s;max-width:90vw;opacity:0';document.body.appendChild(el);}
-  el.style.background=ok?'#10b981':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
+  el.style.background=ok?'#10b981':kind==='warning'?'#b45309':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3500);
 }
 // Announces positions the ENGINE closed between polls (stop-loss hit,
