@@ -546,8 +546,12 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .postbl-act-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .12s;}
 .postbl-act-btn:hover{color:var(--red);border-color:var(--red);}
 .op-risk.near{border-color:#d97706;color:#f5c473;background:rgba(217,119,6,.12);}
-.rule-reminders{padding:.6rem .9rem;background:#18140c;border-bottom:1px solid #725325;font-size:.8rem;line-height:1.45;color:#f5c473;}
-.rule-reminders[hidden]{display:none}.rule-reminders ul{margin:.35rem 0;padding-left:1.2rem}.rule-reminders li+li{margin-top:.3rem}.rule-reminders li.critical{color:#ff9b9b}.rule-reminders li.reminder{color:#b7c9ed}.rule-reminders button{background:none;border:0;color:#93b4ff;font:inherit;cursor:pointer;text-decoration:underline;}
+.rule-reminders{padding:.8rem 1rem;border-left:5px solid #f59e0b;background:#241b0c;border-bottom:1px solid #725325;font-size:.8rem;line-height:1.45;color:#f5c473;}
+.rule-reminders[hidden]{display:none}.rule-reminders strong{font-size:1rem;color:#ffce76}.rule-reminders.urgent{border-left-color:#ef4444;background:#2a1215}.rule-reminders ul{margin:.35rem 0;padding-left:1.2rem}.rule-reminders li+li{margin-top:.3rem}.rule-reminders li.critical{color:#ff9b9b}.rule-reminders li.reminder{color:#b7c9ed}.rule-reminders button{background:none;border:0;color:#93b4ff;font:inherit;cursor:pointer;text-decoration:underline;}
+.rule-dlg{width:min(720px,calc(100vw - 48px));max-height:85vh;overflow:auto;border:2px solid #f59e0b;border-radius:16px;background:#151518;color:#f7f7fa;padding:26px;box-shadow:0 25px 90px #000;font:15px/1.55 Inter,Arial,sans-serif}
+.rule-dlg[open]{display:flex;flex-direction:column}.rule-dlg #stageRulesReadList{overflow-y:auto;min-height:0;padding-right:8px}.rule-dlg>h2,.rule-dlg>p,.rule-dlg-actions{flex-shrink:0}.rule-dlg .stage-rule-urgent{padding:12px 12px 12px 30px;margin:0 0 12px;background:#351619;border:1px solid #ef4444;border-radius:8px;color:#ffb0b0}.stage-rule-urgent[hidden]{display:none}
+.rule-dlg::backdrop{background:rgba(0,0,0,.8)}.rule-dlg.critical{border-color:#ef4444}.rule-dlg h2{font-size:24px;margin:0 0 10px}.rule-dlg p{margin:0 0 14px;color:#c7c7cf}.rule-dlg label{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #333;align-items:flex-start}.rule-dlg input{flex-shrink:0;margin-top:6px;width:18px;height:18px;accent-color:#2563eb}.rule-dlg-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.rule-dlg button{padding:11px 16px;border-radius:8px;background:#2563eb;border:1px solid #5882e5;color:#fff;font:inherit;font-weight:700;cursor:pointer}.rule-dlg button.secondary{background:#27272d;border-color:#555}.rule-dlg button:disabled{opacity:.45;cursor:not-allowed}
+.stage-checklist{margin:10px 0;border:1px solid #3b4d70;border-radius:10px;padding:12px;background:#111826;font-size:.8rem;line-height:1.5}.stage-checklist[hidden]{display:none}.stage-checklist summary{cursor:pointer;font-weight:700;color:#b9d0ff}.stage-checklist p{margin:8px 0;color:#b8c0cf}.stage-checklist label{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.stage-checklist input{margin-top:4px;accent-color:#34d399}.stage-checklist button{background:none;border:0;color:#92b5ff;text-decoration:underline;cursor:pointer;font:inherit}.stage-checklist .pending{color:#f5c473}
 /* breach warning rail — sits above the chart, only when it matters */
 .brw{display:none;align-items:center;gap:.7rem;padding:.5rem .9rem;font-size:.8rem;font-weight:600;border-bottom:1px solid transparent;}
 .brw.show{display:flex;}
@@ -1651,7 +1655,7 @@ body.light .sym-row:hover,body.light .sym-row.hl{background:rgba(0,0,0,.05)}
 body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
-<script src="/assets/js/challenge-warnings.js?v=20261012"></script>
+<script src="/assets/js/challenge-warnings.js?v=20261012-checklist"></script>
 </head>
 <body>
 
@@ -1927,7 +1931,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         </div>
         <div class="op-limit-card" id="opLimitCard"><div><span class="op-limit-kicker">Account order limit</span><strong id="opLimitSummary">Sign in to view limits</strong></div><span class="op-limit-state" id="opLimitState">—</span></div>
         <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Estimated stop risk</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div><button type="button" class="op-risk-size" id="opRiskSize" hidden onclick="sizeToRiskCap()">Size to risk cap</button></div>
-        <div id="dailyCapNotice" role="status" hidden style="margin:10px 0;padding:12px;border:1px solid #d97706;border-radius:8px;background:rgba(217,119,6,.12);color:#fbbf24;font-size:.85rem;line-height:1.5"></div><div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
+        <details id="stageChecklist" class="stage-checklist" hidden><summary id="stageChecklistSummary">Stage pass checklist</summary><p id="stageChecklistStatus"></p><div id="stageChecklistRows"></div><button type="button" onclick="showStageRuleReview(true)">Review and acknowledge every stage rule</button></details><div id="dailyCapNotice" role="status" hidden style="margin:10px 0;padding:12px;border:1px solid #d97706;border-radius:8px;background:rgba(217,119,6,.12);color:#fbbf24;font-size:.85rem;line-height:1.5"></div><div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
         <button type="button" class="hk-chip" id="hkChip" onclick="toggleHotkeys()" title="Keyboard trading shortcuts"></button>
         <div class="op-presets" aria-label="Quick lot sizes"><button type="button" class="op-preset active" onclick="setLots(0.01,this)">0.01</button><button type="button" class="op-preset" onclick="setLots(0.1,this)">0.10</button><button type="button" class="op-preset" onclick="setLots(0.5,this)">0.50</button><button type="button" class="op-preset" onclick="setLots(1,this)">1.00</button><button type="button" class="op-preset" onclick="setLots(2,this)">2.00</button></div>
@@ -2871,6 +2875,80 @@ function renderBreachWarning(a,L,eq,start){
 // Everything here comes from the engine's own state payload, so what the
 // trader sees is exactly what enforce() will act on — including which
 // drawdown mode is live, which most platforms never show.
+const stageRulesRead=new Set();
+let stageRuleReview=null,stageChecklistSignature='';
+function currentStageChecklist(){return window.IPFXRuleWarnings?window.IPFXRuleWarnings.checklist(engineState):null;}
+function stageRulesAcknowledged(c){
+  if(!c||!c.available)return false;
+  if(stageRulesRead.has(c.key))return true;
+  try{return localStorage.getItem(c.key)==='read';}catch(_){return false;}
+}
+function stageRulesBlockEntry(){
+  const a=engineState&&engineState.account,c=currentStageChecklist();
+  if(!a||a.is_demo||a.challenge_type!=='infinity'||Number(a.stage)>3||a.status!=='active')return false;
+  if(stageRulesAcknowledged(c))return false;
+  showStageRuleReview();return true;
+}
+function showStageRuleReview(force){
+  const c=currentStageChecklist(),dialog=document.getElementById('stageRulesDialog');
+  if(!dialog||!c||!c.available)return;
+  if(!force&&stageRulesAcknowledged(c))return;
+  if(document.getElementById('ruleCriticalDialog').open)return;
+  if(stageRuleReview&&stageRuleReview.key===c.key&&dialog.open)return;
+  stageRuleReview=c;
+  document.getElementById('stageRulesTitle').textContent='Before trading Stage '+c.stage+': check every rule';
+  const list=document.getElementById('stageRulesReadList');list.replaceChildren();
+  c.read.forEach(text=>{
+    const label=document.createElement('label'),box=document.createElement('input'),span=document.createElement('span');
+    box.type='checkbox';box.required=true;box.addEventListener('change',updateStageRulesContinue);
+    span.textContent=text;label.append(box,span);list.appendChild(label);
+  });
+  updateStageRulesContinue();
+  if(!dialog.open){dialog.showModal();document.getElementById('stageRulesTitle').focus();}
+}
+function updateStageRulesContinue(){
+  const checks=[...document.querySelectorAll('#stageRulesReadList input')];
+  document.getElementById('stageRulesContinue').disabled=!checks.length||!checks.every(box=>box.checked);
+}
+function confirmStageRules(){
+  const c=currentStageChecklist(),checks=[...document.querySelectorAll('#stageRulesReadList input')];
+  if(!c||!c.available||!stageRuleReview||c.key!==stageRuleReview.key||!checks.length||!checks.every(box=>box.checked))return;
+  stageRulesRead.add(c.key);try{localStorage.setItem(c.key,'read');}catch(_){}
+  document.getElementById('stageRulesDialog').close();renderDailyCapNotice();renderStageChecklist();
+}
+function managePositionsFromRules(){
+  document.getElementById('stageRulesDialog').close();
+  const tab=document.querySelector('.btab[onclick*="positions"]');if(tab)switchBtab('positions',tab);
+  document.getElementById('ord-pos-list').scrollIntoView({block:'nearest'});
+}
+function renderStageChecklist(){
+  const c=currentStageChecklist(),a=engineState&&engineState.account,panel=document.getElementById('stageChecklist');
+  if(!panel)return;panel.hidden=!c;
+  if(!c)return;
+  const met=c.rows.filter(r=>r.done).length;
+  document.getElementById('stageChecklistSummary').textContent=`Stage ${c.stage} pass checklist — ${met}/${c.rows.length} verified`;
+  document.getElementById('stageChecklistStatus').textContent=(stageRulesAcknowledged(c)?'Rules acknowledged. ':'Read and tick every rule before placing new trades. ')+(c.ready?'All progression checks are met; the server handles promotion.':'Every requirement below must be verified. Manual acknowledgements cannot complete a requirement.');
+  const signature=JSON.stringify(c.rows);
+  if(signature!==stageChecklistSignature){
+    const list=document.getElementById('stageChecklistRows');list.replaceChildren();
+    c.rows.forEach(r=>{
+      const label=document.createElement('label'),box=document.createElement('input'),span=document.createElement('span');
+      box.type='checkbox';box.disabled=true;box.checked=r.done;
+      span.textContent=r.text;label.className=r.done?'':'pending';label.append(box,span);list.appendChild(label);
+    });stageChecklistSignature=signature;
+  }
+  // First visit to a new stage opens the rule review once. Closing to manage
+  // existing positions keeps new entries gated without reopening every poll.
+  if(a&&a.status==='active'&&c.available&&!stageRulesAcknowledged(c)&&(!stageRuleReview||stageRuleReview.key!==c.key))showStageRuleReview();
+}
+function showCriticalRuleWarning(warnings){
+  const dialog=document.getElementById('ruleCriticalDialog');
+  if(dialog.open||document.getElementById('stageRulesDialog').open)return false;
+  const list=document.getElementById('ruleCriticalList');list.replaceChildren();
+  warnings.filter(w=>w.level==='critical').forEach(w=>{const li=document.createElement('li');li.textContent=w.message;list.appendChild(li);});
+  dialog.showModal();document.getElementById('ruleCriticalTitle').focus();return true;
+}
+function acknowledgeCriticalRules(){document.getElementById('ruleCriticalDialog').close();openRuleReminders();}
 function dailyCapMessage(){
   const a=engineState&&engineState.account;
   return a&&a.limits&&a.limits.daily_profit_cap_reached?a.limits.daily_profit_cap_message:null;
@@ -2879,7 +2957,9 @@ function renderDailyCapNotice(){
   const message=dailyCapMessage(), notice=document.getElementById('dailyCapNotice');
   if(notice){notice.hidden=!message;notice.textContent=message||'';}
   document.querySelectorAll('.op-exec-btn,#qtBuy,#qtSell').forEach(button=>{
-    button.disabled=!!message;button.title=message||'';
+    const c=currentStageChecklist(),a=engineState&&engineState.account;
+    const needsRead=!!(c&&a.status==='active'&&!stageRulesAcknowledged(c));
+    button.disabled=!!message||needsRead;button.title=message||(needsRead?'Read and acknowledge every stage rule before entering a trade.':'');
   });
 }
 let ruleWarningSeen={};
@@ -2897,6 +2977,7 @@ function renderRuleReminders(){
   const markedNow=Number.isFinite(server)?server+Math.max(0,now-lastStateAt):now;
   const warnings=window.IPFXRuleWarnings.build(engineState,markedNow);
   panel.hidden=!warnings.length;
+  panel.classList.toggle('urgent',warnings.some(w=>w.level==='critical'));
   const signature=JSON.stringify(warnings);
   if(signature!==ruleWarningSignature){
     list.replaceChildren();
@@ -2904,14 +2985,25 @@ function renderRuleReminders(){
     ruleWarningSignature=signature;
   }
   const a=engineState&&engineState.account;
+  const urgent=document.getElementById('stageRuleUrgent');
+  if(urgent){
+    const critical=warnings.filter(w=>w.level==='critical'),key=JSON.stringify(critical);
+    urgent.hidden=!critical.length;
+    if(urgent.dataset.signature!==key){urgent.replaceChildren();critical.forEach(w=>{const li=document.createElement('li');li.textContent=w.message;urgent.appendChild(li);});urgent.dataset.signature=key;}
+  }
+  if(document.getElementById('stageRulesDialog').open||document.getElementById('ruleCriticalDialog').open)return;
   const notice=window.IPFXRuleWarnings.announcement(warnings,a&&a.id,now,ruleWarningSeen);
   if(notice){
+    if(notice.level==='critical'&&showCriticalRuleWarning(warnings)){
+      warnings.filter(w=>w.level==='critical').forEach(w=>{ruleWarningSeen[a.id+':'+w.code+':critical']=now;});
+    }
     engineMsg(notice.message,false,notice.level==='critical'?'critical':'warning');
     try{sessionStorage.setItem('ipfx-rule-warning-seen',JSON.stringify(ruleWarningSeen));}catch(_){}
   }
 }
 setInterval(()=>{if(engineState&&document.visibilityState==='visible')renderRuleReminders();},1000);
 function renderChallenge(){
+  renderStageChecklist();
   renderDailyCapNotice();
   renderRuleReminders();
   const a=engineState&&engineState.account;
@@ -5005,6 +5097,8 @@ function updateTriggerHint(){
 
 async function placeOrder(side){
   if(blockInfinityTradeAttempt())return;
+  if(stageRulesBlockEntry())return;
+  if(document.getElementById('ruleCriticalDialog').open){engineMsg('Review the urgent rule warning before entering another trade.');return;}
   const capMessage=dailyCapMessage();
   if(capMessage){engineMsg(capMessage);return;}
   if(engineBusy)return;
@@ -7093,5 +7187,20 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
+
+<dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
+  <h2 id="stageRulesTitle" tabindex="-1">Before trading: check every rule</h2>
+  <p>Tick each item to confirm you understand it. These are reading acknowledgements — your pass checklist is verified separately from your actual trading.</p>
+  <ul id="stageRuleUrgent" class="stage-rule-urgent" role="alert" hidden></ul>
+  <div id="stageRulesReadList"></div>
+  <div class="rule-dlg-actions"><button id="stageRulesContinue" type="button" onclick="confirmStageRules()" disabled>I have checked every rule — continue</button><button type="button" class="secondary" onclick="managePositionsFromRules()">Manage existing positions</button></div>
+</dialog>
+<dialog id="ruleCriticalDialog" class="rule-dlg critical" aria-labelledby="ruleCriticalTitle">
+  <h2 id="ruleCriticalTitle" tabindex="-1">⚠ Your challenge is at risk</h2>
+  <p>Act now. These warnings do not pause market movement or replace your loss limits.</p>
+  <ul id="ruleCriticalList"></ul>
+  <div class="rule-dlg-actions"><button type="button" onclick="acknowledgeCriticalRules()">I understand — review my rules</button><button type="button" class="secondary" onclick="document.getElementById('ruleCriticalDialog').close();document.getElementById('ord-pos-list').scrollIntoView({block:'nearest'})">Manage positions now</button></div>
+</dialog>
+<script>document.getElementById('stageRulesDialog').addEventListener('cancel',ev=>{ev.preventDefault();managePositionsFromRules();});</script>
 </body>
 </html>

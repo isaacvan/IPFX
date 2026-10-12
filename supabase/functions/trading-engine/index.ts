@@ -1803,7 +1803,7 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
 // The requirements that must ALL hold, alongside the profit target,
 // before an evaluation account is allowed to pass. Returns the unmet
 // items so the trader can be shown exactly what is left.
-async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null }> {
+async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null; eligibleBalance: number }> {
   const p = await fetchProgress(db, acct.id);
   const unmet: string[] = [];
   const needDays = Number(acct.min_trading_days ?? 0);
@@ -1823,14 +1823,16 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
   if (needProfPct !== null && (p.profitable_days_pct ?? 0) < needProfPct) {
     unmet.push(`${p.profitable_days_pct ?? 0}%/${needProfPct}% profitable days`);
   }
+  let eligibleBalance = Number(acct.balance);
   if (rulesV2(acct)) {
     const quick = await quickTradeProfit(db, acct.id);
+    eligibleBalance = round2(Number(acct.balance) - quick);
     const target = round2(Number(acct.starting_balance) * (1 + Number(acct.profit_target_pct) / 100));
     if (quick > 0 && round2(Number(acct.balance) - quick) < target) {
       unmet.push(`$${quick.toFixed(2)} of profit came from trades held under ${MIN_HOLD_SECONDS}s and does not count toward the target`);
     }
   }
-  return { ok: unmet.length === 0, unmet, progress: p, qualification: qualification.error ? null : qualification.data as Record<string, unknown> | null };
+  return { ok: unmet.length === 0, unmet, progress: p, eligibleBalance, qualification: qualification.error ? null : qualification.data as Record<string, unknown> | null };
 }
 
 function dailyProfitCapReason(acct: Acct, equity: number): string | null {
@@ -2517,6 +2519,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         max_risk_per_trade_pct: acct.max_risk_per_trade_pct ?? null,
         max_risk_per_trade_usd: liveRiskLimit?.effective ?? null,
         base_risk_per_trade_usd: liveRiskLimit?.base ?? null,
+        total_open_risk_multiple: MAX_TOTAL_RISK_MULTIPLE,
         drawdown_room_usd: liveRiskLimit?.drawdownRemaining ?? null,
         daily_loss_room_usd: liveRiskLimit?.dailyRemaining ?? null,
         daily_profit_cap_usd: acct.daily_profit_cap_pct == null ? null
@@ -2532,6 +2535,8 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
       // Everything still standing between this account and a pass.
       progress: {
         trading_days: gate.progress.trading_days,
+        eligible_closed_balance: gate.eligibleBalance,
+        min_profitable_day_net_usd: rulesV2(acct) ? round2(start * (acct.challenge_type === "infinity" && Number(acct.stage) === 2 ? 0.0005 : 0.0025)) : 0,
         min_trading_days: Number(acct.min_trading_days ?? 0),
         trades_closed: gate.progress.trades_closed,
         min_trades: Number(acct.min_trades ?? 0),
