@@ -1037,6 +1037,7 @@ body.light .of-note{color:rgba(12,12,22,.13);}
 body.light .tb-tool-btn{background:rgba(0,0,0,.03);border-color:var(--line);}
 body.light .tb-tool-btn:hover{background:rgba(0,0,0,.07);border-color:#aab;color:var(--fg);}
 .tb-tool-btn svg{width:14px;height:14px;}
+.tb-tool-btn.tb-feedback{width:auto;padding:0 10px;gap:6px;text-decoration:none;font-size:.75rem;white-space:nowrap;}
 #fullscreenBtn.active{color:var(--cobalt);border-color:rgba(37,99,235,.4);background:var(--cobalt-d);}
 /* Graceful fallback for browsers/contexts where the real Fullscreen API
    is unavailable or denied (e.g. an embedding iframe without the
@@ -1683,6 +1684,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
   </div>
   <!-- No real "Server" field exists — this is a simulated environment, not broker infrastructure. -->
   <div class="tb-right">
+    <a class="tb-tool-btn tb-feedback" href="/feedback.html?from=trading" target="_blank" rel="noopener noreferrer" title="Report an issue or send feedback (opens in a new tab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M7 7h10M7 11h7"/></svg>Send feedback</a>
     <div class="tb-tool-grp">
       <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle light or dark mode">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>

@@ -99,8 +99,17 @@
 <script>
 const SB_URL='https://agulweemteoeagscmppy.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
-// Prefill "where" from the page the visitor came from, if any.
-try{ var ref=document.referrer; if(ref && new URL(ref).host===location.host){ document.getElementById('fb-page').value=new URL(ref).pathname; } }catch(_){}
+// Explicit source labels keep feedback useful when a new-tab link suppresses
+// the referrer. Never copy account IDs, tokens or query strings into the form.
+function prefillFeedbackPage(){
+  const sources={dashboard:'/dashboard.html',trading:'/trading.html'};
+  const requested=new URLSearchParams(location.search).get('from');
+  if(Object.prototype.hasOwnProperty.call(sources,requested)){
+    document.getElementById('fb-page').value=sources[requested];return;
+  }
+  try{const ref=new URL(document.referrer);if(ref.host===location.host)document.getElementById('fb-page').value=ref.pathname;}catch(_){}
+}
+prefillFeedbackPage();
 async function submitFeedback(){
   const name=document.getElementById('fb-name').value.trim();
   const email=document.getElementById('fb-email').value.trim();

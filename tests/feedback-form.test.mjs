@@ -64,3 +64,18 @@ test('admin.html renders the feedback inbox', () => {
   assert.match(a, /action:'feedback_list'/);
   assert.match(a, /action:'feedback_update'/);
 });
+import vm from 'node:vm';
+test('feedback source prefills safely without leaking URL tokens or account query strings',()=>{
+ const h=read('feedback.html');
+ const fn=h.slice(h.indexOf('function prefillFeedbackPage(){'),h.indexOf('\nprefillFeedbackPage();'));
+ const cases=[
+ {query:'?from=trading',ref:'',expected:'/trading.html'},
+ {query:'?from=dashboard',ref:'',expected:'/dashboard.html'},
+ {query:'?from=__proto__',ref:'https://ipfxcapital.com/trading.html?token=private&account=private',expected:'/trading.html'},
+ {query:'?from=https://other.invalid/private',ref:'https://other.invalid/private',expected:''},
+ ];
+ for(const c of cases){const field={value:''},ctx=vm.createContext({URL,URLSearchParams,Object,location:{host:'ipfxcapital.com',search:c.query},document:{referrer:c.ref,getElementById:()=>field}});
+ vm.runInContext(fn,ctx);ctx.prefillFeedbackPage();assert.equal(field.value,c.expected);}
+ const inline=[...h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].filter(m=>m[1].trim());
+ for(const script of inline)new vm.Script(script[1]);
+});
