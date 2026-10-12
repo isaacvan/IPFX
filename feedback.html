@@ -102,7 +102,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 // Explicit source labels keep feedback useful when a new-tab link suppresses
 // the referrer. Never copy account IDs, tokens or query strings into the form.
 function prefillFeedbackPage(){
-  const sources={dashboard:'/dashboard.html',trading:'/trading.html'};
+  const sources={home:'/',dashboard:'/dashboard.html',trading:'/trading.html'};
   const requested=new URLSearchParams(location.search).get('from');
   if(Object.prototype.hasOwnProperty.call(sources,requested)){
     document.getElementById('fb-page').value=sources[requested];return;
