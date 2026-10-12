@@ -1,0 +1,7 @@
+(()=>{'use strict';const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function render(q){if(!q)return '<p class="small">Net-accuracy evidence unavailable.</p>';
+  return `<section><h3>95% net-P&amp;L accuracy target · not verified</h3><p class="small">Target: at least 95% of intended closed trades within 5% of broker net P&amp;L, minimum tolerance $0.01. Missing and failed copies count against validation.</p>
+   <p class="small">Last ${esc(q.window_days)} days: ${esc(q.source_closed_roots)} closed Infinity source trades; ${esc(q.captured_roots)} captured in the estimate archive. ${esc(q.legacy_complete_gross)} legacy completed gross estimates; ${esc(q.currency_supplement_gross)} reconstructed FX gross supplements.</p>
+   <p class="small">Gaps: ${esc(q.missing_archive)} uncaptured; ${esc(q.late_entry)} entry quotes after exit; ${esc(q.missing_quotes)} missing quotes; ${esc(q.unsupported_symbol)} unsupported symbols; ${esc(q.fx_unavailable)} unavailable FX conversions.</p>
+   <p><b>Verified paired broker-net outcomes: ${esc(q.paired_broker_net)}. Measured net accuracy: unavailable.</b></p><p class="small">Gross-price coverage and account-wide net totals do not certify individual reverse results. A fixed, prospective held-out benchmark with complete broker costs is still required. Existing live policy stays unchanged.</p></section>`;
+ }window.IPFXE8Accuracy={render};})();

@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
     const costs = light ? null : await db.rpc("cost_summary", { p_days: 7 });
     const shadow = light ? null : await db.rpc("shadow_funded_summary", { p_days: 7, p_funded: 50000 });
     const e8Totals = light ? null : await db.rpc("e8_reference_summary");
+    const accuracy = light ? null : await db.rpc("e8_accuracy_readiness");
     const accountContexts: Record<string,unknown[]|null>={};
     const people=(profiles.data??[]).map(p=>p.person_id);
     for(let i=0;i<people.length;i+=500){
@@ -196,7 +197,7 @@ Deno.serve(async (req) => {
         skips: [...skipMap.entries()].map(([k, n]) => ({ book: k.split("|")[0], reason: k.split("|").slice(1).join("|"), n })).sort((a, b) => b.n - a.n),
         ladder: { accounts: (ladders.data ?? []).length, copying: (ladders.data ?? []).filter((l) => l.execution_enabled).length },
       },
-      treasury: snap.data, ...(light ? {} : { costs: costs?.data ?? null, e8_totals:e8Totals?.error?null:e8Totals?.data?.account_totals??null,
+      treasury: snap.data, ...(light ? {} : { costs: costs?.data ?? null, e8_accuracy:accuracy?.error?null:accuracy?.data??null, e8_totals:e8Totals?.error?null:e8Totals?.data?.account_totals??null,
         shadow: shadow?.data ?? null, traders, events: (events.data ?? []).map((e) => ({ ...e, name: label(e.person_id) })) }),
     });
   }
