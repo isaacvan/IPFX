@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Send Feedback — IPFX Capital</title>
+<meta name="description" content="Tell IPFX Capital about a bug, a problem, or an idea. We read every message and use it to fix things and improve the platform.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e14; --card:#111722; --line:#1e2735; --line2:#2a3545;
+    --text:#e8edf4; --muted:#9aa7b8; --muted2:#6b7888;
+    --accent:#3b82f6; --accent2:#2563eb; --green:#10b981; --red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;}
+  a{color:var(--accent);text-decoration:none;}
+  .wrap{width:min(680px,calc(100% - 32px));margin:0 auto;padding:40px 0 80px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:20px 0;margin-bottom:12px;}
+  .brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.15rem;letter-spacing:-.01em;color:#fff;}
+  .back{font-size:.85rem;color:var(--muted);}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(1.6rem,4vw,2.1rem);letter-spacing:-.02em;margin-bottom:.5rem;}
+  .lede{color:var(--muted);margin-bottom:1.75rem;font-size:1rem;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px;}
+  label{display:block;font-size:.82rem;font-weight:600;color:var(--text);margin:16px 0 7px;}
+  label .req{color:var(--accent);}
+  .hint{font-weight:400;color:var(--muted2);font-size:.76rem;}
+  input,select,textarea{width:100%;background:#0c121b;border:1px solid var(--line2);border-radius:9px;
+    padding:12px 13px;color:var(--text);font-family:inherit;font-size:.92rem;transition:border-color .15s;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);}
+  textarea{resize:vertical;min-height:140px;}
+  .row{display:flex;gap:14px;}
+  .row>div{flex:1;}
+  .cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+  .cat{flex:1 1 auto;}
+  .cat input{position:absolute;opacity:0;pointer-events:none;}
+  .cat span{display:block;text-align:center;padding:10px 6px;border:1px solid var(--line2);border-radius:9px;
+    font-size:.84rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .cat input:checked+span{border-color:var(--accent);color:#fff;background:rgba(59,130,246,.12);}
+  .btn{margin-top:22px;width:100%;background:var(--accent2);color:#fff;border:none;border-radius:10px;
+    padding:14px;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s;}
+  .btn:hover{background:var(--accent);}
+  .btn:disabled{opacity:.55;cursor:not-allowed;}
+  .foot-note{margin-top:14px;font-size:.78rem;color:var(--muted2);text-align:center;}
+  .success{display:none;text-align:center;padding:40px 20px;}
+  .success.show{display:block;}
+  .success svg{color:var(--green);margin-bottom:16px;}
+  .success h2{font-family:'Space Grotesk',sans-serif;margin-bottom:.5rem;}
+  .success p{color:var(--muted);}
+  .success a{display:inline-block;margin-top:20px;border:1px solid var(--line2);padding:10px 20px;border-radius:9px;color:var(--text);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <span class="brand">IPFX Capital</span>
+      <a class="back" href="/index.html">← Back to site</a>
+    </div>
+    <h1>Send us feedback</h1>
+    <p class="lede">Hit a bug, something's not working, or have an idea to make IPFX better? Tell us here. A real person reads every message — we use it to fix problems and improve the platform. For anything about your own account, please email <a href="mailto:enquiries@ipfxcapital.com">enquiries@ipfxcapital.com</a> from your registered address.</p>
+
+    <div class="card">
+      <div id="formContent">
+        <label>What's this about? <span class="req">*</span></label>
+        <div class="cats" id="catGroup">
+          <label class="cat"><input type="radio" name="category" value="bug" checked><span>Bug / not working</span></label>
+          <label class="cat"><input type="radio" name="category" value="complaint"><span>Complaint</span></label>
+          <label class="cat"><input type="radio" name="category" value="suggestion"><span>Suggestion</span></label>
+          <label class="cat"><input type="radio" name="category" value="question"><span>Question</span></label>
+          <label class="cat"><input type="radio" name="category" value="praise"><span>Praise</span></label>
+          <label class="cat"><input type="radio" name="category" value="other"><span>Other</span></label>
+        </div>
+
+        <div class="row">
+          <div><label>Name <span class="hint">(optional)</span></label><input id="fb-name" type="text" maxlength="120" placeholder="Your name"></div>
+          <div><label>Email <span class="req">*</span></label><input id="fb-email" type="email" maxlength="254" placeholder="you@email.com" autocomplete="email"></div>
+        </div>
+
+        <label>Where did this happen? <span class="hint">(optional — e.g. "placing a trade on the DAX", "dashboard payout page")</span></label>
+        <input id="fb-page" type="text" maxlength="300" placeholder="Which page or action">
+
+        <label>Your message <span class="req">*</span></label>
+        <textarea id="fb-msg" maxlength="5000" placeholder="Tell us what happened or what you'd like to see. The more detail, the faster we can help."></textarea>
+
+        <button class="btn" id="fbSubmitBtn" onclick="submitFeedback()">Send feedback</button>
+        <p class="foot-note">Please don't include passwords, ID documents or card numbers.</p>
+      </div>
+
+      <div class="success" id="formSuccess">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <h2>Thanks — we've got it</h2>
+        <p>Your feedback has reached the team. If it needs a reply, we'll email you.</p>
+        <a href="/index.html">Back to IPFX Capital</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+const SB_URL='https://agulweemteoeagscmppy.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
+// Prefill "where" from the page the visitor came from, if any.
+try{ var ref=document.referrer; if(ref && new URL(ref).host===location.host){ document.getElementById('fb-page').value=new URL(ref).pathname; } }catch(_){}
+async function submitFeedback(){
+  const name=document.getElementById('fb-name').value.trim();
+  const email=document.getElementById('fb-email').value.trim();
+  const page=document.getElementById('fb-page').value.trim();
+  const message=document.getElementById('fb-msg').value.trim();
+  const category=(document.querySelector('input[name="category"]:checked')||{}).value||'other';
+  if(!email||!message){alert('Please add your email and a message.');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('Please enter a valid email address.');return;}
+  if(message.length<5){alert('Please add a little more detail.');return;}
+  const btn=document.getElementById('fbSubmitBtn');
+  btn.disabled=true;btn.textContent='Sending…';
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/feedback_submissions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal'},
+      body:JSON.stringify({name:name||null,email,category,message,page:page||null,user_agent:(navigator.userAgent||'').slice(0,400)})
+    });
+    if(res.ok||res.status===201){document.getElementById('formContent').style.display='none';document.getElementById('formSuccess').classList.add('show');window.scrollTo(0,0);}
+    else{const err=await res.json().catch(()=>null);throw new Error(String(err&&err.message||'HTTP '+res.status));}
+  }catch(e){
+    btn.disabled=false;btn.textContent='Send feedback';
+    alert(/FEEDBACK_RATE_LIMITED/.test(String(e&&e.message))?'You have sent several messages today already. Please try again tomorrow, or email enquiries@ipfxcapital.com.':'Something went wrong. Please try again or email enquiries@ipfxcapital.com.');
+  }
+}
+</script>
+</body>
+</html>
