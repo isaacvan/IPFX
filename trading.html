@@ -1918,7 +1918,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         </div>
         <div class="op-limit-card" id="opLimitCard"><div><span class="op-limit-kicker">Account order limit</span><strong id="opLimitSummary">Sign in to view limits</strong></div><span class="op-limit-state" id="opLimitState">—</span></div>
         <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Estimated stop risk</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div><button type="button" class="op-risk-size" id="opRiskSize" hidden onclick="sizeToRiskCap()">Size to risk cap</button></div>
-        <div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
+        <div id="dailyCapNotice" role="status" hidden style="margin:10px 0;padding:12px;border:1px solid #d97706;border-radius:8px;background:rgba(217,119,6,.12);color:#fbbf24;font-size:.85rem;line-height:1.5"></div><div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
         <button type="button" class="hk-chip" id="hkChip" onclick="toggleHotkeys()" title="Keyboard trading shortcuts"></button>
         <div class="op-presets" aria-label="Quick lot sizes"><button type="button" class="op-preset active" onclick="setLots(0.01,this)">0.01</button><button type="button" class="op-preset" onclick="setLots(0.1,this)">0.10</button><button type="button" class="op-preset" onclick="setLots(0.5,this)">0.50</button><button type="button" class="op-preset" onclick="setLots(1,this)">1.00</button><button type="button" class="op-preset" onclick="setLots(2,this)">2.00</button></div>
@@ -2859,7 +2859,19 @@ function renderBreachWarning(a,L,eq,start){
 // Everything here comes from the engine's own state payload, so what the
 // trader sees is exactly what enforce() will act on — including which
 // drawdown mode is live, which most platforms never show.
+function dailyCapMessage(){
+  const a=engineState&&engineState.account;
+  return a&&a.limits&&a.limits.daily_profit_cap_reached?a.limits.daily_profit_cap_message:null;
+}
+function renderDailyCapNotice(){
+  const message=dailyCapMessage(), notice=document.getElementById('dailyCapNotice');
+  if(notice){notice.hidden=!message;notice.textContent=message||'';}
+  document.querySelectorAll('.op-exec-btn,#qtBuy,#qtSell').forEach(button=>{
+    button.disabled=!!message;button.title=message||'';
+  });
+}
 function renderChallenge(){
+  renderDailyCapNotice();
   const a=engineState&&engineState.account;
   const wrapT=document.getElementById('ch-title');
   if(!wrapT)return;
@@ -2931,11 +2943,11 @@ function renderChallenge(){
     sub:'Resets 00:00 UTC · floor '+money(L.daily_floor)});
 
   if(L.daily_profit_cap_usd!=null){
-    const gain=eq-(+a.day_start_equity);
+    const gain=L.daily_profit_gain_usd==null?eq-(+a.day_start_equity):Number(L.daily_profit_gain_usd);
     const pct=Math.max(0,Math.min(100,(gain/L.daily_profit_cap_usd)*100));
     bars.push({lbl:'Daily profit cap',val:money(Math.max(0,L.daily_profit_cap_usd-gain))+' of headroom',
       pct,color:pct>=100?'#f59e0b':'#8b5cf6',
-      sub:pct>=100?'Cap hit — new orders reopen 00:00 UTC':'Cap '+money(L.daily_profit_cap_usd)+' per day'});
+      sub:L.daily_profit_cap_reached?'New entries paused until 00:00 UTC; existing positions can close above the cap.':'New entries pause at '+money(L.daily_profit_cap_usd)+' daily gain'});
   }
   document.getElementById('ch-bars').innerHTML=bars.map(b=>`
     <div class="ch-bar">
@@ -2993,6 +3005,7 @@ function renderChallenge(){
 
   const notes=[];
   if(L.max_risk_per_trade_usd!=null) notes.push(`Max risk per trade: ${money(L.max_risk_per_trade_usd)} (${L.max_risk_per_trade_pct}% of starting balance), measured from your stop.`);
+  if(a.challenge_type==='infinity'&&Number(a.stage)===1)notes.push('Stage 1 requires at least 10 qualifying trading days and 14 elapsed calendar days. Reaching $40 alone does not pass the stage.');
   if(a.challenge_type==='infinity'&&a.stage===2)notes.push('Stage 2 earnings are visible but held until full Stage 3 completion. Minimum withdrawal: $500.');
   if(a.challenge_type==='infinity'&&a.stage===3)notes.push('Stage 3 payout requests unlock only after full completion and the $500 minimum; Stage 4 allocation requires separate review.');
   if(a.challenge_type==='infinity'&&a.stage===4)notes.push('Stage 4 allocation is reviewed between $25K and $500K based on performance; no live capital is automatic.');
@@ -4950,6 +4963,8 @@ function updateTriggerHint(){
 
 async function placeOrder(side){
   if(blockInfinityTradeAttempt())return;
+  const capMessage=dailyCapMessage();
+  if(capMessage){engineMsg(capMessage);return;}
   if(engineBusy)return;
   if(typeof feedFresh==='function'&&!feedFresh()){engineMsg('Market data is stale — orders are paused until the feed recovers.');return;}
 
