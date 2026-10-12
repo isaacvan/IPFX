@@ -2543,6 +2543,10 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     infinity_lockout: monthly.data,
     service_controls: controls.error ? { unavailable: true, notices: [] } : controls.data,
     promotion_notice: await promotionNotice(db, acct),
+    // Earlier-rules Stage 1 runs with a day above the daily cap: their own best-day numbers and the one-time restart.
+    fresh_restart: (acct.challenge_type === "infinity" && Number(acct.stage) === 1 && !isDemoAccount(acct))
+      ? await db.rpc("fn_infinity_restart_offer", { p_account: acct.id }).then((r: { data: unknown; error: unknown }) => r.error ? null : r.data, () => null)
+      : null,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       // deno-lint-ignore no-explicit-any
@@ -3180,6 +3184,26 @@ if (body.action === "sweep") {
 
   // Free Infinity Challenge: status for the dashboard, and the claim itself
   // (first start or restart after failing). Bot tokens cannot reach these.
+  if (body.action === "infinity_fresh_restart") {
+    // One-time free Stage 1 restart onto the current rules. The database checks ownership, eligibility, that the
+    // account is flat and that the offer was never used, then archives the old run and issues the new account.
+    if (body.confirm !== true) return err("Please confirm the one-time restart.", 400);
+    const accountId = String(body.account_id ?? "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(accountId)) return err("Unknown account", 400);
+    if (!(await claimOrderLock(db, user.id))) return err("Already processing — try again in a moment.", 429);
+    try {
+      const { data, error } = await db.rpc("fn_infinity_take_fresh_restart", { p_account: accountId, p_user: user.id });
+      if (error) {
+        const m = String(error.message ?? "");
+        if (m.includes("CLOSE_POSITIONS_FIRST")) return err("Close your open trades first, then restart.", 409);
+        if (m.includes("RESTART_NOT_AVAILABLE")) return err("The one-time restart is not available on this account.", 409);
+        return err("The restart could not be completed. Nothing was changed.", 503);
+      }
+      return new Response(JSON.stringify({ ok: true, ...(data as Record<string, unknown>) }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    } finally {
+      await releaseOrderLock(db, user.id);
+    }
+  }
   if (body.action === "infinity_status") {
     const st = await infinityStatus(db, user);
     const { preset: _p, ...pub } = st;

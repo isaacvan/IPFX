@@ -601,6 +601,14 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .ch-fill{height:100%;border-radius:3px;transition:width .3s ease;}
 .ch-bar-sub{font-size:.68rem;color:#606060;margin-top:.35rem;}
 .ch-reqs-hd{font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:#606060;font-weight:700;margin-bottom:.5rem;}
+.ch-restart{border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:10px;padding:.85rem 1rem;margin:0 0 1rem;font-size:.84rem;line-height:1.55;color:#e5e7eb;}
+.ch-restart h4{margin:0 0 .4rem;font-size:.92rem;color:#fca5a5;}
+.ch-restart ol{margin:.35rem 0 .5rem 1.1rem;padding:0;}
+.ch-restart li{margin:.2rem 0;}
+.ch-restart b{color:#fff;}
+.ch-restart .opt{border-top:1px solid rgba(255,255,255,.08);margin-top:.6rem;padding-top:.6rem;}
+.ch-restart button{margin-top:.5rem;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:.5rem .9rem;font-weight:700;cursor:pointer;font:inherit;font-weight:700;}
+.ch-restart .warn{color:#fbbf24;}
 .ch-reqs-rule{font-size:.82rem;line-height:1.5;color:#fbbf24;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:.55rem .75rem;margin-bottom:.7rem;}
 .ch-reqs{display:flex;flex-direction:column;gap:.35rem;}
 .ch-req{display:flex;align-items:center;gap:.55rem;font-size:.8rem;}
@@ -2422,6 +2430,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         </div>
 
         <div class="ch-bars" id="ch-bars"></div>
+        <div class="ch-restart" id="ch-restart" hidden></div>
         <div class="ch-reqs-hd">Requirements</div>
         <div class="ch-reqs-rule" id="ch-reqs-rule">Every box below must be ticked at the same time before you move up to the next stage. Reaching the profit target alone does not move you up.</div>
         <div class="ch-reqs" id="ch-reqs"></div>
@@ -3004,6 +3013,39 @@ function renderRuleReminders(){
   }
 }
 setInterval(()=>{if(engineState&&document.visibilityState==='visible')renderRuleReminders();},1000);
+// Earlier-rules Stage 1 runs that had a day above the daily cap: show this trader's own best-day numbers in plain
+// words, and the one-time free restart onto the new rules. Shown in the panel every time, and once as a pop-up.
+function renderFreshRestart(o, a, money){
+  const el=document.getElementById('ch-restart');
+  if(!el)return;
+  if(!o||o.eligible!==true){el.hidden=true;el.innerHTML='';return;}
+  const pct=Math.round(Number(o.best_day_max_share||0.35)*100);
+  const more=Number(o.remaining_usd||0), days=o.min_more_profitable_days;
+  el.hidden=false;
+  el.innerHTML=`<h4>Important: your best day was ${money(o.best_day_usd)}, above the ${money(o.cap_usd)} daily cap</h4>
+    <div>No single day can be more than <b>${pct}%</b> of all the profit you make on your winning days. Because your best day was ${money(o.best_day_usd)}, your winning days must add up to at least <b>${money(o.need_positive_total_usd)}</b>.</div>
+    <div style="margin-top:.35rem">So far they add up to <b>${money(o.have_positive_total_usd)}</b>. You need <b>${money(more)} more</b> from winning days${days?`, which is at least <b>${days} more winning days</b> at ${money(o.cap_usd)} a day`:''}. There are ${o.days_left_in_month} days left this month.</div>
+    <div class="opt"><b>Your two choices</b><ol>
+      <li><b>Keep going on this run.</b> You pass Stage 1 only when every box below is ticked at the same time, including: winning days adding up to ${money(o.need_positive_total_usd)}, a balance of at least <b>${money(o.target_balance_usd)}</b> with <b>no trade open</b>, 10 trading days and 14 days since you started.</li>
+      <li><b>Restart Stage 1 for free, once.</b> Your current progress is archived and you start again at $1,000 under the new rules: at most ${money(o.cap_usd)} a day counts toward the target and open trades close when you reach ${money(o.cap_usd)} in a day.</li>
+    </ol>
+    <div class="warn"><b>This is your only free restart.</b> If you restart and the new run fails, you will have to wait until the 1st of next month to start again.</div>
+    ${Number(o.open_positions||0)>0?'<div class="warn" style="margin-top:.35rem">Close your open trades first to use the restart.</div>':''}
+    <button type="button" onclick="takeFreshRestart('${a.id}')">Restart Stage 1 for free (one time only)</button></div>`;
+  try{
+    const key='ipfx-restart-offer-seen-'+a.id;
+    if(!localStorage.getItem(key)){
+      localStorage.setItem(key,'1');
+      alert('Important about your Stage 1 run\n\nYour best day was '+money(o.best_day_usd)+', above the '+money(o.cap_usd)+' daily cap. To pass on this run, your winning days must add up to at least '+money(o.need_positive_total_usd)+' (you have '+money(o.have_positive_total_usd)+', so '+money(more)+' more), and every requirement must be ticked at the same time, including a balance of '+money(o.target_balance_usd)+' with no trade open.\n\nYou can instead restart Stage 1 for free, ONE TIME ONLY, under the new rules. If that new run fails, you must wait until the 1st of next month.\n\nSee the Challenge progress panel for your choices.');
+    }
+  }catch(_){}
+}
+async function takeFreshRestart(accountId){
+  const ok=confirm('Restart Stage 1 for free?\n\nYour current run is archived and you start again at $1,000 under the new rules (at most the daily cap counts toward the target each day, and open trades close when you reach the cap).\n\nThis is your ONLY free restart. If the new run fails, you must wait until the 1st of next month to start again.\n\nPress OK to restart now.');
+  if(!ok)return;
+  const j=await engineCall({action:'infinity_fresh_restart',account_id:accountId,confirm:true});
+  if(j&&j.ok){engineMsg('Your fresh Stage 1 account is ready. Good luck.');try{await engineCall({action:'state'});}catch(_){}}
+}
 function renderChallenge(){
   renderStageChecklist();
   renderDailyCapNotice();
@@ -3022,6 +3064,7 @@ function renderChallenge(){
   const L=a.limits||{}, P=a.progress||{};
   const eq=+a.equity, start=+a.starting_balance;
   const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  renderFreshRestart(engineState.fresh_restart, a, money);
   const typeLbl={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application',funded:'Funded'};
 
   if(a.is_demo){
