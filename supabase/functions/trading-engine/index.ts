@@ -1804,7 +1804,7 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
 // The requirements that must ALL hold, alongside the profit target,
 // before an evaluation account is allowed to pass. Returns the unmet
 // items so the trader can be shown exactly what is left.
-async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null; eligibleBalance: number }> {
+async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null; eligibleBalance: number; counted: Record<string, unknown> | null }> {
   const p = await fetchProgress(db, acct.id);
   const unmet: string[] = [];
   const needDays = Number(acct.min_trading_days ?? 0);
@@ -1824,6 +1824,16 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
   if (needProfPct !== null && (p.profitable_days_pct ?? 0) < needProfPct) {
     unmet.push(`${p.profitable_days_pct ?? 0}%/${needProfPct}% profitable days`);
   }
+  // Terms 2.1 runs: at most the daily profit cap of each UTC day's net closed profit counts toward the target.
+  let counted: Record<string, unknown> | null = null;
+  if (acct.challenge_type === "infinity") {
+    const c = await db.rpc("fn_infinity_counted_profit", { p_account: acct.id });
+    if (c.error || !c.data) unmet.push("Counted profit verification unavailable");
+    else {
+      counted = c.data as Record<string, unknown>;
+      if (counted.applies === true && counted.met !== true) unmet.push("DAILY_CAPPED_PROFIT");
+    }
+  }
   let eligibleBalance = Number(acct.balance);
   if (rulesV2(acct)) {
     const quick = await quickTradeProfit(db, acct.id);
@@ -1833,7 +1843,7 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
       unmet.push(`$${quick.toFixed(2)} of profit came from trades held under ${MIN_HOLD_SECONDS}s and does not count toward the target`);
     }
   }
-  return { ok: unmet.length === 0, unmet, progress: p, eligibleBalance, qualification: qualification.error ? null : qualification.data as Record<string, unknown> | null };
+  return { ok: unmet.length === 0, unmet, progress: p, eligibleBalance, qualification: qualification.error ? null : qualification.data as Record<string, unknown> | null, counted };
 }
 
 function dailyProfitCapReason(acct: Acct, equity: number): string | null {
@@ -2565,6 +2575,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         daily_profit_cap_reached: !!dailyProfitCapReason(acct, equity),
         daily_profit_gain_usd: round2(equity - Number(acct.day_start_equity)),
         daily_profit_cap_message: dailyProfitCapReason(acct, equity),
+        daily_profit_cap_closes: acct.daily_profit_cap_closes === true,
         require_stop_loss: !!acct.require_stop_loss,
         // Infinity Challenge: profit from winning trades held under this many seconds is not payout-eligible
         // (enforced in the payout functions; the platform warns before an early close).
@@ -2583,6 +2594,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         requirements_met: gate.ok,
         unmet: gate.unmet,
         qualification: gate.qualification,
+        counted_profit: gate.counted,
       },
     },
     open_trades: open.map(withOrderId),

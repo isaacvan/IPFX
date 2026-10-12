@@ -601,6 +601,7 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .ch-fill{height:100%;border-radius:3px;transition:width .3s ease;}
 .ch-bar-sub{font-size:.68rem;color:#606060;margin-top:.35rem;}
 .ch-reqs-hd{font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:#606060;font-weight:700;margin-bottom:.5rem;}
+.ch-reqs-rule{font-size:.82rem;line-height:1.5;color:#fbbf24;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:.55rem .75rem;margin-bottom:.7rem;}
 .ch-reqs{display:flex;flex-direction:column;gap:.35rem;}
 .ch-req{display:flex;align-items:center;gap:.55rem;font-size:.8rem;}
 .ch-req-ic{width:15px;height:15px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;}
@@ -2422,6 +2423,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 
         <div class="ch-bars" id="ch-bars"></div>
         <div class="ch-reqs-hd">Requirements</div>
+        <div class="ch-reqs-rule" id="ch-reqs-rule">Every box below must be ticked at the same time before you move up to the next stage. Reaching the profit target alone does not move you up.</div>
         <div class="ch-reqs" id="ch-reqs"></div>
         <div class="ch-note" id="ch-note"></div>
       </div>
@@ -3081,7 +3083,9 @@ function renderChallenge(){
     const pct=Math.max(0,Math.min(100,(gain/L.daily_profit_cap_usd)*100));
     bars.push({lbl:'Daily profit cap',val:money(Math.max(0,L.daily_profit_cap_usd-gain))+' of headroom',
       pct,color:pct>=100?'#f59e0b':'#8b5cf6',
-      sub:L.daily_profit_cap_reached?'New entries paused until 00:00 UTC; existing positions can close above the cap.':'New entries pause at '+money(L.daily_profit_cap_usd)+' daily gain'});
+      sub:L.daily_profit_cap_closes
+        ?(L.daily_profit_cap_reached?'Cap reached: open trades were closed and new trades are paused until 00:00 UTC.':'At '+money(L.daily_profit_cap_usd)+' daily gain, open trades close and new trades pause until 00:00 UTC')
+        :(L.daily_profit_cap_reached?'New entries paused until 00:00 UTC; existing positions can close above the cap.':'New entries pause at '+money(L.daily_profit_cap_usd)+' daily gain')});
   }
   document.getElementById('ch-bars').innerHTML=bars.map(b=>`
     <div class="ch-bar">
@@ -3094,6 +3098,12 @@ function renderChallenge(){
   const reqs=[];
   if(L.target_balance) reqs.push({done:+a.balance>=L.target_balance,
     txt:`Reach <b>${money(L.target_balance)}</b> balance (${((L.target_balance/start-1)*100).toFixed(1)}% target; currently ${money(a.balance)})`});
+  const C=P.counted_profit;
+  if(C&&C.applies){
+    const perDay=Number(C.cap_usd||0), tgt=Number(C.target_usd||0), got=Number(C.counted_usd||0);
+    reqs.push({done:C.met===true,
+      txt:`<b>${money(Math.max(0,got))} of ${money(tgt)}</b> counted profit<span class="ch-sub">At most ${money(perDay)} of each day's profit counts toward the target, so you need at least ${perDay>0?Math.ceil(tgt/perDay):'—'} profitable days. Losses count in full.</span>`});
+  }
   if(P.min_trading_days>0) reqs.push({done:P.trading_days>=P.min_trading_days,
     txt:`<b>${P.trading_days}/${P.min_trading_days}</b> trading days`});
   if(P.min_trades>0) reqs.push({done:P.trades_closed>=P.min_trades,

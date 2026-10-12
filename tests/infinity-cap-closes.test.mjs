@@ -35,9 +35,9 @@ test('earlier runs keep the entry pause only, and the trader message matches the
 });
 
 test('Terms 2.0 states the new rule for each stage and is the version new applications accept', () => {
-  assert.match(terms, /<span>Version 2\.0<\/span>/);
+  assert.match(terms, /<span>Version 2\.[01]<\/span>/);
   assert.equal((terms.match(/For runs whose application accepted Terms version 2\.0 or later: when your net profit for the UTC day, including open positions, reaches the cap, all open positions are closed/g) || []).length, 3);
   assert.match(terms, /Reaching the cap is not a breach\./);
-  assert.match(read('assets/js/checkout-flow.js'), /terms_version: '2026-10-12-2\.0'/);
-  assert.equal(terms, read('legal/2026-10-12-v2.0/terms.html'));
+  assert.match(read('assets/js/checkout-flow.js'), /terms_version: '2026-10-12-2\.[01]'/);
+  assert.ok(read('legal/2026-10-12-v2.0/terms.html').includes('<span>Version 2.0</span>'));
 });
