@@ -1212,7 +1212,7 @@ type Acct = {
   min_trading_days?: number; min_trades?: number;
   max_risk_per_trade_pct?: number | null;
   daily_profit_cap_pct?: number | null;
-  daily_profit_cap_blocked?: boolean; daily_profit_gain_usd?: number | null;
+  daily_profit_cap_blocked?: boolean; daily_profit_gain_usd?: number | null; daily_profit_cap_closes?: boolean;
   min_profitable_days_pct?: number | null;
   drawdown_mode?: string;
   trailing_peak?: number | null; trailing_peak_date?: string | null;
@@ -1842,7 +1842,11 @@ function dailyProfitCapReason(acct: Acct, equity: number): string | null {
   const gain = round2(equity - Number(acct.day_start_equity));
   if (!acct.daily_profit_cap_blocked && gain < cap) return null;
   const days = Number(acct.min_trading_days ?? 0);
-  return `Daily profit cap reached ($${cap.toFixed(2)}). New market and pending orders reopen at 00:00 UTC. You can still manage and close existing positions; their P&L can exceed the cap.${days > 0 ? ` You still need at least ${days} qualifying trading days to pass this stage.` : ""}`;
+  const tail = days > 0 ? ` You still need at least ${days} qualifying trading days to pass this stage.` : "";
+  if (acct.daily_profit_cap_closes) {
+    return `Daily profit cap reached ($${cap.toFixed(2)}). Your open positions are closed at the cap and pending orders cancelled. New orders reopen at 00:00 UTC.${tail}`;
+  }
+  return `Daily profit cap reached ($${cap.toFixed(2)}). New market and pending orders reopen at 00:00 UTC. You can still manage and close existing positions; their P&L can exceed the cap.${tail}`;
 }
 
 // Realized + floating P&L for the current UTC day. Used by each account's
@@ -2109,6 +2113,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     if (error || !daily) throw new Error("DAILY_PROFIT_CAP_UNAVAILABLE");
     acct.daily_profit_cap_blocked = daily.blocked === true;
     acct.daily_profit_gain_usd = daily.gain_usd ?? null;
+    // Terms 2.0 runs close open positions at the cap; earlier runs keep the entry pause they agreed to.
+    // If the check is unavailable the account keeps the entry pause only (never closes on a guess).
+    const closes = await db.rpc("fn_infinity_cap_closes_positions", { p_account: acct.id });
+    acct.daily_profit_cap_closes = !closes.error && closes.data === true;
     if (daily.checked !== true) quoteRiskUnavailable = true;
   }
   const [{ data: openRows }] = await Promise.all([
@@ -2386,6 +2394,35 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       }
       // Not passing yet is not a breach — the trader simply keeps trading
       // until the remaining requirements are met.
+    }
+  }
+
+  // Terms 2.0 runs: reaching the daily profit cap (closed + open profit for the UTC day) closes every open position and
+  // cancels pending orders. Not a breach: the account stays active and new entries reopen at 00:00 UTC (entry pause).
+  if (!venueMode && acct.status === "active" && acct.daily_profit_cap_closes === true && acct.daily_profit_cap_pct != null
+      && open.length && acct.day_start_date === todayUtc) {
+    const capUsd = round2(start * Number(acct.daily_profit_cap_pct) / 100);
+    const gainNow = round2(equity - Number(acct.day_start_equity));
+    if ((acct.daily_profit_cap_blocked || gainNow >= capUsd) && await claimOrderLock(db, acct.id)) {
+      try {
+        for (const t of open) {
+          let q = await fetchQuote(t.symbol);
+          if (q === null) q = await lastKnownQuote(t.symbol);
+          if (q !== null) await closeTrade(db, acct, t, t.side === "buy" ? q.bid : q.ask, "daily_profit_cap", q);
+        }
+        await db.from("pending_orders").update({
+          status: "cancelled", reject_reason: "Daily profit cap reached", resolved_at: new Date().toISOString(),
+        }).eq("account_id", acct.id).eq("status", "pending");
+      } finally {
+        await releaseOrderLock(db, acct.id);
+      }
+      const [{ data: left }, { data: fresh }] = await Promise.all([
+        db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at"),
+        db.from("trading_accounts").select("balance").eq("id", acct.id).maybeSingle(),
+      ]);
+      open = left ?? [];
+      if (fresh) acct.balance = Number(fresh.balance);
+      if (!open.length) { floating = 0; equity = round2(Number(acct.balance)); }
     }
   }
 
