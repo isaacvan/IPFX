@@ -151,3 +151,28 @@ body > nav > a.logo .logo-text { white-space: nowrap; line-height: 1.2; }
     transition-duration: .01ms !important;
   }
 }
+
+/* Persistent feedback shortcut opposite the support-chat launcher. */
+.ipfx-feedback-shortcut {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 9998;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 54px;
+  padding: 0 18px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 24px rgba(37,99,235,.4);
+  font: 700 14px/1 Inter,system-ui,sans-serif;
+  text-decoration: none;
+  transition: background .15s,box-shadow .15s;
+}
+.ipfx-feedback-shortcut:hover { background: #1d4ed8; color: #fff; box-shadow: 0 6px 28px rgba(37,99,235,.55); }
+.ipfx-feedback-shortcut:focus-visible { outline: 3px solid #93c5fd; outline-offset: 4px; }
+.ipfx-feedback-shortcut svg { width: 21px; height: 21px; flex-shrink: 0; }

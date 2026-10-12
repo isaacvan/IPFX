@@ -30,6 +30,24 @@
     document.body.insertBefore(link, document.body.firstChild);
   }
 
+  function addFeedbackShortcut() {
+    if (window.top !== window.self || document.querySelector("#ipfxFeedbackShortcut")) return;
+    if (/^\/(?:admin|team-[^/]+|dashboard|trading|feedback)\.html$/.test(location.pathname)) return;
+    var link = document.createElement("a");
+    link.id = "ipfxFeedbackShortcut";
+    link.className = "ipfx-feedback-shortcut";
+    var source = location.pathname === "/dashboard.html" ? "dashboard" :
+      location.pathname === "/trading.html" ? "trading" :
+      (location.pathname === "/" || location.pathname === "/index.html") ? "home" : null;
+    link.href = "/feedback.html" + (source ? "?from=" + source : "");
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.title = "Send feedback (opens in a new tab)";
+    link.setAttribute("aria-label", link.title);
+    link.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 20H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><path d="m16 3 5 5-9 9-5 1 1-5z"/></svg><span>Feedback</span>';
+    document.body.appendChild(link);
+  }
+
   function hardenLinks() {
     document.querySelectorAll('a[target="_blank"]').forEach(function (link) {
       var rel = new Set((link.getAttribute("rel") || "").split(/\s+/).filter(Boolean));
@@ -160,6 +178,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     addSkipLink();
+    addFeedbackShortcut();
     hardenLinks();
     improveMedia();
     improveFaq();

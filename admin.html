@@ -227,6 +227,17 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
   <div id="kycQueue"><div class="msg" style="padding:1.25rem">Not loaded — click <b>Load review queue</b>.</div></div>
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem;gap:.5rem;flex-wrap:wrap">
+    <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Feedback inbox <span id="fbCounts" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)"></span></h2>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <select id="fbFilter" class="chip" onchange="loadFeedback()" style="padding:.35rem .6rem">
+        <option value="new">New</option><option value="in_progress">In progress</option><option value="resolved">Resolved</option><option value="dismissed">Dismissed</option><option value="">All</option>
+      </select>
+      <button class="chip" onclick="loadFeedback()">Load feedback</button>
+    </div>
+  </div>
+  <div id="feedbackWrap"><div class="msg" style="padding:1.25rem">Not loaded — click <b>Load feedback</b>. Bugs, complaints and suggestions from the website feedback form land here.</div></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:1.75rem 0 .75rem;gap:.5rem;flex-wrap:wrap">
     <h2 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700;margin:0">Promo codes</h2>
     <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
       <input id="promoCode" placeholder="CODE" maxlength="24" style="background:var(--bg2);border:1px solid var(--line);color:#fff;border-radius:999px;padding:.35rem .85rem;font-size:.78rem;width:120px;text-transform:uppercase">
@@ -1213,6 +1224,37 @@ async function kycDecide(userId,status){
   if(status==='rejected'){note=prompt('Reason shown to the trader (e.g. "Document is blurry" or "Address proof is older than 3 months"):');if(note===null)return;}
   const r=await call({action:'set_kyc_status',user_id:userId,status,note});
   if(r){toast(status==='verified'?'Trader verified':'Rejected — trader has been emailed',true);loadKycQueue();}
+}
+
+// ══ FEEDBACK INBOX (website feedback.html -> feedback_submissions) ══
+const FB_CAT={bug:'🐞 Bug',complaint:'⚠️ Complaint',suggestion:'💡 Suggestion',question:'❓ Question',praise:'⭐ Praise',other:'✉️ Other'};
+const FB_ST={new:'var(--amber)',in_progress:'var(--blue,#60a5fa)',resolved:'var(--green)',dismissed:'var(--muted2)'};
+async function loadFeedback(){
+  const wrap=document.getElementById('feedbackWrap');
+  const status=document.getElementById('fbFilter').value;
+  wrap.innerHTML='<div class="msg" style="padding:1.25rem">Loading…</div>';
+  const r=await call({action:'feedback_list',status:status||undefined,page_size:100});
+  if(!r){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Could not load feedback.</div>';return;}
+  const c=r.counts||{};
+  document.getElementById('fbCounts').textContent=`· ${c.new||0} new · ${c.in_progress||0} in progress · ${c.resolved||0} resolved`;
+  if(!r.entries.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">Nothing here.</div>';return;}
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Type</th><th>From</th><th>Message</th><th>Where / received</th><th>Status</th><th>Action</th></tr></thead><tbody>${r.entries.map(f=>`<tr>
+    <td style="white-space:nowrap">${esc(FB_CAT[f.category]||f.category)}</td>
+    <td><div>${esc(f.name||'—')}</div><div style="font-size:.72rem;color:var(--muted)"><a href="mailto:${esc(f.email)}" style="color:inherit">${esc(f.email)}</a></div></td>
+    <td style="max-width:420px;white-space:normal">${esc(f.message)}${f.admin_note?`<div style="font-size:.7rem;color:var(--muted2);margin-top:.35rem;border-left:2px solid var(--line);padding-left:.5rem">note: ${esc(f.admin_note)}</div>`:''}</td>
+    <td style="font-size:.72rem;color:var(--muted)">${esc(f.page||'—')}<div style="color:var(--muted2)">${esc(new Date(f.created_at).toLocaleString('en-GB'))}</div></td>
+    <td><span style="color:${FB_ST[f.status]||'var(--muted)'};font-weight:700;font-size:.74rem;text-transform:uppercase">${esc(f.status.replace('_',' '))}</span></td>
+    <td style="white-space:nowrap">
+      ${f.status!=='in_progress'?`<button class="btn btn-o" onclick="feedbackSet('${esc(f.id)}','in_progress')">In progress</button> `:''}
+      ${f.status!=='resolved'?`<button class="btn btn-g" onclick="feedbackSet('${esc(f.id)}','resolved')">Resolve</button> `:''}
+      ${f.status!=='dismissed'?`<button class="btn btn-o" onclick="feedbackSet('${esc(f.id)}','dismissed')">Dismiss</button>`:''}
+    </td></tr>`).join('')}</tbody></table></div>`;
+}
+async function feedbackSet(id,status){
+  let note;
+  if(status==='resolved'||status==='dismissed'){const n=prompt('Optional internal note (leave blank to skip):','');if(n===null)return;note=n||undefined;}
+  const r=await call({action:'feedback_update',id,status,note});
+  if(r){toast('Feedback updated',true);loadFeedback();}
 }
 let applicationPage=0, applicationStatus='pending';
 function applicationPageChange(delta){applicationPage=Math.max(0,applicationPage+delta);loadApplicationQueue()}

@@ -986,6 +986,7 @@ async function usdPerQuote(quote: string): Promise<number | null> {
   if (quote === "GBP") { return await mid("GBPUSD"); }
   if (quote === "CAD") { const r = await mid("USDCAD"); return r ? 1 / r : null; }
   if (quote === "CHF") { const r = await mid("USDCHF"); return r ? 1 / r : null; }
+  if (quote === "EUR") { return await mid("EURUSD"); } // GER40, FRA40 are EUR-quoted
   return null;
 }
 
@@ -1211,6 +1212,7 @@ type Acct = {
   min_trading_days?: number; min_trades?: number;
   max_risk_per_trade_pct?: number | null;
   daily_profit_cap_pct?: number | null;
+  daily_profit_cap_blocked?: boolean; daily_profit_gain_usd?: number | null; daily_profit_cap_closes?: boolean;
   min_profitable_days_pct?: number | null;
   drawdown_mode?: string;
   trailing_peak?: number | null; trailing_peak_date?: string | null;
@@ -1430,11 +1432,8 @@ function ruleGate(
 ): string | null {
   const startBal = Number(acct.starting_balance);
 
-  if (acct.daily_profit_cap_pct != null) {
-    const gain = round2(equityNow - Number(acct.day_start_equity));
-    const cap = round2(startBal * Number(acct.daily_profit_cap_pct) / 100);
-    if (gain >= cap) return `Daily profit cap reached ($${cap.toFixed(2)})`;
-  }
+  const dailyCap = dailyProfitCapReason(acct, equityNow);
+  if (dailyCap) return dailyCap;
   if (acct.require_stop_loss && sl === null) {
     return "This challenge requires a stop-loss on every order";
   }
@@ -1805,7 +1804,7 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
 // The requirements that must ALL hold, alongside the profit target,
 // before an evaluation account is allowed to pass. Returns the unmet
 // items so the trader can be shown exactly what is left.
-async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null }> {
+async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null; eligibleBalance: number; counted: Record<string, unknown> | null }> {
   const p = await fetchProgress(db, acct.id);
   const unmet: string[] = [];
   const needDays = Number(acct.min_trading_days ?? 0);
@@ -1825,14 +1824,39 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
   if (needProfPct !== null && (p.profitable_days_pct ?? 0) < needProfPct) {
     unmet.push(`${p.profitable_days_pct ?? 0}%/${needProfPct}% profitable days`);
   }
+  // Terms 2.1 runs: at most the daily profit cap of each UTC day's net closed profit counts toward the target.
+  let counted: Record<string, unknown> | null = null;
+  if (acct.challenge_type === "infinity") {
+    const c = await db.rpc("fn_infinity_counted_profit", { p_account: acct.id });
+    if (c.error || !c.data) unmet.push("Counted profit verification unavailable");
+    else {
+      counted = c.data as Record<string, unknown>;
+      if (counted.applies === true && counted.met !== true) unmet.push("DAILY_CAPPED_PROFIT");
+    }
+  }
+  let eligibleBalance = Number(acct.balance);
   if (rulesV2(acct)) {
     const quick = await quickTradeProfit(db, acct.id);
+    eligibleBalance = round2(Number(acct.balance) - quick);
     const target = round2(Number(acct.starting_balance) * (1 + Number(acct.profit_target_pct) / 100));
     if (quick > 0 && round2(Number(acct.balance) - quick) < target) {
       unmet.push(`$${quick.toFixed(2)} of profit came from trades held under ${MIN_HOLD_SECONDS}s and does not count toward the target`);
     }
   }
-  return { ok: unmet.length === 0, unmet, progress: p, qualification: qualification.error ? null : qualification.data as Record<string, unknown> | null };
+  return { ok: unmet.length === 0, unmet, progress: p, eligibleBalance, qualification: qualification.error ? null : qualification.data as Record<string, unknown> | null, counted };
+}
+
+function dailyProfitCapReason(acct: Acct, equity: number): string | null {
+  if (acct.daily_profit_cap_pct == null) return null;
+  const cap = round2(Number(acct.starting_balance) * Number(acct.daily_profit_cap_pct) / 100);
+  const gain = round2(equity - Number(acct.day_start_equity));
+  if (!acct.daily_profit_cap_blocked && gain < cap) return null;
+  const days = Number(acct.min_trading_days ?? 0);
+  const tail = days > 0 ? ` You still need at least ${days} qualifying trading days to pass this stage.` : "";
+  if (acct.daily_profit_cap_closes) {
+    return `Daily profit cap reached ($${cap.toFixed(2)}). Your open positions are closed at the cap and pending orders cancelled. New orders reopen at 00:00 UTC.${tail}`;
+  }
+  return `Daily profit cap reached ($${cap.toFixed(2)}). New market and pending orders reopen at 00:00 UTC. You can still manage and close existing positions; their P&L can exceed the cap.${tail}`;
 }
 
 // Realized + floating P&L for the current UTC day. Used by each account's
@@ -2092,6 +2116,18 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       // deno-lint-ignore no-explicit-any
       if (Object.prototype.hasOwnProperty.call(guard, key)) (acct as any)[key] = guard[key];
     }
+  }
+  // Latch the daily entry pause before protective closes or pending fills.
+  if (acct.challenge_type === "infinity" && acct.status === "active" && acct.daily_profit_cap_pct != null && (acct.venue ?? "ipfx") === "ipfx") {
+    const { data: daily, error } = await db.rpc("fn_infinity_daily_entry_limit", { p_account: acct.id });
+    if (error || !daily) throw new Error("DAILY_PROFIT_CAP_UNAVAILABLE");
+    acct.daily_profit_cap_blocked = daily.blocked === true;
+    acct.daily_profit_gain_usd = daily.gain_usd ?? null;
+    // Terms 2.0 runs close open positions at the cap; earlier runs keep the entry pause they agreed to.
+    // If the check is unavailable the account keeps the entry pause only (never closes on a guess).
+    const closes = await db.rpc("fn_infinity_cap_closes_positions", { p_account: acct.id });
+    acct.daily_profit_cap_closes = !closes.error && closes.data === true;
+    if (daily.checked !== true) quoteRiskUnavailable = true;
   }
   const [{ data: openRows }] = await Promise.all([
     db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at"),
@@ -2371,6 +2407,35 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     }
   }
 
+  // Terms 2.0 runs: reaching the daily profit cap (closed + open profit for the UTC day) closes every open position and
+  // cancels pending orders. Not a breach: the account stays active and new entries reopen at 00:00 UTC (entry pause).
+  if (!venueMode && acct.status === "active" && acct.daily_profit_cap_closes === true && acct.daily_profit_cap_pct != null
+      && open.length && acct.day_start_date === todayUtc) {
+    const capUsd = round2(start * Number(acct.daily_profit_cap_pct) / 100);
+    const gainNow = round2(equity - Number(acct.day_start_equity));
+    if ((acct.daily_profit_cap_blocked || gainNow >= capUsd) && await claimOrderLock(db, acct.id)) {
+      try {
+        for (const t of open) {
+          let q = await fetchQuote(t.symbol);
+          if (q === null) q = await lastKnownQuote(t.symbol);
+          if (q !== null) await closeTrade(db, acct, t, t.side === "buy" ? q.bid : q.ask, "daily_profit_cap", q);
+        }
+        await db.from("pending_orders").update({
+          status: "cancelled", reject_reason: "Daily profit cap reached", resolved_at: new Date().toISOString(),
+        }).eq("account_id", acct.id).eq("status", "pending");
+      } finally {
+        await releaseOrderLock(db, acct.id);
+      }
+      const [{ data: left }, { data: fresh }] = await Promise.all([
+        db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open").order("opened_at"),
+        db.from("trading_accounts").select("balance").eq("id", acct.id).maybeSingle(),
+      ]);
+      open = left ?? [];
+      if (fresh) acct.balance = Number(fresh.balance);
+      if (!open.length) { floating = 0; equity = round2(Number(acct.balance)); }
+    }
+  }
+
   const expectedStatus = acct.status;
   const saved = await db.from("trading_accounts").update({
     ...(venueMode ? { balance: acct.balance } : {}), day_start_equity: acct.day_start_equity,
@@ -2474,9 +2539,14 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
 
   return {
     ok: true,
+    server_time: new Date().toISOString(),
     infinity_lockout: monthly.data,
     service_controls: controls.error ? { unavailable: true, notices: [] } : controls.data,
     promotion_notice: await promotionNotice(db, acct),
+    // Earlier-rules Stage 1 runs with a day above the daily cap: their own best-day numbers and the one-time restart.
+    fresh_restart: (acct.challenge_type === "infinity" && Number(acct.stage) === 1 && !isDemoAccount(acct))
+      ? await db.rpc("fn_infinity_restart_offer", { p_account: acct.id }).then((r: { data: unknown; error: unknown }) => r.error ? null : r.data, () => null)
+      : null,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       // deno-lint-ignore no-explicit-any
@@ -2492,16 +2562,24 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         target_balance: Number(acct.profit_target_pct) > 0
           ? round2(start * (1 + Number(acct.profit_target_pct) / 100)) : null,
         max_dd_floor: ddFloor,
+        drawdown_allowance_usd: round2(ddAmount),
+        daily_loss_allowance_usd: round2(start * Number(acct.daily_loss_pct) / 100),
+        stop_loss_deadline_seconds: acct.challenge_type === "infinity" ? await slDeadlineSeconds(db) : null,
         drawdown_mode: mode,
         trailing_peak: mode === "static" ? null : round2(peak),
         daily_floor: round2(Number(acct.day_start_equity) - start * Number(acct.daily_loss_pct) / 100),
         max_risk_per_trade_pct: acct.max_risk_per_trade_pct ?? null,
         max_risk_per_trade_usd: liveRiskLimit?.effective ?? null,
         base_risk_per_trade_usd: liveRiskLimit?.base ?? null,
+        total_open_risk_multiple: MAX_TOTAL_RISK_MULTIPLE,
         drawdown_room_usd: liveRiskLimit?.drawdownRemaining ?? null,
         daily_loss_room_usd: liveRiskLimit?.dailyRemaining ?? null,
         daily_profit_cap_usd: acct.daily_profit_cap_pct == null ? null
           : round2(start * Number(acct.daily_profit_cap_pct) / 100),
+        daily_profit_cap_reached: !!dailyProfitCapReason(acct, equity),
+        daily_profit_gain_usd: round2(equity - Number(acct.day_start_equity)),
+        daily_profit_cap_message: dailyProfitCapReason(acct, equity),
+        daily_profit_cap_closes: acct.daily_profit_cap_closes === true,
         require_stop_loss: !!acct.require_stop_loss,
         // Infinity Challenge: profit from winning trades held under this many seconds is not payout-eligible
         // (enforced in the payout functions; the platform warns before an early close).
@@ -2510,6 +2588,8 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
       // Everything still standing between this account and a pass.
       progress: {
         trading_days: gate.progress.trading_days,
+        eligible_closed_balance: gate.eligibleBalance,
+        min_profitable_day_net_usd: rulesV2(acct) ? round2(start * (acct.challenge_type === "infinity" && Number(acct.stage) === 2 ? 0.0005 : 0.0025)) : 0,
         min_trading_days: Number(acct.min_trading_days ?? 0),
         trades_closed: gate.progress.trades_closed,
         min_trades: Number(acct.min_trades ?? 0),
@@ -2518,6 +2598,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         requirements_met: gate.ok,
         unmet: gate.unmet,
         qualification: gate.qualification,
+        counted_profit: gate.counted,
       },
     },
     open_trades: open.map(withOrderId),
@@ -3103,6 +3184,26 @@ if (body.action === "sweep") {
 
   // Free Infinity Challenge: status for the dashboard, and the claim itself
   // (first start or restart after failing). Bot tokens cannot reach these.
+  if (body.action === "infinity_fresh_restart") {
+    // One-time free Stage 1 restart onto the current rules. The database checks ownership, eligibility, that the
+    // account is flat and that the offer was never used, then archives the old run and issues the new account.
+    if (body.confirm !== true) return err("Please confirm the one-time restart.", 400);
+    const accountId = String(body.account_id ?? "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(accountId)) return err("Unknown account", 400);
+    if (!(await claimOrderLock(db, user.id))) return err("Already processing — try again in a moment.", 429);
+    try {
+      const { data, error } = await db.rpc("fn_infinity_take_fresh_restart", { p_account: accountId, p_user: user.id });
+      if (error) {
+        const m = String(error.message ?? "");
+        if (m.includes("CLOSE_POSITIONS_FIRST")) return err("Close your open trades first, then restart.", 409);
+        if (m.includes("RESTART_NOT_AVAILABLE")) return err("The one-time restart is not available on this account.", 409);
+        return err("The restart could not be completed. Nothing was changed.", 503);
+      }
+      return new Response(JSON.stringify({ ok: true, ...(data as Record<string, unknown>) }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    } finally {
+      await releaseOrderLock(db, user.id);
+    }
+  }
   if (body.action === "infinity_status") {
     const st = await infinityStatus(db, user);
     const { preset: _p, ...pub } = st;
@@ -3471,6 +3572,8 @@ if (body.action === "sweep") {
     }
     try {
       if (!isTradableAccount(acct as Acct)) return err("Account is " + (acct as Acct).status, 409);
+      const dailyCap = dailyProfitCapReason(acct as Acct, state.equity);
+      if (dailyCap) return err(dailyCap, 409);
       if (((acct as Acct).venue ?? "ipfx") !== "ipfx") return err("This challenge is traded in your broker TradeLocker demo account, not on IPFX Markets.", 409);
       if (await orderBurstExceeded(db, (acct as Acct).id)) {
         return err(`Too many orders — at most ${ORDER_BURST_LIMIT} new orders every ${ORDER_BURST_WINDOW_MS / 1000} seconds.`, 429);
@@ -3754,16 +3857,9 @@ if (body.action === "sweep") {
       const A = acct as Acct;
       const startBal = Number(A.starting_balance);
 
-      // Daily profit cap (Infinity: 3%). Hitting it blocks new orders for
-      // the rest of the UTC day — it is not a breach. Existing positions
-      // can still be managed and closed.
-      if (A.daily_profit_cap_pct != null) {
-        const gain = await todayGain(db, A, state.equity);
-        const cap = round2(startBal * Number(A.daily_profit_cap_pct) / 100);
-        if (gain >= cap) {
-          return reject(`Daily profit cap reached ($${cap.toFixed(2)}). New orders reopen at 00:00 UTC — you can still manage open positions.`, q);
-        }
-      }
+      // A daily profit cap pauses new entries; it never clips profit or fails a run.
+      const dailyCap = dailyProfitCapReason(A, state.equity);
+      if (dailyCap) return reject(dailyCap, q);
 
       // A risk cap is unverifiable without a stop, so the two travel together.
       if (A.require_stop_loss && sl === null) {

@@ -1859,7 +1859,7 @@ Deno.serve(async (req) => {
     const documentId = String(body.document_id ?? "");
     if (!UUID.test(documentId)) return err("Unknown document", 400);
     try {
-      if (!await allowRequest(db, "admin:kyc_document_day", user.id, 350, 86400)) return err("Document view limit reached for today. The limit protects identity documents.", 429);
+      if (!await allowRequest(db, "admin:kyc_document_day", user.id, 450, 86400)) return err("Document view limit reached for today. The limit protects identity documents.", 429);
     } catch (error) {
       console.error(JSON.stringify({ event: "kyc_document_rate_limit", request_id: traceId, code: safeErrorCode(error) }));
       return err("Document protection unavailable", 503);
@@ -1969,6 +1969,37 @@ Deno.serve(async (req) => {
     if (!question) return err("Missing question");
     const pattern = question.replace(/[\\%_]/g, "\\$&"); // match this exact text; no wildcards
     await db.from("support_chat_log").update({ resolved: true }).ilike("question", pattern).eq("answered", false);
+    return json({ ok: true });
+  }
+
+  // ---- on-site feedback inbox (feedback.html -> feedback_submissions) ----
+  if (action === "feedback_list") {
+    const pageSize = Math.min(200, Math.max(20, Number(body.page_size) || 100));
+    const before = typeof body.before === "string" && !Number.isNaN(Date.parse(body.before)) ? body.before : null;
+    const statusFilter = ["new", "in_progress", "resolved", "dismissed"].includes(String(body.status)) ? String(body.status) : null;
+    let q = db.from("feedback_submissions").select("*").order("created_at", { ascending: false }).limit(pageSize + 1);
+    if (statusFilter) q = q.eq("status", statusFilter);
+    if (before) q = q.lt("created_at", before);
+    const { data: rows, error } = await q;
+    if (error) return err("feedback unavailable", 503);
+    const { data: counts } = await db.from("feedback_submissions").select("status");
+    const byStatus: Record<string, number> = { new: 0, in_progress: 0, resolved: 0, dismissed: 0 };
+    for (const r of counts ?? []) if (r.status in byStatus) byStatus[r.status]++;
+    const hasMore = (rows?.length ?? 0) > pageSize;
+    const entries = (rows ?? []).slice(0, pageSize);
+    return json({ ok: true, entries, counts: byStatus, has_more: hasMore, next_cursor: hasMore ? entries.at(-1)?.created_at ?? null : null });
+  }
+  if (action === "feedback_update") {
+    const id = String(body.id ?? "");
+    if (!UUID.test(id)) return err("Unknown feedback item", 400);
+    const status = ["new", "in_progress", "resolved", "dismissed"].includes(String(body.status)) ? String(body.status) : null;
+    if (!status) return err("Invalid status", 400);
+    const note = typeof body.note === "string" ? body.note.slice(0, 5000) : undefined;
+    const patch: Record<string, unknown> = { status, handled_by: user.id, handled_at: new Date().toISOString() };
+    if (note !== undefined) patch.admin_note = note;
+    const { error } = await db.from("feedback_submissions").update(patch).eq("id", id);
+    if (error) return err("could not update feedback", 503);
+    await logAdmin("feedback_update", { detail: { id, status } });
     return json({ ok: true });
   }
 

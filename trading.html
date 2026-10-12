@@ -545,6 +545,13 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .postbl-act{display:flex;gap:.4rem;}
 .postbl-act-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .12s;}
 .postbl-act-btn:hover{color:var(--red);border-color:var(--red);}
+.op-risk.near{border-color:#d97706;color:#f5c473;background:rgba(217,119,6,.12);}
+.rule-reminders{padding:.8rem 1rem;border-left:5px solid #f59e0b;background:#241b0c;border-bottom:1px solid #725325;font-size:.8rem;line-height:1.45;color:#f5c473;}
+.rule-reminders[hidden]{display:none}.rule-reminders strong{font-size:1rem;color:#ffce76}.rule-reminders.urgent{border-left-color:#ef4444;background:#2a1215}.rule-reminders ul{margin:.35rem 0;padding-left:1.2rem}.rule-reminders li+li{margin-top:.3rem}.rule-reminders li.critical{color:#ff9b9b}.rule-reminders li.reminder{color:#b7c9ed}.rule-reminders button{background:none;border:0;color:#93b4ff;font:inherit;cursor:pointer;text-decoration:underline;}
+.rule-dlg{margin:auto;width:min(720px,calc(100vw - 48px));max-height:85vh;overflow:auto;border:2px solid #f59e0b;border-radius:16px;background:#151518;color:#f7f7fa;padding:26px;box-shadow:0 25px 90px #000;font:15px/1.55 Inter,Arial,sans-serif}
+.rule-dlg[open]{display:flex;flex-direction:column}.rule-dlg #stageRulesReadList{overflow-y:auto;min-height:0;padding-right:8px}.rule-dlg>h2,.rule-dlg>p,.rule-dlg-actions{flex-shrink:0}.rule-dlg .stage-rule-urgent{padding:12px 12px 12px 30px;margin:0 0 12px;background:#351619;border:1px solid #ef4444;border-radius:8px;color:#ffb0b0}.stage-rule-urgent[hidden]{display:none}
+.rule-dlg::backdrop{background:rgba(0,0,0,.8)}.rule-dlg.critical{border-color:#ef4444}.rule-dlg h2{font-size:24px;margin:0 0 10px}.rule-dlg p{margin:0 0 14px;color:#c7c7cf}.rule-dlg label{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #333;align-items:flex-start}.rule-dlg input{flex-shrink:0;margin-top:6px;width:18px;height:18px;accent-color:#2563eb}.rule-dlg-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.rule-dlg button{padding:11px 16px;border-radius:8px;background:#2563eb;border:1px solid #5882e5;color:#fff;font:inherit;font-weight:700;cursor:pointer}.rule-dlg button.secondary{background:#27272d;border-color:#555}.rule-dlg button:disabled{opacity:.45;cursor:not-allowed}
+.stage-checklist{margin:10px 0;border:1px solid #3b4d70;border-radius:10px;padding:12px;background:#111826;font-size:.8rem;line-height:1.5}.stage-checklist[hidden]{display:none}.stage-checklist summary{cursor:pointer;font-weight:700;color:#b9d0ff}.stage-checklist p{margin:8px 0;color:#b8c0cf}.stage-checklist label{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.stage-checklist input{margin-top:4px;accent-color:#34d399}.stage-checklist button{background:none;border:0;color:#92b5ff;text-decoration:underline;cursor:pointer;font:inherit}.stage-checklist .pending{color:#f5c473}
 /* breach warning rail — sits above the chart, only when it matters */
 .brw{display:none;align-items:center;gap:.7rem;padding:.5rem .9rem;font-size:.8rem;font-weight:600;border-bottom:1px solid transparent;}
 .brw.show{display:flex;}
@@ -594,6 +601,15 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .ch-fill{height:100%;border-radius:3px;transition:width .3s ease;}
 .ch-bar-sub{font-size:.68rem;color:#606060;margin-top:.35rem;}
 .ch-reqs-hd{font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:#606060;font-weight:700;margin-bottom:.5rem;}
+.ch-restart{border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.07);border-radius:10px;padding:.85rem 1rem;margin:0 0 1rem;font-size:.84rem;line-height:1.55;color:#e5e7eb;}
+.ch-restart h4{margin:0 0 .4rem;font-size:.92rem;color:#fca5a5;}
+.ch-restart ol{margin:.35rem 0 .5rem 1.1rem;padding:0;}
+.ch-restart li{margin:.2rem 0;}
+.ch-restart b{color:#fff;}
+.ch-restart .opt{border-top:1px solid rgba(255,255,255,.08);margin-top:.6rem;padding-top:.6rem;}
+.ch-restart button{margin-top:.5rem;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:.5rem .9rem;font-weight:700;cursor:pointer;font:inherit;font-weight:700;}
+.ch-restart .warn{color:#fbbf24;}
+.ch-reqs-rule{font-size:.82rem;line-height:1.5;color:#fbbf24;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:.55rem .75rem;margin-bottom:.7rem;}
 .ch-reqs{display:flex;flex-direction:column;gap:.35rem;}
 .ch-req{display:flex;align-items:center;gap:.55rem;font-size:.8rem;}
 .ch-req-ic{width:15px;height:15px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;}
@@ -1021,6 +1037,7 @@ body.light .of-note{color:rgba(12,12,22,.13);}
 body.light .tb-tool-btn{background:rgba(0,0,0,.03);border-color:var(--line);}
 body.light .tb-tool-btn:hover{background:rgba(0,0,0,.07);border-color:#aab;color:var(--fg);}
 .tb-tool-btn svg{width:14px;height:14px;}
+.tb-tool-btn.tb-feedback{width:auto;padding:0 10px;gap:6px;text-decoration:none;font-size:.75rem;white-space:nowrap;}
 #fullscreenBtn.active{color:var(--cobalt);border-color:rgba(37,99,235,.4);background:var(--cobalt-d);}
 /* Graceful fallback for browsers/contexts where the real Fullscreen API
    is unavailable or denied (e.g. an embedding iframe without the
@@ -1648,6 +1665,7 @@ body.light .sym-row:hover,body.light .sym-row.hl{background:rgba(0,0,0,.05)}
 body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
+<script src="/assets/js/challenge-warnings.js?v=20261012-checklist"></script>
 </head>
 <body>
 
@@ -1666,6 +1684,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
   </div>
   <!-- No real "Server" field exists — this is a simulated environment, not broker infrastructure. -->
   <div class="tb-right">
+    <a class="tb-tool-btn tb-feedback" href="/feedback.html?from=trading" target="_blank" rel="noopener noreferrer" title="Report an issue or send feedback (opens in a new tab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M7 7h10M7 11h7"/></svg>Send feedback</a>
     <div class="tb-tool-grp">
       <button id="themeBtn" class="tb-tool-btn" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle light or dark mode">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1764,6 +1783,11 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
       <span class="brw-txt" id="brwTxt"></span>
       <button class="brw-act" onclick="flattenAll()">Close all</button>
     </div>
+    <section class="rule-reminders" id="ruleReminders" hidden aria-label="Challenge rule warnings">
+      <strong>Protect your Infinity Challenge</strong>
+      <ul id="ruleReminderList" aria-live="polite" aria-atomic="true"></ul>
+      <button type="button" onclick="openRuleReminders()">Review my rules and progress</button>
+    </section>
     <div class="chart-toolbar" id="chartToolbar">
       <button class="tf-btn" onclick="setTf('1S',this)" title="1 Second — each candle = 1 second. Built from IPFX's own live prices (last 45 minutes).">1s</button>
       <button class="tf-btn" onclick="setTf('15S',this)" title="15 Seconds — built from IPFX's own live prices (last 6 hours).">15s</button>
@@ -1918,7 +1942,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         </div>
         <div class="op-limit-card" id="opLimitCard"><div><span class="op-limit-kicker">Account order limit</span><strong id="opLimitSummary">Sign in to view limits</strong></div><span class="op-limit-state" id="opLimitState">—</span></div>
         <div class="op-risk" id="opRisk" style="display:none"><span class="op-risk-lbl">Estimated stop risk</span><span class="op-risk-val" id="opRiskVal">—</span><div class="op-risk-note" id="opRiskNote"></div><button type="button" class="op-risk-size" id="opRiskSize" hidden onclick="sizeToRiskCap()">Size to risk cap</button></div>
-        <div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
+        <details id="stageChecklist" class="stage-checklist" hidden><summary id="stageChecklistSummary">Stage pass checklist</summary><p id="stageChecklistStatus"></p><div id="stageChecklistRows"></div><button type="button" onclick="showStageRuleReview(true)">Review and acknowledge every stage rule</button></details><div id="dailyCapNotice" role="status" hidden style="margin:10px 0;padding:12px;border:1px solid #d97706;border-radius:8px;background:rgba(217,119,6,.12);color:#fbbf24;font-size:.85rem;line-height:1.5"></div><div class="op-trade-row" aria-label="Place order"><button class="op-exec-btn op-exec-sell" onclick="placeOrder('sell')" aria-label="Place sell order"><span class="op-exec-px" id="ord-bid-price">—</span><span class="op-exec-lbl">Sell</span></button><div class="op-lot-stack"><div class="op-lot-caption">Order size</div><div class="op-lot-ctrl"><button class="op-lot-minus" onclick="adjLots(-1)" aria-label="Reduce lot size">−</button><div class="op-lot-mid"><input class="op-lot-num" id="ord-lots" type="text" inputmode="decimal" value="0.01" onfocus="this.select()" oninput="lotsInputTyping(this)" onchange="lotsInputCommit(this)" onkeydown="if(event.key==='Enter')this.blur()"><div class="op-lot-sub">LOTS</div></div><button class="op-lot-plus" onclick="adjLots(1)" aria-label="Increase lot size">+</button></div></div><button class="op-exec-btn op-exec-buy" onclick="placeOrder('buy')" aria-label="Place buy order"><span class="op-exec-px" id="ord-ask-price">—</span><span class="op-exec-lbl">Buy</span></button></div>
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
         <button type="button" class="hk-chip" id="hkChip" onclick="toggleHotkeys()" title="Keyboard trading shortcuts"></button>
         <div class="op-presets" aria-label="Quick lot sizes"><button type="button" class="op-preset active" onclick="setLots(0.01,this)">0.01</button><button type="button" class="op-preset" onclick="setLots(0.1,this)">0.10</button><button type="button" class="op-preset" onclick="setLots(0.5,this)">0.50</button><button type="button" class="op-preset" onclick="setLots(1,this)">1.00</button><button type="button" class="op-preset" onclick="setLots(2,this)">2.00</button></div>
@@ -2408,7 +2432,9 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         </div>
 
         <div class="ch-bars" id="ch-bars"></div>
+        <div class="ch-restart" id="ch-restart" hidden></div>
         <div class="ch-reqs-hd">Requirements</div>
+        <div class="ch-reqs-rule" id="ch-reqs-rule">Every box below must be ticked at the same time before you move up to the next stage. Reaching the profit target alone does not move you up.</div>
         <div class="ch-reqs" id="ch-reqs"></div>
         <div class="ch-note" id="ch-note"></div>
       </div>
@@ -2807,6 +2833,9 @@ function updateRiskPreview(){
     box.className='op-risk over';
     document.getElementById('opRiskNote').textContent=
       `Over the ${L.max_risk_per_trade_pct}% cap of ${money(cap)} — reduce size or tighten the stop, or the engine will reject it.`;
+  } else if(cap!=null&&risk>=Number(cap)*.8){
+    box.className='op-risk near';
+    document.getElementById('opRiskNote').textContent=`Close to your ${money(cap)} per-trade limit. Leave room for costs and slippage; reduce size or tighten the stop. This limit reduces as loss room is used.`;
   } else {
     box.className='op-risk';
     const pctEq=a.equity?((risk/(+a.equity))*100).toFixed(2):null;
@@ -2835,7 +2864,7 @@ function renderBreachWarning(a,L,eq,start){
   }
   rail.querySelector('.brw-act').style.display='';
 
-  const ddRoom=eq-(+L.max_dd_floor), ddTotal=Math.max(start-(+L.max_dd_floor),1);
+  const ddRoom=eq-(+L.max_dd_floor), ddTotal=Number(L.drawdown_allowance_usd)||Math.max(start-(+L.max_dd_floor),1);
   const dayRoom=eq-(+L.daily_floor), dayTotal=Math.max((+a.day_start_equity)-(+L.daily_floor),1);
   const ddFrac=ddRoom/ddTotal, dayFrac=dayRoom/dayTotal;
 
@@ -2859,7 +2888,170 @@ function renderBreachWarning(a,L,eq,start){
 // Everything here comes from the engine's own state payload, so what the
 // trader sees is exactly what enforce() will act on — including which
 // drawdown mode is live, which most platforms never show.
+const stageRulesRead=new Set();
+let stageRuleReview=null,stageChecklistSignature='';
+function currentStageChecklist(){return window.IPFXRuleWarnings?window.IPFXRuleWarnings.checklist(engineState):null;}
+function stageRulesAcknowledged(c){
+  if(!c||!c.available)return false;
+  if(stageRulesRead.has(c.key))return true;
+  try{return localStorage.getItem(c.key)==='read';}catch(_){return false;}
+}
+function stageRulesBlockEntry(){
+  const a=engineState&&engineState.account,c=currentStageChecklist();
+  if(!a||a.is_demo||a.challenge_type!=='infinity'||Number(a.stage)>3||a.status!=='active')return false;
+  if(stageRulesAcknowledged(c))return false;
+  showStageRuleReview();return true;
+}
+function showStageRuleReview(force){
+  const c=currentStageChecklist(),dialog=document.getElementById('stageRulesDialog');
+  if(!dialog||!c||!c.available)return;
+  if(!force&&stageRulesAcknowledged(c))return;
+  if(document.getElementById('ruleCriticalDialog').open)return;
+  if(stageRuleReview&&stageRuleReview.key===c.key&&dialog.open)return;
+  stageRuleReview=c;
+  document.getElementById('stageRulesTitle').textContent='Before trading Stage '+c.stage+': check every rule';
+  const list=document.getElementById('stageRulesReadList');list.replaceChildren();
+  c.read.forEach(text=>{
+    const label=document.createElement('label'),box=document.createElement('input'),span=document.createElement('span');
+    box.type='checkbox';box.required=true;box.addEventListener('change',updateStageRulesContinue);
+    span.textContent=text;label.append(box,span);list.appendChild(label);
+  });
+  updateStageRulesContinue();
+  if(!dialog.open){dialog.showModal();document.getElementById('stageRulesTitle').focus();}
+}
+function updateStageRulesContinue(){
+  const checks=[...document.querySelectorAll('#stageRulesReadList input')];
+  document.getElementById('stageRulesContinue').disabled=!checks.length||!checks.every(box=>box.checked);
+}
+function confirmStageRules(){
+  const c=currentStageChecklist(),checks=[...document.querySelectorAll('#stageRulesReadList input')];
+  if(!c||!c.available||!stageRuleReview||c.key!==stageRuleReview.key||!checks.length||!checks.every(box=>box.checked))return;
+  stageRulesRead.add(c.key);try{localStorage.setItem(c.key,'read');}catch(_){}
+  document.getElementById('stageRulesDialog').close();renderDailyCapNotice();renderStageChecklist();
+}
+function managePositionsFromRules(){
+  document.getElementById('stageRulesDialog').close();
+  const tab=document.querySelector('.btab[onclick*="positions"]');if(tab)switchBtab('positions',tab);
+  document.getElementById('ord-pos-list').scrollIntoView({block:'nearest'});
+}
+function renderStageChecklist(){
+  const c=currentStageChecklist(),a=engineState&&engineState.account,panel=document.getElementById('stageChecklist');
+  if(!panel)return;panel.hidden=!c;
+  if(!c)return;
+  const met=c.rows.filter(r=>r.done).length;
+  document.getElementById('stageChecklistSummary').textContent=`Stage ${c.stage} pass checklist — ${met}/${c.rows.length} verified`;
+  document.getElementById('stageChecklistStatus').textContent=(stageRulesAcknowledged(c)?'Rules acknowledged. ':'Read and tick every rule before placing new trades. ')+(c.ready?'All progression checks are met; the server handles promotion.':'Every requirement below must be verified. Manual acknowledgements cannot complete a requirement.');
+  const signature=JSON.stringify(c.rows);
+  if(signature!==stageChecklistSignature){
+    const list=document.getElementById('stageChecklistRows');list.replaceChildren();
+    c.rows.forEach(r=>{
+      const label=document.createElement('label'),box=document.createElement('input'),span=document.createElement('span');
+      box.type='checkbox';box.disabled=true;box.checked=r.done;
+      span.textContent=r.text;label.className=r.done?'':'pending';label.append(box,span);list.appendChild(label);
+    });stageChecklistSignature=signature;
+  }
+  // First visit to a new stage opens the rule review once. Closing to manage
+  // existing positions keeps new entries gated without reopening every poll.
+  if(a&&a.status==='active'&&c.available&&!stageRulesAcknowledged(c)&&(!stageRuleReview||stageRuleReview.key!==c.key))showStageRuleReview();
+}
+function showCriticalRuleWarning(warnings){
+  const dialog=document.getElementById('ruleCriticalDialog');
+  if(dialog.open||document.getElementById('stageRulesDialog').open)return false;
+  const list=document.getElementById('ruleCriticalList');list.replaceChildren();
+  warnings.filter(w=>w.level==='critical').forEach(w=>{const li=document.createElement('li');li.textContent=w.message;list.appendChild(li);});
+  dialog.showModal();document.getElementById('ruleCriticalTitle').focus();return true;
+}
+function acknowledgeCriticalRules(){document.getElementById('ruleCriticalDialog').close();openRuleReminders();}
+function dailyCapMessage(){
+  const a=engineState&&engineState.account;
+  return a&&a.limits&&a.limits.daily_profit_cap_reached?a.limits.daily_profit_cap_message:null;
+}
+function renderDailyCapNotice(){
+  const message=dailyCapMessage(), notice=document.getElementById('dailyCapNotice');
+  if(notice){notice.hidden=!message;notice.textContent=message||'';}
+  document.querySelectorAll('.op-exec-btn,#qtBuy,#qtSell').forEach(button=>{
+    const c=currentStageChecklist(),a=engineState&&engineState.account;
+    const needsRead=!!(c&&a.status==='active'&&!stageRulesAcknowledged(c));
+    button.disabled=!!message||needsRead;button.title=message||(needsRead?'Read and acknowledge every stage rule before entering a trade.':'');
+  });
+}
+let ruleWarningSeen={};
+try{ruleWarningSeen=JSON.parse(sessionStorage.getItem('ipfx-rule-warning-seen')||'{}')||{};}catch(_){}
+let ruleWarningSignature='';
+function openRuleReminders(){
+  const tab=document.querySelector('.btab[onclick*="challenge"]');
+  if(tab)switchBtab('challenge',tab);
+  const panel=document.getElementById('bp-challenge');if(panel)panel.scrollIntoView({block:'nearest'});
+}
+function renderRuleReminders(){
+  const panel=document.getElementById('ruleReminders'),list=document.getElementById('ruleReminderList');
+  if(!panel||!list||!window.IPFXRuleWarnings)return;
+  const now=Date.now(),server=Date.parse(engineState&&engineState.server_time);
+  const markedNow=Number.isFinite(server)?server+Math.max(0,now-lastStateAt):now;
+  const warnings=window.IPFXRuleWarnings.build(engineState,markedNow);
+  panel.hidden=!warnings.length;
+  panel.classList.toggle('urgent',warnings.some(w=>w.level==='critical'));
+  const signature=JSON.stringify(warnings);
+  if(signature!==ruleWarningSignature){
+    list.replaceChildren();
+    warnings.forEach(w=>{const li=document.createElement('li');li.className=w.level;li.textContent=w.message;list.appendChild(li);});
+    ruleWarningSignature=signature;
+  }
+  const a=engineState&&engineState.account;
+  const urgent=document.getElementById('stageRuleUrgent');
+  if(urgent){
+    const critical=warnings.filter(w=>w.level==='critical'),key=JSON.stringify(critical);
+    urgent.hidden=!critical.length;
+    if(urgent.dataset.signature!==key){urgent.replaceChildren();critical.forEach(w=>{const li=document.createElement('li');li.textContent=w.message;urgent.appendChild(li);});urgent.dataset.signature=key;}
+  }
+  if(document.getElementById('stageRulesDialog').open||document.getElementById('ruleCriticalDialog').open)return;
+  const notice=window.IPFXRuleWarnings.announcement(warnings,a&&a.id,now,ruleWarningSeen);
+  if(notice){
+    if(notice.level==='critical'&&showCriticalRuleWarning(warnings)){
+      warnings.filter(w=>w.level==='critical').forEach(w=>{ruleWarningSeen[a.id+':'+w.code+':critical']=now;});
+    }
+    engineMsg(notice.message,false,notice.level==='critical'?'critical':'warning');
+    try{sessionStorage.setItem('ipfx-rule-warning-seen',JSON.stringify(ruleWarningSeen));}catch(_){}
+  }
+}
+setInterval(()=>{if(engineState&&document.visibilityState==='visible')renderRuleReminders();},1000);
+// Earlier-rules Stage 1 runs that had a day above the daily cap: show this trader's own best-day numbers in plain
+// words, and the one-time free restart onto the new rules. Shown in the panel every time, and once as a pop-up.
+function renderFreshRestart(o, a, money){
+  const el=document.getElementById('ch-restart');
+  if(!el)return;
+  if(!o||o.eligible!==true){el.hidden=true;el.innerHTML='';return;}
+  const pct=Math.round(Number(o.best_day_max_share||0.35)*100);
+  const more=Number(o.remaining_usd||0), days=o.min_more_profitable_days;
+  el.hidden=false;
+  el.innerHTML=`<h4>Important: your best day was ${money(o.best_day_usd)}, above the ${money(o.cap_usd)} daily cap</h4>
+    <div>No single day can be more than <b>${pct}%</b> of all the profit you make on your winning days. Because your best day was ${money(o.best_day_usd)}, your winning days must add up to at least <b>${money(o.need_positive_total_usd)}</b>.</div>
+    <div style="margin-top:.35rem">So far they add up to <b>${money(o.have_positive_total_usd)}</b>. You need <b>${money(more)} more</b> from winning days${days?`, which is at least <b>${days} more winning days</b> at ${money(o.cap_usd)} a day`:''}. There are ${o.days_left_in_month} days left this month.</div>
+    <div class="opt"><b>Your two choices</b><ol>
+      <li><b>Keep going on this run.</b> You pass Stage 1 only when every box below is ticked at the same time, including: winning days adding up to ${money(o.need_positive_total_usd)}, a balance of at least <b>${money(o.target_balance_usd)}</b> with <b>no trade open</b>, 10 trading days and 14 days since you started.</li>
+      <li><b>Restart Stage 1 for free, once.</b> Your current progress is archived and you start again at $1,000 under the new rules: at most ${money(o.cap_usd)} a day counts toward the target and open trades close when you reach ${money(o.cap_usd)} in a day.</li>
+    </ol>
+    <div class="warn"><b>This is your only free restart.</b> If you restart and the new run fails, you will have to wait until the 1st of next month to start again.</div>
+    ${Number(o.open_positions||0)>0?'<div class="warn" style="margin-top:.35rem">Close your open trades first to use the restart.</div>':''}
+    <button type="button" onclick="takeFreshRestart('${a.id}')">Restart Stage 1 for free (one time only)</button></div>`;
+  try{
+    const key='ipfx-restart-offer-seen-'+a.id;
+    if(!localStorage.getItem(key)){
+      localStorage.setItem(key,'1');
+      alert('Important about your Stage 1 run\n\nYour best day was '+money(o.best_day_usd)+', above the '+money(o.cap_usd)+' daily cap. To pass on this run, your winning days must add up to at least '+money(o.need_positive_total_usd)+' (you have '+money(o.have_positive_total_usd)+', so '+money(more)+' more), and every requirement must be ticked at the same time, including a balance of '+money(o.target_balance_usd)+' with no trade open.\n\nYou can instead restart Stage 1 for free, ONE TIME ONLY, under the new rules. If that new run fails, you must wait until the 1st of next month.\n\nSee the Challenge progress panel for your choices.');
+    }
+  }catch(_){}
+}
+async function takeFreshRestart(accountId){
+  const ok=confirm('Restart Stage 1 for free?\n\nYour current run is archived and you start again at $1,000 under the new rules (at most the daily cap counts toward the target each day, and open trades close when you reach the cap).\n\nThis is your ONLY free restart. If the new run fails, you must wait until the 1st of next month to start again.\n\nPress OK to restart now.');
+  if(!ok)return;
+  const j=await engineCall({action:'infinity_fresh_restart',account_id:accountId,confirm:true});
+  if(j&&j.ok){engineMsg('Your fresh Stage 1 account is ready. Good luck.');try{await engineCall({action:'state'});}catch(_){}}
+}
 function renderChallenge(){
+  renderStageChecklist();
+  renderDailyCapNotice();
+  renderRuleReminders();
   const a=engineState&&engineState.account;
   const wrapT=document.getElementById('ch-title');
   if(!wrapT)return;
@@ -2874,6 +3066,7 @@ function renderChallenge(){
   const L=a.limits||{}, P=a.progress||{};
   const eq=+a.equity, start=+a.starting_balance;
   const money=v=>'$'+Math.abs(+v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  renderFreshRestart(engineState.fresh_restart, a, money);
   const typeLbl={infinity:'Infinity',traditional:'Traditional',futures:'Futures',pac:'Application',funded:'Funded'};
 
   if(a.is_demo){
@@ -2931,11 +3124,13 @@ function renderChallenge(){
     sub:'Resets 00:00 UTC · floor '+money(L.daily_floor)});
 
   if(L.daily_profit_cap_usd!=null){
-    const gain=eq-(+a.day_start_equity);
+    const gain=L.daily_profit_gain_usd==null?eq-(+a.day_start_equity):Number(L.daily_profit_gain_usd);
     const pct=Math.max(0,Math.min(100,(gain/L.daily_profit_cap_usd)*100));
     bars.push({lbl:'Daily profit cap',val:money(Math.max(0,L.daily_profit_cap_usd-gain))+' of headroom',
       pct,color:pct>=100?'#f59e0b':'#8b5cf6',
-      sub:pct>=100?'Cap hit — new orders reopen 00:00 UTC':'Cap '+money(L.daily_profit_cap_usd)+' per day'});
+      sub:L.daily_profit_cap_closes
+        ?(L.daily_profit_cap_reached?'Cap reached: open trades were closed and new trades are paused until 00:00 UTC.':'At '+money(L.daily_profit_cap_usd)+' daily gain, open trades close and new trades pause until 00:00 UTC')
+        :(L.daily_profit_cap_reached?'New entries paused until 00:00 UTC; existing positions can close above the cap.':'New entries pause at '+money(L.daily_profit_cap_usd)+' daily gain')});
   }
   document.getElementById('ch-bars').innerHTML=bars.map(b=>`
     <div class="ch-bar">
@@ -2948,6 +3143,12 @@ function renderChallenge(){
   const reqs=[];
   if(L.target_balance) reqs.push({done:+a.balance>=L.target_balance,
     txt:`Reach <b>${money(L.target_balance)}</b> balance (${((L.target_balance/start-1)*100).toFixed(1)}% target; currently ${money(a.balance)})`});
+  const C=P.counted_profit;
+  if(C&&C.applies){
+    const perDay=Number(C.cap_usd||0), tgt=Number(C.target_usd||0), got=Number(C.counted_usd||0);
+    reqs.push({done:C.met===true,
+      txt:`<b>${money(Math.max(0,got))} of ${money(tgt)}</b> counted profit<span class="ch-sub">At most ${money(perDay)} of each day's profit counts toward the target, so you need at least ${perDay>0?Math.ceil(tgt/perDay):'—'} profitable days. Losses count in full.</span>`});
+  }
   if(P.min_trading_days>0) reqs.push({done:P.trading_days>=P.min_trading_days,
     txt:`<b>${P.trading_days}/${P.min_trading_days}</b> trading days`});
   if(P.min_trades>0) reqs.push({done:P.trades_closed>=P.min_trades,
@@ -2993,6 +3194,7 @@ function renderChallenge(){
 
   const notes=[];
   if(L.max_risk_per_trade_usd!=null) notes.push(`Max risk per trade: ${money(L.max_risk_per_trade_usd)} (${L.max_risk_per_trade_pct}% of starting balance), measured from your stop.`);
+  if(a.challenge_type==='infinity'&&Number(a.stage)===1)notes.push('Stage 1 requires at least 10 qualifying trading days and 14 elapsed calendar days. Reaching $40 alone does not pass the stage.');
   if(a.challenge_type==='infinity'&&a.stage===2)notes.push('Stage 2 earnings are visible but held until full Stage 3 completion. Minimum withdrawal: $500.');
   if(a.challenge_type==='infinity'&&a.stage===3)notes.push('Stage 3 payout requests unlock only after full completion and the $500 minimum; Stage 4 allocation requires separate review.');
   if(a.challenge_type==='infinity'&&a.stage===4)notes.push('Stage 4 allocation is reviewed between $25K and $500K based on performance; no live capital is automatic.');
@@ -4483,10 +4685,10 @@ function engineToken(){
     return sess&&sess.access_token?sess.access_token:null;
   }catch(_){return null;}
 }
-function engineMsg(txt,ok){
+function engineMsg(txt,ok,kind){
   let el=document.getElementById('engToast');
   if(!el){el=document.createElement('div');el.id='engToast';el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:.6rem 1.1rem;border-radius:8px;font-size:.78rem;font-weight:600;box-shadow:0 4px 24px rgba(0,0,0,.35);transition:opacity .3s;max-width:90vw;opacity:0';document.body.appendChild(el);}
-  el.style.background=ok?'#10b981':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
+  el.style.background=ok?'#10b981':kind==='warning'?'#b45309':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3500);
 }
 // Announces positions the ENGINE closed between polls (stop-loss hit,
@@ -4950,6 +5152,10 @@ function updateTriggerHint(){
 
 async function placeOrder(side){
   if(blockInfinityTradeAttempt())return;
+  if(stageRulesBlockEntry())return;
+  if(document.getElementById('ruleCriticalDialog').open){engineMsg('Review the urgent rule warning before entering another trade.');return;}
+  const capMessage=dailyCapMessage();
+  if(capMessage){engineMsg(capMessage);return;}
   if(engineBusy)return;
   if(typeof feedFresh==='function'&&!feedFresh()){engineMsg('Market data is stale — orders are paused until the feed recovers.');return;}
 
@@ -7036,5 +7242,20 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
+
+<dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
+  <h2 id="stageRulesTitle" tabindex="-1">Before trading: check every rule</h2>
+  <p>Tick each item to confirm you understand it. These are reading acknowledgements — your pass checklist is verified separately from your actual trading.</p>
+  <ul id="stageRuleUrgent" class="stage-rule-urgent" role="alert" hidden></ul>
+  <div id="stageRulesReadList"></div>
+  <div class="rule-dlg-actions"><button id="stageRulesContinue" type="button" onclick="confirmStageRules()" disabled>I have checked every rule — continue</button><button type="button" class="secondary" onclick="managePositionsFromRules()">Manage existing positions</button></div>
+</dialog>
+<dialog id="ruleCriticalDialog" class="rule-dlg critical" aria-labelledby="ruleCriticalTitle">
+  <h2 id="ruleCriticalTitle" tabindex="-1">⚠ Your challenge is at risk</h2>
+  <p>Act now. These warnings do not pause market movement or replace your loss limits.</p>
+  <ul id="ruleCriticalList"></ul>
+  <div class="rule-dlg-actions"><button type="button" onclick="acknowledgeCriticalRules()">I understand — review my rules</button><button type="button" class="secondary" onclick="document.getElementById('ruleCriticalDialog').close();document.getElementById('ord-pos-list').scrollIntoView({block:'nearest'})">Manage positions now</button></div>
+</dialog>
+<script>document.getElementById('stageRulesDialog').addEventListener('cancel',ev=>{ev.preventDefault();managePositionsFromRules();});</script>
 </body>
 </html>
