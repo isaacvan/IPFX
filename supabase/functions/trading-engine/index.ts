@@ -986,6 +986,7 @@ async function usdPerQuote(quote: string): Promise<number | null> {
   if (quote === "GBP") { return await mid("GBPUSD"); }
   if (quote === "CAD") { const r = await mid("USDCAD"); return r ? 1 / r : null; }
   if (quote === "CHF") { const r = await mid("USDCHF"); return r ? 1 / r : null; }
+  if (quote === "EUR") { return await mid("EURUSD"); } // GER40, FRA40 are EUR-quoted
   return null;
 }
 
