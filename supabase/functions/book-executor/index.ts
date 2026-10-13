@@ -81,7 +81,7 @@ async function ledgerPoints(db: Db, person: string): Promise<LedgerPoint[]> {
   return (data ?? []).map((r: Record<string, unknown>) => ({ closedAt: Date.parse(String(r.closed_at)), sameR: Number(r.same_r), reverseR: Number(r.reverse_r), holdSeconds: Number(r.hold_seconds) }));
 }
 
-type Leg = { book: string; sizeUsd: number };
+type Leg = { book: string; sizeUsd: number; testMap?: Array<Record<string, unknown>> };
 
 async function open(db: Db, b: Record<string, unknown>) {
   const tradeId = String(b.source_trade_id), book = String(b.book) as "a" | "b";
@@ -93,46 +93,61 @@ async function open(db: Db, b: Record<string, unknown>) {
   if(test?.handled&&!test.ok)return {ok:true,skipped:test.reason};
   const trial=test?.handled===true&&test.ok===true?test:null;
   if(trial&&book!=='a'){await db.rpc('copy_test_note',{p_trade:tradeId,p_refused:true,p_reason:'Test requires same-direction A-book'});return {ok:true,skipped:'test requires A-book'};}
-  const { data: route } = await db.rpc("ab_route_for_user", { p_user: t.user_id });
-  if (!trial&&route !== book) return { ok: true, skipped: "route changed" };
   const traderRisk = Number(b.risk_usd), scale = Number(b.price_scale_per_lot);
   if (!(traderRisk > 0) || t.sl == null) return { ok: true, skipped: "no stop loss: risk not measurable" };
-  const [{ data: prof }, { data: lim }, { data: settings }, { data: pol }, { data: progress }, { data: treasury }, { data: ls }] = await Promise.all([
-    db.from("ab_trader_profiles").select("state_since").eq("person_id", person).maybeSingle(),
-    db.from("ab_risk_limits").select("*").eq("book", book).maybeSingle(),
-    db.from("ab_settings").select("a_scale,b_scale").maybeSingle(),
-    db.from("ab_policy_versions").select("thresholds").eq("status", "ACTIVE").maybeSingle(),
-    db.rpc("ab_person_progress", { p_person: person }),
-    db.rpc("treasury_status"),
-    db.from("ladder_settings").select("signal_groups").maybeSingle(),
-  ]);
-  // Cash for payouts short: no new B-book (reverse) risk at all until it recovers.
-  if (book === "b" && treasury === "short") return { ok: true, skipped: "treasury short: B-book paused" };
-  const policy: Policy = { ...POLICY_V1, ...(pol?.thresholds ?? {}) };
-  const sizing = sizeMultiplier(book, await ledgerPoints(db, person), Date.parse(prof?.state_since ?? new Date().toISOString()), Number(lim?.max_multiplier ?? 1), policy);
-
-  // Destinations for this signal: the book's review account, plus (A-book only) every enabled ladder account
-  // in this trader's signal group.
+  // A scoped test already has atomic admission and a fixed lot/risk ceiling. Historical
+  // sizing, group discovery and population counts cannot affect it, so keep them off its path.
+  let lim: Record<string, unknown> | null = null;
+  let settings: Record<string, unknown> | null = null;
+  let ls: Record<string, unknown> | null = null;
+  let progress: string | null = null, treasury: string | null = null;
+  let sizing: ReturnType<typeof sizeMultiplier> = { multiplier: 1, reason: "owner-scoped fixed lot test" };
   const legs: Leg[] = [];
-  const { data: reviewDest } = await db.from("team_book_destinations").select("book").eq("book", book).eq("status", "connected").maybeSingle();
-  if (reviewDest&&!trial) legs.push({ book, sizeUsd: Number(lim?.account_size_usd ?? 50000) });
-  if (book === "a") {
-    const groups = Number(ls?.signal_groups ?? 1);
-    const { data: ladders } = await db.from("ladder_accounts").select("id,size_usd,signal_group,copy_test_only").eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"]);
-    for (const la of ladders ?? []) if(trial?Number(la.id)===Number(trial.destination_id)&&la.copy_test_only===true:la.copy_test_only!==true&&Number(la.signal_group)%groups===signalGroup(String(person),groups))legs.push({book:'l'+la.id,sizeUsd:Number(la.size_usd)});
+  if (trial) {
+    const { data: la, error } = await db.from("ladder_accounts").select("id,size_usd,instrument_map")
+      .eq("id", trial.destination_id).eq("role", "ladder").eq("copy_test_only", true)
+      .eq("execution_enabled", true).eq("status", "funded").maybeSingle();
+    if (!error && la) legs.push({ book: "l" + la.id, sizeUsd: Number(la.size_usd), testMap: la.instrument_map ?? [] });
+  } else {
+    const { data: route } = await db.rpc("ab_route_for_user", { p_user: t.user_id });
+    if (route !== book) return { ok: true, skipped: "route changed" };
+    let prof, pol;
+    [{ data: prof }, { data: lim }, { data: settings }, { data: pol }, { data: progress }, { data: treasury }, { data: ls }] = await Promise.all([
+      db.from("ab_trader_profiles").select("state_since").eq("person_id", person).maybeSingle(),
+      db.from("ab_risk_limits").select("*").eq("book", book).maybeSingle(),
+      db.from("ab_settings").select("a_scale,b_scale").maybeSingle(),
+      db.from("ab_policy_versions").select("thresholds").eq("status", "ACTIVE").maybeSingle(),
+      db.rpc("ab_person_progress", { p_person: person }),
+      db.rpc("treasury_status"),
+      db.from("ladder_settings").select("signal_groups").maybeSingle(),
+    ]);
+    // Cash for payouts short: no new B-book (reverse) risk at all until it recovers.
+    if (book === "b" && treasury === "short") return { ok: true, skipped: "treasury short: B-book paused" };
+    const policy: Policy = { ...POLICY_V1, ...(pol?.thresholds ?? {}) };
+    sizing = sizeMultiplier(book, await ledgerPoints(db, person), Date.parse(prof?.state_since ?? new Date().toISOString()), Number(lim?.max_multiplier ?? 1), policy);
+
+    // Destinations for this signal: the book's review account, plus (A-book only) every enabled ladder account
+    // in this trader's signal group.
+    const { data: reviewDest } = await db.from("team_book_destinations").select("book").eq("book", book).eq("status", "connected").maybeSingle();
+    if (reviewDest) legs.push({ book, sizeUsd: Number(lim?.account_size_usd ?? 50000) });
+    if (book === "a") {
+      const groups = Number(ls?.signal_groups ?? 1);
+      const { data: ladders } = await db.from("ladder_accounts").select("id,size_usd,signal_group,copy_test_only").eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"]);
+      for (const la of ladders ?? []) if(la.copy_test_only!==true&&Number(la.signal_group)%groups===signalGroup(String(person),groups))legs.push({book:'l'+la.id,sizeUsd:Number(la.size_usd)});
+    }
   }
   if (!legs.length) {if(trial)await db.rpc('copy_test_note',{p_trade:tradeId,p_refused:true,p_reason:'No connected test destination'});return { ok: true, skipped: "no connected destination" };}
 
   const side = legSide(book, t.side);
   const scaleSetting = Number(book === "a" ? settings?.a_scale ?? 1 : settings?.b_scale ?? 1);
   const since = new Date(Date.now() - 5 * 86_400_000).toISOString();
-  const { count: liveTraders } = await db.from("ab_trader_profiles").select("person_id", { count: "exact", head: true }).eq("book_state", book === "a" ? "AB_LIVE" : "BB_LIVE");
+  const liveTraders = trial ? null : (await db.from("ab_trader_profiles").select("person_id", { count: "exact", head: true }).eq("book_state", book === "a" ? "AB_LIVE" : "BB_LIVE")).count;
   // Legs go out in parallel (each account has its own reservation row and broker token), so 30 ladder
   // accounts take about as long as one and the engine's hedge-first wait is not exceeded.
   const placeLeg = async (leg: Leg): Promise<Record<string, unknown>> => {
     let wanted = traderRisk * sizing.multiplier, reason = sizing.reason, weight = sizing.multiplier;
     let legPriceScale=scale;
-    if (!trial&&Number(lim?.account_size_usd) > 0) {
+    if (!trial&&lim&&Number(lim.account_size_usd) > 0) {
       const { count: routed } = await db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", leg.book).eq("event", "open").gte("created_at", since);
       const groupsShare = leg.book.startsWith("l") ? Math.max(1, Number(ls?.signal_groups ?? 1)) : 1;
       const expected = Math.max(Number(routed ?? 0) / 5, Number(liveTraders ?? 0) * 2 / groupsShare);
@@ -143,10 +158,9 @@ async function open(db: Db, b: Record<string, unknown>) {
     }
     wanted *= scaleSetting;
     if(trial){
-      const {data:meta,error:metaError}=await db.from('ladder_accounts').select('instrument_map').eq('id',trial.destination_id).maybeSingle();
-      const gold=meta?.instrument_map?.filter((x:Record<string,unknown>)=>String(x.symbol).replace(/[^A-Z0-9]/g,'').startsWith('XAUUSD'))??[];
-      const spec=gold.length===1?gold[0]:null,contract=Number(spec?.lot_size),observed=Date.parse(spec?.spec_observed_at??'');
-      if(metaError||!spec||spec.quote_currency!=='USD'||!Number.isFinite(contract)||contract<=0||!Number.isFinite(observed)||observed>Date.now()||Date.now()-observed>6*3600000)return {book:leg.book,skipped:'test gold contract unavailable or stale'};
+      const gold=leg.testMap?.filter((x:Record<string,unknown>)=>String(x.symbol).replace(/[^A-Z0-9]/g,'').startsWith('XAUUSD'))??[];
+      const spec=gold.length===1?gold[0]:null,contract=Number(spec?.lot_size),observed=Date.parse(String(spec?.spec_observed_at??''));
+      if(!spec||spec.quote_currency!=='USD'||!Number.isFinite(contract)||contract<=0||!Number.isFinite(observed)||observed>Date.now()||Date.now()-observed>6*3600000)return {book:leg.book,skipped:'test gold contract unavailable or stale'};
       const protective=emergencyStop('a',t.side,Number(t.open_price),Number(t.sl));
       wanted=protective==null?NaN:Math.abs(Number(t.open_price)-protective)*Number(trial.broker_lots)*contract;
       legPriceScale=contract;

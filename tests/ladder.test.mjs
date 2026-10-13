@@ -34,7 +34,7 @@ test('ladder accounts: owner-enabled only, per-account limits, split signal grou
   assert.match(sql, /create trigger trading_accounts_graduate_sponsorship/);
   const x = read('supabase/functions/book-executor/index.ts');
   assert.match(x, /la.copy_test_only!==true&&Number\(la.signal_group\)%groups===signalGroup\(String\(person\),groups\)/);
-  assert.match(x, /Number\(la.id\)===Number\(trial.destination_id\)&&la.copy_test_only===true/);
+  assert.match(x, /eq\("id", trial.destination_id\)\.eq\("role", "ladder"\)\.eq\("copy_test_only", true\)/);
   assert.match(x, /const worst = fills\.length \? \(side === "buy" \? Math\.max\(\.\.\.fills\) : Math\.min\(\.\.\.fills\)\) : null;/);
   assert.match(x, /const fillA = aFills\.length \? \(traderLong \? Math\.min\(\.\.\.aFills\) : Math\.max\(\.\.\.aFills\)\) : null;/);
   const e = read('supabase/functions/trading-engine/index.ts');
