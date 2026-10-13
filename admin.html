@@ -177,6 +177,7 @@ tbody td:first-child:hover{text-decoration:underline;text-decoration-color:var(-
       <option value="pnlpct">Return %</option>
       <option value="wr">Win rate</option>
       <option value="pf">Profit factor</option>
+      <option value="exp">Expectancy (R)</option>
       <option value="trades">Trades</option>
       <option value="dd">Max drawdown</option>
       <option value="det">Detector state</option>
@@ -464,6 +465,23 @@ const CH_LABEL={infinity:'Infinity',traditional:'Traditional',futures:'Futures',
 function detKey(t){return t.detector&&t.detector.state?t.detector.state:'NONE';}
 function perfChip(key){perfState=key;renderPerformance();}
 
+// Expectancy in R-multiples per trade. R = the average losing trade (realised risk), so
+// E = [(Win% x AvgWin) - (Loss% x AvgLoss)] / AvgLoss, which reduces to (1 - winRate)(PF - 1).
+// Positive = a structural edge; needs 100+ closed trades to be statistically significant.
+function expectancyR(winRatePct,profitFactor){
+  if(winRatePct==null)return null;                       // no closed trades
+  const w=Number(winRatePct)/100;
+  if(profitFactor==null)return w>0?Infinity:0;            // no losing trades yet
+  return (1-w)*(Number(profitFactor)-1);
+}
+function expectancyCell(st){
+  const n=Number(st.trades)||0;
+  const e=expectancyR(st.win_rate,st.profit_factor);
+  if(e==null||n===0)return{txt:'—',cls:'',sortv:-Infinity};
+  const sig=n>=100, note=sig?'':' <span style="opacity:.55;font-weight:400">(n&lt;100)</span>';
+  if(!isFinite(e))return{txt:'∞R'+note,cls:sig?'pos':'',sortv:1e9};
+  return{txt:(e>=0?'+':'')+e.toFixed(2)+'R'+note,cls:e>0?(sig?'pos':''):(e<0?'neg':''),sortv:e};
+}
 function renderPerformance(){
   const all=TRADERS;
   const counts={};
@@ -510,6 +528,7 @@ function renderPerformance(){
     if(s==='pnlpct')return ret(b)-ret(a);
     if(s==='wr')return num(b.stats.win_rate)-num(a.stats.win_rate);
     if(s==='pf')return num(b.stats.profit_factor)-num(a.stats.profit_factor);
+    if(s==='exp')return expectancyCell(b.stats||{}).sortv-expectancyCell(a.stats||{}).sortv;
     if(s==='trades')return num(b.stats.trades)-num(a.stats.trades);
     if(s==='dd')return num(b.stats.max_drawdown_pct)-num(a.stats.max_drawdown_pct);
     return num(b.realized_pnl)-num(a.realized_pnl);
@@ -520,6 +539,7 @@ function renderPerformance(){
   if(!rows.length){wrap.innerHTML='<div class="msg" style="padding:1.25rem">No traders match.</div>';return;}
   wrap.innerHTML='<div class="perf-grid">'+rows.map(t=>{
     const st=t.stats||{};
+    const ec=expectancyCell(st);
     const pnl=Number(t.realized_pnl)||0;
     const pct=Number(t.starting_balance)>0?pnl/Number(t.starting_balance)*100:0;
     const dk=detKey(t),dm=DET_META[dk];
@@ -540,6 +560,7 @@ function renderPerformance(){
         <div><span>Trades</span><b class="mono">${st.trades||0}</b></div>
         <div><span>Win rate</span><b class="mono">${st.win_rate==null?'—':Number(st.win_rate).toFixed(1)+'%'}</b></div>
         <div><span>Profit factor</span><b class="mono">${st.profit_factor==null?'—':Number(st.profit_factor).toFixed(2)}</b></div>
+        <div title="Expectancy per trade in R (R = average loss). Positive = structural edge; needs 100+ closed trades to be significant."><span>Expectancy</span><b class="mono ${ec.cls}">${ec.txt}</b></div>
         <div><span>Max DD</span><b class="mono ${Number(st.max_drawdown_pct)>=5?'neg':''}">${st.max_drawdown_pct==null?'—':Number(st.max_drawdown_pct).toFixed(2)+'%'}</b></div>
         <div><span>Best trade share</span><b class="mono ${Number(st.consistency_pct)>50?'neg':''}">${st.consistency_pct==null?'—':st.consistency_pct+'%'}</b></div>
       </div>
@@ -937,6 +958,7 @@ function profileCard(p){
     ['Trades (closed)',p.trades_closed],
     ['Win rate',p.win_rate+'%'],
     ['Profit factor',p.profit_factor==null?'∞':p.profit_factor],
+    ['Expectancy (R)',(()=>{const e=expectancyR(p.win_rate,p.profit_factor);if(e==null)return '—';const v=!isFinite(e)?'∞R':(e>=0?'+':'')+e.toFixed(2)+'R';return v+(p.trades_closed>=100?'':' (n<100, not yet significant)');})()],
     ['Avg hold',p.hold_time.avg_minutes<60?Math.round(p.hold_time.avg_minutes)+'m':(p.hold_time.avg_minutes/60).toFixed(1)+'h'],
     ['Style',p.hold_time.style],
     ['Dominant session',p.dominant_session],
