@@ -546,8 +546,8 @@ body.light .btm-resize-grip{background:rgba(37,99,235,.28);}
 .postbl-act-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .12s;}
 .postbl-act-btn:hover{color:var(--red);border-color:var(--red);}
 .op-risk.near{border-color:#d97706;color:#f5c473;background:rgba(217,119,6,.12);}
-.rule-reminders{padding:.8rem 1rem;border-left:5px solid #f59e0b;background:#241b0c;border-bottom:1px solid #725325;font-size:.8rem;line-height:1.45;color:#f5c473;}
-.rule-reminders[hidden]{display:none}.rule-reminders strong{font-size:1rem;color:#ffce76}.rule-reminders.urgent{border-left-color:#ef4444;background:#2a1215}.rule-reminders ul{margin:.35rem 0;padding-left:1.2rem}.rule-reminders li+li{margin-top:.3rem}.rule-reminders li.critical{color:#ff9b9b}.rule-reminders li.reminder{color:#b7c9ed}.rule-reminders button{background:none;border:0;color:#93b4ff;font:inherit;cursor:pointer;text-decoration:underline;}
+.rule-reminders{position:relative;padding:.8rem 1rem;border-left:5px solid #f59e0b;background:#241b0c;border-bottom:1px solid #725325;font-size:.8rem;line-height:1.45;color:#f5c473;}
+.rule-reminders .rule-reminders-close{position:absolute;top:.5rem;right:.6rem;width:32px;height:32px;padding:0;font-size:1.4rem;text-decoration:none;color:#ffce76}.rule-reminders strong{display:block;padding-right:36px}.rule-reminders[hidden]{display:none}.rule-reminders strong{font-size:1rem;color:#ffce76}.rule-reminders.urgent{border-left-color:#ef4444;background:#2a1215}.rule-reminders ul{margin:.35rem 0;padding-left:1.2rem}.rule-reminders li+li{margin-top:.3rem}.rule-reminders li.critical{color:#ff9b9b}.rule-reminders li.reminder{color:#b7c9ed}.rule-reminders button{background:none;border:0;color:#93b4ff;font:inherit;cursor:pointer;text-decoration:underline;}
 .rule-dlg{margin:auto;width:min(720px,calc(100vw - 48px));max-height:85vh;overflow:auto;border:2px solid #f59e0b;border-radius:16px;background:#151518;color:#f7f7fa;padding:26px;box-shadow:0 25px 90px #000;font:15px/1.55 Inter,Arial,sans-serif}
 .rule-dlg[open]{display:flex;flex-direction:column}.rule-dlg #stageRulesReadList{overflow-y:auto;min-height:0;padding-right:8px}.rule-dlg>h2,.rule-dlg>p,.rule-dlg-actions{flex-shrink:0}.rule-dlg .stage-rule-urgent{padding:12px 12px 12px 30px;margin:0 0 12px;background:#351619;border:1px solid #ef4444;border-radius:8px;color:#ffb0b0}.stage-rule-urgent[hidden]{display:none}
 .rule-dlg::backdrop{background:rgba(0,0,0,.8)}.rule-dlg.critical{border-color:#ef4444}.rule-dlg h2{font-size:24px;margin:0 0 10px}.rule-dlg p{margin:0 0 14px;color:#c7c7cf}.rule-dlg label{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #333;align-items:flex-start}.rule-dlg input{flex-shrink:0;margin-top:6px;width:18px;height:18px;accent-color:#2563eb}.rule-dlg-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.rule-dlg button{padding:11px 16px;border-radius:8px;background:#2563eb;border:1px solid #5882e5;color:#fff;font:inherit;font-weight:700;cursor:pointer}.rule-dlg button.secondary{background:#27272d;border-color:#555}.rule-dlg button:disabled{opacity:.45;cursor:not-allowed}
@@ -1784,6 +1784,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
       <button class="brw-act" onclick="flattenAll()">Close all</button>
     </div>
     <section class="rule-reminders" id="ruleReminders" hidden aria-label="Challenge rule warnings">
+      <button type="button" class="rule-reminders-close" onclick="dismissRuleReminders()" aria-label="Close challenge reminders" title="Close challenge reminders">&times;</button>
       <strong>Protect your Infinity Challenge</strong>
       <ul id="ruleReminderList" aria-live="polite" aria-atomic="true"></ul>
       <button type="button" onclick="openRuleReminders()">Review my rules and progress</button>
@@ -2978,6 +2979,14 @@ function renderDailyCapNotice(){
 let ruleWarningSeen={};
 try{ruleWarningSeen=JSON.parse(sessionStorage.getItem('ipfx-rule-warning-seen')||'{}')||{};}catch(_){}
 let ruleWarningSignature='';
+let dismissedRuleReminders={};
+try{dismissedRuleReminders=JSON.parse(sessionStorage.getItem('ipfx-rule-reminders-dismissed')||'{}')||{};}catch(_){}
+function dismissRuleReminders(){
+  const a=engineState&&engineState.account;
+  if(a&&a.id){dismissedRuleReminders[a.id]=true;try{sessionStorage.setItem('ipfx-rule-reminders-dismissed',JSON.stringify(dismissedRuleReminders));}catch(_){}}
+  document.getElementById('ruleReminders').hidden=true;
+  window.dispatchEvent(new Event('resize'));
+}
 function openRuleReminders(){
   const tab=document.querySelector('.btab[onclick*="challenge"]');
   if(tab)switchBtab('challenge',tab);
@@ -2989,7 +2998,7 @@ function renderRuleReminders(){
   const now=Date.now(),server=Date.parse(engineState&&engineState.server_time);
   const markedNow=Number.isFinite(server)?server+Math.max(0,now-lastStateAt):now;
   const warnings=window.IPFXRuleWarnings.build(engineState,markedNow);
-  panel.hidden=!warnings.length;
+  panel.hidden=!warnings.length||!!dismissedRuleReminders[engineState&&engineState.account&&engineState.account.id];
   panel.classList.toggle('urgent',warnings.some(w=>w.level==='critical'));
   const signature=JSON.stringify(warnings);
   if(signature!==ruleWarningSignature){
