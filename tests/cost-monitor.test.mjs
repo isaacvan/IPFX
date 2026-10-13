@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
-test('the E8 monitor account can never trade: database check, admin refusal, read-only client', () => {
+test('the monitoring service never trades: database flag, generic admin refusal and read-only client remain protected', () => {
   const sql = read('supabase/migrations/20261005150000_cost_monitor.sql');
   assert.match(sql, /check \(role <> 'monitor' or execution_enabled = false\)/);
   const admin = read('supabase/functions/ladder-admin/index.ts');
@@ -33,7 +33,7 @@ test('monitor runs every minute with its own secret, samples E8 + demo + IPFX at
 
 test('Treasury page offers the three roles; Brain shows the cost comparison', () => {
   const html = read('team-treasury.html');
-  assert.match(html, /<option value="monitor">E8 funded account: cost monitor \(read-only, never trades\)<\/option>/);
+  assert.match(html, /<option value="monitor">E8 funded account: monitoring connection \(read-only service\)<\/option>/);
   assert.match(read('assets/js/team-brain.js'), /function renderCosts\(\)/);
 });
 

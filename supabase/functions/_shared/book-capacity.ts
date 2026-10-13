@@ -10,6 +10,6 @@ export async function reserveCapacity(db: any, book: string, trade: string, qty:
     const {error: stateError}=await db.rpc('fn_publish_book_capacity',{p_book:book,p_observed:snapshot.observed_at,p_positions:snapshot.open_positions,p_orders:snapshot.pending_orders,p_margin:snapshot.free_margin_usd,p_position_ids:snapshot.position_ids});
     if(stateError)return {ok:false,reason:'CAPACITY_SNAPSHOT_WRITE_FAILED'};
     const {data,error: reservationError}=await db.rpc('fn_reserve_book_slot',{p_book:book,p_trade:trade,p_qty:qty});
-    return reservationError?{ok:false,reason:'CAPACITY_RESERVATION_UNAVAILABLE'}:data;
+    return reservationError?{ok:false,reason:'CAPACITY_RESERVATION_UNAVAILABLE'}:{...data,prior_position_ids:snapshot.position_ids};
   }catch{return {ok:false,reason:'BROKER_CAPACITY_UNVERIFIED'};}
 }

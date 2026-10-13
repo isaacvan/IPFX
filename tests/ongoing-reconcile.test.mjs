@@ -1,0 +1,12 @@
+import test from'node:test';import assert from'node:assert/strict';import fs from'node:fs';import vm from'node:vm';import{stripTypeScriptTypes}from'node:module';import{exactExecutionReceipt}from'../supabase/functions/_shared/ongoing-execution.ts';
+async function fixture(overrides={},receipt={}){
+ const text=fs.readFileSync(new URL('../supabase/functions/book-executor/index.ts',import.meta.url),'utf8');const start=text.indexOf('async function reconcile(db: Db)'),end=text.indexOf('\nDeno.serve',start);assert.ok(end>start);
+ let calls=0,reads=0;const writes=[];const record={id:7,event:'open',ongoing_copy_connection_id:1,qty:.01,ongoing_prior_position_ids:[],created_at:new Date(Date.now()-60000).toISOString(),...overrides};
+ const db={from:()=>{let value=null;const chain={select(){return chain},in(){return chain},lt(){return chain},limit(){return chain},neq(){return chain},eq(){return chain},update(v){value=v;return chain},async then(resolve){if(value)writes.push(value);else reads++;resolve({data:!value&&reads===1?[record]:[]})}};return chain},rpc:async()=>({})};
+ const context=vm.createContext({Date,Number,String,Set,Array,Promise,console,exactExecutionReceipt,destination:async()=>{calls++;return{}},ordersByStrategy:async()=>{calls++;return[{status:'filled',id:'900',positionId:'901',isOpen:true,filledQty:.01,avgPrice:4000,...receipt}]},bookStrategy:()=>'',closeLeg:async()=>({}),shadowReconcile:async()=>[]});vm.runInContext(stripTypeScriptTypes(text.slice(start,end),{mode:'strip'})+'\nglobalThis.run=reconcile;',context);return{result:await context.run(db),writes,calls};
+}
+test('reconciliation cannot automatically accept a previously detected reused/netted opening position',async()=>{const f=await fixture({error:'POSITION_NOT_NEW_HEDGED: manual reconciliation required'});assert.equal(f.calls,0);assert.equal(f.result.fixed[0].manual_reconciliation,true);assert.equal(f.writes.length,0)});
+test('lost-response recovery requires the persisted prior inventory, a new position, exact string IDs and exact quantity',async()=>{
+ for(const [row,fill]of [[{ongoing_prior_position_ids:['901']},{}],[{ongoing_prior_position_ids:null},{}],[{}, {id:900}],[{}, {positionId:901}],[{}, {filledQty:.02}]]){const f=await fixture(row,fill);assert.equal(f.writes.length,0);}
+ const confirmed=await fixture();assert.equal(confirmed.writes[0].status,'filled');assert.equal(confirmed.writes[0].broker_position_id,'901');
+});

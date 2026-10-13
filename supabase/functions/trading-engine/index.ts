@@ -1146,6 +1146,11 @@ async function scopedCopyTestRoute(db:Db,acct:Acct,symbol:string):Promise<'a'|nu
   const {data,error}=await db.rpc('copy_test_route',{p_user:acct.user_id,p_source:acct.id,p_symbol:symbol});
   return !error&&data==='a'?'a':null;
 }
+async function ongoingCopyRoute(db:Db,acct:Acct):Promise<'a'|'off'|null>{
+  if(!inBrainScope(acct))return null;
+  const {data,error}=await db.rpc('ongoing_copy_route',{p_user:acct.user_id,p_source:acct.id});
+  return error?'off':data==='a'||data==='off'?data:null;
+}
 async function callBook(body: Record<string, unknown>): Promise<MirrorResult> {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   try {
@@ -1591,7 +1596,8 @@ async function processPendingOrders(
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
     const sourceRiskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * Number(o.volume) * conv;
-    const abBook = await scopedCopyTestRoute(db,acct,symbol) ?? (inBrainScope(acct) ? await abRoute(db, acct.user_id) : null);
+    const ownerCopy=await ongoingCopyRoute(db,acct);
+    const abBook = ownerCopy==='off'?null:ownerCopy==='a'?'a':await scopedCopyTestRoute(db,acct,symbol) ?? (inBrainScope(acct) ? await abRoute(db, acct.user_id) : null);
     if (abBook === "a" || await hedgeOpenArmed(db, acct)) {
       // Copied account: the hedge fills first; the trader's entry is no better than the broker's.
       const hedge = abBook === "a"
@@ -3901,7 +3907,8 @@ if (body.action === "sweep") {
       await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);
 
       // Copied (A-book) account: hedge first, then fill the trader no better than the broker.
-      const abBook = await scopedCopyTestRoute(db,A,symbol) ?? (inBrainScope(A) ? await abRoute(db, user.id) : null);
+      const ownerCopy=await ongoingCopyRoute(db,A);
+      const abBook = ownerCopy==='off'?null:ownerCopy==='a'?'a':await scopedCopyTestRoute(db,A,symbol) ?? (inBrainScope(A) ? await abRoute(db, user.id) : null);
       if (abBook === "a" || await hedgeOpenArmed(db, A)) {
         const takingAsk = side === "buy";
         const started = Date.now();

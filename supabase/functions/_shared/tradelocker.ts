@@ -102,6 +102,7 @@ export async function brokerCapacitySnapshot(accessToken: string, accountId: str
   if (free == null || !Number.isFinite(Number(free)) || Number(free)<0) throw new Error('FREE_MARGIN_UNVERIFIED');
   const positions = configuredRows(config, await request(`/trade/accounts/${accountId}/positions`, {method:'GET'}, accessToken, accNum), 'positionsConfig', 'positions');
   const orders = configuredRows(config, await request(`/trade/accounts/${accountId}/orders`, {method:'GET'}, accessToken, accNum), 'ordersConfig', 'orders');
+  if(positions.some(p=>!/^[1-9]\d{0,19}$/.test(String(p.id??p.positionId??''))))throw new Error('POSITION_IDENTITIES_UNVERIFIED');
   return {observed_at:requestedAt,open_positions:positions.length,pending_orders:orders.length,free_margin_usd:Number(free),position_ids:positions.map(p=>String(p.id??p.positionId))};
 }
 
@@ -171,12 +172,21 @@ export async function quote(accessToken: string, accNum: string, routeId: number
 // The column layout in /trade/config is fixed per server, so it is cached: each fill lookup is
 // then one request, which matters under TradeLocker's per-account rate limit.
 const configCache = new Map<string, { at: number; value: unknown }>();
+const configRequests = new Map<string, Promise<unknown>>();
 async function cachedConfig(accessToken: string, accNum: string): Promise<unknown> {
-  const hit = configCache.get(accNum);
+  // accNum is a selector within ONE login, not a globally unique account identifier.
+  // Bind immutable schema/config to this environment + token scope; never log/store raw tokens in cache keys.
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(accessToken));
+  const identity=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  const cacheKey=TRADELOCKER_DEMO_BASE+'|'+accNum+'|'+identity;
+  const hit = configCache.get(cacheKey);
   if (hit && Date.now() - hit.at < 10 * 60_000) return hit.value;
-  const value = await request("/trade/config", { method: "GET" }, accessToken, accNum);
-  configCache.set(accNum, { at: Date.now(), value });
-  return value;
+  const existing=configRequests.get(cacheKey);if(existing)return existing;
+  const pending=request("/trade/config", { method: "GET" }, accessToken, accNum).then(value=>{
+    if(configCache.size>=128)configCache.delete(configCache.keys().next().value!);
+    configCache.set(cacheKey, { at: Date.now(), value });return value;
+  }).finally(()=>configRequests.delete(cacheKey));
+  configRequests.set(cacheKey,pending);return pending;
 }
 export type BrokerFill = { price: number; qty: number; positionId: string | null; orderId: string | null };
 // Finds the broker's executed price for one order (by orderId) or, failing that, the newest

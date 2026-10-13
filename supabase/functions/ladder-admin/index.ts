@@ -9,6 +9,7 @@ import { infoRoute, tradeRoute } from "../_shared/tradelocker.ts";
 import { loginAnyEnv, readClient } from "../_shared/tradelocker-read.ts";
 import { launchReadiness } from "../_shared/launch-readiness.ts";
 import { copyTestControl } from "../_shared/copy-test-controls.ts";
+import { ongoingCopyControl } from "../_shared/ongoing-copy-controls.ts";
 
 const ORIGINS = new Set(["https://ipfxcapital.com", "https://www.ipfxcapital.com", "http://localhost:3000", "http://localhost:8127"]);
 function aal(token: string): string {
@@ -37,6 +38,11 @@ Deno.serve(async (req) => {
   if (!body) return json({ ok: false, error: "Invalid request" }, 400);
   const audit = (action: string, detail: Record<string, unknown>) => db.from("admin_audit_log").insert({ actor_id: user.id, action, detail });
   const action = String(body.action || "overview");
+
+  if(action.startsWith('ongoing_copy_')){
+    const r=await ongoingCopyControl(db,body,user.id,Boolean(Deno.env.get('TRADELOCKER_DEVELOPER_API_KEY')));
+    return r?json(r.body,r.status):json({ok:false,error:'Unknown execution action'},400);
+  }
 
   if(action.startsWith('copy_test_')){
     const r=await copyTestControl(db,body,user.id,Boolean(Deno.env.get('TRADELOCKER_DEVELOPER_API_KEY')));
@@ -75,7 +81,8 @@ Deno.serve(async (req) => {
     if (!/^(a|b|[ls][0-9]+)$/.test(book) || !Number.isSafeInteger(positions) || positions < 1 || !Number.isFinite(margin) || margin <= 0 || evidence.length < 10) return json({ok:false,error:"Enter the documented position limit, conservative margin per lot and provider evidence."},400);
     if (/^[ls]/.test(book)) {
       const {data: account,error}=await db.from("ladder_accounts").select("role,api_env").eq("id",Number(book.slice(1))).maybeSingle();
-      if(error||!account||account.role!== (book[0]==="s"?"shadow":"ladder")||account.api_env!=="demo")return json({ok:false,error:"Capacity can only be configured for an owned execution demo, never the E8 monitor."},403);
+      const ongoing=account?.role==='monitor'&&book[0]==='l'?await db.from('ongoing_copy_connections').select('id').eq('account_id',Number(book.slice(1))).eq('actor_id',user.id).eq('connected',true).maybeSingle():null;
+      if(error||!account||(account.role!== (book[0]==="s"?"shadow":"ladder")&&!(ongoing?.data&&!ongoing.error))||account.api_env!=="demo")return json({ok:false,error:"Connect this owned account for execution before configuring its capacity."},403);
     }
     const {error:auditError}=await audit("book_capacity_configure",{book,position_limit:positions,margin_per_lot_usd:margin,provider_evidence:evidence});
     if(auditError)return json({ok:false,error:"Audit unavailable; nothing changed."},503);
@@ -102,13 +109,14 @@ Deno.serve(async (req) => {
     if ([forecasts,totals,events,limits,settings,ls,ladders,rec,payouts,spons,reviewDestinations].some(r => 'error' in r && r.error) || !totals.data) {
       return json({ok:false,error:"Treasury data is incomplete. No zero balances or empty account lists have been substituted."},503);
     }
-    const [capacity, reference, validation] = await Promise.all([
+    const [capacity, reference, validation, ongoing] = await Promise.all([
       db.from("book_capacity_limits").select("book,position_limit,margin_per_lot_usd,provider_evidence,updated_at"),
       db.rpc("e8_reference_summary"),
       db.rpc("fn_ab_validation_summary"),
+      db.rpc('ongoing_copy_summary',{p_actor:user.id}),
     ]);
     const readiness = launchReadiness({settings:settings.data,accounts:ladders.data ?? [],reviewDestinations:reviewDestinations.data ?? [],
-      capacity:capacity.error ? null : capacity.data,reference:reference.error ? null : reference.data,
+      capacity:capacity.error ? null : capacity.data,reference:reference.error ? null : reference.data,ongoing:ongoing.error?null:ongoing.data,
       developerConfigured:Boolean(Deno.env.get("TRADELOCKER_DEVELOPER_API_KEY")),
       signupSecretsConfigured:Boolean(Deno.env.get("TURNSTILE_SECRET_KEY") && Deno.env.get("SIGNUP_HOOK_SECRET")),
       errors:[...(capacity.error ? ["Broker capacity diagnostics unavailable"] : []),...(reference.error ? ["E8 monitor diagnostics unavailable"] : [])]});
@@ -121,6 +129,7 @@ Deno.serve(async (req) => {
       book_states: counts, events: events.data ?? [], limits: limits.data ?? [], settings: settings.data, ladder_settings: ls.data,
       ladder_accounts: ladders.data ?? [], review_destinations:reviewDestinations.data ?? [], recommendation: rec.data, payouts: payouts.data ?? [],
       sponsorships: (spons.data ?? []).map((s) => ({ ...s, name: names.get(s.user_id) ?? null })), open_risk: openRisk, day_pnl: totals.data.day_pnl, readiness,
+      ongoing_copy:ongoing.error?null:ongoing.data,
       validation:validation.error ? null : validation.data,validation_error:validation.error ? "Paper validation journal is unavailable; no coverage or execution has been assumed." : null });
   }
   if (action === "set_reserve") {

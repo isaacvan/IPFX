@@ -1,0 +1,33 @@
+import test from'node:test';import assert from'node:assert/strict';import{ongoingSizing,exactExecutionReceipt}from'../supabase/functions/_shared/ongoing-execution.ts';import{bookOpenFixture}from'./helpers/book-open-fixture.mjs';
+const spec={lotSize:100,minLot:.01,maxLot:100,lotStep:.01,quotingCurrency:'USD'},source={contract_size:100,quote_currency:'USD'};
+test('broker contract and lot step determine planned stop risk; unsupported currency, minimum, contract and ceiling are refused',()=>{
+ assert.equal(ongoingSizing(spec,source,100,.01,'buy',4000,3999,10).risk,3);assert.equal(ongoingSizing({...spec,lotSize:10},source,100,.1,'buy',4000,3999,10).risk,3);
+ for(const [broker,src,lots,cap]of[[{...spec,lotSize:0},source,.01,10],[{...spec,minLot:1},source,.01,10],[{...spec,quotingCurrency:'EUR'},source,.01,10],[spec,source,.015,10],[spec,source,.01,2],[spec,{...source,contract_size:0},.01,10]])assert.throws(()=>ongoingSizing(broker,src,100,lots,'buy',4000,3999,cap));
+});
+test('variable-lot exact receipts require exact numeric string IDs and a new hedged position, never a reused/netted position',()=>{
+ const f={qty:.1,price:4000,orderId:'360287970213096396',positionId:'360287970193705790'};
+ assert.equal(exactExecutionReceipt(.1,f.orderId,f.positionId,f),true);
+ assert.equal(exactExecutionReceipt(.1,f.orderId,f.positionId,f,[f.positionId]),false);
+ for(const x of[{qty:.05},{qty:.2},{price:0},{price:Infinity},{positionId:'wrong'},{orderId:'wrong'}])assert.equal(exactExecutionReceipt(.1,f.orderId,f.positionId,{...f,...x}),false);
+ assert.equal(exactExecutionReceipt(.1,Number(f.orderId),f.positionId,f),false);
+});
+test('actual ongoing open path chooses only the authorised monitor, performs guards, journals its connection and uses no five-slot test',async()=>{
+ const f=bookOpenFixture({ongoing:true,otherLadder:true});const r=await f.run();assert.equal(f.posts.length,1);assert.equal(f.posts[0].qty,.01);assert.equal(r.legs[0].fill_price,4000);
+ assert.equal(f.requests.find(x=>x.table==='book_orders'&&x.verb==='insert').value.ongoing_copy_connection_id,1);
+ assert.equal(f.requests.find(x=>x.name==='capacity-guard').requireEmpty,false);
+ assert.ok(!f.requests.some(x=>x.name==='copy_test_claim'||x.name==='copy_test_note'));
+ for(const x of['ongoing_copy_claim','destination-guard','ab_reserve_risk','capacity-guard','ongoing_copy_access','book_orders:insert'])assert.ok(f.trace.indexOf(x)>=0&&f.trace.indexOf(x)<f.trace.indexOf('broker-submit'),x);
+});
+test('risk, metadata, currency, capacity and final OFF checks stop the actual order; old position identity or wrong quantity quarantines one send',async()=>{
+ for(const o of[{riskRefused:true},{brokerSpec:{lotSize:0}},{sourceSpec:{quote_currency:'EUR'}},{capacityRefused:true},{accessRefused:true},{noDestination:true}]){const f=bookOpenFixture({ongoing:true,...o});await f.run();assert.equal(f.posts.length,0,JSON.stringify(o));}
+ for(const o of[{priorPositions:['901']},{fill:{qty:.005}}]){const f=bookOpenFixture({ongoing:true,...o});const r=await f.run();assert.equal(f.posts.length,1);assert.match(r.legs[0].error,/reconciliation/);assert.equal(f.requests.find(x=>x.table==='book_orders'&&x.verb==='update').value.status,'reconciliation_required');if(o.priorPositions)assert.match(f.requests.find(x=>x.table==='book_orders'&&x.verb==='update').value.error,/POSITION_NOT_NEW_HEDGED/);}
+});
+test('many synthetic ongoing opens are not stopped by the old five-trade limit, while all broker I/O remains mocked',async()=>{
+ for(let i=0;i<100;i++){const f=bookOpenFixture({ongoing:true});await f.run();assert.equal(f.posts.length,1);assert.equal(f.posts[0].side,'buy');}
+});
+test('a source closed or reduced while its opening receipt was in flight triggers an owned exit catch-up',async()=>{
+ for(const change of[{status:'closed',volume:.02},{status:'open',volume:.01}]){
+  const f=bookOpenFixture({ongoing:true,sourceChangedDuringOpen:change});await f.run();assert.equal(f.posts.length,1);
+  const exit=f.requests.find(x=>x.name==='catchup-exit');assert.equal(exit.body.source_trade_id,'synthetic-trade');assert.equal(exit.body.event,change.status==='closed'?'close':'partial_close');
+ }
+});

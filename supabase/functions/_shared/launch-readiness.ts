@@ -9,6 +9,7 @@ type Inputs = {
   developerConfigured: boolean;
   signupSecretsConfigured: boolean;
   errors: string[];
+  ongoing?: {connections?:Record<string,any>[]} | null;
 };
 export function launchReadiness(input: Inputs, now = Date.now()) {
   const checks: Check[] = [];
@@ -27,6 +28,8 @@ export function launchReadiness(input: Inputs, now = Date.now()) {
   add('demo', 'Execution demo connection', demos.length ? 'checked' : 'action',
     demos.length ? `${demos.length} demo connection(s) saved; ${demos.filter(a => a.execution_enabled === true).length} have copying switched on. Saved connections do not prove broker execution.` : 'Connect an approved broker demo. No funded account or monitor will be enabled by this checklist.', '#accountSetup');
   const limits = new Map((input.capacity ?? []).map(l => [l.book, l]));
+  const ongoing=(input.ongoing?.connections??[]).filter(c=>c.connected);
+  add('ongoing','Owner-selected A-book execution',input.ongoing===null?'unknown':ongoing.length?'checked':'action',input.ongoing===null?'Execution-control status could not be read.':`${ongoing.length} ongoing connection(s); ${ongoing.filter(c=>c.execution_on).length} execution ON. Only explicitly selected traders are eligible; monitoring remains a separate read-only service.`,'team-a-book.html');
   const documented = demos.filter(a => {
     const l = limits.get(a.capacity_book ?? (a.role === 'shadow' ? 's' : 'l') + a.id);
     return l && Number.isSafeInteger(Number(l.position_limit)) && Number(l.position_limit) > 0 && Number.isFinite(Number(l.margin_per_lot_usd)) && Number(l.margin_per_lot_usd) > 0 && String(l.provider_evidence ?? '').trim().length >= 10;

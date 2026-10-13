@@ -1,4 +1,4 @@
-/* Owner-only read view. This file never submits a broker order or changes a route. */
+/* Owner views and protected owner-control adapter. No browser broker API calls. */
 (() => {
   'use strict';
   const SB_URL = 'https://agulweemteoeagscmppy.supabase.co';
@@ -42,10 +42,10 @@
     if (!response.ok || !body?.ok) throw new Error(body?.error || 'TradeLocker connection unavailable');
     return body;
   }
-  if(mode==='a'&&window.IPFXFiveTradeTest)window.IPFXFiveTradeTest.init(async(action,extra={})=>{
+  if(mode==='a'&&window.IPFXOngoingCopy)window.IPFXOngoingCopy.init(async(action,extra={})=>{
     const {data:{session}}=await sb.auth.getSession();if(!session)throw Error('Sign in to Team and complete owner MFA.');
     const r=await fetch(SB_URL+'/functions/v1/ladder-admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({action,...extra}),cache:'no-store',signal:AbortSignal.timeout(25000)});
-    const b=await r.json().catch(()=>null);if(!r.ok||!b?.ok)throw Error(b?.error||b?.reason||'Test request could not be confirmed. Refresh before retrying.');return b;
+    const b=await r.json().catch(()=>null);if(!r.ok||!b?.ok)throw Error(b?.error||b?.reason||'Execution request could not be confirmed. Refresh before retrying.');return b;
   });
   async function callPopulation(session) {
     const response = await fetch(SB_URL + '/functions/v1/team-population', {
