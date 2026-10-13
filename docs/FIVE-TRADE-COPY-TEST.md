@@ -1,0 +1,17 @@
+# Owner-started five-trade A-book test
+
+On A-book, the owner enters broker credentials themselves and saves one separate owned funded connection with copying OFF. The current execution transport uses TradeLocker's demo API environment, which can include prop-funded simulated accounts. API environment is not proof of economic type: the owner explicitly declares the funded account and permitted test. Only an unambiguous gold instrument with observed USD contract and exact0.01lot limits is accepted for a new test connection. Tokens are encrypted; the password is not stored or returned.
+
+The owner finds the exact registered IPFX email, chooses that person's practice Demo account, sets a maximum planned stop risk before fees/slippage, and prepares a session. Preparation cannot start copying. A fresh owner/MFA action, expected version, provider capacity evidence and configured developer access are required for Start. Nothing is activated by deploying this feature. The protected E8 monitor and any alias are refused; this release cannot convert the existing monitor into an execution account.
+
+## Enforcement
+
+- One source person, one specific practice Demo account, one funded execution destination, new XAUUSD roots after Start, same direction,0.01broker lots, maximum five unique reservations,24hour admission expiry. A stop loss is required; planned emergency-stop risk (three times the source stop distance) must fit the owner cap and existing A-book risk reservation. Observed broker contract/lot settings must be fresh and usable. A fresh empty broker inventory is required for each test entry: use one position at a time. Non-gold practice trades retain normal routing.
+- Row-locked session counter and unique(session,source_trade) prevent duplicate or sixth admission. Refused or uncertain attempts are not refunded. Pending orders count only when filled as a new trade. Existing source parent/partial handling stays in the established broker exit journal.
+- Test-only connections are excluded from ordinary grouped A-book legs and cannot be enabled through the generic Start-copying control. Only the selected session can use them. No review-account leg is added to the test.
+- The source trading engine uses the temporary scoped route for practice Demo entries. Permanent classifier profiles, live numerical policy and the Stage2+2.75% shortcut remain unchanged. Ending the test removes its scoped route; no newer owner profile choice is overwritten.
+- Stop/cap/expiry blocks new entries. Existing owned exits and reconciliation retain access after account copying is off. The session remains draining if a send or receipt is unknown; it is not declared complete from missing history. Reconciliation completion depends on the established confirmed close journal.
+
+The planned stop-risk limit is not a guarantee of maximum realised loss: fills, gaps, fees and slippage can differ. Broker minimum lots may make a proportional partial exit impossible until more source quantity is closed. Actual fill and gross receipt fields are displayed separately; commission/swaps and net remain unverified without complete matched broker history. Five trials are functional evidence, not95% accuracy or launch-capacity proof.
+
+No credentials are to be entered by the agent, and the agent must not call the funded Start action or place funded orders. The owner performs the final activation. Deployment tests use synthetic fixtures and rolled-back validation only; a production broker-execution test requires the owner's action and an eligible connection.

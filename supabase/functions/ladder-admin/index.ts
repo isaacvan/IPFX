@@ -8,6 +8,7 @@ import { encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { infoRoute, tradeRoute } from "../_shared/tradelocker.ts";
 import { loginAnyEnv, readClient } from "../_shared/tradelocker-read.ts";
 import { launchReadiness } from "../_shared/launch-readiness.ts";
+import { copyTestControl } from "../_shared/copy-test-controls.ts";
 
 const ORIGINS = new Set(["https://ipfxcapital.com", "https://www.ipfxcapital.com", "http://localhost:3000", "http://localhost:8127"]);
 function aal(token: string): string {
@@ -36,6 +37,11 @@ Deno.serve(async (req) => {
   if (!body) return json({ ok: false, error: "Invalid request" }, 400);
   const audit = (action: string, detail: Record<string, unknown>) => db.from("admin_audit_log").insert({ actor_id: user.id, action, detail });
   const action = String(body.action || "overview");
+
+  if(action.startsWith('copy_test_')){
+    const r=await copyTestControl(db,body,user.id,Boolean(Deno.env.get('TRADELOCKER_DEVELOPER_API_KEY')));
+    return r?json(r.body,r.status):json({ok:false,error:'Unknown test action'},400);
+  }
 
   if(action==="validation_find"){
     const term=typeof body.query==="string"?body.query.trim():"";
@@ -153,6 +159,7 @@ Deno.serve(async (req) => {
       const all = body.all === true && role === "shadow";
       const chosen = all ? list : [wanted ? list.find((a) => String(a.id ?? a.accountId) === wanted) : (list.length === 1 ? list[0] : null)];
       if (!chosen.length || !chosen[0]) return json({ ok: false, error: "Enter the account number shown after # (several accounts found)" }, 400);
+      if(body.copy_test===true&&(all||role!=='ladder'||body.confirm_account_funded!==true))return json({ok:false,error:'Confirm that this is one owned funded prop account. Saving it does not enable execution.'},400);
       const { data: existing } = await db.from("ladder_accounts").select("account_id,server");
       const have = new Set((existing ?? []).map((r) => `${r.server}|${r.account_id}`));
       const added: Array<Record<string, unknown>> = [];
@@ -164,11 +171,20 @@ Deno.serve(async (req) => {
           symbol: String(row.name ?? row.symbol ?? "").trim().toUpperCase(), tradable_instrument_id: String(row.tradableInstrumentId ?? row.id ?? ""),
           trade_route_id: tradeRoute(row), info_route_id: infoRoute(row), min_qty: Number(row.minQty ?? row.minLot ?? 0.01), lot_step: Number(row.qtyStep ?? row.lotStep ?? 0.01),
         })).filter((r) => r.symbol && r.trade_route_id != null);
+        if(body.copy_test===true){
+          const gold=map.filter(r=>r.symbol.replace(/[^A-Z0-9]/g,'').startsWith('XAUUSD'));
+          if(gold.length!==1||gold[0].info_route_id==null)return json({ok:false,error:'Unique broker gold instrument unavailable.'},400);
+          const details=await tl.instrumentDetails(tok.accessToken,accNum,Number(gold[0].info_route_id),gold[0].tradable_instrument_id)as Record<string,unknown>;
+          const contract=Number(details.lotSize),min=Number(details.minLot),max=Number(details.maxLot),step=Number(details.lotStep);
+          if(![contract,min,max,step].every(Number.isFinite)||contract<=0||min<=0||step<=0||min>.01||max<.01||Math.abs(.01/step-Math.round(.01/step))>1e-8||details.quotingCurrency!=='USD')return json({ok:false,error:'Broker gold contract, USD currency or exact 0.01-lot limits could not be verified.'},400);
+          Object.assign(gold[0],{lot_size:contract,quote_currency:'USD',min_qty:min,lot_step:step,spec_observed_at:new Date().toISOString()});
+        }
         const rowLabel = all ? `${label} #${accNum || accountId}` : label;
         const { data: row, error } = await db.from("ladder_accounts").insert({
           label: rowLabel, size_usd: size, fee_usd: role === "shadow" ? 0 : fee, signal_group: group, server, account_id: accountId, acc_num: accNum,
           access_token_ciphertext: await encryptSecret(tok.accessToken, key), refresh_token_ciphertext: await encryptSecret(tok.refreshToken, key),
           access_expires_at: jwtExpiresAt(tok.accessToken), instrument_map: map, execution_enabled: false, role, api_env: env,
+          ...(body.copy_test===true?{copy_test_only:true,status:'funded'}:{}),
         }).select("id").single();
         if (error || !row) return json({ ok: false, error: `Could not save account #${accNum || accountId}`, added: added.length }, 503);
         added.push({ id: row.id, instruments: map.length });
@@ -181,9 +197,10 @@ Deno.serve(async (req) => {
     const id = Number(body.id); const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (typeof body.execution_enabled === "boolean") patch.execution_enabled = body.execution_enabled;
     if (patch.execution_enabled === true) {
-      const { data: cur, error:readError } = await db.from("ladder_accounts").select("role").eq("id", id).maybeSingle();
+      const { data: cur, error:readError } = await db.from("ladder_accounts").select("role,copy_test_only").eq("id", id).maybeSingle();
       if(readError||!cur)return json({ok:false,error:"Account role could not be verified; copying was not changed."},503);
       if (cur?.role === "monitor") return json({ ok: false, error: "The E8 monitor account is read-only and can never receive copies" }, 400);
+      if(cur.copy_test_only)return json({ok:false,error:'This account is test-only. Use the reviewed five-trade Start control on A-book.'},409);
     }
     if (["evaluation", "funded", "breached", "closed"].includes(String(body.status))) patch.status = body.status;
     if (!(id > 0) || Object.keys(patch).length < 2) return json({ ok: false, error: "Nothing to change" }, 400);

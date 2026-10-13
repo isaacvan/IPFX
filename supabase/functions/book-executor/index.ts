@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
 import { closePositionQty, marketOrder, orderFill, ordersByStrategy, placeMarketOrder, refresh, responseIds } from "../_shared/tradelocker.ts";
 import { reserveCapacity } from "../_shared/book-capacity.ts";
+import { exactTestOpenReceipt } from "../_shared/copy-test-receipt.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
 import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { POLICY_V1, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
@@ -84,11 +85,16 @@ type Leg = { book: string; sizeUsd: number };
 
 async function open(db: Db, b: Record<string, unknown>) {
   const tradeId = String(b.source_trade_id), book = String(b.book) as "a" | "b";
-  const { data: t } = await db.from("trades").select("id,user_id,symbol,side,volume,open_price,sl,status").eq("id", tradeId).maybeSingle();
+  const { data: t } = await db.from("trades").select("id,user_id,account_id,symbol,side,volume,open_price,sl,status").eq("id", tradeId).maybeSingle();
   if (!t || t.status !== "open") return { ok: true, skipped: "source trade not open" };
   const { data: person } = await db.rpc("ab_person_of", { p_user: t.user_id });
+  const {data: test,error:testError}=await db.rpc('copy_test_claim',{p_trade:tradeId});
+  if(testError)return {ok:true,skipped:'scoped test admission unavailable'};
+  if(test?.handled&&!test.ok)return {ok:true,skipped:test.reason};
+  const trial=test?.handled===true&&test.ok===true?test:null;
+  if(trial&&book!=='a'){await db.rpc('copy_test_note',{p_trade:tradeId,p_refused:true,p_reason:'Test requires same-direction A-book'});return {ok:true,skipped:'test requires A-book'};}
   const { data: route } = await db.rpc("ab_route_for_user", { p_user: t.user_id });
-  if (route !== book) return { ok: true, skipped: "route changed" };
+  if (!trial&&route !== book) return { ok: true, skipped: "route changed" };
   const traderRisk = Number(b.risk_usd), scale = Number(b.price_scale_per_lot);
   if (!(traderRisk > 0) || t.sl == null) return { ok: true, skipped: "no stop loss: risk not measurable" };
   const [{ data: prof }, { data: lim }, { data: settings }, { data: pol }, { data: progress }, { data: treasury }, { data: ls }] = await Promise.all([
@@ -109,13 +115,13 @@ async function open(db: Db, b: Record<string, unknown>) {
   // in this trader's signal group.
   const legs: Leg[] = [];
   const { data: reviewDest } = await db.from("team_book_destinations").select("book").eq("book", book).eq("status", "connected").maybeSingle();
-  if (reviewDest) legs.push({ book, sizeUsd: Number(lim?.account_size_usd ?? 50000) });
+  if (reviewDest&&!trial) legs.push({ book, sizeUsd: Number(lim?.account_size_usd ?? 50000) });
   if (book === "a") {
     const groups = Number(ls?.signal_groups ?? 1);
-    const { data: ladders } = await db.from("ladder_accounts").select("id,size_usd,signal_group").eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"]);
-    for (const la of ladders ?? []) if (Number(la.signal_group) % groups === signalGroup(String(person), groups)) legs.push({ book: "l" + la.id, sizeUsd: Number(la.size_usd) });
+    const { data: ladders } = await db.from("ladder_accounts").select("id,size_usd,signal_group,copy_test_only").eq("role", "ladder").eq("execution_enabled", true).in("status", ["evaluation", "funded"]);
+    for (const la of ladders ?? []) if(trial?Number(la.id)===Number(trial.destination_id)&&la.copy_test_only===true:la.copy_test_only!==true&&Number(la.signal_group)%groups===signalGroup(String(person),groups))legs.push({book:'l'+la.id,sizeUsd:Number(la.size_usd)});
   }
-  if (!legs.length) return { ok: true, skipped: "no connected destination" };
+  if (!legs.length) {if(trial)await db.rpc('copy_test_note',{p_trade:tradeId,p_refused:true,p_reason:'No connected test destination'});return { ok: true, skipped: "no connected destination" };}
 
   const side = legSide(book, t.side);
   const scaleSetting = Number(book === "a" ? settings?.a_scale ?? 1 : settings?.b_scale ?? 1);
@@ -125,7 +131,8 @@ async function open(db: Db, b: Record<string, unknown>) {
   // accounts take about as long as one and the engine's hedge-first wait is not exceeded.
   const placeLeg = async (leg: Leg): Promise<Record<string, unknown>> => {
     let wanted = traderRisk * sizing.multiplier, reason = sizing.reason, weight = sizing.multiplier;
-    if (Number(lim?.account_size_usd) > 0) {
+    let legPriceScale=scale;
+    if (!trial&&Number(lim?.account_size_usd) > 0) {
       const { count: routed } = await db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", leg.book).eq("event", "open").gte("created_at", since);
       const groupsShare = leg.book.startsWith("l") ? Math.max(1, Number(ls?.signal_groups ?? 1)) : 1;
       const expected = Math.max(Number(routed ?? 0) / 5, Number(liveTraders ?? 0) * 2 / groupsShare);
@@ -135,20 +142,32 @@ async function open(db: Db, b: Record<string, unknown>) {
       wanted = f.riskUsd; reason = f.reason; weight = f.weight;
     }
     wanted *= scaleSetting;
-    const signedLots = (side === "buy" ? 1 : -1) * Number(t.volume) * (wanted / traderRisk);
+    if(trial){
+      const {data:meta,error:metaError}=await db.from('ladder_accounts').select('instrument_map').eq('id',trial.destination_id).maybeSingle();
+      const gold=meta?.instrument_map?.filter((x:Record<string,unknown>)=>String(x.symbol).replace(/[^A-Z0-9]/g,'').startsWith('XAUUSD'))??[];
+      const spec=gold.length===1?gold[0]:null,contract=Number(spec?.lot_size),observed=Date.parse(spec?.spec_observed_at??'');
+      if(metaError||!spec||spec.quote_currency!=='USD'||!Number.isFinite(contract)||contract<=0||!Number.isFinite(observed)||observed>Date.now()||Date.now()-observed>6*3600000)return {book:leg.book,skipped:'test gold contract unavailable or stale'};
+      const protective=emergencyStop('a',t.side,Number(t.open_price),Number(t.sl));
+      wanted=protective==null?NaN:Math.abs(Number(t.open_price)-protective)*Number(trial.broker_lots)*contract;
+      legPriceScale=contract;
+      if(!Number.isFinite(wanted)||wanted<=0||wanted>Number(trial.max_trade_risk_usd))return {book:leg.book,skipped:'test planned stop risk exceeds owner limit'};
+    }
+    const signedLots = (side === "buy" ? 1 : -1) * (trial?Number(trial.broker_lots):Number(t.volume)*(wanted/traderRisk));
     const { data: res, error: resErr } = await db.rpc("ab_reserve_risk", { p_book: leg.book, p_trade: tradeId, p_person: person, p_symbol: t.symbol, p_signed_lots: signedLots, p_risk_usd: wanted });
     if (resErr || !res?.ok) { return { book: leg.book, skipped: "risk: " + (res?.reason ?? resErr?.message ?? "refused") }; }
     const dest = await destination(db, leg.book);
     if (!dest) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "destination not connected" }; }
     const inst = instrumentFor(dest.map, t.symbol);
     if (!inst) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "instrument not available" }; }
-    const qty = lotsFor(Number(t.volume), traderRisk, Number(res.allowed_usd), Number(inst.lot_step ?? 0.01), Number(inst.min_qty ?? 0.01));
+    const qty = trial?Number(trial.broker_lots):lotsFor(Number(t.volume), traderRisk, Number(res.allowed_usd), Number(inst.lot_step ?? 0.01), Number(inst.min_qty ?? 0.01));
+    if(trial&&(Number(res.allowed_usd)+1e-8<wanted||qty!==.01||qty<Number(inst.min_qty)||!Number.isFinite(Number(inst.lot_step))||Math.abs(qty/Number(inst.lot_step)-Math.round(qty/Number(inst.lot_step)))>1e-8)){await db.rpc('ab_release_risk',{p_book:leg.book,p_trade:tradeId});return {book:leg.book,skipped:'test lot or risk reservation mismatch'};}
     if (!(qty > 0)) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "below broker minimum" }; }
-    const capacity = await reserveCapacity(db, leg.book, tradeId, qty, dest);
+    const capacity = await reserveCapacity(db, leg.book, tradeId, qty, dest,!!trial);
     if (!capacity?.ok) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "capacity: " + (capacity?.reason ?? "unavailable") }; }
     const { data: claim, error: claimErr } = await db.from("book_orders").insert({
       book: leg.book, source_trade_id: tradeId, person_id: person, event: "open", idempotency_key: `${leg.book}:${tradeId}:open`, symbol: t.symbol, side, qty,
-      multiplier: Number((Number(res.allowed_usd) / traderRisk).toFixed(3)), risk_usd: res.allowed_usd, status: "sent", source_initial_volume: Number(t.volume), lot_step: Number(inst.lot_step ?? 0.01), price_scale_per_lot: scale > 0 ? scale : null,
+      multiplier: Number((Number(res.allowed_usd) / traderRisk).toFixed(3)), risk_usd: res.allowed_usd, status: "sent", source_initial_volume: Number(t.volume), lot_step: Number(inst.lot_step ?? 0.01), price_scale_per_lot: legPriceScale > 0 ? legPriceScale : null,
+      ...(trial?{copy_test_session_id:trial.session_id}:{}),
     }).select("id").single();
     if (claimErr?.code === "23505") { return { book: leg.book, skipped: "duplicate event" }; }
     if (claimErr || !claim) { return { book: leg.book, error: "claim failed" }; }
@@ -159,10 +178,12 @@ async function open(db: Db, b: Record<string, unknown>) {
       const ids = responseIds(await placeMarketOrder(dest.token, dest.accountId, dest.accNum, payload));
       const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId }).catch(() => null);
       const positionId = ids.positionId ?? fill?.positionId ?? null;
+      const confirmedTest=!trial||exactTestOpenReceipt(qty,ids.orderId,positionId,fill);
       await db.from("book_orders").update({
-        status: positionId ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
+        status: positionId&&confirmedTest ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
         fill_price: fill?.price ?? null, latency_ms: Date.now() - started, updated_at: new Date().toISOString(),
       }).eq("id", claim.id);
+      if(!confirmedTest)return {book:leg.book,error:'test opening quantity or identity needs reconciliation',positionId};
       return { book: leg.book, qty, multiple_of_trader: Number((Number(res.allowed_usd) / traderRisk).toFixed(2)), weight, reason, fill_price: fill?.price ?? null, positionId };
     } catch (e) {
       // Never resubmit an ambiguous order: the reconciler finds it by strategy id.
@@ -172,6 +193,7 @@ async function open(db: Db, b: Record<string, unknown>) {
   };
   const results: Array<Record<string, unknown>> = [];
   for (let i = 0; i < legs.length; i += 8) results.push(...await Promise.all(legs.slice(i, i + 8).map(placeLeg)));
+  if(trial)await db.rpc('copy_test_note',{p_trade:tradeId,p_refused:results.every(r=>typeof r.skipped==='string'),p_reason:results.map(r=>String(r.skipped??r.error??'Broker receipt pending')).join(';')});
   // For hedge-first pricing the trader is filled no better than the WORST same-direction leg.
   const fills = results.map((r) => Number(r.fill_price)).filter((x) => x > 0);
   const worst = fills.length ? (side === "buy" ? Math.max(...fills) : Math.min(...fills)) : null;
@@ -365,7 +387,7 @@ async function shadowReconcile(db: Db) {
     if (!dest) continue;
     const rows = await ordersByStrategy(dest.token, dest.accountId, dest.accNum, bookStrategy(book, o.source_trade_id)).catch(() => []);
     const filled = rows.filter((r) => String(r.status ?? "").toLowerCase() === "filled" &&
-      (o.event === "open" ? (r.isOpen === true || String(r.isOpen) === "true") : (!!o.broker_order_id && String(r.id ?? r.orderId) === String(o.broker_order_id) && Math.abs(Number(r.filledQty) - Number(o.qty)) < 1e-8 && !(r.isOpen === true || String(r.isOpen) === "true"))));
+      (o.event === "open" ? (r.isOpen === true || String(r.isOpen) === "true")&&(!o.copy_test_session_id||exactTestOpenReceipt(Number(o.qty),String(r.id??r.orderId),String(r.positionId),{qty:Number(r.filledQty),price:Number(r.avgPrice),orderId:String(r.id??r.orderId),positionId:String(r.positionId)})) : (!!o.broker_order_id && String(r.id ?? r.orderId) === String(o.broker_order_id) && Math.abs(Number(r.filledQty) - Number(o.qty)) < 1e-8 && !(r.isOpen === true || String(r.isOpen) === "true"))));
     if (filled.length) {
       const r = filled[0];
       await db.from("shadow_orders").update({ status: o.event === "open" ? "filled" : "closed", ...(o.event === "open" ? {} : { dispatch_state: "confirmed", broker_confirmed_qty: Number(o.qty) }), broker_order_id: String(r.id ?? ""),
@@ -422,6 +444,7 @@ async function reconcile(db: Db) {
     if (t?.status === "closed") fixed.push({ orphan: leg.source_trade_id, ...(await closeLeg(db, { source_trade_id: leg.source_trade_id, event: "close" })) });
   }
   fixed.push(...await shadowReconcile(db).catch(() => []));
+  await db.rpc('copy_test_settle');
   return { ok: true, fixed };
 }
 

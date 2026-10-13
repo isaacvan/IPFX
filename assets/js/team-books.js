@@ -42,6 +42,11 @@
     if (!response.ok || !body?.ok) throw new Error(body?.error || 'TradeLocker connection unavailable');
     return body;
   }
+  if(mode==='a'&&window.IPFXFiveTradeTest)window.IPFXFiveTradeTest.init(async(action,extra={})=>{
+    const {data:{session}}=await sb.auth.getSession();if(!session)throw Error('Sign in to Team and complete owner MFA.');
+    const r=await fetch(SB_URL+'/functions/v1/ladder-admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({action,...extra}),cache:'no-store',signal:AbortSignal.timeout(25000)});
+    const b=await r.json().catch(()=>null);if(!r.ok||!b?.ok)throw Error(b?.error||b?.reason||'Test request could not be confirmed. Refresh before retrying.');return b;
+  });
   async function callPopulation(session) {
     const response = await fetch(SB_URL + '/functions/v1/team-population', {
       method: 'GET', headers: { Authorization: 'Bearer ' + session.access_token }, cache: 'no-store',

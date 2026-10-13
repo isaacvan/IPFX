@@ -1141,6 +1141,11 @@ async function abRoute(db: Db, userId: string): Promise<"a" | "b" | null> {
   if (error) return null;
   return data === "a" || data === "b" ? data : null;
 }
+async function scopedCopyTestRoute(db:Db,acct:Acct,symbol:string):Promise<'a'|null>{
+  if(acct.challenge_type!=='demo'||acct.status!=='demo'||symbol!=='XAUUSD')return null;
+  const {data,error}=await db.rpc('copy_test_route',{p_user:acct.user_id,p_source:acct.id,p_symbol:symbol});
+  return !error&&data==='a'?'a':null;
+}
 async function callBook(body: Record<string, unknown>): Promise<MirrorResult> {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   try {
@@ -1586,7 +1591,7 @@ async function processPendingOrders(
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
     const sourceRiskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * Number(o.volume) * conv;
-    const abBook = inBrainScope(acct) ? await abRoute(db, acct.user_id) : null;
+    const abBook = inBrainScope(acct) ? await abRoute(db, acct.user_id) : await scopedCopyTestRoute(db,acct,symbol);
     if (abBook === "a" || await hedgeOpenArmed(db, acct)) {
       // Copied account: the hedge fills first; the trader's entry is no better than the broker's.
       const hedge = abBook === "a"
@@ -3896,7 +3901,7 @@ if (body.action === "sweep") {
       await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);
 
       // Copied (A-book) account: hedge first, then fill the trader no better than the broker.
-      const abBook = inBrainScope(A) ? await abRoute(db, user.id) : null;
+      const abBook = inBrainScope(A) ? await abRoute(db, user.id) : await scopedCopyTestRoute(db,A,symbol);
       if (abBook === "a" || await hedgeOpenArmed(db, A)) {
         const takingAsk = side === "buy";
         const started = Date.now();
