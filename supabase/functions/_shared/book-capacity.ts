@@ -3,7 +3,10 @@ import { brokerCapacitySnapshot } from './tradelocker.ts';
 export async function reserveCapacity(db: any, book: string, trade: string, qty: number, dest: {token:string;accountId:string;accNum:string}, requireEmpty=false) {
   const {data: limit,error}=await db.from('book_capacity_limits').select('book').eq('book',book).maybeSingle();
   if(error||!limit)return {ok:false,reason:'DOCUMENTED_CAPACITY_NOT_CONFIGURED'};
-  if (!Deno.env.get('TRADELOCKER_DEVELOPER_API_KEY')) return {ok:false,reason:'MULTI_ACCOUNT_DEVELOPER_ACCESS_UNCONFIGURED'};
+  if (!Deno.env.get('TRADELOCKER_DEVELOPER_API_KEY')) {
+    const jwt=await db.rpc('ongoing_copy_jwt_capacity_allowed',{p_book:book,p_trade:trade});
+    if(jwt.error||jwt.data!==true)return {ok:false,reason:'MULTI_ACCOUNT_DEVELOPER_ACCESS_UNCONFIGURED'};
+  }
   try {
     const snapshot=await brokerCapacitySnapshot(dest.token,dest.accountId,dest.accNum);
     if(requireEmpty&&(snapshot.open_positions!==0||snapshot.pending_orders!==0))return {ok:false,reason:'TEST_ACCOUNT_HAS_EXISTING_POSITIONS_OR_ORDERS'};

@@ -14,8 +14,8 @@ test('parallel duplicate admissions reserve one intention and never repay a refu
  await f.connect();await f.select();await f.control('on');await f.add(1);const attempts=await Promise.all(Array.from({length:100},()=>f.claim(1)));assert.equal(attempts.filter(x=>x.r.ok).length,1);
  await f.q('select ongoing_copy_note($1,true,$2)',[tradeId(1),'Refused before send']);assert.equal((await f.claim(1)).r.reason,'DUPLICATE_NO_SEND');
  }finally{await f.db.close()}});
-test('developer/capacity/holds/halt failures cannot turn ON or move any trader to live',{skip},async()=>{const f=await ongoingDb();try{
- await f.connect();await f.select();await assert.rejects(f.control('on',null,false),/DEVELOPER/);await f.db.exec('delete from book_capacity_limits');await assert.rejects(f.control('on'),/DEVELOPER/);
+test('capacity/holds/halt failures cannot turn ON or move any trader to live',{skip},async()=>{const f=await ongoingDb();try{
+ await f.connect();await f.select();await f.db.exec('delete from book_capacity_limits');await assert.rejects(f.control('on'),/DOCUMENTED_CAPACITY/);
  await f.db.exec("insert into book_capacity_limits values('l3',200,500,'Synthetic evidence');update ab_person_signals set investigation_hold=true");await assert.rejects(f.control('on'),/MODEL_ASSIGNMENT_REFUSED/);
  assert.equal((await f.q('select execution_on from ongoing_copy_connections')).execution_on,false);assert.equal((await f.q('select book_state from ab_trader_profiles')).book_state,'BB_DEMO');
  await f.db.exec('update ab_person_signals set investigation_hold=false;update platform_config set trading_halted=true');await assert.rejects(f.control('on'),/HALTED/);

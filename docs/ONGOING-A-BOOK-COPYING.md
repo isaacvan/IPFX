@@ -6,7 +6,7 @@ The A-book page provides Connect/Disconnect and Execution ON/OFF for a saved E8/
 
 1. Sign in with Team MFA, open A-book and select a saved eligible E8 account, including the existing monitoring account. Set copy lots and maximum planned emergency-stop risk; confirm ownership and permitted signals. Connect saves execution OFF.
 2. Find the exact registered IPFX trader and add them. Only active Infinity challenge accounts are eligible, including the person's subsequent stages. Practice Demo, external executions and historical opens are excluded.
-3. Record genuine provider position/margin limits in Treasury and configure developer API access. These are checked on the server; client flags cannot satisfy them.
+3. Record genuine provider position/margin limits in Treasury. The saved password login supplies JWT access/refresh tokens; one active owner-selected execution account can use default API access without a developer key. Multi-account execution still requires developer access. These checks run on the server; client flags cannot satisfy them.
 4. The human owner reviews and explicitly switches execution ON. Existing owner-model controls assign only selected people to A-book live. Adding another person while ON also needs explicit review. Changed selection/version invalidates an earlier ON review.
 5. OFF, Disconnect or Stop copying trader stops new admissions. Orders already in flight may finish. Owned partial/full exits and uncertain opening receipts remain bound to the original account and continue to be tracked. Moving a selected person to a demo model, suspending them or placing them on integrity hold also blocks new copying.
 
@@ -30,3 +30,5 @@ Opening journals persist the prior broker position IDs before dispatch. A reused
 The dashboard lists the latest 100 records; database history is retained. Gross P&L is calculated from recorded fills and instrument conversion. Complete broker fees/swaps and net reconciliation are still required before a verified-net claim. No 95% accuracy or production-scale throughput claim follows from synthetic tests.
 
 Tests are entirely synthetic: real SQL in PGlite; actual open/destination/reconcile functions with mocked I/O; schema cache isolation; and a network-blocked browser fixture. Production publication is not proof of a funded fill. The agent must not switch funded execution ON or submit source orders that trigger it.
+
+JWT-only extension: migration20261014001500 adds a private single-account capability and activation mode. Activations serialize on a transaction advisory lock; a second active physical execution destination blocks default-access admission. Owned exits remain available. Ordinary/legacy multi-account capacity paths retain their developer guard. HTTP429 responses are failures, never blindly retried as new orders; standard provider limits continue to apply. Basic authentication and scale/developer access are separate concerns.
