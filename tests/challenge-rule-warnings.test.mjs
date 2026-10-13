@@ -52,3 +52,11 @@ test('notifications deduplicate across refresh, immediately escalate and stay in
  assert.equal(announcement([red],'b',now+3000,seen),red);
  assert.equal(announcement([red],'a',now+31*60000,seen),red);
 });
+test('personal consistency amount rounds up and uses net UTC daily profit',()=>{
+ const s=state();s.account.progress.qualification={applies:true,best_day_share:1,rules:{max_best_day_share:.35}};
+ s.closed_trades=[{closed_at:'2026-10-12T12:00:00Z',pnl:25},{closed_at:'2026-10-12T13:00:00Z',pnl:-5}];
+ const c=ctx.IPFXRuleWarnings.consistency(s);assert.equal(c.best,20);assert.equal(c.required,57.15);assert.equal(c.remaining,37.15);
+ s.closed_trades.push({closed_at:'2026-10-13T12:00:00Z',pnl:10});s.account.progress.qualification.best_day_share=20/30;
+ assert.equal(ctx.IPFXRuleWarnings.consistency(s).remaining,27.15);
+ s.account.progress.qualification.best_day_share=.9;assert.equal(ctx.IPFXRuleWarnings.consistency(s),null);
+});

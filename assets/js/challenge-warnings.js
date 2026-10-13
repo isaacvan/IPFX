@@ -2,6 +2,26 @@
   'use strict';
   const number=v=>v==null?NaN:Number(v);
   const money=v=>'$'+Math.max(0,v).toFixed(2);
+  function consistency(state){
+    const a=state&&state.account,Q=a&&a.progress&&a.progress.qualification;
+    const limit=number(Q&&Q.rules&&Q.rules.max_best_day_share),share=number(Q&&Q.best_day_share);
+    if(!Q||!Q.applies||!(limit>0&&limit<1)||!Array.isArray(state.closed_trades))return null;
+    const days={};
+    for(const t of state.closed_trades){
+      const time=Date.parse(t.closed_at),pnl=number(t.pnl);
+      if(!Number.isFinite(time)||!Number.isFinite(pnl))continue;
+      const day=new Date(time).toISOString().slice(0,10);days[day]=(days[day]||0)+pnl;
+    }
+    const positive=Object.values(days).filter(v=>v>0),total=positive.reduce((sum,v)=>sum+v,0),best=positive.length?Math.max(...positive):0;
+    // Never show an amount from partial history that disagrees with server qualification evidence.
+    if(!(total>0)||!Number.isFinite(share)||Math.abs(best/total-share)>0.0001)return null;
+    const required=Math.ceil((best/limit-1e-9)*100)/100,remaining=Math.max(0,Math.ceil((required-total-1e-9)*100)/100);
+    return {best,total,required,remaining,limit};
+  }
+  function consistencyText(state){
+    const c=consistency(state);if(!c)return '';
+    return `Your best day: ${money(c.best)}. Winning-day profit so far: ${money(c.total)}. Required winning-day total at ${(c.limit*100).toFixed(0)}%: ${money(c.required)}. ${c.remaining>0?`Make at least ${money(c.remaining)} more net profit on other UTC days.`:'This consistency requirement is met.'} A new best day raises the required total. Losing days still count against your separate stage profit target; all other rules and daily caps still apply.`;
+  }
   function build(state,now){
     const a=state&&state.account;
     if(!a||a.is_demo||a.challenge_type!=='infinity'||a.status!=='active')return [];
@@ -36,7 +56,7 @@
       `${money(Math.max(0,cap-gain))} left before today's ${money(cap)} profit cap pauses new entries until 00:00 UTC. This is not a breach; existing positions remain manageable.`);
     const best=number(Q.best_day_share),bestLimit=number(rules.max_best_day_share);
     if(Q.applies&&bestLimit>0&&Number.isFinite(best)&&best>=bestLimit*.8)add('consistency','reminder',
-      `Your best day contributes ${(best*100).toFixed(1)}% of positive daily profit; the stage limit is ${(bestLimit*100).toFixed(0)}%. ${best>bestLimit?'This requirement is not met yet.':'You are approaching the limit.'} This affects progression, not an automatic account failure.`,false);
+      `Your best day contributes ${(best*100).toFixed(1)}% of positive daily profit; the stage limit is ${(bestLimit*100).toFixed(0)}%. ${best>bestLimit?'This requirement is not met yet.':'You are approaching the limit.'} This affects progression, not an automatic account failure. ${consistencyText(state)}`,false);
     const days=number(Q.applies?rules.min_trading_days:P.min_trading_days);
     const completed=number(Q.applies?Q.meaningful_days:P.trading_days);
     if(days>0&&completed<days&&number(a.balance)>=number(L.target_balance)&&number(L.target_balance)>0)add('minimum-days','reminder',
@@ -115,5 +135,5 @@
     const key='stage-read-v1:'+a.id+':'+JSON.stringify(read);
     return {stage:Number(a.stage),rows,read,key,available:Q.applies===true&&!!Q.rules,ready};
   }
-  root.IPFXRuleWarnings={build,announcement,checklist};
+  root.IPFXRuleWarnings={build,announcement,checklist,consistency,consistencyText};
 })(globalThis);

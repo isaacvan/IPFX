@@ -1665,7 +1665,7 @@ body.light .sym-row:hover,body.light .sym-row.hl{background:rgba(0,0,0,.05)}
 body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
-<script src="/assets/js/challenge-warnings.js?v=20261012-checklist"></script>
+<script src="/assets/js/challenge-warnings.js?v=20261013-consistency"></script>
 </head>
 <body>
 
@@ -3175,6 +3175,8 @@ function renderChallenge(){
     reqs.push({done:meaningful>=needMeaningful,txt:`<b>${meaningful}/${needMeaningful}</b> meaningful trading days`});
     reqs.push({done:sessions>=needSessions,txt:`<b>${sessions}/${needSessions}</b> exposure sessions<span class="ch-sub">One session = one burst of trading. Trades open at the same time, or opened within 60 minutes of closing everything, count as <b>one</b>. Open a trade after being flat for more than 60 minutes to start the next one.</span>`});
     reqs.push({done:best!==null&&best<=bestLimit,txt:`Best positive day <b>${best===null?'not yet measurable':(best*100).toFixed(1)+'%'}</b> (maximum ${(bestLimit*100).toFixed(0)}%)`});
+    const consistencyExplanation=window.IPFXRuleWarnings&&window.IPFXRuleWarnings.consistencyText(engineState);
+    if(consistencyExplanation)reqs.push({done:best!==null&&best<=bestLimit,txt:escapeHtml(consistencyExplanation)});
   } else if(a.challenge_type==='infinity'&&q==null){
     reqs.push({done:false,txt:'Qualification evidence unavailable — progress cannot be confirmed yet'});
   }
