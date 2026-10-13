@@ -37,10 +37,13 @@ Deno.serve(async (req) => {
   // Owner test messages first, then oldest first. Until the owner switches the outbox live (secret
   // EMAIL_OUTBOX_LIVE=1, set after the test emails were checked), only owner test messages are sent.
   const live = Deno.env.get("EMAIL_OUTBOX_LIVE") === "1";
+  // Owner tests first, then time-sensitive notices (breach / restart), then the approval backlog; oldest first within each.
+  // deno-lint-ignore no-explicit-any
+  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" ? 2 : 0);
   // deno-lint-ignore no-explicit-any
   const list = (rows ?? []).filter((r: any) => live || r.payload?.test === true)
     // deno-lint-ignore no-explicit-any
-    .sort((a: any, b: any) => (b.payload?.test ? 1 : 0) - (a.payload?.test ? 1 : 0));
+    .sort((a: any, b: any) => rank(b) - rank(a));
 
   // deno-lint-ignore no-explicit-any
   const templates = new Map<string, any>();
