@@ -8,7 +8,9 @@ import { emailShell, render } from "../_shared/lifecycle-email.ts";
 
 const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? "80");
 const PER_RUN = Number(Deno.env.get("EMAIL_PER_RUN") ?? "10");
-const TEMPLATES = ["infinity_approved"];
+const TEMPLATES = ["infinity_approved", "infinity_monthly_restart", "infinity_breach_notice"];
+// Emails that only make sense while the trader has an active Infinity account.
+const NEEDS_ACTIVE = ["infinity_approved", "infinity_monthly_restart"];
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
@@ -50,7 +52,7 @@ Deno.serve(async (req) => {
       .eq("id", row.id).eq("status", row.status).select("id").maybeSingle();
     if (!claimed) continue;
     try {
-      if (row.template_key === "infinity_approved" && !row.payload?.test) {
+      if (NEEDS_ACTIVE.includes(row.template_key) && !row.payload?.test) {
         const { count: active } = await db.from("trading_accounts").select("id", { count: "exact", head: true })
           .eq("user_id", row.user_id).eq("challenge_type", "infinity").eq("status", "active").is("access_revoked_at", null);
         if (!active) {

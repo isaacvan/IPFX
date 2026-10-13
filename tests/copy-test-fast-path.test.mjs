@@ -33,9 +33,11 @@ test('ambiguous exact receipts stay reconciliation-required and are never resubm
 
 test('ordinary A-book retains routing, sizing, group selection and excludes other test-only destinations', async () => {
   const f = bookOpenFixture({ ordinary: true, otherLadder: true }); const r = await f.run();
-  assert.equal(r.legs.length, 1); assert.equal(r.legs[0].book, 'l7'); assert.equal(f.posts[0].qty, .02);
+  assert.equal(r.legs.length, 1); assert.equal(r.legs[0].book, 'l7');
+  // New to live: 25% size (owner decision 2026-10-13). 0.02 lots x 25% is below the broker minimum, so nothing is sent.
+  assert.equal(f.posts.length, 0);
   for (const x of ['ab_route_for_user', 'ab_trade_ledger:select', 'ab_person_progress', 'treasury_status', 'ladder_settings:select', 'ab_trader_profiles:select']) assert.ok(f.trace.includes(x), x);
-  assert.equal(f.requests.find(x => x.name === 'capacity-guard').requireEmpty, false);
+  const guard = f.requests.find(x => x.name === 'capacity-guard'); assert.ok(!guard || guard.requireEmpty === false);
   const rejected = bookOpenFixture({ ordinary: true, route: 'b' }); await rejected.run(); assert.equal(rejected.posts.length, 0);
 });
 

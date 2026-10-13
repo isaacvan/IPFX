@@ -1973,7 +1973,7 @@ async function strikeOutRun(db: Db, acct: Acct, open: Tr[]): Promise<Tr[]> {
     emailLater(sendLifecycleEmail(db, "account_breached", acct.user_id, {
       challenge_name: acct.label,
       breach_reason: BREACH_TEXT.stop_loss_rule,
-      next_step: "This Infinity run has ended and IPFX Markets has switched you to demo. Restart the Infinity Challenge from Stage 1 when you are ready; your new run starts with 0 warnings. Always set a stop loss within 30 seconds of opening a trade.",
+      next_step: INFINITY_BREACH_NEXT_STEP() + " Your new run starts with 0 warnings. Always set a stop loss within 30 seconds of opening a trade.",
     }));
   }
   const { data: left } = await db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open");
@@ -2371,7 +2371,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
         emailLater(sendLifecycleEmail(db, "account_breached", acct.user_id, {
           challenge_name: acct.label,
           breach_reason: BREACH_TEXT[breach] ?? breach,
-          next_step: acct.phase === "evaluation"
+          next_step: acct.challenge_type === "infinity" ? INFINITY_BREACH_NEXT_STEP() : acct.phase === "evaluation"
             ? "Your challenge account is frozen and IPFX Markets has switched you to demo. You can view the current continuation price, restart, or apply for a new challenge."
             : "Your funded account is frozen and IPFX Markets has switched you to demo. Review your dashboard or contact support for the next available action.",
         }));
@@ -2751,6 +2751,14 @@ async function openRiskUsd(open: Tr[]): Promise<number> {
   }
   return round2(total);
 }
+
+// The date a failed Infinity run's next Stage 1 starts automatically (00:00 UTC on the 1st of next month).
+function infinityRestartDateText(now = new Date()): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) + " at 00:00 UTC";
+}
+const INFINITY_BREACH_NEXT_STEP = () =>
+  `Your trades were closed and this Infinity account is frozen, so it cannot place any more trades. A fresh $1,000 Stage 1 starts automatically on ${infinityRestartDateText()}. You do not need to apply again, and we will email you when it is ready. Until then you can practise on IPFX Demo.`;
 
 async function claimOrderLock(db: Db, accountId: string): Promise<boolean> {
   const { data, error } = await db.rpc("claim_account_order_lock", { p_account: accountId, p_seconds: 5 });

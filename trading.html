@@ -5811,9 +5811,17 @@ function infinityRestartDate(lock){
 function showInfinityTradeWarning(lock){
   const modal=document.getElementById('infBreachAttempt');if(!modal)return;
   const date=infinityRestartDate(lock);
-  document.getElementById('infBreachAttemptText').textContent=date
-    ? 'Your Infinity account has been breached. No trade has been placed. You can start a new approved challenge from '+date+'. Demo practice is still available.'
-    : 'Your Infinity account has been breached. No trade has been placed. Your restart date needs review. Demo practice is still available.';
+  const b=typeof currentBreach==='function'?currentBreach():null;
+  const why=b&&b.reason?(b.reason==='daily_loss'?'you reached the daily loss limit':b.reason==='stop_loss_rule'?'three trades were left without a stop-loss':'you reached the maximum drawdown limit'):'a rule limit was reached';
+  document.getElementById('infBreachAttemptTitle').textContent='Your Infinity account has failed';
+  const txt=document.getElementById('infBreachAttemptText');
+  if(txt.style)txt.style.whiteSpace='pre-line';
+  txt.textContent=
+    'This run ended because '+why+'. Your trades were closed and this account cannot place any more trades. No trade has been placed.\n\n'+
+    (date
+      ? 'A fresh $1,000 Stage 1 starts automatically on '+date+'. You do not need to apply again, and we will email you when it is ready.'
+      : 'Your restart date is being reviewed. We will email you when you can start again.')+
+    '\n\nUntil then you can practise on IPFX Demo.';
   document.getElementById('infFreeze')?.classList.remove('open');modal.classList.add('open');
   try{if(lock.source_account_id)sessionStorage.setItem('ipfx-breach-dismissed',lock.source_account_id);}catch(_){}
   document.getElementById('infBreachAttemptClose')?.focus();
@@ -5883,7 +5891,7 @@ function renderAccountFreeze(a){
     ? 'Challenge/funded access stays paused. This failed account cannot be reactivated; trading requires a newly approved challenge account. Closed positions are never reopened. '+
       (breach.challenge_type==='infinity'?'Restarting returns you to Stage 1 and uses a monthly attempt.':'Starting again opens the official challenge page; paid challenges are never granted for free.')
     : 'Challenge/funded access stays paused. You can keep practising on demo, start a new challenge, or contact support for review.';
-  if(monthLocked)document.getElementById('infFreezeNote').textContent='Infinity is locked '+(infinityRestartDate(lock)?'until '+infinityRestartDate(lock):'until your restart date is reviewed')+'. Starting next month requires a new approved challenge; this failed account never reopens.';
+  if(monthLocked)document.getElementById('infFreezeNote').textContent=(infinityRestartDate(lock)?'A fresh $1,000 Stage 1 starts automatically on '+infinityRestartDate(lock)+'. You do not need to apply again; we will email you when it is ready.':'Your restart date is being reviewed.')+' This failed account cannot be reactivated.';
 }
 function continueOnDemo(){
   const breach=currentBreach();

@@ -154,7 +154,8 @@ async function open(db: Db, b: Record<string, unknown>) {
   // Legs go out in parallel (each account has its own reservation row and broker token), so 30 ladder
   // accounts take about as long as one and the engine's hedge-first wait is not exceeded.
   const placeLeg = async (leg: Leg): Promise<Record<string, unknown>> => {
-    let wanted = traderRisk * sizing.multiplier, reason = sizing.reason, weight = sizing.multiplier;
+    const probation = book === "a" ? Math.min(1, Math.max(0, sizing.probation ?? 1)) : 1;
+    let wanted = traderRisk * sizing.multiplier * probation, reason = sizing.reason, weight = sizing.multiplier * probation;
     let legPriceScale=scale;
     let dest=trial?.ongoing?await destination(db,leg.book,false,tradeId):null;
     let verifiedLots: {min:number;step:number}|null=null;

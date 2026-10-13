@@ -8,17 +8,27 @@
 // trader pays gets stronger; an early warning (reverse turning negative) drops back to 1x.
 import { earlyWarning, evidence, POLICY_V1, type LedgerPoint, type Policy } from "./ab-classifier.ts";
 
-export type Sizing = { multiplier: number; reason: string };
+// probation (A-book only): share of the normal live size used while a trader is new to live copying
+// (owner decision 2026-10-12): 25% for the first 10 live copies, 50% until 20 copies with a positive live
+// average, then full size. Applies to every route into A-book live, including the 2.75% Stage 2 rule.
+export type Sizing = { multiplier: number; reason: string; probation?: number };
+
+export function liveProbation(liveTrades: number, liveMeanR: number): number {
+  if (liveTrades < 10) return 0.25;
+  if (liveTrades < 20 || !(liveMeanR > 0)) return 0.5;
+  return 1;
+}
 
 export function sizeMultiplier(book: "a" | "b", all: LedgerPoint[], stateSince: number, maxMultiplier: number,
   policy: Policy = POLICY_V1): Sizing {
   if (book === "a") {
     const live = all.filter((p) => p.closedAt >= stateSince);
-    if (earlyWarning(live, (p) => p.sameR, policy)) return { multiplier: 1, reason: "early warning: recent live results negative" };
     const e = evidence(live, (p) => p.sameR, policy.minEdgeR, policy);
-    if (e.trades >= 80 && e.dayLower > 0 && e.eValue >= 100) return { multiplier: Math.min(6, maxMultiplier), reason: "strongly confirmed live edge" };
-    if (e.trades >= 40 && e.dayLower > 0) return { multiplier: Math.min(3, maxMultiplier), reason: "confirmed live edge" };
-    return { multiplier: 1, reason: "new to A-book live" };
+    const probation = liveProbation(e.trades, e.mean);
+    if (earlyWarning(live, (p) => p.sameR, policy)) return { multiplier: 1, reason: "early warning: recent live results negative", probation };
+    if (e.trades >= 80 && e.dayLower > 0 && e.eValue >= 100) return { multiplier: Math.min(6, maxMultiplier), reason: "strongly confirmed live edge", probation };
+    if (e.trades >= 40 && e.dayLower > 0) return { multiplier: Math.min(3, maxMultiplier), reason: "confirmed live edge", probation };
+    return { multiplier: 1, reason: "new to A-book live", probation };
   }
   const recent = all.filter((p) => p.closedAt >= stateSince);
   if (earlyWarning(recent, (p) => p.reverseR, policy)) return { multiplier: 1, reason: "early warning: reverse results turning negative" };
@@ -76,6 +86,9 @@ export function fundedRiskUsd(book: "a" | "b", lim: FundedLimits, expectedSignal
     weight = (sizing.multiplier >= 3 ? 1 : sizing.multiplier >= 2 ? 0.75 : 0.5) * (warning ? 1 / 3 : 1);
   }
   const floor = lim.accountSizeUsd * lim.perTradeMinPct / 100, ceil = lim.accountSizeUsd * lim.perTradeMaxPct / 100;
-  const riskUsd = Math.round(Math.min(ceil, Math.max(floor, base * weight)) * 100) / 100;
-  return { riskUsd, weight: Number(weight.toFixed(3)), reason: `${progress}; ${sizing.reason}; ${expectedSignalsPerDay.toFixed(1)} signals/day; treasury ${treasury}` };
+  // New-to-live probation is applied after the floor, so a new trader really is copied small.
+  const probation = book === "a" ? Math.min(1, Math.max(0, sizing.probation ?? 1)) : 1;
+  const riskUsd = Math.round(Math.min(ceil, Math.max(floor, base * weight)) * probation * 100) / 100;
+  const note = probation < 1 ? `; new to live: ${Math.round(probation * 100)}% size` : "";
+  return { riskUsd, weight: Number((weight * probation).toFixed(3)), reason: `${progress}; ${sizing.reason}${note}; ${expectedSignalsPerDay.toFixed(1)} signals/day; treasury ${treasury}` };
 }
