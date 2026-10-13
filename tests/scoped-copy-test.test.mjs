@@ -1,12 +1,13 @@
 import fs from'node:fs';import test from'node:test';import assert from'node:assert/strict';import{pathToFileURL}from'node:url';
 const deps=process.env.DEMO_TEST_DEPS,actor='11111111-1111-4111-8111-111111111111',person='22222222-2222-4222-8222-222222222222',source='33333333-3333-4333-8333-333333333333';
 const migration=fs.readFileSync(new URL('../supabase/migrations/20261013013000_scoped_copy_test.sql',import.meta.url),'utf8');
+const correction=fs.readFileSync(new URL('../supabase/migrations/20261013014500_copy_test_infinity_source.sql',import.meta.url),'utf8');
 const id=i=>`44444444-4444-4444-8444-${String(i).padStart(12,'0')}`;
 async function setup(){const{PGlite}=await import(pathToFileURL(deps+'/node_modules/@electric-sql/pglite/dist/index.js').href),db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;
  create table auth.users(id uuid,email text);create table admins(user_id uuid);insert into admins values('${actor}');insert into auth.users values('${person}','fixture@example.invalid');
  create function ab_person_of(uuid)returns uuid language sql as 'select $1';
- create table trading_accounts(id uuid primary key,user_id uuid,challenge_type text,status text,venue text,label text);
- insert into trading_accounts values('${source}','${person}','demo','demo','ipfx','Synthetic Demo');
+ create table trading_accounts(id uuid primary key,user_id uuid,challenge_type text,status text,venue text,label text,phase text,stage int);
+ insert into trading_accounts values('${source}','${person}','infinity','active','ipfx','Synthetic Infinity','challenge',1);
  create table ladder_accounts(id bigint primary key,role text,execution_enabled boolean,status text,api_env text,account_id text,size_usd numeric,instrument_map jsonb);
  insert into ladder_accounts values(7,'ladder',false,'funded','demo','700',50000,jsonb_build_array(jsonb_build_object('symbol','XAUUSD.C','lot_size',100,'quote_currency','USD','spec_observed_at',now()))),(3,'monitor',false,'evaluation','demo','300',50000,'[]');
  create table trades(id uuid primary key,account_id uuid,user_id uuid,symbol text,parent_trade_id uuid,external_source text,status text,opened_at timestamptz,volume numeric,sl numeric);
@@ -19,7 +20,7 @@ async function setup(){const{PGlite}=await import(pathToFileURL(deps+'/node_modu
  create table admin_audit_log(actor_id uuid,action text,detail jsonb);
  create table ab_policy_versions(thresholds jsonb);insert into ab_policy_versions values('{"stage2AutoPct":2.75,"stage2AutoTarget":"AB_LIVE"}');
  create function e8_sim_capture()returns trigger language plpgsql as $$declare state text; a trading_accounts;begin state:=coalesce(state,'BB_DEMO');return new;end $$;
- create function ab_model_capabilities(uuid)returns jsonb language sql as $$select jsonb_build_object('destinations',count(*))from ladder_accounts l where l.role='ladder' and l.status='funded' and l.execution_enabled$$;`);await db.exec(migration);
+ create function ab_model_capabilities(uuid)returns jsonb language sql as $$select jsonb_build_object('destinations',count(*))from ladder_accounts l where l.role='ladder' and l.status='funded' and l.execution_enabled$$;`);await db.exec(migration);await db.exec(correction);
  const q=async(sql,args=[])=>(await db.query(sql,args)).rows[0];
  const prepare=async()=>q(`select copy_test_prepare('${person}','${source}',7,10,'${actor}','Synthetic own-account test') r`);
  const start=async(session=1)=>q(`select copy_test_control(${session},'start',1,'${actor}',true) r`);
@@ -34,3 +35,25 @@ test('stopping/draining disables new opens, retains unknown slots, then complete
 test('rejected intents stay counted; an uncertain broker row cannot be classified as no fill',{skip:!deps},async()=>{const f=await setup();try{await f.prepare();await f.start();await f.add(1);await f.claim(1);await f.q('select copy_test_note($1,true,$2)',[id(1),'Risk refused before send']);assert.equal((await f.q('select state from copy_test_slots')).state,'refused');await f.add(2);await f.claim(2);await f.db.exec(`insert into book_orders(source_trade_id,event,book,status)values('${id(2)}','open','l7','reconciliation_required')`);await f.q('select copy_test_note($1,true,$2)',[id(2),'Unknown send']);assert.equal((await f.q('select state from copy_test_slots where source_trade_id=$1',[id(2)])).state,'pending_receipts');assert.equal((await f.q('select slots from copy_test_sessions')).slots,2);}finally{await f.db.close()}});
 test('exact owner lookup and bounded receipts never expose tokens or claim verified net',{skip:!deps},async()=>{const f=await setup();try{assert.equal((await f.q('select copy_test_find_user($1) r',['fixture@example.invalid'])).r.person_id,person);assert.equal((await f.q('select copy_test_find_user($1) r',['nobody@example.invalid'])).r,null);await f.prepare();const r=(await f.q('select copy_test_summary($1) r',[actor])).r;assert.equal(r.length,1);assert.equal(r[0].state,'prepared');assert.equal(r[0].model_changed,false);assert.ok(!JSON.stringify(r).includes('ciphertext'));}finally{await f.db.close()}});
 test('an active test-only destination cannot make other traders funded-ready; stale/ambiguous gold specs block start',{skip:!deps},async()=>{const f=await setup();try{await f.prepare();await f.db.exec("update ladder_accounts set instrument_map=instrument_map||instrument_map where id=7");await assert.rejects(f.start(),/GOLD_METADATA/);await f.db.exec("update ladder_accounts set instrument_map=jsonb_build_array(jsonb_build_object('symbol','XAUUSD.C','lot_size',100,'quote_currency','USD','spec_observed_at',now()-interval '7 hours'))where id=7");await assert.rejects(f.start(),/GOLD_METADATA/);await f.db.exec("update ladder_accounts set instrument_map=jsonb_build_array(jsonb_build_object('symbol','XAUUSD.C','lot_size',100,'quote_currency','USD','spec_observed_at',now()))where id=7");await f.start();assert.equal((await f.q('select ab_model_capabilities($1) r',[person])).r.destinations,0);}finally{await f.db.close()}});
+
+test('lookup lists active Infinity with stage and excludes practice Demo, Traditional, foreign and breached accounts',{skip:!deps},async()=>{const f=await setup();try{
+ await f.db.exec(`insert into trading_accounts values('${id(1)}','${person}','demo','demo','ipfx','Practice','demo',null),('${id(2)}','${person}','traditional','active','ipfx','Traditional','challenge',1),('${id(3)}','${person}','infinity','breached','ipfx','Blown','challenge',1),('${id(4)}','55555555-5555-4555-8555-555555555555','infinity','active','ipfx','Other person','challenge',1)`);
+ const r=(await f.q('select copy_test_find_user($1) r',['fixture@example.invalid'])).r;assert.equal(r.accounts.length,1);assert.equal(r.accounts[0].id,source);assert.equal(r.accounts[0].challenge_type,'infinity');assert.equal(r.accounts[0].stage,1);
+ for(const acct of[id(1),id(2),id(3),id(4)])await assert.rejects(f.q(`select copy_test_prepare('${person}',$1,7,10,'${actor}','Synthetic rejection')`,[acct]),/ACTIVE_INFINITY/);
+ assert.equal((await f.q('select count(*) n from copy_test_sessions')).n,0);
+ }finally{await f.db.close()}});
+
+test('Infinity breach after preparation blocks Start, and breach after Start blocks routing and admission',{skip:!deps},async()=>{const f=await setup();try{
+ await f.prepare();await f.db.exec("update trading_accounts set status='breached'");await assert.rejects(f.start(),/ACTIVE_INFINITY/);
+ assert.equal((await f.q('select execution_enabled from ladder_accounts where id=7')).execution_enabled,false);
+ await f.db.exec("update trading_accounts set status='active'");await f.start();await f.add(1);
+ assert.equal((await f.q('select copy_test_route($1,$2)r',[person,source])).r,'a');
+ await f.db.exec("update trading_accounts set status='breached'");assert.equal((await f.q('select copy_test_route($1,$2)r',[person,source])).r,null);assert.equal((await f.claim(1)).r.reason,'SOURCE_NOT_ACTIVE_INFINITY');
+ assert.equal((await f.q('select slots from copy_test_sessions')).slots,0);
+ }finally{await f.db.close()}});
+
+test('an Infinity-labelled practice phase cannot prepare or claim and reapplying correction fails closed',{skip:!deps},async()=>{const f=await setup();try{
+ await f.db.exec("update trading_accounts set phase='demo'");await assert.rejects(f.prepare(),/ACTIVE_INFINITY/);
+ await f.db.exec("update trading_accounts set phase='challenge'");await f.prepare();await f.start();await f.add(1);await f.db.exec("update trading_accounts set phase='demo'");assert.equal((await f.claim(1)).r.reason,'SOURCE_NOT_ACTIVE_INFINITY');
+ await assert.rejects(f.db.exec(correction),/SOURCE_DRIFT/);
+ }finally{await f.db.close()}});

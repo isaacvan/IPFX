@@ -1,7 +1,7 @@
 import test from'node:test';import assert from'node:assert/strict';import fs from'node:fs';import{fixture,account,user,root}from'./helpers/e8-db-fixture.mjs';
 const deps=process.env.DEMO_TEST_DEPS,actor='11111111-1111-4111-8111-111111111111';
-test('real source capture freezes A only for an active own Demo gold test; other symbols and profiles stay unchanged',{skip:!deps},async()=>{const f=await fixture();try{
- await f.db.exec(`create schema auth;create table auth.users(id uuid,email text);insert into auth.users values('${user}','fixture@example.invalid');create table admins(user_id uuid);insert into admins values('${actor}');alter table trading_accounts add column label text;alter table trading_accounts add column user_id uuid;update trading_accounts set user_id='${user}';
+test('real source capture freezes A only for an active own Infinity gold test; other symbols and profiles stay unchanged',{skip:!deps},async()=>{const f=await fixture();try{
+ await f.db.exec(`create schema auth;create table auth.users(id uuid,email text);insert into auth.users values('${user}','fixture@example.invalid');create table admins(user_id uuid);insert into admins values('${actor}');alter table trading_accounts add column label text;alter table trading_accounts add column user_id uuid;alter table trading_accounts add column phase text,add column stage int;update trading_accounts set user_id='${user}',challenge_type='infinity',status='active',phase='challenge',stage=1;
  alter table ladder_accounts add column status text,add column api_env text,add column account_id text,add column instrument_map jsonb;
  update ladder_accounts set account_id='300',api_env='demo';insert into ladder_accounts values(7,'ladder',false,'funded','demo','700',jsonb_build_array(jsonb_build_object('symbol','XAUUSD.C','lot_size',100,'quote_currency','USD','spec_observed_at',now())));
  insert into ab_trader_profiles values('${user}','BB_DEMO');alter table ab_trader_profiles add column manual_book_state text;create table ab_person_signals(person_id uuid,investigation_hold boolean,critical_flag boolean);insert into ab_person_signals values('${user}',false,false);
@@ -11,6 +11,7 @@ test('real source capture freezes A only for an active own Demo gold test; other
  create function ab_model_capabilities(uuid)returns jsonb language sql as $$select jsonb_build_object('destinations',count(*))from ladder_accounts l where l.role='ladder' and l.status='funded' and l.execution_enabled$$;
  insert into symbol_specs values('XAUUSD','USD',100);update e8_monitor_profiles set symbols=array['XAUUSD','EURUSD'];`);
  await f.db.exec(fs.readFileSync(new URL('../supabase/migrations/20261013013000_scoped_copy_test.sql',import.meta.url),'utf8'));
+ await f.db.exec(fs.readFileSync(new URL('../supabase/migrations/20261013014500_copy_test_infinity_source.sql',import.meta.url),'utf8'));
  await f.db.query(`select copy_test_prepare('${user}','${account}',7,10,'${actor}','Synthetic own gold test')`);await f.db.query(`select copy_test_control(1,'start',1,'${actor}',true)`);
  await f.db.exec(`insert into trades(id,account_id,user_id,symbol,side,volume,status,open_price,opened_at,sl)values('${root}','${account}','${user}','XAUUSD','buy',.01,'open',4000,clock_timestamp(),3998)`);
  assert.equal((await f.db.query(`select selected_book from e8_sim_positions where trade_id='${root}'`)).rows[0].selected_book,'a');

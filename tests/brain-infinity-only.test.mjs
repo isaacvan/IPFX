@@ -25,14 +25,14 @@ test('rows leaving the Brain are archived before they are deleted, and owner-set
   assert.match(sql, /revoke all on public\.ab_scope_archive from public, anon, authenticated/);
 });
 
-test('ordinary routing/shadowing stays Infinity-only; practice exceptions require the explicit scoped owner test', () => {
+test('ordinary and scoped routing stay Infinity-only, with selected gold scope before normal classification', () => {
   assert.match(engine, /const inBrainScope = \(acct: [^)]*\) =>\s+acct\.challenge_type === "infinity" && acct\.phase !== "demo" && acct\.status !== "demo";/);
   assert.match(engine, /function shadowLater\(db: Db, acct: [^)]*\}, body: Record<string, unknown>\) \{\s+if \(!inBrainScope\(acct\)\) return;/);
   assert.equal((engine.match(/shadowLater\(db, (acct|A)( as Acct)?, \{/g) || []).length, 4);
   assert.doesNotMatch(engine, /shadowLater\(db, \{/);
-  assert.match(engine, /const abBook = inBrainScope\(acct\) \? await abRoute\(db, acct\.user_id\) : await scopedCopyTestRoute\(db,acct,symbol\);/);
-  assert.match(engine, /const abBook = inBrainScope\(A\) \? await abRoute\(db, user\.id\) : await scopedCopyTestRoute\(db,A,symbol\);/);
-  assert.match(engine,/if\(acct.challenge_type!=='demo'\|\|acct.status!=='demo'\|\|symbol!=='XAUUSD'\)return null/);
+  assert.ok(engine.includes('await scopedCopyTestRoute(db,acct,symbol) ?? (inBrainScope(acct) ? await abRoute(db, acct.user_id) : null)'));
+  assert.ok(engine.includes('await scopedCopyTestRoute(db,A,symbol) ?? (inBrainScope(A) ? await abRoute(db, user.id) : null)'));
+  assert.ok(engine.includes("if(!inBrainScope(acct)||acct.status!=='active'||symbol!=='XAUUSD')return null"));
   assert.match(engine,/db.rpc\('copy_test_route',\{p_user:acct.user_id,p_source:acct.id,p_symbol:symbol\}\)/);
-  assert.equal((engine.match(/await abRoute\(/g) || []).length, 2); // both call sites are the scoped ones above
+  assert.equal((engine.match(/await abRoute\(/g) || []).length, 2);
 });
