@@ -39,6 +39,7 @@ export async function ongoingDb(){
  const risk=read('20261011043000_ab_risk_missing_config_guard.sql');await db.exec(risk.slice(risk.indexOf('CREATE OR REPLACE FUNCTION'),risk.lastIndexOf(';')+1));
  await db.exec(read('20261013193000_ongoing_owner_copy.sql'));
  await db.exec(read('20261014001500_ongoing_single_account_jwt.sql'));
+ await db.exec(read('20261014010000_one_action_live_selection.sql'));
  const q=async(sql,args=[])=>(await db.query(sql,args)).rows[0];
  const connect=()=>q(`select ongoing_copy_connect(3,.01,10,'${owner}',true,'Synthetic owner permission')r`);
  const select=()=>q(`select ongoing_copy_select(1,'${person}',true,'${owner}','Synthetic chosen trader')r`);
