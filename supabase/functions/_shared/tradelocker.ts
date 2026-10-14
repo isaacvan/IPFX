@@ -89,17 +89,25 @@ export async function positions(accessToken: string, accountId: string, accNum: 
   return rows(await request(`/trade/accounts/${accountId}/positions`, { method: "GET" }, accessToken, accNum), "positions");
 }
 
+// Decode only broker-configured tradable-funds fields. E8 calls this availableFunds.
+export function brokerAvailableFunds(configValue: unknown, stateValue: unknown): number {
+  const config=unwrap(configValue),state=unwrap(stateValue);
+  const columns=object(config.accountDetailsConfig).columns,values=state.accountDetailsData;
+  if(!Array.isArray(columns)||!Array.isArray(values)||columns.length!==values.length||!columns.length)throw new Error('ACCOUNT_STATE_SCHEMA_UNVERIFIED');
+  const names=columns.map(c=>object(c).id);
+  if(names.some(n=>typeof n!=='string'||!n.trim())||new Set(names).size!==names.length)throw new Error('ACCOUNT_STATE_SCHEMA_UNVERIFIED');
+  const details=Object.fromEntries(names.map((n,i)=>[String(n),values[i]]));
+  const available=['freeMargin','availableMargin','availableFunds'].filter(n=>Object.hasOwn(details,n)&&details[n]!=null).map(n=>details[n]);
+  if(!available.length||available.some(v=>(typeof v!=='number'&&typeof v!=='string')||(typeof v==='string'&&!v.trim())||!Number.isFinite(Number(v))||Number(v)<0))throw new Error('FREE_MARGIN_UNVERIFIED');
+  // If the broker reports more than one supported field, use the lower amount.
+  return Math.min(...available.map(Number));
+}
+
 export async function brokerCapacitySnapshot(accessToken: string, accountId: string, accNum: string) {
   const requestedAt = new Date().toISOString();
   const config = unwrap(await cachedConfig(accessToken, accNum));
   const state = unwrap(await request(`/trade/accounts/${accountId}/state`, {method:'GET'}, accessToken, accNum));
-  const names = object(config.accountDetailsConfig).columns;
-  const values = state.accountDetailsData;
-  if (!Array.isArray(names) || !Array.isArray(values) || names.length !== values.length) throw new Error('ACCOUNT_STATE_SCHEMA_UNVERIFIED');
-  const details = Object.fromEntries(names.map((c,i)=>[String(object(c).id),values[i]]));
-  // Accept only an explicitly identified free-margin field; missing fields are not zero or unlimited.
-  const free = details.freeMargin ?? details.availableMargin;
-  if (free == null || !Number.isFinite(Number(free)) || Number(free)<0) throw new Error('FREE_MARGIN_UNVERIFIED');
+  const free = brokerAvailableFunds(config,state);
   const positions = configuredRows(config, await request(`/trade/accounts/${accountId}/positions`, {method:'GET'}, accessToken, accNum), 'positionsConfig', 'positions');
   const orders = configuredRows(config, await request(`/trade/accounts/${accountId}/orders`, {method:'GET'}, accessToken, accNum), 'ordersConfig', 'orders');
   if(positions.some(p=>!/^[1-9]\d{0,19}$/.test(String(p.id??p.positionId??''))))throw new Error('POSITION_IDENTITIES_UNVERIFIED');

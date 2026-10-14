@@ -14,5 +14,11 @@ export async function reserveCapacity(db: any, book: string, trade: string, qty:
     if(stateError)return {ok:false,reason:'CAPACITY_SNAPSHOT_WRITE_FAILED'};
     const {data,error: reservationError}=await db.rpc('fn_reserve_book_slot',{p_book:book,p_trade:trade,p_qty:qty});
     return reservationError?{ok:false,reason:'CAPACITY_RESERVATION_UNAVAILABLE'}:{...data,prior_position_ids:snapshot.position_ids};
-  }catch{return {ok:false,reason:'BROKER_CAPACITY_UNVERIFIED'};}
+  }catch(error){
+    const message=error instanceof Error?error.message:'';
+    const http=/^TRADELOCKER_HTTP_(\d{3})\b/.exec(message);
+    const known=['ACCOUNT_STATE_SCHEMA_UNVERIFIED','FREE_MARGIN_UNVERIFIED','POSITION_IDENTITIES_UNVERIFIED','TRADELOCKER_POSITIONS_INVALID','TRADELOCKER_ORDERS_INVALID','TRADELOCKER_POSITIONS_CONFIG_MISMATCH','TRADELOCKER_ORDERS_CONFIG_MISMATCH'];
+    const code=http?'HTTP_'+http[1]:known.includes(message)?message:'READ_FAILED';
+    return {ok:false,reason:'BROKER_CAPACITY_UNVERIFIED: '+code};
+  }
 }
