@@ -3,8 +3,8 @@ export async function ongoingCopyControl(db:any,body:Record<string,unknown>,acto
  const action=String(body.action),id=Number(body.id),reason=typeof body.reason==='string'?body.reason.trim():'';
  const validId=(v:number)=>Number.isSafeInteger(v)&&v>0;
  if(action==='ongoing_copy_status'){
-  const [summary,accounts]=await Promise.all([db.rpc('ongoing_copy_summary',{p_actor:actor}),db.from('ladder_accounts').select('id,label,role,status,api_env,execution_enabled').in('role',['monitor','ladder'])]);
-  return summary.error||accounts.error?{status:503,body:{ok:false,error:'Execution status unavailable. Do not assume an earlier ON/OFF display is current.'}}:{status:200,body:{ok:true,...summary.data,accounts:accounts.data??[],developer_configured:developer}};
+  const [summary,accounts,capacity]=await Promise.all([db.rpc('ongoing_copy_summary',{p_actor:actor}),db.from('ladder_accounts').select('id,label,role,status,api_env,execution_enabled').in('role',['monitor','ladder']),db.from('book_capacity_limits').select('book,position_limit,margin_per_lot_usd,provider_evidence,updated_at')]);
+  return summary.error||accounts.error||capacity.error?{status:503,body:{ok:false,error:'Execution status unavailable. Do not assume an earlier ON/OFF display is current.'}}:{status:200,body:{ok:true,...summary.data,accounts:accounts.data??[],capacity:(capacity.data??[]).filter((l:any)=>(summary.data?.connections??[]).some((c:any)=>l.book==='l'+c.account_id)),developer_configured:developer}};
  }
  if(action==='ongoing_copy_find'){
   const email=typeof body.email==='string'?body.email.trim().toLowerCase():'';
