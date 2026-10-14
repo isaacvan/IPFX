@@ -5625,7 +5625,9 @@ function symMeta(symbol){
   const cat=Object.keys(WL_DATA).find(k=>WL_DATA[k].some(i=>execSymbol(i.sym)===clean));
   const contractSize=FUT_SPECS[clean]?FUT_SPECS[clean][0]:cat==='forex'?100000:clean==='XAGUSD'?5000:cat==='metals'?100:cat==='indices'?10:1;
   const marginRate=1/100;
-  const quoteCurrency=clean.endsWith('JPY')?'JPY':clean.endsWith('CAD')?'CAD':clean.endsWith('CHF')?'CHF':clean.endsWith('GBP')?'GBP':(['GER40','FRA40'].includes(clean)?'EUR':clean==='UK100'?'GBP':'USD');
+  // Indices (incl. UK100/GER40/FRA40/JPN225) are $10/point uniformly in USD — no FX conversion,
+  // matching the server's INSTRUMENTS table. Only real forex pairs convert by their quote currency.
+  const quoteCurrency=cat==='indices'?'USD':clean.endsWith('JPY')?'JPY':clean.endsWith('CAD')?'CAD':clean.endsWith('CHF')?'CHF':clean.endsWith('GBP')?'GBP':'USD';
   return{name:inst?inst.name:clean,contractSize,marginRate,quoteCurrency};
 }
 function estMarginExposure(symbol,volume,price){

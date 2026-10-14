@@ -117,10 +117,15 @@ const INSTRUMENTS: Record<string, Inst> = {
   SPXUSD: I("^GSPC",  1, 0.5, 10, "index"),
   NSXUSD: I("^NDX",   1, 1.5, 10, "index"),
   DJI:    I("^DJI",   0, 2.0, 10, "index"),
-  UK100:  I("^FTSE",  1, 1.0, 10, "index", "GBP"),
-  GER40:  I("^GDAXI", 1, 1.5, 10, "index", "EUR"),
-  FRA40:  I("^FCHI",  1, 1.5, 10, "index", "EUR"),
-  JPN225: I("^N225",  0, 8.0, 10, "index", "JPY"),
+  // Indices are $10/point UNIFORMLY (CFD convention, see comment above) — the contract value is
+  // already USD, regardless of the index's native market currency. A quote-currency argument here
+  // would apply a second, spurious FX conversion on top of that; omit it so all indices default to
+  // USD/no-conversion. (Fixed 2026-10-15: UK100/GER40/FRA40/JPN225 previously passed "GBP"/"EUR"/
+  // "EUR"/"JPY", which double-converted P&L and the per-trade risk check on every index CFD trade.)
+  UK100:  I("^FTSE",  1, 1.0, 10, "index"),
+  GER40:  I("^GDAXI", 1, 1.5, 10, "index"),
+  FRA40:  I("^FCHI",  1, 1.5, 10, "index"),
+  JPN225: I("^N225",  0, 8.0, 10, "index"),
   US2000: I("^RUT",   1, 0.8, 10, "index"),
   // Legacy crypto pricing is retained only to manage/close existing positions.
   // New market and pending entries are blocked by instrumentGate and the DB.
