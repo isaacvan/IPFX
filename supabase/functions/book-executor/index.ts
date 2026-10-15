@@ -93,8 +93,10 @@ async function open(db: Db, b: Record<string, unknown>) {
   const tradeId = String(b.source_trade_id), book = String(b.book) as "a" | "b";
   const { data: t } = await db.from("trades").select("id,user_id,account_id,symbol,side,volume,open_price,sl,status").eq("id", tradeId).maybeSingle();
   if (!t || t.status !== "open") return { ok: true, skipped: "source trade not open" };
-  const { data: person } = await db.rpc("ab_person_of", { p_user: t.user_id });
-  const ongoingClaim=await db.rpc('ongoing_copy_claim',{p_trade:tradeId});
+  const [{ data: person }, ongoingClaim] = await Promise.all([
+    db.rpc("ab_person_of", { p_user: t.user_id }),
+    db.rpc('ongoing_copy_claim',{p_trade:tradeId}),
+  ]);
   if(ongoingClaim.error)return {ok:true,skipped:'ongoing execution admission unavailable'};
   const {data: test,error:testError}=ongoingClaim.data?.handled?ongoingClaim:await db.rpc('copy_test_claim',{p_trade:tradeId});
   if(testError)return {ok:true,skipped:'scoped test admission unavailable'};
@@ -253,14 +255,19 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
   // Each leg closes on its own account; run them in parallel so many ladder accounts close together.
   const closeOne = async (leg: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
     const book = leg.book as "a" | "b";
-    const { data: planned, error: planError } = await db.rpc("fn_plan_book_exit", { p_open_id: leg.id, p_full: event === "close", p_slice: String(b.slice_id ?? "") });
+    const pipelineStarted = Date.now();
+    // Independent admission reads overlap; dispatch still requires BOTH the locked
+    // quantity plan and current owned-destination permission. Never cache either.
+    const [{ data: planned, error: planError }, dest] = await Promise.all([
+      db.rpc("fn_plan_book_exit", { p_open_id: leg.id, p_full: event === "close", p_slice: String(b.slice_id ?? "") }),
+      destination(db, book, true, leg.ongoing_copy_connection_id ? tradeId : null),
+    ]);
     if (planError || !planned?.ok) return { book, error: planned?.reason ?? "EXIT_PLAN_UNAVAILABLE" };
     if (planned.skipped) return null;
     const claim = planned.claim, qty = Number(claim.qty);
     if (claim.dispatch_state === "confirmed") return { book, qty, fill_price: claim.fill_price, confirmed: true, duplicate: true };
     if (claim.dispatch_state !== "planned") return { book, error: "EXIT_RECONCILIATION_REQUIRED" };
     // No dispatch before resolving the owned position; a disconnected/paused account keeps a retryable plan.
-    const dest = await destination(db, book, true,leg.ongoing_copy_connection_id?tradeId:null);
     if (!dest) return { book, error: "DESTINATION_UNAVAILABLE", operation_id: claim.id };
     const { data: dispatched, error: dispatchError } = await db.from("book_orders").update({ dispatch_state: "sent", updated_at: new Date().toISOString() })
       .eq("id", claim.id).eq("dispatch_state", "planned").select("id");
@@ -269,7 +276,11 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
     const started = Date.now();
     try {
       const ids = responseIds(await closePositionQty(dest.token, dest.accNum, String(leg.broker_position_id), qty));
+      const acknowledgedAt = Date.now();
       const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true, strictOrder: true }).catch(() => null);
+      console.info(JSON.stringify({ event: "book_exit_timing", operation_id: claim.id,
+        admission_ms: started - pipelineStarted, broker_ack_ms: acknowledgedAt - started,
+        receipt_lookup_ms: Date.now() - acknowledgedAt }));
       const verified = !!fill && Math.abs(fill.qty - qty) < 1e-8 && !!ids.orderId && fill.orderId === ids.orderId;
       const dir = leg.side === "buy" ? 1 : -1;
       const pnl = fill && leg.fill_price != null && leg.price_scale_per_lot != null

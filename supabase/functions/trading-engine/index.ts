@@ -1895,7 +1895,9 @@ type Db = any;
 async function closeTrade(
   db: Db, acct: Acct, t: Tr, exit: number, reason: string, q?: Quote | null, clientIp?: string | null,
   exec?: { shortfallUsd?: number },
+  prepareExit?: (hasBookHedge: boolean) => Promise<{ price: number; shortfallUsd: number } | null>,
 ): Promise<boolean> {
+  const closeStarted = Date.now();
   const { data: intent, error: intentError } = await db.rpc("fn_request_ipfx_full_close", {
     p_trade: t.id, p_account: acct.id, p_user: acct.user_id, p_volume: Number(t.volume),
     p_decision: { reason, exit, quote: q ?? null, at: new Date().toISOString() },
@@ -1903,6 +1905,10 @@ async function closeTrade(
   if (intentError || !intent?.ok) return false;
   // Copied trade: close the hedge first and fill the trader no better than the broker did.
   const legs = await bookLegs(db, t.id);
+  // Price preparation only reads quotes. Run it alongside the owned broker close,
+  // after the durable full-close fence, so quote warming cannot delay dispatch.
+  const pricing = prepareExit?.(legs.a).then(value => ({ value, failed: false }), () => ({ value: null, failed: true }));
+  const dispatchStarted = Date.now();
   let hedge: HedgeClose;
   if (legs.a) {
     const r = await bookNow({ event: "close", source_trade_id: t.id });
@@ -1913,6 +1919,16 @@ async function closeTrade(
     hedge = await hedgeCloseFirst(db, acct, t);
   }
   if (hedge.state === "busy") return false; // another request is closing this hedge right now
+  if (pricing) {
+    const prepared = await pricing;
+    if (prepared.failed) {
+      console.error(JSON.stringify({ event: "close_price_preparation_failed", trade_id: t.id }));
+      return false; // the journal retains the broker outcome; retry source settlement safely
+    }
+    if (prepared.value) { exit = prepared.value.price; exec = { shortfallUsd: prepared.value.shortfallUsd }; }
+  }
+  if (legs.a || legs.b) console.info(JSON.stringify({ event: "copy_close_pipeline", trade_id: t.id,
+    admission_ms: dispatchStarted - closeStarted, hedge_and_pricing_ms: Date.now() - dispatchStarted }));
   if (hedge.state === "filled") {
     const takingAsk = t.side === "sell"; // closing a sell buys at the ask
     const worse = worseFill(takingAsk, exit, hedge.price) ?? exit;
@@ -4023,20 +4039,18 @@ if (body.action === "sweep") {
     if (q === null) return err("No live price — try again", 503);
     if (quoteStale(q)) { await logFeedEvent(db, "stale", target.symbol, "close rejected: stale quote"); return err("Price feed is stale — try again", 503); }
     let exit = target.side === "buy" ? q.bid : q.ask;
-    let execInfo: { shortfallUsd?: number } | undefined;
-    if (rulesV2(acct as Acct)) {
-      const spec = await symbolCheck(db, target.symbol);
+    const prepareExit = rulesV2(acct as Acct) ? async (hasBookHedge: boolean) => {
+      const [spec, { data: hedged }] = await Promise.all([
+        symbolCheck(db, target.symbol),
+        db.from("mirror_orders").select("id").eq("source_trade_id", target.id).eq("event", "open")
+          .in("status", ["filled", "accepted_pending_position"]).not("idempotency_key", "is", null).limit(1).maybeSingle(),
+      ]);
       const takingAsk = target.side === "sell";
-      // A copied trade's broker close (in closeTrade) is its execution delay.
-      const { data: hedged } = await db.from("mirror_orders").select("id").eq("source_trade_id", target.id).eq("event", "open")
-        .in("status", ["filled", "accepted_pending_position"]).not("idempotency_key", "is", null).limit(1).maybeSingle();
-      const ex = await executeAtMarket(target.symbol, takingAsk, q, spec.slippageBps, false, !!hedged);
-      if (ex) {
-        exit = ex.price;
-        execInfo = { shortfallUsd: await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, Number(target.volume)) };
-      }
-    }
-    const done = await closeTrade(db, acct as Acct, target, exit, "manual", q, clientIp, execInfo);
+      // Both managed A-book and per-account mirrors already have a real execution delay.
+      const ex = await executeAtMarket(target.symbol, takingAsk, q, spec.slippageBps, false, hasBookHedge || !!hedged);
+      return ex ? { price: ex.price, shortfallUsd: await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, Number(target.volume)) } : null;
+    } : undefined;
+    const done = await closeTrade(db, acct as Acct, target, exit, "manual", q, clientIp, undefined, prepareExit);
     if (!done) return err("This position was already closed (for example by its stop or take-profit)", 409);
   } else if (action === "close_all") {
     const v2c = rulesV2(acct as Acct);
@@ -4045,26 +4059,25 @@ if (body.action === "sweep") {
       const q = await fetchQuote(t.symbol);
       if (q !== null && !quoteStale(q)) arrivals.set(t.id, q);
     }
-    // One shared execution delay for the whole batch rather than one per position.
-    if (v2c && arrivals.size) {
-      await new Promise((resolve) => setTimeout(resolve,
-        EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1))));
-    }
+    // Uncopied trades retain one shared simulated delay. Managed A-book exits
+    // use their broker round trip instead, without holding up dispatch for the batch.
+    let batchDelay: Promise<void> | undefined;
     for (const t of state.open) {
       const q = arrivals.get(t.id);
       if (!q) continue;
       let exit = t.side === "buy" ? q.bid : q.ask;
-      let execInfo: { shortfallUsd?: number } | undefined;
-      if (v2c) {
+      const prepareExit = v2c ? async (hasBookHedge: boolean) => {
+        if (!hasBookHedge) {
+          batchDelay ??= new Promise<void>((resolve) => setTimeout(resolve,
+            EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1))));
+          await batchDelay;
+        }
         const spec = await symbolCheck(db, t.symbol);
         const takingAsk = t.side === "sell";
         const ex = await executeAtMarket(t.symbol, takingAsk, q, spec.slippageBps, false, true);
-        if (ex) {
-          exit = ex.price;
-          execInfo = { shortfallUsd: await shortfallUsd(t.symbol, takingAsk, ex.decision, ex.price, Number(t.volume)) };
-        }
-      }
-      await closeTrade(db, acct as Acct, t, exit, "manual", q, clientIp, execInfo);
+        return ex ? { price: ex.price, shortfallUsd: await shortfallUsd(t.symbol, takingAsk, ex.decision, ex.price, Number(t.volume)) } : null;
+      } : undefined;
+      await closeTrade(db, acct as Acct, t, exit, "manual", q, clientIp, undefined, prepareExit);
     }
 
   // ---- modify: move the stop-loss / take-profit on a live position ----
