@@ -30,7 +30,7 @@ test('Team Login is owner-only, checks owner access on the server and completes 
   assert.match(teamLogin, /mfa\.challengeAndVerify/);
   assert.match(teamLogin, /mfa\.enroll\(\{factorType:'totp'/);
   assert.match(teamLogin, /location\.replace\(safeNext\)/);
-  assert.match(teamLogin, /safeNext=.*trader-analytics\.html/);
+  assert.match(teamLogin, /safeNext=.*requestedNext:'\/workspace\/'/);
   assert.doesNotMatch(teamLogin, /signup\.html|Sign up/);
 });
 

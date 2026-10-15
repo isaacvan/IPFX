@@ -126,3 +126,12 @@ test('Settings sends only admin-console actions the server handles, with the fie
   assert.match(s, /password\|token\|secret\|ciphertext/, 'audit details hide secret fields');
   assert.match(read('assets/js/team-shell.js'), /id: 'settings', label: 'Settings', href: '\/workspace\/settings\.html'/);
 });
+
+test('team login opens the new workspace, and every classic team page links to its workspace equivalent', () => {
+  assert.match(read('team-login.html'), /\?requestedNext:'\/workspace\/';/);
+  const link = read('assets/js/workspace-link.js');
+  for (const p of ['admin.html', 'trader-analytics.html', 'team-a-book.html', 'team-b-book.html', 'team-brain.html', 'team-treasury.html', 'team-e8-monitor.html', 'team-feedback.html']) {
+    assert.match(read(p), /<script src="\/assets\/js\/workspace-link\.js/, p + ' loads the workspace link');
+    assert.ok(link.includes(`'${p}': ['/workspace/`), p + ' maps to a workspace page');
+  }
+});
