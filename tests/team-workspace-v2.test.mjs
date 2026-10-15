@@ -27,7 +27,9 @@ test('Books calls only ongoing-copy actions the server handles, with the fields 
 test('the shell signs in through team-login and calls only the existing owner functions', () => {
   const shell = read('assets/js/team-shell.js');
   assert.match(shell, /location\.replace\('\/team-login\.html\?next='/);
-  for (const fn of ['admin-console', 'ladder-admin', 'team-book-connect', 'team-population']) assert.ok(shell.includes(fn), fn);
+  for (const fn of ['admin-console', 'ladder-admin', 'team-book-connect', 'team-population', 'brain-monitor', 'e8-monitor-admin']) assert.ok(shell.includes(fn), fn);
+  for (const fn of [...shell.matchAll(/post\('([a-z0-9-]+)'/g)].map((m) => m[1])) assert.ok(fs.existsSync(new URL(`../supabase/functions/${fn}/index.ts`, import.meta.url)), 'function exists: ' + fn);
+  assert.doesNotMatch(shell, /classic: true/, 'every sidebar page is rebuilt');
   assert.doesNotMatch(shell, /tradelocker\.com|api\.e8|metaapi/i, 'no direct broker calls from the browser');
   assert.match(shell, /f\.type === 'password' \? ' autocomplete="new-password"'/, 'passwords are never autofilled into the sheet');
 });
@@ -41,7 +43,7 @@ test('team-login returns you to the workspace page you asked for, and nowhere ou
 });
 
 test('workspace pages load the shared shell and stay out of search engines', () => {
-  for (const p of ['workspace/index.html', 'workspace/books.html', 'workspace/queues.html', 'workspace/traders.html', 'workspace/treasury.html']) {
+  for (const p of ['workspace/index.html', 'workspace/books.html', 'workspace/queues.html', 'workspace/traders.html', 'workspace/treasury.html', 'workspace/costs.html', 'workspace/settings.html']) {
     const h = read(p);
     assert.match(h, /noindex,nofollow,noarchive/);
     assert.match(h, /\/assets\/css\/team-os\.css/);
@@ -99,4 +101,28 @@ test('Treasury sends only ladder-admin actions the server handles, with the fiel
   assert.doesNotMatch(t, /localStorage|sessionStorage/);
   assert.match(read('assets/js/team-shell.js'), /const ladder = \(action, body = \{\}, timeout\) => post\('ladder-admin', \{ action, \.\.\.body \}, timeout\)/);
   assert.match(read('assets/js/team-shell.js'), /id: 'treasury', label: 'Treasury', href: '\/workspace\/treasury\.html'/);
+});
+
+test('Costs & E8 uses the read-only monitor actions and never sends orders', () => {
+  const c = read('assets/js/ws-costs.js'), e8 = read('supabase/functions/e8-monitor-admin/index.ts'), brain = read('supabase/functions/brain-monitor/index.ts');
+  for (const a of new Set([...c.matchAll(/T\.e8\('([a-z_]+)'/g)].map((m) => m[1]))) assert.ok(e8.includes(`body.action==='${a}'`), 'e8-monitor-admin handles ' + a);
+  for (const a of new Set([...c.matchAll(/T\.brain\('([a-z_]+)'/g)].map((m) => m[1]))) assert.ok(brain.includes(`action === "${a}"`), 'brain-monitor handles ' + a);
+  const cfg = c.slice(c.indexOf("T.e8('configure'"), c.indexOf("T.e8('configure'") + 300);
+  for (const f of ['account_id: Number(id)', 'symbols:', 'interval_ms:', 'max_quote_age_ms: 15000', 'enabled:']) assert.ok(cfg.includes(f), 'configure sends ' + f);
+  // The E8 connection made here is the read-only monitor role only.
+  assert.deepEqual([...c.matchAll(/ladder_add', \{ role: '([a-z]+)'/g)].map((m) => m[1]), ['monitor']);
+  assert.doesNotMatch(c, /ongoing_copy_on|ladder_update|placeOrder|execution_enabled: true/);
+  assert.match(read('assets/js/team-shell.js'), /id: 'costs', label: 'Costs & E8', href: '\/workspace\/costs\.html'/);
+});
+
+test('Settings sends only admin-console actions the server handles, with the fields it reads', () => {
+  const s = read('assets/js/ws-settings.js'), admin = read('supabase/functions/admin-console/index.ts');
+  for (const a of new Set([...s.matchAll(/T\.admin\('([a-z_]+)'/g)].map((m) => m[1]))) assert.ok(admin.includes(`action === "${a}"`), 'admin-console handles ' + a);
+  assert.match(s, /set_platform_halt', \{ halted: true, reason: String\(x\.reason\)\.trim\(\) \}/);
+  assert.match(s, /set_platform_halt', \{ halted: false \}/);
+  assert.match(s, /promo_create', \{ code: [^,]+, size: [^,]+, max_uses: [^}]+\}/);
+  assert.match(s, /promo_set_active', \{ code, active: !p\.is_active \}/);
+  assert.match(s, /T\.brain\('pulse'\)/);
+  assert.match(s, /password\|token\|secret\|ciphertext/, 'audit details hide secret fields');
+  assert.match(read('assets/js/team-shell.js'), /id: 'settings', label: 'Settings', href: '\/workspace\/settings\.html'/);
 });

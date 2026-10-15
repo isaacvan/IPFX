@@ -14,8 +14,8 @@
     { id: 'books', label: 'Books', href: '/workspace/books.html', icon: '<rect x="4" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/>' },
     { id: 'queues', label: 'Queues', href: '/workspace/queues.html', icon: '<path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
     { id: 'treasury', label: 'Treasury', href: '/workspace/treasury.html', icon: '<path d="M12 3l9 5.5H3zM5 9v8M9.5 9v8M14.5 9v8M19 9v8M3 20h18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' },
-    { id: 'costs', label: 'Costs & E8', href: '/team-e8-monitor.html', classic: true, icon: '<path d="M4 18l5-5.5 3.5 2.5L20 7M15 7h5v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' },
-    { id: 'settings', label: 'Settings', href: '/team-brain.html', classic: true, icon: '<circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M5.2 18.8l2.1-2.1M16.7 7.3l2.1-2.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+    { id: 'costs', label: 'Costs & E8', href: '/workspace/costs.html', icon: '<path d="M4 18l5-5.5 3.5 2.5L20 7M15 7h5v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { id: 'settings', label: 'Settings', href: '/workspace/settings.html', icon: '<circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M5.2 18.8l2.1-2.1M16.7 7.3l2.1-2.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
   ];
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -40,6 +40,8 @@
   }
   const admin = (action, body = {}) => post('admin-console', { action, ...body });
   const ladder = (action, body = {}, timeout) => post('ladder-admin', { action, ...body }, timeout);
+  const brain = (action, body = {}) => post('brain-monitor', { action, ...body });
+  const e8 = (action, body = {}) => post('e8-monitor-admin', { action, ...body });
   const book = (action, body = {}, mode = 'b') => post('team-book-connect', { action, book: mode, ...body });
   async function population() {
     const r = await fetch(SB_URL + '/functions/v1/team-population', { headers: { Authorization: 'Bearer ' + await token() }, cache: 'no-store' });
@@ -102,5 +104,5 @@
   }
   function status(text) { const el = document.getElementById('osStatus'); if (el) el.textContent = text; }
 
-  window.TeamOS = { sb, admin, ladder, book, population, mount, badge, status, toast, sheet, esc, usd, ukTime };
+  window.TeamOS = { sb, admin, ladder, book, brain, e8, population, mount, badge, status, toast, sheet, esc, usd, ukTime };
 })();
