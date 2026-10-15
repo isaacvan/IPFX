@@ -106,7 +106,7 @@
       ${f.map((x) => `<tr><td><b>${esc(x.name || 'Trader')}</b></td><td class="muted">Stage ${esc(x.stage)}</td><td class="r num">${pct(x.p_graduate)}</td><td class="r num muted">${Number(x.expected_days).toFixed(0)}</td><td class="r num">${money(x.payout_if_graduate)}</td>
         <td class="r num ${Number(x.mu_mean) > 0 ? 'good' : 'muted'}">${Number(x.mu_mean) >= 0 ? '+' : ''}${Number(x.mu_mean).toFixed(3)}R <span class="muted" style="font-size:11px">${esc(x.trades)} trades</span></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No open accounts.</td></tr>'}
       </tbody></table></div></div>
-      <p class="foot">Setup checks and the paper validation journal are on the <a href="/team-treasury.html">classic Treasury page</a> until Settings is rebuilt.</p>`;
+      <p class="foot">The launch checklist is in <a href="/workspace/settings.html">Settings</a>. The paper validation journal is on the <a href="/team-treasury.html#validationPanel">classic Treasury page</a>.</p>`;
   }
 
   function render() {
