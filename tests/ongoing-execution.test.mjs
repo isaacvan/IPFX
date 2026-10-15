@@ -54,3 +54,23 @@ test('the real open path sends the capped stop to the broker only when the owner
  const lots=bookOpenFixture({ongoing:true,trial:{broker_lots:.02,position_loss_cap_usd:4}});await lots.run();assert.equal(lots.posts[0].qty,.02);assert.equal(lots.posts[0].sl,3998);
  const tight=bookOpenFixture({ongoing:true,trial:{position_loss_cap_usd:.01}});const r=await tight.run();assert.equal(tight.posts.length,0);assert.match(JSON.stringify(r),/too tight/);
 });
+test('risk plan sizing: lots from the per-copy budget and the trader stop, broker stop at the multiple, never more than the max lots',()=>{
+ const spec={lotSize:100,minLot:.01,maxLot:100,lotStep:.01,quotingCurrency:'USD'},source={contract_size:100,quote_currency:'USD'};
+ // Gold: $100 per 1.00 per lot. Trader stop 1.00 away, 1.5x => broker stop 1.50 away = $150 per lot; $50 budget => 0.33 lots, $49.50 risk.
+ const a=ongoingSizing(spec,source,100,1,'buy',4000,3999,100,null,{usd:50,multiple:1.5});assert.equal(a.lots,.33);assert.equal(a.stop,3998.5);assert.equal(a.risk,49.5);
+ const s=ongoingSizing(spec,source,100,1,'sell',4000,4001,100,null,{usd:50,multiple:1.5});assert.equal(s.stop,4001.5);assert.equal(s.lots,.33);
+ // The owner's max lots still caps the size (risk falls below budget).
+ const capped=ongoingSizing(spec,source,100,.1,'buy',4000,3999,100,null,{usd:50,multiple:1.5});assert.equal(capped.lots,.1);assert.equal(capped.risk,15);
+ // A wide stop is taken smaller (not refused) while it fits the minimum lot...
+ const wide=ongoingSizing(spec,source,100,1,'buy',4000,3980,100,null,{usd:50,multiple:1.5});assert.equal(wide.lots,.01);assert.equal(wide.risk,30);
+ // ...and refused only when even the minimum lot would risk more than the budget.
+ assert.throws(()=>ongoingSizing(spec,source,100,1,'buy',4000,3900,100,null,{usd:50,multiple:1.5}),/BELOW_MIN_LOT/);
+ // A stop inside 0.02% of price is refused rather than sent; a position cap below the budget lowers it.
+ assert.throws(()=>ongoingSizing(spec,source,100,1,'buy',4000,3999.5,100,null,{usd:50,multiple:1.5}),/TOO_TIGHT/);
+ assert.equal(ongoingSizing(spec,source,100,1,'buy',4000,3999,100,25,{usd:50,multiple:1.5}).lots,.16);
+});
+test('the real open path sends the risk-sized lots and stop to the broker',async()=>{
+ const f=bookOpenFixture({ongoing:true,trial:{broker_lots:1,size_mode:'risk',risk_per_trade_usd:50,stop_multiple:1.5,max_trade_risk_usd:100},fill:{qty:.33}});await f.run();
+ assert.equal(f.posts.length,1);assert.equal(f.posts[0].qty,.33);assert.equal(f.posts[0].sl,3998.5);
+ const refused=bookOpenFixture({ongoing:true,trial:{broker_lots:1,size_mode:'risk',risk_per_trade_usd:1,stop_multiple:1.5}});const r=await refused.run();assert.equal(refused.posts.length,0);assert.match(JSON.stringify(r),/minimum lot exceeds/);
+});

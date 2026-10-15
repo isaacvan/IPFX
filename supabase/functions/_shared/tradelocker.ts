@@ -114,6 +114,19 @@ export async function brokerCapacitySnapshot(accessToken: string, accountId: str
   return {observed_at:requestedAt,open_positions:positions.length,pending_orders:orders.length,free_margin_usd:Number(free),position_ids:positions.map(p=>String(p.id??p.positionId))};
 }
 
+// One read for the A-book equity guard: broker account totals (with their column config) and every open position.
+export async function accountRiskSnapshot(accessToken: string, accountId: string, accNum: string) {
+  const config = await cachedConfig(accessToken, accNum);
+  const [state, positionData] = await Promise.all([
+    request(`/trade/accounts/${accountId}/state`, { method: 'GET' }, accessToken, accNum),
+    request(`/trade/accounts/${accountId}/positions`, { method: 'GET' }, accessToken, accNum),
+  ]);
+  const open = configuredRows(config, positionData, 'positionsConfig', 'positions');
+  const ids = open.map((p) => String(p.id ?? p.positionId ?? ''));
+  if (ids.some((id) => !/^[1-9]\d{0,19}$/.test(id))) throw new Error('POSITION_IDENTITIES_UNVERIFIED');
+  return { config, state, positionIds: ids };
+}
+
 export function configuredRows(configValue: unknown, dataValue: unknown, configKey: string, dataKey: string): Record<string, unknown>[] {
   const config = unwrap(configValue);
   const columns = object(config[configKey]).columns;
