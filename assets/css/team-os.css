@@ -169,3 +169,9 @@ tbody tr.click:hover{background:var(--sel)}
 /* numbers and short labels never break across lines; wide tables scroll inside their card instead */
 th,td{white-space:nowrap}
 td:first-child{white-space:normal;min-width:160px}
+/* Treasury cover card */
+.cover{background:var(--group);border:.5px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:8px}
+.cover .k{font-size:12px;color:var(--ink2);font-weight:500}
+.cover .big{font-size:30px;font-weight:650;letter-spacing:-.035em;margin:2px 0 2px}
+.meter{height:8px;border-radius:99px;background:var(--sel);overflow:hidden;margin:16px 0 8px}
+.meter>i{display:block;height:100%;border-radius:99px;transition:width .4s cubic-bezier(.32,.72,0,1)}

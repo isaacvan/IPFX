@@ -36,12 +36,12 @@ test('team-login returns you to the workspace page you asked for, and nowhere ou
   const page = read('team-login.html');
   const src = page.match(/const safeNext=(\/\^[\s\S]*?\$\/)\.test\(requestedNext\)/)[1];
   const re = new Function('return ' + src)();
-  for (const ok of ['/workspace/', '/workspace/books.html', '/workspace/index.html', '/workspace/queues.html', '/workspace/traders.html', '/team-feedback.html', '/team-a-book.html']) assert.ok(re.test(ok), ok);
+  for (const ok of ['/workspace/', '/workspace/books.html', '/workspace/index.html', '/workspace/queues.html', '/workspace/traders.html', '/workspace/treasury.html', '/team-feedback.html', '/team-a-book.html']) assert.ok(re.test(ok), ok);
   for (const bad of ['//evil.com', 'https://evil.com/workspace/', '/workspace/../admin.html', '/workspace/a/b.html', '/workspace/Books.html', '/workspacebooks.html', '/workspace/x.js']) assert.ok(!re.test(bad), bad);
 });
 
 test('workspace pages load the shared shell and stay out of search engines', () => {
-  for (const p of ['workspace/index.html', 'workspace/books.html', 'workspace/queues.html', 'workspace/traders.html']) {
+  for (const p of ['workspace/index.html', 'workspace/books.html', 'workspace/queues.html', 'workspace/traders.html', 'workspace/treasury.html']) {
     const h = read(p);
     assert.match(h, /noindex,nofollow,noarchive/);
     assert.match(h, /\/assets\/css\/team-os\.css/);
@@ -81,4 +81,22 @@ test('Traders sends only actions the owner functions handle, with the fields the
 
 test('confirm sheets ignore a second submit while the first is still running', () => {
   assert.match(read('assets/js/team-shell.js'), /if \(form\.dataset\.busy\) return; form\.dataset\.busy = '1'/);
+});
+
+test('Treasury sends only ladder-admin actions the server handles, with the fields it reads', () => {
+  const t = read('assets/js/ws-treasury.js'), server = read('supabase/functions/ladder-admin/index.ts');
+  const used = [...new Set([...t.matchAll(/T\.ladder\('([a-z_]+)'/g)].map((m) => m[1]))];
+  for (const a of used) assert.ok(server.includes(`action === "${a}"`), `ladder-admin handles ${a}`);
+  for (const a of ['overview', 'set_reserve', 'payout_add', 'sponsorship_decide', 'ladder_add', 'ladder_update', 'halt']) assert.ok(used.includes(a), 'uses ' + a);
+  assert.match(t, /set_reserve', \{ usd: Number\(x\.usd\) \}/);
+  assert.match(t, /payout_add', \{ amount_usd: Number\(x\.amount\), ladder_account_id: x\.from \? Number\(x\.from\) : null, note:/);
+  assert.match(t, /sponsorship_decide', \{ id: p\.id, status: 'purchased', fee_usd: Number\(x\.fee\), note:/);
+  assert.match(t, /ladder_update', \{ id: a\.id, execution_enabled: (true|false) \}/);
+  assert.match(t, /T\.ladder\('halt', \{ on \}\)/);
+  // Broker password goes straight from the sheet to ladder-admin (never stored); the slow login gets a longer timeout.
+  assert.match(t, /\{ id: 'password', label: 'Broker password', type: 'password' \}/);
+  assert.match(t, /password: x\.password, server: String\(x\.server\)\.trim\(\), account_id: String\(x\.account \|\| ''\)\.trim\(\), all: x\.all === '1' \}, 45000\)/);
+  assert.doesNotMatch(t, /localStorage|sessionStorage/);
+  assert.match(read('assets/js/team-shell.js'), /const ladder = \(action, body = \{\}, timeout\) => post\('ladder-admin', \{ action, \.\.\.body \}, timeout\)/);
+  assert.match(read('assets/js/team-shell.js'), /id: 'treasury', label: 'Treasury', href: '\/workspace\/treasury\.html'/);
 });
