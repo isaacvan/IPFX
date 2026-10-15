@@ -36,8 +36,8 @@ test('team-login returns you to the workspace page you asked for, and nowhere ou
   const page = read('team-login.html');
   const src = page.match(/const safeNext=(\/\^[\s\S]*?\$\/)\.test\(requestedNext\)/)[1];
   const re = new Function('return ' + src)();
-  for (const ok of ['/workspace/', '/workspace/books.html', '/workspace/index.html', '/team-feedback.html', '/team-a-book.html']) assert.ok(re.test(ok), ok);
-  for (const bad of ['//evil.com', 'https://evil.com/workspace/', '/workspace/../admin.html', '/workspace/x.html', '/workspacebooks.html']) assert.ok(!re.test(bad), bad);
+  for (const ok of ['/workspace/', '/workspace/books.html', '/workspace/index.html', '/workspace/queues.html', '/team-feedback.html', '/team-a-book.html']) assert.ok(re.test(ok), ok);
+  for (const bad of ['//evil.com', 'https://evil.com/workspace/', '/workspace/../admin.html', '/workspace/a/b.html', '/workspace/Books.html', '/workspacebooks.html', '/workspace/x.js']) assert.ok(!re.test(bad), bad);
 });
 
 test('workspace pages load the shared shell and stay out of search engines', () => {
@@ -49,4 +49,20 @@ test('workspace pages load the shared shell and stay out of search engines', () 
     assert.match(h, /supabase-js@2\.57\.4/);
   }
   assert.ok(!fs.existsSync(new URL('../workspace/__mock', import.meta.url)), 'test harness is not shipped');
+});
+
+test('Queues sends the same admin-console actions and fields as the Operations page', () => {
+  const q = read('assets/js/ws-queues.js'), server = read('supabase/functions/admin-console/index.ts');
+  const used = [...new Set([...q.matchAll(/T\.admin\('([a-z_]+)'/g)].map((m) => m[1]))];
+  for (const a of used) assert.ok(server.includes(`action === "${a}"`), `admin-console handles ${a}`);
+  for (const a of ['application_queue', 'application_decide', 'kyc_queue', 'set_kyc_status', 'kyc_document_url', 'kyc_identity_reveal', 'payout_approve', 'payout_mark_paid', 'payout_void', 'feedback_list', 'feedback_update', 'trade_safety_review', 'trade_safety_mark']) assert.ok(used.includes(a), 'uses ' + a);
+  assert.match(q, /application_decide', \{ application_id: id, status: 'approved' \}/);
+  assert.match(q, /payout_mark_paid', \{ payout_id: id, external_reference: String\(v\.ref\)\.trim\(\) \}/);
+  assert.match(q, /payout_void', \{ payout_id: id, reason: String\(v\.reason\)\.trim\(\) \}/);
+  assert.match(q, /set_kyc_status', \{ user_id: user, status: 'rejected', note: String\(v\.note\)\.trim\(\) \}/);
+  assert.match(q, /trade_safety_mark', \{ flag_id: id, status: b\.dataset\.st \}/);
+  // Identity documents: the tab opens first (popup blockers), then the one-time link; no link is prefetched.
+  assert.match(q, /window\.open\('about:blank', '_blank'\)/);
+  assert.doesNotMatch(q, /kyc_document_url[^;]*Promise\.all/);
+  assert.match(read('assets/js/team-shell.js'), /id: 'queues', label: 'Queues', href: '\/workspace\/queues\.html'/);
 });

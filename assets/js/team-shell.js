@@ -12,7 +12,7 @@
     { id: 'overview', label: 'Overview', href: '/workspace/', icon: '<path d="M4 13h7V4H4zM13 20h7v-9h-7zM4 20h7v-4H4zM13 4v5h7V4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
     { id: 'traders', label: 'Traders', href: '/admin.html', classic: true, icon: '<circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M16 5.2a2.8 2.8 0 0 1 0 5.6M18 14.4c1.9.5 2.9 2.2 2.9 4.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
     { id: 'books', label: 'Books', href: '/workspace/books.html', icon: '<rect x="4" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/>' },
-    { id: 'queues', label: 'Queues', href: '/admin.html', classic: true, icon: '<path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+    { id: 'queues', label: 'Queues', href: '/workspace/queues.html', icon: '<path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
     { id: 'treasury', label: 'Treasury', href: '/team-treasury.html', classic: true, icon: '<path d="M12 3l9 5.5H3zM5 9v8M9.5 9v8M14.5 9v8M19 9v8M3 20h18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' },
     { id: 'costs', label: 'Costs & E8', href: '/team-e8-monitor.html', classic: true, icon: '<path d="M4 18l5-5.5 3.5 2.5L20 7M15 7h5v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' },
     { id: 'settings', label: 'Settings', href: '/team-brain.html', classic: true, icon: '<circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M5.2 18.8l2.1-2.1M16.7 7.3l2.1-2.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
@@ -55,7 +55,7 @@
   }
 
   // A modal sheet. fields: [{id,label,type,value,min,max,step,options,hint}]. onSubmit(values) may throw to show an error.
-  function sheet({ title, text = '', fields = [], confirm = 'Confirm', danger = false, onSubmit }) {
+  function sheet({ title, text = '', fields = [], confirm = 'Confirm', danger = false, info = false, onSubmit }) {
     return new Promise((resolve) => {
       const scrim = document.createElement('div'); scrim.className = 'os-scrim';
       scrim.innerHTML = `<form class="os-sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h3>${esc(title)}</h3>${text ? `<p>${text}</p>` : ''}
@@ -64,7 +64,7 @@
           : `<input class="input num" name="${f.id}" type="${f.type || 'text'}" value="${esc(f.value ?? '')}"${f.min != null ? ` min="${f.min}"` : ''}${f.max != null ? ` max="${f.max}"` : ''}${f.step != null ? ` step="${f.step}"` : ''}${f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : ''}${f.type === 'password' ? ' autocomplete="new-password"' : ' autocomplete="off"'}${f.optional ? '' : ' required'}>`}
           ${f.hint ? `<small class="muted">${esc(f.hint)}</small>` : ''}</label>`).join('')}
         <div class="err" aria-live="polite"></div>
-        <div class="actions"><button type="button" class="btn" data-cancel>Cancel</button><button type="submit" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button></div></form>`;
+        <div class="actions">${info ? '' : '<button type="button" class="btn" data-cancel>Cancel</button>'}<button type="submit" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button></div></form>`;
       const form = scrim.querySelector('form'), err = scrim.querySelector('.err');
       const close = (v) => { scrim.remove(); document.removeEventListener('keydown', onKey); resolve(v); };
       const onKey = (e) => { if (e.key === 'Escape') close(null); };
