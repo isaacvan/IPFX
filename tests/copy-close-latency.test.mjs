@@ -88,7 +88,7 @@ function brokerFixture({planRefused=false,noDestination=false,duplicate=false,un
  const db={rpc:async(name)=>{trace.push(name);if(name==='fn_plan_book_exit'){await plan.promise;return{data:{ok:!planRefused,claim,remaining:.01}}}return{}},
   from:()=>{let patch=null;const chain={select(){return chain},eq(){return chain},in(){return chain},update(v){patch=v;return chain},then(resolve){if(!patch)return resolve({data:[leg]});writes.push(patch);resolve(patch.dispatch_state==='sent'?{data:duplicate?[]:[{id:2}]}:{error:null})}};return chain}
  };
- const from=executor.indexOf('async function closeLeg('),to=executor.indexOf('// ---------- Shadow copy:',from);
+ const from=executor.indexOf('async function closeOwnedLeg('),to=executor.indexOf('// ---------- Shadow copy:',from);
  const context=vm.createContext({Date,Number,String,Math,Promise,console:{info:x=>logs.push(JSON.parse(x))},
   destination:async(...args)=>{trace.push('permission-start');assert.equal(args[3],'own-trade');assert.equal(args[2],true);await dest.promise;return noDestination?null:{}},
   closePositionQty:async()=>{dispatches++;trace.push('broker-submit');return{orderId:'901'}},responseIds:x=>x,
