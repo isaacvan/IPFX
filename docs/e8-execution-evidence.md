@@ -39,6 +39,12 @@ This calculator uses the recorded **source exit schedule only**. It does not pro
 
 The previous automatic approval review rejected direct publication to main. That publication restriction remains until explicit approval for this concrete release; a feature branch is a review artifact, not a production deployment.
 
+## Requested exits with delayed opening receipts
+
+An ongoing copy can exist at the broker while its opening history receipt is still pending locally. On a requested full or partial exit, the executor now checks that exact saved opening order immediately, once, with no polling sleep. It verifies the complete quantity, string order/position identities and saved pre-entry inventory, then conditionally saves the confirmed opening receipt before the normal locked exit plan and unique dispatch claim. A confirmed opening uses the existing path without another opening-history request. Opening dispatch itself is unchanged.
+
+Missing order identity, history outage, mismatched quantity/position, reused positions, a failed receipt write or a concurrent state change cannot cause a guessed close or risk release. Those cases retain reconciliation. This removes a scheduled-reconciliation wait when the exact receipt is already available; it cannot guarantee broker completion time or recover a missing acknowledgement without evidence.
+
 ## Validation
 
 The new tests execute real handlers with synthetic broker/database fixtures, PGlite migrations/RLS and isolated browser rendering. The 2,000-event test checks demand retention/coalescing only; it is not a production trading-capacity test. API request quotas, missing historical ticks and delayed provider postings remain external constraints. The complete suite and evidence screenshots are recorded in the chat audit workspace.

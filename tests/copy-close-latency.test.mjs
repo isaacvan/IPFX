@@ -83,7 +83,7 @@ test('manual close and Close All skip synthetic sleep only for managed A copies;
 
 function brokerFixture({planRefused=false,noDestination=false,duplicate=false,unconfirmed=false}={}){
  const trace=[],logs=[],plan=deferred(),dest=deferred(),writes=[];let dispatches=0;
- const leg={id:1,book:'l3',source_trade_id:'own-trade',ongoing_copy_connection_id:1,broker_position_id:'900',side:'buy',fill_price:4000,price_scale_per_lot:100};
+ const leg={id:1,status:'filled',book:'l3',source_trade_id:'own-trade',ongoing_copy_connection_id:1,broker_position_id:'900',side:'buy',fill_price:4000,price_scale_per_lot:100};
  const claim={id:2,qty:.01,dispatch_state:'planned'};
  const db={rpc:async(name)=>{trace.push(name);if(name==='fn_plan_book_exit'){await plan.promise;return{data:{ok:!planRefused,claim,remaining:.01}}}return{}},
   from:()=>{let patch=null;const chain={select(){return chain},eq(){return chain},in(){return chain},update(v){patch=v;return chain},then(resolve){if(!patch)return resolve({data:[leg]});writes.push(patch);resolve(patch.dispatch_state==='sent'?{data:duplicate?[]:[{id:2}]}:{error:null})}};return chain}

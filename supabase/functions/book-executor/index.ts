@@ -260,16 +260,45 @@ async function open(db: Db, b: Record<string, unknown>) {
 
 async function closeLeg(db: Db, b: Record<string, unknown>) {
   const tradeId = String(b.source_trade_id), event = b.event === "partial_close" ? "partial_close" : "close";
-  const { data: legs } = await db.from("book_orders").select("*").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled"]);
+  const { data: legs } = await db.from("book_orders").select("*").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "sent", "reconciliation_required"]);
   // Each leg closes on its own account; run them in parallel so many ladder accounts close together.
   const closeOne = async (leg: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
     const book = leg.book as "a" | "b";
     const pipelineStarted = Date.now();
+    // The broker may have filled the opening order before its first history read.
+    // Resolve that exact receipt on the requested exit, rather than waiting for
+    // the 45-second reconciliation age and its next scheduled run. Never send
+    // an opening order here or infer an owned position from an acknowledgement.
+    const destinationRead = destination(db, book, true, leg.ongoing_copy_connection_id ? tradeId : null);
+    if (leg.status !== "filled") {
+      const dest = await destinationRead;
+      if (!dest) return { book, error: "DESTINATION_UNAVAILABLE" };
+      if (!leg.ongoing_copy_connection_id || !Array.isArray(leg.ongoing_prior_position_ids) ||
+          typeof leg.broker_order_id !== "string" || !/^[1-9]\d{0,19}$/.test(leg.broker_order_id) ||
+          String(leg.error ?? "").includes("POSITION_NOT_NEW_HEDGED")) {
+        return { book, error: "OPEN_RECEIPT_RECONCILIATION_REQUIRED" };
+      }
+      // One immediate, exact-order read; no polling sleeps or unbounded retries.
+      const fill = await orderFill(dest.token, dest.accountId, dest.accNum,
+        { orderId: leg.broker_order_id, strictOrder: true }, [0]).catch(() => null);
+      const positionId = leg.broker_position_id ?? fill?.positionId ?? null;
+      if (!exactExecutionReceipt(Number(leg.qty), leg.broker_order_id, positionId, fill, leg.ongoing_prior_position_ids as string[])) {
+        return { book, error: "OPEN_RECEIPT_RECONCILIATION_REQUIRED" };
+      }
+      const { data: recovered, error: recoveryError } = await db.from("book_orders").update({
+        status: "filled", broker_position_id: positionId, fill_price: fill!.price,
+        error: null, updated_at: new Date().toISOString(),
+      }).eq("id", leg.id).in("status", ["sent", "reconciliation_required"]).select("id");
+      if (recoveryError || !recovered?.length) return { book, error: "OPEN_RECEIPT_CHANGED_CONCURRENTLY" };
+      leg = { ...leg, status: "filled", broker_position_id: positionId, fill_price: fill!.price };
+      console.info(JSON.stringify({ event: "book_exit_open_receipt_recovered", operation_id: leg.id,
+        recovery_ms: Date.now() - pipelineStarted }));
+    }
     // Independent admission reads overlap; dispatch still requires BOTH the locked
     // quantity plan and current owned-destination permission. Never cache either.
     const [{ data: planned, error: planError }, dest] = await Promise.all([
       db.rpc("fn_plan_book_exit", { p_open_id: leg.id, p_full: event === "close", p_slice: String(b.slice_id ?? "") }),
-      destination(db, book, true, leg.ongoing_copy_connection_id ? tradeId : null),
+      destinationRead,
     ]);
     if (planError || !planned?.ok) return { book, error: planned?.reason ?? "EXIT_PLAN_UNAVAILABLE" };
     if (planned.skipped) return null;
@@ -311,7 +340,7 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
     }
   };
   const results: Array<Record<string, unknown>> = [];
-  const all = legs ?? [];
+  const all = (legs ?? []).filter((leg: Record<string, unknown>) => leg.status === "filled" || !!leg.ongoing_copy_connection_id);
   for (let i = 0; i < all.length; i += 8) for (const x of await Promise.all(all.slice(i, i + 8).map(closeOne))) if (x) results.push(x);
   // Same-direction legs (A-book review + ladder accounts): the trader's close is priced no better than the worst one.
   const aLegs = (legs ?? []).filter((l: Record<string, unknown>) => String(l.book) !== "b");
