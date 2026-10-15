@@ -161,7 +161,7 @@ async function open(db: Db, b: Record<string, unknown>) {
     let wanted = traderRisk * sizing.multiplier * probation, reason = sizing.reason, weight = sizing.multiplier * probation;
     let legPriceScale=scale;
     let dest=trial?.ongoing?await destination(db,leg.book,false,tradeId):null;
-    let verifiedLots: {min:number;step:number}|null=null;
+    let verifiedLots: {min:number;step:number;stop?:number|null}|null=null;
     if (!trial&&lim&&Number(lim.account_size_usd) > 0) {
       const { count: routed } = await db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", leg.book).eq("event", "open").gte("created_at", since);
       const groupsShare = leg.book.startsWith("l") ? Math.max(1, Number(ls?.signal_groups ?? 1)) : 1;
@@ -179,9 +179,10 @@ async function open(db: Db, b: Record<string, unknown>) {
       const {data:sourceSpec,error:specError}=await db.from('symbol_specs').select('contract_size,quote_currency').eq('symbol',t.symbol).maybeSingle();
       if(specError||!sourceSpec)return {book:leg.book,skipped:'source instrument metadata unavailable'};
       try{
-        const sizing=ongoingSizing(await executionInstrument(dest.token,dest.env,dest.accountId,dest.accNum,inst),sourceSpec,scale,Number(trial.broker_lots),t.side,Number(t.open_price),Number(t.sl),Number(trial.max_trade_risk_usd));
-        wanted=sizing.risk;legPriceScale=sizing.priceScale;verifiedLots=sizing;reason='Owner-selected ongoing A-book copy';
-      }catch{return {book:leg.book,skipped:'broker metadata, lot step or planned stop-risk ceiling refused'};}
+        const cap=trial.position_loss_cap_usd==null?null:Number(trial.position_loss_cap_usd);
+        const sizing=ongoingSizing(await executionInstrument(dest.token,dest.env,dest.accountId,dest.accNum,inst),sourceSpec,scale,Number(trial.broker_lots),t.side,Number(t.open_price),Number(t.sl),Number(trial.max_trade_risk_usd),cap);
+        wanted=sizing.risk;legPriceScale=sizing.priceScale;verifiedLots=sizing;reason=cap===null?'Owner-selected ongoing A-book copy':`Owner-selected ongoing A-book copy, broker stop capped at $${cap}`;
+      }catch(e){return {book:leg.book,skipped:String((e as Error)?.message).includes('TOO_TIGHT')?'position loss cap too tight for this lot size':'broker metadata, lot step or planned stop-risk ceiling refused'};}
     }else if(trial){
       const gold=leg.testMap?.filter((x:Record<string,unknown>)=>String(x.symbol).replace(/[^A-Z0-9]/g,'').startsWith('XAUUSD'))??[];
       const spec=gold.length===1?gold[0]:null,contract=Number(spec?.lot_size),observed=Date.parse(String(spec?.spec_observed_at??''));
@@ -214,7 +215,8 @@ async function open(db: Db, b: Record<string, unknown>) {
     if (claimErr || !claim) { return { book: leg.book, error: "claim failed" }; }
     const started = Date.now();
     try {
-      const stop = emergencyStop(book, t.side, Number(t.open_price), Number(t.sl));
+      // Ongoing copies use the sized stop (owner loss cap applied); everything else keeps the 3x backstop.
+      const stop = trial?.ongoing && verifiedLots?.stop != null ? verifiedLots.stop : emergencyStop(book, t.side, Number(t.open_price), Number(t.sl));
       const payload = { ...marketOrder({ qty, routeId: Number(inst.trade_route_id), side, tradableInstrumentId: Number(inst.tradable_instrument_id), sl: stop, tp: null, sourceTradeId: tradeId }), strategyId: bookStrategy(leg.book, tradeId) };
       const sentAt=new Date().toISOString(),sentClock=globalThis.performance?.now()??Date.now();
       const ids = responseIds(await placeMarketOrder(dest.token, dest.accountId, dest.accNum, payload));
