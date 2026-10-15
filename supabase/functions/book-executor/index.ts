@@ -462,6 +462,19 @@ async function reconcile(db: Db) {
   const { data: stuck } = await db.from("book_orders").select("*").in("status", ["sent", "reconciliation_required", "error"])
     .lt("created_at", new Date(Date.now() - 45_000).toISOString()).limit(20);
   for (const o of stuck ?? []) {
+    if(o.ongoing_copy_connection_id&&o.event!=='open'){
+      // The monitor persists exact account/position receipts. DELETE closes can lack an order/strategy ID.
+      // This RPC only validates stored evidence and finalizes the ledger; it cannot submit broker orders.
+      const receipt=await db.rpc('fn_reconcile_ongoing_exit',{p_exit_id:o.id});
+      if(receipt.error)fixed.push({id:o.id,found:false,reason:'EXIT_RECEIPT_RECONCILIATION_UNAVAILABLE'});
+      else if(receipt.data?.ok)fixed.push({id:o.id,found:true,gross_pnl_usd:receipt.data.gross_pnl_usd,receipt_only:true});
+      else{
+        const reason=String(receipt.data?.reason??'WAITING_EXACT_CLOSING_RECEIPT').slice(0,100);
+        await db.from('book_orders').update({status:'reconciliation_required',error:'Receipt reconciliation: '+reason,updated_at:new Date().toISOString()}).eq('id',o.id).neq('dispatch_state','confirmed');
+        fixed.push({id:o.id,found:false,reason,receipt_only:true});
+      }
+      continue;
+    }
     if(o.ongoing_copy_connection_id&&o.event==='open'&&String(o.error??'').includes('POSITION_NOT_NEW_HEDGED')){fixed.push({id:o.id,found:false,manual_reconciliation:true});continue;}
     const dest = await destination(db, o.book, o.ongoing_copy_connection_id?true:o.event !== "open",o.ongoing_copy_connection_id?o.source_trade_id:null);
     if (!dest) continue;
