@@ -1,23 +1,26 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive">
 <title>Traders · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png">
-<link rel="stylesheet" href="/assets/css/team-os.css?v=20261015g">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/css/team-os.css?v=20261015h">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
 <body><div class="os-app">
   <nav class="os-side" id="osSide" aria-label="Team workspace"></nav>
   <div class="os-pane">
     <header class="os-toolbar"><h1 id="osTitle">Traders</h1><div class="row"><span class="status" id="osStatus" role="status">Loading…</span><button class="btn sm" id="refreshBtn" type="button">Refresh</button></div></header>
     <main class="os-content" style="max-width:1280px">
-      <p class="lede">Every trader in one list. Select a trader for their full record and actions.</p>
-      <div class="row" style="margin-bottom:14px"><div id="filters"></div>
+      <p class="lede">Every trader in one list. Select a trader for their full record: trade history with hold times, strategy profile, equity curve, readiness and actions.</p>
+      <div id="summary"></div>
+      <div class="row" style="margin:16px 0 10px"><div id="filters"></div><div id="detfilters"></div></div>
+      <div class="row" style="margin-bottom:14px">
         <input class="input" id="search" type="search" placeholder="Search name or email" aria-label="Search traders" style="flex:1;min-width:180px;width:auto">
         <label class="row" style="gap:6px"><span class="muted" style="font-size:12px">Sort</span><select class="input" id="sort" style="width:auto">
-          <option value="pnl">P&amp;L</option><option value="ret">Return %</option><option value="exp">Expectancy</option><option value="trades">Trades</option><option value="wr">Win rate</option><option value="dd">Max drawdown</option></select></label></div>
+          <option value="pnl">Realised P&amp;L</option><option value="ret">Return %</option><option value="bal">Balance</option><option value="wr">Win rate</option><option value="pf">Profit factor</option><option value="exp">Expectancy (R)</option><option value="trades">Trades</option><option value="dd">Max drawdown</option><option value="best">Best trade share</option><option value="det">Detector state</option></select></label></div>
       <div id="list"><div class="empty">Loading…</div></div>
       <div id="drawerSlot"></div>
     </main>
   </div>
 </div>
-<script src="/assets/js/team-shell.js?v=20261015g"></script>
-<script src="/assets/js/ws-traders.js?v=20261015g"></script>
+<script src="/assets/js/team-shell.js?v=20261015h"></script>
+<script src="/assets/js/ws-traders.js?v=20261015h"></script>
 </body></html>

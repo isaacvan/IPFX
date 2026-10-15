@@ -139,7 +139,19 @@ test('team login opens the new workspace, and every classic team page links to i
 test('the workspace is dark by default, whatever the system theme', () => {
   const css = read('assets/css/team-os.css');
   const root = css.slice(css.indexOf(':root{'), css.indexOf('}', css.indexOf(':root{')));
-  assert.match(root, /--win:#161618/);
+  assert.match(root, /--win:#0a0a0c/);
+  assert.match(root, /--mono:'JetBrains Mono'/);
   assert.match(root, /color-scheme:dark/);
   assert.doesNotMatch(css, /prefers-color-scheme/, 'the system light setting does not switch the workspace to light');
+});
+
+test('the trader record keeps everything the Operations trader view showed, plus hold times', () => {
+  const t = read('assets/js/ws-traders.js');
+  for (const s of ['Trade history', 'Rejected orders', 'Strategy profile', 'Instruments traded', 'Cumulative P&amp;L', 'Mirror readiness', 'Protected identity', 'Team actions on this trader', 'Per-account breakdown', 'Strategy hypotheses'])
+    assert.ok(t.includes(s), 'section: ' + s);
+  for (const c of ['Opened (UK)', 'Closed (UK)', 'Held', 'Entry (audit)', '<th>SL</th>', '<th>TP</th>', '<th>Exit</th>', 'Closed by']) assert.ok(t.includes(c), 'column: ' + c);
+  assert.match(t, /function held\(o, c\)/);
+  assert.match(t, /T\.admin\('audit_log', \{ user_id: t\.user_id/);
+  const page = read('workspace/traders.html');
+  for (const o of ['value="pf"', 'value="det"', 'value="bal"', 'value="best"']) assert.ok(page.includes(o), 'sort ' + o);
 });
