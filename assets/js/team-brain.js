@@ -74,7 +74,7 @@
       return j;
     }
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { location.replace('team-login.html?next=' + encodeURIComponent('/team-brain.html')); throw new Error('Sign in again'); }
+    if (!session) { (window.top||window).location.replace('/team-login.html?next=' + encodeURIComponent(window.top!==window?'/workspace/brain.html':'/team-brain.html')); throw new Error('Sign in again'); }
     const r = await fetch(SB_URL + '/functions/v1/brain-monitor', { method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(15000),
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ action, ...extra }) });
     const body = await r.json().catch(() => null);
@@ -695,8 +695,8 @@
     if(solutionBusy||!solutionContext)return;
     const kind=$('solutionKind').value,reason=$('solutionReason').value.trim();
     if(kind==='review_model'){$('solutionDialog').close();openTrader(solutionContext.alert.person_id);return;}
-    if(kind==='review_treasury'){location.assign('team-treasury.html');return;}
-    if(kind==='review_operations'){location.assign('admin.html');return;}
+    if(kind==='review_treasury'){(window.top||window).location.assign(window.top!==window?'/workspace/treasury.html':'team-treasury.html');return;}
+    if(kind==='review_operations'){(window.top||window).location.assign('/admin.html');return;}
     if(reason.length<5){$('solutionResult').textContent='Enter a clear reason or warning message.';return;}
     if(['pause','pause_pair','resume','halt_books','clear_similarity'].includes(kind)&&!confirm(solutionContext.options.find(x=>x.kind===kind).help+' Apply this action?'))return;
     solutionBusy=true;$('solutionApply').disabled=true;

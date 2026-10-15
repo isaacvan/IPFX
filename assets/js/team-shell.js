@@ -10,6 +10,7 @@
   // Destinations. "classic" = not yet rebuilt; opens the current page.
   const PAGES = [
     { id: 'overview', label: 'Overview', href: '/workspace/', icon: '<path d="M4 13h7V4H4zM13 20h7v-9h-7zM4 20h7v-4H4zM13 4v5h7V4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
+    { id: 'brain', label: 'Brain', href: '/workspace/brain.html', icon: '<path d="M9 4.5a3 3 0 0 0-3 3v.2A3 3 0 0 0 4 10.5a3 3 0 0 0 1 2.2A3 3 0 0 0 6.5 18a3 3 0 0 0 5.5 1V6a2.5 2.5 0 0 0-3-1.5zM15 4.5a3 3 0 0 1 3 3v.2a3 3 0 0 1 2 2.8 3 3 0 0 1-1 2.2A3 3 0 0 1 17.5 18a3 3 0 0 1-5.5 1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
     { id: 'traders', label: 'Traders', href: '/workspace/traders.html', icon: '<circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M16 5.2a2.8 2.8 0 0 1 0 5.6M18 14.4c1.9.5 2.9 2.2 2.9 4.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
     { id: 'books', label: 'Books', href: '/workspace/books.html', icon: '<rect x="4" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/>' },
     { id: 'queues', label: 'Queues', href: '/workspace/queues.html', icon: '<path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },

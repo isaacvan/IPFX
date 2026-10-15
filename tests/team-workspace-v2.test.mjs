@@ -43,7 +43,7 @@ test('team-login returns you to the workspace page you asked for, and nowhere ou
 });
 
 test('workspace pages load the shared shell and stay out of search engines', () => {
-  for (const p of ['workspace/index.html', 'workspace/books.html', 'workspace/queues.html', 'workspace/traders.html', 'workspace/treasury.html', 'workspace/costs.html', 'workspace/settings.html']) {
+  for (const p of ['workspace/index.html', 'workspace/books.html', 'workspace/queues.html', 'workspace/traders.html', 'workspace/treasury.html', 'workspace/costs.html', 'workspace/settings.html', 'workspace/brain.html']) {
     const h = read(p);
     assert.match(h, /noindex,nofollow,noarchive/);
     assert.match(h, /\/assets\/css\/team-os\.css/);
@@ -163,4 +163,15 @@ test('Books risk plan sends the whole plan through the owner action and shows th
   assert.match(b, /const RECOMMENDED = \{ size_mode: 'risk', risk_per_trade_usd: 50, stop_multiple: 1\.5, lots: 1, trader_max_open: 3, trader_daily_cut_usd: 200, daily_loss_on: true, daily_loss_usd: 600, kill_switch_on: true, kill_day_loss_usd: 750 \}/);
   assert.match(b, /The new-copy limit must be smaller than the kill switch amount/);
   assert.match(ctl, /from\('ab_equity_guard'\)/);
+});
+
+test('the workspace Brain is the real Brain page, unchanged, with only its own team nav hidden', () => {
+  const page = read('workspace/brain.html'), brain = read('team-brain.html'), js = read('assets/js/team-brain.js'), link = read('assets/js/workspace-link.js');
+  assert.match(page, /<iframe id="brainFrame" title="Brain" src="\/team-brain\.html\?embed=1"/);
+  assert.match(read('assets/js/team-shell.js'), /id: 'brain', label: 'Brain', href: '\/workspace\/brain\.html'/);
+  assert.match(brain, /window\.top!==window&&new URLSearchParams\(location\.search\)\.has\('embed'\)/);
+  assert.match(brain, /\.ws-embed header\.top nav\{display:none\}/);
+  assert.match(js, /\(window\.top\|\|window\)\.location\.replace\('\/team-login\.html\?next='/);
+  assert.match(link, /if \(window\.top !== window\) return;/);
+  assert.ok(link.includes("'team-brain.html': ['/workspace/brain.html', 'Brain']"));
 });

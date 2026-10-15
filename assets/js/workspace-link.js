@@ -1,8 +1,9 @@
 /* Classic team pages: a bar at the top pointing to the matching page in the new workspace. */
 (() => {
   'use strict';
+  if (window.top !== window) return;
   const MAP = { 'admin.html': ['/workspace/', 'Overview'], 'trader-analytics.html': ['/workspace/traders.html', 'Traders'], 'team-a-book.html': ['/workspace/books.html', 'Books'],
-    'team-b-book.html': ['/workspace/books.html', 'Books'], 'team-brain.html': ['/workspace/traders.html', 'Traders'], 'team-treasury.html': ['/workspace/treasury.html', 'Treasury'],
+    'team-b-book.html': ['/workspace/books.html', 'Books'], 'team-brain.html': ['/workspace/brain.html', 'Brain'], 'team-treasury.html': ['/workspace/treasury.html', 'Treasury'],
     'team-e8-monitor.html': ['/workspace/costs.html', 'Costs & E8'], 'team-feedback.html': ['/workspace/queues.html', 'Queues'] };
   const page = location.pathname.split('/').pop() || '';
   const [href, name] = MAP[page] || ['/workspace/', 'Overview'];

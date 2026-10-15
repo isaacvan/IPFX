@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive">
+<title>Brain · IPFX Team</title><link rel="icon" href="/desktop/build/icon.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/css/team-os.css?v=20261016b">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script></head>
+<body><div class="os-app">
+  <nav class="os-side" id="osSide" aria-label="Team workspace"></nav>
+  <div class="os-pane">
+    <header class="os-toolbar"><h1 id="osTitle">Brain</h1><div class="row"><span class="status" id="osStatus" role="status">Live every 10 seconds</span><a class="btn sm" href="/team-brain.html" target="_blank" rel="noopener">Open full screen</a></div></header>
+    <!-- The real Brain page, unchanged: same panels, alerts, desktop notifications and 10-second refresh. -->
+    <iframe id="brainFrame" title="Brain" src="/team-brain.html?embed=1" style="display:block;width:100%;height:calc(100vh - 53px);border:0;background:#0a0a0c" allow="notifications"></iframe>
+  </div>
+</div>
+<script src="/assets/js/team-shell.js?v=20261016b"></script>
+<script>window.TeamOS.mount({ page: 'brain', title: 'Brain' });</script>
+</body></html>
