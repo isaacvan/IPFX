@@ -76,6 +76,47 @@
     if (ok) { T.toast('Disconnected.'); await load(); }
   }
 
+  // ---- owner limits: default lots, per-position loss cap, daily loss limit (apply to new copies; execution can stay on) ----
+  const limitsOf = (c) => ({ lots: Number(c.broker_lots), posOn: !!c.position_loss_cap_on, posUsd: c.position_loss_cap_usd == null ? null : Number(c.position_loss_cap_usd), dayOn: !!c.daily_loss_on, dayUsd: c.daily_loss_usd == null ? null : Number(c.daily_loss_usd) });
+  const saveLimits = (c, x, why) => T.ladder('ongoing_copy_limits', { id: c.id, version: c.version, lots: x.lots, position_loss_cap_on: x.posOn, position_loss_cap_usd: x.posUsd, daily_loss_on: x.dayOn, daily_loss_usd: x.dayUsd, reason: why });
+  async function editLots(c) {
+    const cur = limitsOf(c);
+    const v = await T.sheet({ title: 'Lot size per copy', text: 'Used for every A-book trader without their own lot size. Applies to new copies; open copies keep their size.',
+      fields: [{ id: 'lots', label: 'Lots per copied trade', type: 'number', value: cur.lots, min: 0.01, max: 1, step: 0.01, hint: 'Between 0.01 and 1.00' }], confirm: 'Save',
+      onSubmit: (x) => saveLimits(c, { ...cur, lots: Number(x.lots) }, 'Owner changed default copy lots from Books') });
+    if (v) { T.toast('Lot size saved.'); await load(); }
+  }
+  async function editPositionCap(c, turnOn = false) {
+    const cur = limitsOf(c);
+    const v = await T.sheet({ title: 'Max loss per position', text: 'Each copy is sent to E8 with a stop at the price where it loses this much, so E8 closes it automatically. Applies to new copies.',
+      fields: [{ id: 'usd', label: 'Maximum loss per position ($)', type: 'number', value: cur.posUsd ?? 25, min: 1, max: 1000, step: 1, hint: 'If the 3x backstop on the trader’s own stop is closer, that is used. Very small amounts on large lots are refused rather than sent.' }],
+      confirm: turnOn || cur.posOn ? 'Save and turn on' : 'Save',
+      onSubmit: (x) => saveLimits(c, { ...cur, posOn: turnOn || cur.posOn, posUsd: Number(x.usd) }, 'Owner set the per-position loss cap from Books') });
+    if (v) { T.toast('Max loss per position saved.'); await load(); }
+  }
+  async function editDailyCap(c, turnOn = false) {
+    const cur = limitsOf(c);
+    const v = await T.sheet({ title: 'Max daily loss', text: 'No new copy is sent once today’s closed loss plus the risk on open copies plus the new copy would pass this amount. Resets at midnight UTC.',
+      fields: [{ id: 'usd', label: 'Maximum daily loss ($)', type: 'number', value: cur.dayUsd ?? 250, min: 1, max: 50000, step: 1, hint: 'Keep it below E8’s own daily loss limit for this account.' }],
+      confirm: turnOn || cur.dayOn ? 'Save and turn on' : 'Save',
+      onSubmit: (x) => saveLimits(c, { ...cur, dayOn: turnOn || cur.dayOn, dayUsd: Number(x.usd) }, 'Owner set the daily loss limit from Books') });
+    if (v) { T.toast('Max daily loss saved.'); await load(); }
+  }
+  async function toggleLimit(c, which, el) {
+    const cur = limitsOf(c), on = which === 'pos' ? cur.posOn : cur.dayOn;
+    if (!on) return which === 'pos' ? editPositionCap(c, true) : editDailyCap(c, true);
+    el?.setAttribute('aria-checked', 'false');
+    return run(() => saveLimits(c, which === 'pos' ? { ...cur, posOn: false } : { ...cur, dayOn: false }, which === 'pos' ? 'Owner turned off the per-position loss cap' : 'Owner turned off the daily loss limit'),
+      which === 'pos' ? 'Max loss per position off. New copies use the 3x backstop.' : 'Max daily loss off. The 2% default applies.');
+  }
+  async function editTraderLots(s) {
+    const c = (d.connections || []).find((x) => x.id === s.connection_id);
+    const v = await T.sheet({ title: 'Lot size for ' + (s.email || 'this trader'), text: 'Their next copies use this size. Leave empty to use the default (' + (c ? c.broker_lots : '—') + ' lots).',
+      fields: [{ id: 'lots', label: 'Lots per copied trade', type: 'number', value: s.lots ?? '', min: 0.01, max: 1, step: 0.01, optional: true }], confirm: 'Save',
+      onSubmit: (x) => T.ladder('ongoing_copy_trader_lots', { id: s.connection_id, person_id: s.person_id, lots: x.lots === '' ? null : Number(x.lots), reason: 'Owner set trader copy lots from Books' }) });
+    if (v) { T.toast('Lot size saved.'); await load(); }
+  }
+
   // ---- traders A / B ----
   async function toA(personId, email) {
     const c = primary();
@@ -121,9 +162,15 @@
       const n = (d.selections || []).filter((s) => s.connection_id === c.id && isA(s)).length;
       return `${blocked ? `<div class="banner red">New copies are blocked: check unresolved broker receipts, the connection or permission. Open copies stay tracked.<button class="btn sm" data-act="refresh">Check again</button></div>` : ''}
       <div class="group">
-        <div class="item"><div class="body"><b>${esc(c.label)}</b><span>${esc(c.broker_lots)} lots per copy · $${esc(c.max_trade_risk_usd)} emergency-stop limit · ${n} trader${n === 1 ? '' : 's'}</span></div>
+        <div class="item"><div class="body"><b>${esc(c.label)}</b><span>${n} trader${n === 1 ? '' : 's'} · ${c.execution_on ? 'new trades are copied' : 'nothing is copied while off'}</span></div>
           <div class="trail"><span class="cap ${c.execution_on ? (blocked ? 'red' : 'green') : ''}">${c.execution_on ? (blocked ? 'Blocked' : 'Copying') : 'Off'}</span>
           <button class="switch" role="switch" aria-checked="${!!c.execution_on}" aria-label="Execution" data-act="exec" data-id="${c.id}"></button></div></div>
+        <div class="item"><div class="body"><b>Lot size per copy</b><span>${esc(c.broker_lots)} lots for every trader without their own size</span></div>
+          <div class="trail"><button class="btn sm" data-act="lots" data-id="${c.id}">Edit</button></div></div>
+        <div class="item"><div class="body"><b>Max loss per position</b><span>${c.position_loss_cap_on ? `E8 closes each new copy automatically at <b class="num bad">−${usd(c.position_loss_cap_usd)}</b>` : `Off · stop at 3x the trader’s stop; copies risking over ${usd(c.max_trade_risk_usd)} are refused`}</span></div>
+          <div class="trail">${c.position_loss_cap_usd != null ? `<button class="btn sm" data-act="poscap" data-id="${c.id}">Edit</button>` : ''}<button class="switch" role="switch" aria-checked="${!!c.position_loss_cap_on}" aria-label="Max loss per position" data-act="posswitch" data-id="${c.id}"></button></div></div>
+        <div class="item"><div class="body"><b>Max daily loss</b><span>${c.daily_loss_on ? `No new copies once today’s loss + open risk would pass <b class="num bad">−${usd(c.daily_loss_usd)}</b> (UTC day)` : 'Off · default limit of 2% of the account size'}</span></div>
+          <div class="trail">${c.daily_loss_usd != null ? `<button class="btn sm" data-act="daycap" data-id="${c.id}">Edit</button>` : ''}<button class="switch" role="switch" aria-checked="${!!c.daily_loss_on}" aria-label="Max daily loss" data-act="dayswitch" data-id="${c.id}"></button></div></div>
         <div class="item"><div class="body"><b>Broker limits</b><span>${limits ? `Up to ${esc(limits.position_limit)} positions · ${usd(limits.margin_per_lot_usd)} margin per lot` : 'Needed once before execution can turn on'}</span></div>
           <div class="trail">${limits ? '' : '<span class="cap orange">Required</span>'}<button class="btn sm" data-act="limits" data-id="${c.id}">${limits ? 'Edit' : 'Set limits'}</button></div></div>
         <div class="item"><div class="body"><span>${c.jwt_available || d.developer_configured ? 'Uses your saved E8 login. No developer key needed for one account.' : 'Developer access is needed for more than one execution account.'}</span></div>
@@ -140,8 +187,8 @@
       <div class="group">${rows.length ? rows.map((s) => {
         const a = isA(s), c = (d.connections || []).find((x) => x.id === s.connection_id);
         const live = a && c?.execution_on && c?.ready !== false && c?.capacity_configured;
-        return `<div class="item"><div class="body"><b>${esc(s.email || s.person_id)}</b><span>${a ? (live ? 'Copying to ' + esc(c.label) : 'In A-book · copying starts when execution is on') : 'In B-book · not copied'}</span></div>
-          <div class="trail"><div class="seg" role="group" aria-label="Book for ${esc(s.email || '')}">
+        return `<div class="item"><div class="body"><b>${esc(s.email || s.person_id)}</b><span>${a ? (live ? 'Copying to ' + esc(c.label) : 'In A-book · copying starts when execution is on') : 'In B-book · not copied'} · ${s.lots != null ? `<b class="num">${esc(s.lots)} lots</b>` : `default ${esc(c?.broker_lots ?? '—')} lots`}</span></div>
+          <div class="trail"><button class="btn sm" data-act="tlots" data-person="${esc(s.person_id)}">Lot size</button><div class="seg" role="group" aria-label="Book for ${esc(s.email || '')}">
             <button class="a" aria-pressed="${a}" data-act="toA" data-person="${esc(s.person_id)}" data-email="${esc(s.email || s.person_id)}"${a ? ' disabled' : ''}>A-book</button>
             <button class="b" aria-pressed="${!a}" data-act="toB" data-person="${esc(s.person_id)}"${a ? '' : ' disabled'}>B-book</button></div></div></div>`;
       }).join('') : `<div class="empty">No traders in A-book. ${hasConn ? 'Use Add trader to move someone in.' : 'Set up copying first, then add traders.'}</div>`}</div>`;
@@ -193,6 +240,12 @@
       case 'setup': setUp(); break;
       case 'exec': if (c) toggleExecution(c); break;
       case 'limits': if (c) editLimits(c); break;
+      case 'lots': if (c) editLots(c); break;
+      case 'poscap': if (c) editPositionCap(c); break;
+      case 'daycap': if (c) editDailyCap(c); break;
+      case 'posswitch': if (c) toggleLimit(c, 'pos', b); break;
+      case 'dayswitch': if (c) toggleLimit(c, 'day', b); break;
+      case 'tlots': if (s) editTraderLots(s); break;
       case 'disconnect': if (c) disconnect(c); break;
       case 'add': addTrader(); break;
       case 'toA': toA(b.dataset.person, b.dataset.email); break;

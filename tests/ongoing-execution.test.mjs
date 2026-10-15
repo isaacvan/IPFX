@@ -31,3 +31,26 @@ test('a source closed or reduced while its opening receipt was in flight trigger
   const exit=f.requests.find(x=>x.name==='catchup-exit');assert.equal(exit.body.source_trade_id,'synthetic-trade');assert.equal(exit.body.event,change.status==='closed'?'close':'partial_close');
  }
 });
+test('owner position loss cap places the broker stop where the copy loses at most the cap, never beyond the 3x backstop',()=>{
+ const spec={lotSize:100,minLot:.01,maxLot:100,lotStep:.01,quotingCurrency:'USD'},source={contract_size:100,quote_currency:'USD'};
+ // Gold 0.01 lot = $1 per $1 move. Trader stop $1 away => 3x backstop $3 away ($3 risk).
+ const off=ongoingSizing(spec,source,100,.01,'buy',4000,3999,10);assert.equal(off.stop,3997);assert.equal(off.risk,3);
+ // Cap $2 is tighter than the backstop: stop at 3998 (buy) / 4002 (sell), risk $2.
+ const buy=ongoingSizing(spec,source,100,.01,'buy',4000,3999,10,2);assert.equal(buy.stop,3998);assert.equal(buy.risk,2);
+ const sell=ongoingSizing(spec,source,100,.01,'sell',4000,4001,10,2);assert.equal(sell.stop,4002);assert.equal(sell.risk,2);
+ // Cap looser than the backstop: the backstop still binds.
+ const loose=ongoingSizing(spec,source,100,.01,'buy',4000,3999,10,50);assert.equal(loose.stop,3997);assert.equal(loose.risk,3);
+ // With the cap on, the old $10 ceiling no longer refuses a wide trader stop: the cap bounds the loss instead.
+ assert.throws(()=>ongoingSizing(spec,source,100,.01,'buy',4000,3990,10),/CEILING/);
+ const wide=ongoingSizing(spec,source,100,.01,'buy',4000,3990,10,8);assert.equal(wide.stop,3992);assert.equal(wide.risk,8);
+ // Bigger lots tighten the stop for the same dollar cap; a stop inside 0.05% of price is refused, not sent.
+ assert.equal(ongoingSizing(spec,source,100,.1,'buy',4000,3999,100,20).stop,3998);
+ assert.throws(()=>ongoingSizing(spec,source,100,1,'buy',4000,3999,1000,1),/TOO_TIGHT/);
+ assert.throws(()=>ongoingSizing(spec,source,100,.01,'buy',4000,3999,10,0),/INVALID/);
+});
+test('the real open path sends the capped stop to the broker only when the owner cap is on, and uses the trader’s own lots',async()=>{
+ const off=bookOpenFixture({ongoing:true});await off.run();assert.equal(off.posts.length,1);assert.equal(off.posts[0].sl,3997);
+ const on=bookOpenFixture({ongoing:true,trial:{position_loss_cap_usd:2}});await on.run();assert.equal(on.posts.length,1);assert.equal(on.posts[0].sl,3998);
+ const lots=bookOpenFixture({ongoing:true,trial:{broker_lots:.02,position_loss_cap_usd:4}});await lots.run();assert.equal(lots.posts[0].qty,.02);assert.equal(lots.posts[0].sl,3998);
+ const tight=bookOpenFixture({ongoing:true,trial:{position_loss_cap_usd:.01}});const r=await tight.run();assert.equal(tight.posts.length,0);assert.match(JSON.stringify(r),/too tight/);
+});
