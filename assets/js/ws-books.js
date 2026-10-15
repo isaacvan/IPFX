@@ -10,6 +10,7 @@
   const connected = () => (d?.connections || []).filter((c) => c.connected);
   const primary = () => connected()[0] || null;
   const capFor = (c) => (d?.capacity || []).find((l) => l.book === 'l' + c.account_id) || null;
+  const cap = (txt, cls) => `<span class="cap ${cls || ''}">${esc(txt)}</span>`;
   const eligibleAccounts = () => (d?.accounts || []).filter((a) => ['monitor', 'ladder'].includes(a.role) && a.api_env === 'demo' && !a.execution_enabled && ['funded', 'evaluation'].includes(a.status));
   // The status rows mark an A-book trader with copying_on / model AB_LIVE (live_selected only appears on action replies).
   const isA = (s) => s.enabled === true && (s.copying_on === true || s.model === 'AB_LIVE' || s.live_selected === true);
@@ -109,6 +110,75 @@
     return run(() => saveLimits(c, which === 'pos' ? { ...cur, posOn: false } : { ...cur, dayOn: false }, which === 'pos' ? 'Owner turned off the per-position loss cap' : 'Owner turned off the daily loss limit'),
       which === 'pos' ? 'Max loss per position off. New copies use the 3x backstop.' : 'Max daily loss off. The 2% default applies.');
   }
+  // ---- risk plan: one set of rules for the whole A-book, plus the equity guard (kill switch) ----
+  // Recommended plan for a $50k E8 account with a $1,000 daily loss limit (from replaying real trader-days): $50 per copy
+  // sized from the trader's stop, broker stop at 1.5x, max 3 open copies per trader, a trader paused after -$200 in a day,
+  // no new copies once the day reaches -$600 including open risk, and everything closed at -$750 on the broker's day P&L.
+  const RECOMMENDED = { size_mode: 'risk', risk_per_trade_usd: 50, stop_multiple: 1.5, lots: 1, trader_max_open: 3, trader_daily_cut_usd: 200, daily_loss_on: true, daily_loss_usd: 600, kill_switch_on: true, kill_day_loss_usd: 750 };
+  const planOf = (c) => ({ size_mode: c.size_mode || 'fixed', risk_per_trade_usd: c.risk_per_trade_usd, stop_multiple: c.stop_multiple ?? 1.5, lots: c.broker_lots, trader_max_open: c.trader_max_open,
+    trader_daily_cut_usd: c.trader_daily_cut_usd, daily_loss_on: !!c.daily_loss_on, daily_loss_usd: c.daily_loss_usd, kill_switch_on: !!c.kill_switch_on, kill_day_loss_usd: c.kill_day_loss_usd, equity_floor_usd: c.equity_floor_usd });
+  const savePlan = (c, plan, why) => T.ladder('ongoing_copy_risk_plan', { id: c.id, version: c.version, plan, reason: why });
+  const guardOf = (c) => (d?.guard || []).find((g) => Number(g.account_id) === Number(c.account_id)) || null;
+  async function editPlan(c, start = null) {
+    const p = { ...planOf(c), ...(start || {}) };
+    const v = await T.sheet({ title: start ? 'Apply the recommended risk plan' : 'Risk plan',
+      text: 'One set of rules for every A-book trader. Saved immediately; applies to new copies while execution stays on.',
+      fields: [
+        { id: 'mode', label: 'Copy size', options: [{ value: 'risk', label: 'By risk: lots worked out from the trader’s stop (recommended)' }, { value: 'fixed', label: 'Fixed lots for every copy' }], value: p.size_mode },
+        { id: 'risk', label: 'Risk per copy ($)', type: 'number', min: 1, max: 1000, step: 1, value: p.risk_per_trade_usd ?? 50, hint: 'What one copy loses if its broker stop is hit.' },
+        { id: 'mult', label: 'Broker stop at × the trader’s stop', type: 'number', min: 1, max: 3, step: 0.1, value: p.stop_multiple ?? 1.5, hint: 'Room for the trader’s stop to slip; the copy still never loses more than the risk per copy.' },
+        { id: 'lots', label: 'Maximum lots per copy', type: 'number', min: 0.01, max: 1, step: 0.01, value: p.lots ?? 1 },
+        { id: 'tmax', label: 'Max open copies per trader', type: 'number', min: 1, max: 50, step: 1, value: p.trader_max_open ?? '', optional: true },
+        { id: 'tcut', label: 'Pause a trader for the day after their copies lose ($)', type: 'number', min: 1, step: 1, value: p.trader_daily_cut_usd ?? '', optional: true },
+        { id: 'day', label: 'Stop new copies when today’s loss + open risk reaches ($)', type: 'number', min: 1, step: 1, value: p.daily_loss_on ? p.daily_loss_usd : (p.daily_loss_usd ?? ''), optional: true, hint: 'Leave empty for the 2% default.' },
+        { id: 'kill', label: 'Kill switch: close everything when the E8 day P&L reaches −($)', type: 'number', min: 1, step: 1, value: p.kill_switch_on ? p.kill_day_loss_usd : (p.kill_day_loss_usd ?? ''), optional: true, hint: 'Must be above the new-copy limit and below E8’s own daily loss limit. Leave empty to switch it off.' },
+        { id: 'floor', label: 'Also close everything if equity falls to ($)', type: 'number', min: 1, step: 1, value: p.equity_floor_usd ?? '', optional: true, hint: 'Set just above E8’s maximum-loss level for this account.' },
+      ],
+      confirm: start ? 'Apply plan' : 'Save plan',
+      onSubmit: (x) => {
+        const n = (v) => (v === '' || v == null ? null : Number(v));
+        if (x.mode === 'risk' && !n(x.risk)) throw new Error('Enter the risk per copy.');
+        if (n(x.day) && n(x.kill) && n(x.day) >= n(x.kill)) throw new Error('The new-copy limit must be smaller than the kill switch amount.');
+        return savePlan(c, { size_mode: x.mode, risk_per_trade_usd: n(x.risk), stop_multiple: n(x.mult), lots: n(x.lots), trader_max_open: n(x.tmax), trader_daily_cut_usd: n(x.tcut),
+          daily_loss_on: n(x.day) != null, daily_loss_usd: n(x.day), kill_switch_on: n(x.kill) != null, kill_day_loss_usd: n(x.kill), equity_floor_usd: n(x.floor) }, start ? 'Owner applied the recommended A-book risk plan' : 'Owner edited the A-book risk plan');
+      } });
+    if (v) { T.toast('Risk plan saved.'); await load(); }
+  }
+  async function toggleKill(c, el) {
+    const p = planOf(c);
+    if (!p.kill_switch_on) return editPlan(c, { kill_switch_on: true, kill_day_loss_usd: p.kill_day_loss_usd ?? 750 });
+    const ok = await T.sheet({ title: 'Switch the kill switch off?', text: 'Nothing will close positions automatically if the day’s loss keeps growing. The daily new-copy limit still applies.', confirm: 'Switch off', danger: true,
+      onSubmit: () => savePlan(c, { ...p, kill_switch_on: false }, 'Owner switched the kill switch off') });
+    if (ok) { T.toast('Kill switch off.'); await load(); } else el?.setAttribute('aria-checked', 'true');
+  }
+  function riskPlanSection(c) {
+    const p = planOf(c), g = guardOf(c), age = g ? (Date.now() - Date.parse(g.read_at)) / 1000 : null, fresh = age != null && age < 60 && !g.error;
+    const day = g?.day_pnl == null ? null : Number(g.day_pnl), limitE8 = 1000, killAt = p.kill_switch_on ? Number(p.kill_day_loss_usd) : null, stopAt = p.daily_loss_on ? Number(p.daily_loss_usd) : null;
+    const pct = (v) => Math.max(0, Math.min(100, (v / limitE8) * 100));
+    const tripped = c.kill_tripped_at && !c.execution_on;
+    const isRecommended = Object.entries(RECOMMENDED).every(([k, v]) => String(p[k] ?? '') === String(v));
+    const gauge = `<div class="item" style="display:block"><div class="row" style="justify-content:space-between"><div><b>Today on E8</b> <span class="muted" style="font-size:12px">broker day · closed + open</span></div>
+        <div class="row">${cap(!g ? 'Guard not running yet' : g.error ? 'Read failed: ' + g.error : fresh ? 'Guard live · ' + Math.round(age) + 's ago' : 'Stale · ' + Math.round(age) + 's ago', !g || g.error || !fresh ? 'orange' : 'green')}
+        <b class="num ${day < 0 ? 'bad' : day > 0 ? 'good' : ''}" style="font-size:20px">${day == null ? '—' : (day >= 0 ? '+' : '−') + usd(Math.abs(day)).replace(/^[−-]/, '')}</b></div></div>
+      <div style="position:relative;height:10px;border-radius:99px;background:var(--sel);margin:12px 0 6px;overflow:visible">
+        <i style="position:absolute;left:0;top:0;bottom:0;width:${day != null && day < 0 ? pct(-day) : 0}%;border-radius:99px;background:${killAt && day <= -killAt ? 'var(--red)' : stopAt && day <= -stopAt ? 'var(--orange)' : 'var(--accent)'}"></i>
+        ${stopAt ? `<span title="New copies stop" style="position:absolute;left:${pct(stopAt)}%;top:-4px;bottom:-4px;width:2px;background:var(--orange)"></span>` : ''}
+        ${killAt ? `<span title="Kill switch" style="position:absolute;left:${pct(killAt)}%;top:-4px;bottom:-4px;width:2px;background:var(--red)"></span>` : ''}
+        <span title="E8 daily loss limit" style="position:absolute;right:0;top:-4px;bottom:-4px;width:2px;background:var(--ink3)"></span></div>
+      <div class="row muted" style="justify-content:space-between;font-size:11.5px"><span>$0</span>${stopAt ? `<span style="color:var(--orange)">new copies stop −${usd(stopAt)}</span>` : ''}${killAt ? `<span style="color:var(--red)">close everything −${usd(killAt)}</span>` : ''}<span>E8 limit −$1,000</span></div>
+      ${g ? `<div class="muted" style="font-size:12px;margin-top:6px">Balance ${usd(g.balance)} · equity ${usd(g.equity)} · ${esc(g.positions ?? 0)} open position${g.positions === 1 ? '' : 's'}</div>` : ''}</div>`;
+    return `<div class="grouphead">Risk plan <span class="sub">Same rules for every A-book trader</span>${isRecommended ? cap('Recommended plan', 'green') : `<button class="btn sm primary" data-act="planrec" data-id="${c.id}">Apply recommended plan</button>`}</div>
+      ${tripped ? `<div class="banner red"><div><b>Kill switch tripped ${ukTime(c.kill_tripped_at)} UK.</b> ${esc(c.kill_reason || '')}. Execution is off and positions were closed${g?.last_flatten ? ` (${esc(g.last_flatten.owned_closed ?? 0)} copies, ${esc(g.last_flatten.other_closed ?? 0)} other)` : ''}. Turn execution back on in the card above when you’re ready.</div></div>` : ''}
+      <div class="group">${gauge}
+        <div class="item"><div class="body"><b>Copy size</b><span>${p.size_mode === 'risk' ? `By risk: <b class="num">${usd(p.risk_per_trade_usd)}</b> per copy, broker stop at ${esc(p.stop_multiple)}× the trader’s stop, up to ${Number(p.lots).toFixed(2)} lots` : `Fixed ${Number(p.lots).toFixed(2)} lots per copy`}</span></div>
+          <div class="trail"><button class="btn sm" data-act="plan" data-id="${c.id}">Edit</button></div></div>
+        <div class="item"><div class="body"><b>Per trader</b><span>${p.trader_max_open ? `Max ${esc(p.trader_max_open)} open copies` : 'No open-copy limit'} · ${p.trader_daily_cut_usd ? `paused for the day after −${usd(p.trader_daily_cut_usd)}` : 'never paused for the day'}</span></div>
+          <div class="trail"><button class="btn sm" data-act="plan" data-id="${c.id}">Edit</button></div></div>
+        <div class="item"><div class="body"><b>Kill switch</b><span>${p.kill_switch_on ? `Closes every position on the account and switches execution off when the E8 day P&L reaches <b class="num bad">−${usd(p.kill_day_loss_usd)}</b>${p.equity_floor_usd ? ` or equity falls to ${usd(p.equity_floor_usd)}` : ''}. Checked every 10 seconds.` : 'Off · nothing closes positions automatically'}</span></div>
+          <div class="trail">${cap(p.kill_switch_on ? 'Armed' : 'Off', p.kill_switch_on ? 'green' : 'red')}<button class="switch" role="switch" aria-checked="${p.kill_switch_on}" aria-label="Kill switch" data-act="killswitch" data-id="${c.id}"></button></div></div>
+      </div>`;
+  }
+
   async function editTraderLots(s) {
     const c = (d.connections || []).find((x) => x.id === s.connection_id);
     const v = await T.sheet({ title: 'Lot size for ' + (s.email || 'this trader'), text: 'Their next copies use this size. Leave empty to use the default (' + (c ? c.broker_lots : '—') + ' lots).',
@@ -175,7 +245,7 @@
           <div class="trail">${limits ? '' : '<span class="cap orange">Required</span>'}<button class="btn sm" data-act="limits" data-id="${c.id}">${limits ? 'Edit' : 'Set limits'}</button></div></div>
         <div class="item"><div class="body"><span>${c.jwt_available || d.developer_configured ? 'Uses your saved E8 login. No developer key needed for one account.' : 'Developer access is needed for more than one execution account.'}</span></div>
           <div class="trail"><button class="btn sm link" data-act="disconnect" data-id="${c.id}">Disconnect</button></div></div>
-      </div>`;
+      </div>${riskPlanSection(c)}`;
     }).join('');
   }
 
@@ -187,7 +257,7 @@
       <div class="group">${rows.length ? rows.map((s) => {
         const a = isA(s), c = (d.connections || []).find((x) => x.id === s.connection_id);
         const live = a && c?.execution_on && c?.ready !== false && c?.capacity_configured;
-        return `<div class="item"><div class="body"><b>${esc(s.email || s.person_id)}</b><span>${a ? (live ? 'Copying to ' + esc(c.label) : 'In A-book · copying starts when execution is on') : 'In B-book · not copied'} · ${s.lots != null ? `<b class="num">${esc(s.lots)} lots</b>` : `default ${esc(c?.broker_lots ?? '—')} lots`}</span></div>
+        return `<div class="item"><div class="body"><b>${esc(s.email || s.person_id)}</b><span>${a ? (live ? 'Copying to ' + esc(c.label) : 'In A-book · copying starts when execution is on') : 'In B-book · not copied'} · ${s.lots != null ? `<b class="num">${esc(s.lots)} lots</b> (own size)` : c?.size_mode === 'risk' ? `sized by risk (${usd(c.risk_per_trade_usd)} per copy)` : `default ${esc(c?.broker_lots ?? '—')} lots`}</span></div>
           <div class="trail"><button class="btn sm" data-act="tlots" data-person="${esc(s.person_id)}">Lot size</button><div class="seg" role="group" aria-label="Book for ${esc(s.email || '')}">
             <button class="a" aria-pressed="${a}" data-act="toA" data-person="${esc(s.person_id)}" data-email="${esc(s.email || s.person_id)}"${a ? ' disabled' : ''}>A-book</button>
             <button class="b" aria-pressed="${!a}" data-act="toB" data-person="${esc(s.person_id)}"${a ? '' : ' disabled'}>B-book</button></div></div></div>`;
@@ -246,6 +316,9 @@
       case 'posswitch': if (c) toggleLimit(c, 'pos', b); break;
       case 'dayswitch': if (c) toggleLimit(c, 'day', b); break;
       case 'tlots': if (s) editTraderLots(s); break;
+      case 'plan': if (c) editPlan(c); break;
+      case 'planrec': if (c) editPlan(c, RECOMMENDED); break;
+      case 'killswitch': if (c) toggleKill(c, b); break;
       case 'disconnect': if (c) disconnect(c); break;
       case 'add': addTrader(); break;
       case 'toA': toA(b.dataset.person, b.dataset.email); break;

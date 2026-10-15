@@ -155,3 +155,12 @@ test('the trader record keeps everything the Operations trader view showed, plus
   const page = read('workspace/traders.html');
   for (const o of ['value="pf"', 'value="det"', 'value="bal"', 'value="best"']) assert.ok(page.includes(o), 'sort ' + o);
 });
+
+test('Books risk plan sends the whole plan through the owner action and shows the equity guard', () => {
+  const b = read('assets/js/ws-books.js'), ctl = read('supabase/functions/_shared/ongoing-copy-controls.ts');
+  assert.match(b, /T\.ladder\('ongoing_copy_risk_plan', \{ id: c\.id, version: c\.version, plan, reason: why \}\)/);
+  assert.ok(ctl.includes("action==='ongoing_copy_risk_plan'"));
+  assert.match(b, /const RECOMMENDED = \{ size_mode: 'risk', risk_per_trade_usd: 50, stop_multiple: 1\.5, lots: 1, trader_max_open: 3, trader_daily_cut_usd: 200, daily_loss_on: true, daily_loss_usd: 600, kill_switch_on: true, kill_day_loss_usd: 750 \}/);
+  assert.match(b, /The new-copy limit must be smaller than the kill switch amount/);
+  assert.match(ctl, /from\('ab_equity_guard'\)/);
+});

@@ -6,7 +6,7 @@ import {stripTypeScriptTypes} from 'node:module';
 import {exactExecutionReceipt} from '../supabase/functions/_shared/ongoing-execution.ts';
 
 const text=fs.readFileSync(new URL('../supabase/functions/book-executor/index.ts',import.meta.url),'utf8');
-const code=text.slice(text.indexOf('async function closeLeg('),text.indexOf('// ---------- Shadow copy:'));
+const code=text.slice(text.indexOf('async function closeOwnedLeg('),text.indexOf('// ---------- Shadow copy:'));
 const openId='360287970200000001',position='360287970100000001',exitId='360287970200000002';
 function fixture(options={}){
  const trace=[],reads=[],writes=[],logs=[];let closes=0,plans=0,finalized=0;

@@ -7,7 +7,8 @@
 // Callers: trading-engine with the service-role key; pg_cron reconciler with x-book-secret.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decryptSecret, encryptSecret, jwtExpiresAt } from "../_shared/tradelocker-crypto.ts";
-import { closePositionQty, marketOrder, orderFill, ordersByStrategy, placeMarketOrder, refresh, responseIds } from "../_shared/tradelocker.ts";
+import { accountRiskSnapshot, closePositionQty, marketOrder, orderFill, ordersByStrategy, placeMarketOrder, refresh, responseIds } from "../_shared/tradelocker.ts";
+import { decodeAccountState } from "../_shared/e8-account-totals.ts";
 import { reserveCapacity } from "../_shared/book-capacity.ts";
 import { exactTestOpenReceipt } from "../_shared/copy-test-receipt.ts";
 import { executionInstrument, ongoingSizing, exactExecutionReceipt } from "../_shared/ongoing-execution.ts";
@@ -162,6 +163,7 @@ async function open(db: Db, b: Record<string, unknown>) {
     let legPriceScale=scale;
     let dest=trial?.ongoing?await destination(db,leg.book,false,tradeId):null;
     let verifiedLots: {min:number;step:number;stop?:number|null}|null=null;
+    let copyLots: number|null=null;
     if (!trial&&lim&&Number(lim.account_size_usd) > 0) {
       const { count: routed } = await db.from("book_orders").select("id", { count: "exact", head: true }).eq("book", leg.book).eq("event", "open").gte("created_at", since);
       const groupsShare = leg.book.startsWith("l") ? Math.max(1, Number(ls?.signal_groups ?? 1)) : 1;
@@ -180,9 +182,11 @@ async function open(db: Db, b: Record<string, unknown>) {
       if(specError||!sourceSpec)return {book:leg.book,skipped:'source instrument metadata unavailable'};
       try{
         const cap=trial.position_loss_cap_usd==null?null:Number(trial.position_loss_cap_usd);
-        const sizing=ongoingSizing(await executionInstrument(dest.token,dest.env,dest.accountId,dest.accNum,inst),sourceSpec,scale,Number(trial.broker_lots),t.side,Number(t.open_price),Number(t.sl),Number(trial.max_trade_risk_usd),cap);
-        wanted=sizing.risk;legPriceScale=sizing.priceScale;verifiedLots=sizing;reason=cap===null?'Owner-selected ongoing A-book copy':`Owner-selected ongoing A-book copy, broker stop capped at $${cap}`;
-      }catch(e){return {book:leg.book,skipped:String((e as Error)?.message).includes('TOO_TIGHT')?'position loss cap too tight for this lot size':'broker metadata, lot step or planned stop-risk ceiling refused'};}
+        const byRisk=trial.size_mode==='risk'&&trial.risk_per_trade_usd!=null?{usd:Number(trial.risk_per_trade_usd),multiple:Number(trial.stop_multiple??1.5)}:null;
+        const sizing=ongoingSizing(await executionInstrument(dest.token,dest.env,dest.accountId,dest.accNum,inst),sourceSpec,scale,Number(trial.broker_lots),t.side,Number(t.open_price),Number(t.sl),Number(trial.max_trade_risk_usd),cap,byRisk);
+        wanted=sizing.risk;legPriceScale=sizing.priceScale;verifiedLots=sizing;copyLots=sizing.lots;
+        reason=byRisk?`Risk plan: $${byRisk.usd} per copy, stop at ${byRisk.multiple}x the trader's stop`:cap===null?'Owner-selected ongoing A-book copy':`Owner-selected ongoing A-book copy, broker stop capped at $${cap}`;
+      }catch(e){const m=String((e as Error)?.message);return {book:leg.book,skipped:m.includes('BELOW_MIN_LOT')?'risk plan: trade risk at the minimum lot exceeds the per-copy budget':m.includes('TOO_TIGHT')?'stop too tight for this lot size at the broker':'broker metadata, lot step or planned stop-risk ceiling refused'};}
     }else if(trial){
       const gold=leg.testMap?.filter((x:Record<string,unknown>)=>String(x.symbol).replace(/[^A-Z0-9]/g,'').startsWith('XAUUSD'))??[];
       const spec=gold.length===1?gold[0]:null,contract=Number(spec?.lot_size),observed=Date.parse(String(spec?.spec_observed_at??''));
@@ -192,14 +196,14 @@ async function open(db: Db, b: Record<string, unknown>) {
       legPriceScale=contract;
       if(!Number.isFinite(wanted)||wanted<=0||wanted>Number(trial.max_trade_risk_usd))return {book:leg.book,skipped:'test planned stop risk exceeds owner limit'};
     }
-    const signedLots = (side === "buy" ? 1 : -1) * (trial?Number(trial.broker_lots):Number(t.volume)*(wanted/traderRisk));
+    const signedLots = (side === "buy" ? 1 : -1) * (trial?(copyLots??Number(trial.broker_lots)):Number(t.volume)*(wanted/traderRisk));
     const { data: res, error: resErr } = await db.rpc("ab_reserve_risk", { p_book: leg.book, p_trade: tradeId, p_person: person, p_symbol: t.symbol, p_signed_lots: signedLots, p_risk_usd: wanted });
     if (resErr || !res?.ok) { return { book: leg.book, skipped: "risk: " + (res?.reason ?? resErr?.message ?? "refused") }; }
     dest ??= await destination(db, leg.book);
     if (!dest) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "destination not connected" }; }
     const inst = instrumentFor(dest.map, t.symbol);
     if (!inst) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "instrument not available" }; }
-    const qty = trial?Number(trial.broker_lots):lotsFor(Number(t.volume), traderRisk, Number(res.allowed_usd), Number(inst.lot_step ?? 0.01), Number(inst.min_qty ?? 0.01));
+    const qty = trial?(copyLots??Number(trial.broker_lots)):lotsFor(Number(t.volume), traderRisk, Number(res.allowed_usd), Number(inst.lot_step ?? 0.01), Number(inst.min_qty ?? 0.01));
     const min=verifiedLots?.min??Number(inst.min_qty),step=verifiedLots?.step??Number(inst.lot_step);
     if(trial&&(Number(res.allowed_usd)+1e-8<wanted||(!trial.ongoing&&qty!==.01)||qty<min||!Number.isFinite(step)||Math.abs(qty/step-Math.round(qty/step))>1e-8)){await db.rpc('ab_release_risk',{p_book:leg.book,p_trade:tradeId});return {book:leg.book,skipped:'copy lot or risk reservation mismatch'};}
     if (!(qty > 0)) { await db.rpc("ab_release_risk", { p_book: leg.book, p_trade: tradeId }); return { book: leg.book, skipped: "below broker minimum" }; }
@@ -258,11 +262,10 @@ async function open(db: Db, b: Record<string, unknown>) {
   return { ok: true, legs: results, fill_price: book === "a" ? worst : null };
 }
 
-async function closeLeg(db: Db, b: Record<string, unknown>) {
-  const tradeId = String(b.source_trade_id), event = b.event === "partial_close" ? "partial_close" : "close";
-  const { data: legs } = await db.from("book_orders").select("*").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "sent", "reconciliation_required"]);
-  // Each leg closes on its own account; run them in parallel so many ladder accounts close together.
-  const closeOne = async (leg: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
+// Close one owned open leg (fully, or the source's partial slice) through the exit journal; shared by trader exits and
+// the equity guard's kill switch.
+async function closeOwnedLeg(db: Db, leg: Record<string, unknown>, full: boolean, sliceId: string): Promise<Record<string, unknown> | null> {
+    const tradeId = String(leg.source_trade_id);
     const book = leg.book as "a" | "b";
     const pipelineStarted = Date.now();
     // The broker may have filled the opening order before its first history read.
@@ -297,7 +300,7 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
     // Independent admission reads overlap; dispatch still requires BOTH the locked
     // quantity plan and current owned-destination permission. Never cache either.
     const [{ data: planned, error: planError }, dest] = await Promise.all([
-      db.rpc("fn_plan_book_exit", { p_open_id: leg.id, p_full: event === "close", p_slice: String(b.slice_id ?? "") }),
+      db.rpc("fn_plan_book_exit", { p_open_id: leg.id, p_full: full, p_slice: sliceId }),
       destinationRead,
     ]);
     if (planError || !planned?.ok) return { book, error: planned?.reason ?? "EXIT_PLAN_UNAVAILABLE" };
@@ -338,7 +341,13 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
       await db.from("book_orders").update({ status: "reconciliation_required", dispatch_state: "unknown", error: String(e).slice(0, 300), updated_at: new Date().toISOString() }).eq("id", claim.id);
       return { book, error: "broker result requires reconciliation" };
     }
-  };
+}
+
+async function closeLeg(db: Db, b: Record<string, unknown>) {
+  const tradeId = String(b.source_trade_id), event = b.event === "partial_close" ? "partial_close" : "close";
+  const { data: legs } = await db.from("book_orders").select("*").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "sent", "reconciliation_required"]);
+  // Each leg closes on its own account; run them in parallel so many ladder accounts close together.
+  const closeOne = (leg: Record<string, unknown>) => closeOwnedLeg(db, leg, event === "close", String(b.slice_id ?? ""));
   const results: Array<Record<string, unknown>> = [];
   const all = (legs ?? []).filter((leg: Record<string, unknown>) => leg.status === "filled" || !!leg.ongoing_copy_connection_id);
   for (let i = 0; i < all.length; i += 8) for (const x of await Promise.all(all.slice(i, i + 8).map(closeOne))) if (x) results.push(x);
@@ -523,6 +532,10 @@ async function reconcile(db: Db) {
       if(receipt.error)fixed.push({id:o.id,found:false,reason:'EXIT_RECEIPT_RECONCILIATION_UNAVAILABLE'});
       else if(receipt.data?.ok)fixed.push({id:o.id,found:true,gross_pnl_usd:receipt.data.gross_pnl_usd,receipt_only:true});
       else{
+        // The position may already have been closed by its own broker stop before this exit was sent.
+        const {data:root}=await db.from('book_orders').select('id').eq('book',o.book).eq('source_trade_id',o.source_trade_id).eq('event','open').eq('status','filled').maybeSingle();
+        const earlier=root?await db.rpc('fn_record_ongoing_broker_close',{p_open_id:root.id}):null;
+        if(earlier?.data?.ok){fixed.push({id:o.id,found:true,broker_closed_earlier:true,gross_pnl_usd:earlier.data.pnl_usd});continue;}
         const reason=String(receipt.data?.reason??'WAITING_EXACT_CLOSING_RECEIPT').slice(0,100);
         await db.from('book_orders').update({status:'reconciliation_required',error:'Receipt reconciliation: '+reason,updated_at:new Date().toISOString()}).eq('id',o.id).neq('dispatch_state','confirmed');
         fixed.push({id:o.id,found:false,reason,receipt_only:true});
@@ -563,6 +576,67 @@ async function reconcile(db: Db) {
   return { ok: true, fixed };
 }
 
+// ---------- A-book equity guard (kill switch) ----------
+// Every 10 seconds (pg_cron): read each copy account's broker totals and open positions. The database decides; on a
+// breach execution is switched off and every position on the account is closed: owned copies through the exit journal,
+// anything else (manual trades) directly. A failed read never trips. Copies the broker closed by their own stop are
+// recorded from the broker receipt.
+async function guardAccount(db: Db, accountId: number) {
+  const key = Deno.env.get("TRADELOCKER_TOKEN_ENCRYPTION_KEY");
+  if (!key) return null;
+  const { data: d } = await db.from("ladder_accounts").select("*").eq("id", accountId).in("role", ["monitor", "ladder"]).maybeSingle();
+  if (!d || !d.access_token_ciphertext || (d.api_env ?? "demo") !== "demo") return null;
+  let token = await decryptSecret(d.access_token_ciphertext, key);
+  if (!d.access_expires_at || Date.parse(d.access_expires_at) - Date.now() < 30 * 60_000) {
+    const next = await refresh(await decryptSecret(d.refresh_token_ciphertext, key));
+    token = next.accessToken;
+    await db.from("ladder_accounts").update({ access_token_ciphertext: await encryptSecret(next.accessToken, key), refresh_token_ciphertext: await encryptSecret(next.refreshToken, key),
+      access_expires_at: jwtExpiresAt(next.accessToken), updated_at: new Date().toISOString() }).eq("id", accountId);
+  }
+  return { token, accountId: String(d.account_id), accNum: String(d.acc_num) };
+}
+async function flattenAccount(db: Db, connectionId: number, acct: { token: string; accountId: string; accNum: string }, reason: string) {
+  const { data: legs } = await db.from("book_orders").select("*").eq("ongoing_copy_connection_id", connectionId).eq("event", "open").eq("status", "filled");
+  const owned: Array<Record<string, unknown> | null> = [];
+  const list = legs ?? [];
+  for (let i = 0; i < list.length; i += 8) owned.push(...await Promise.all(list.slice(i, i + 8).map((leg: Record<string, unknown>) => closeOwnedLeg(db, leg, true, "kill").catch((e) => ({ error: String(e).slice(0, 120) })))));
+  // Whatever is still open at the broker (not ours, or not yet closed) is closed directly.
+  const left = await accountRiskSnapshot(acct.token, acct.accountId, acct.accNum).then((x) => x.positionIds).catch(() => [] as string[]);
+  const direct = await Promise.all(left.map((id) => closePositionQty(acct.token, acct.accNum, id, 0).then(() => ({ id, ok: true })).catch((e) => ({ id, ok: false, error: String(e).slice(0, 120) }))));
+  return { reason, owned_closed: owned.filter((x) => x && !x.error).length, owned_errors: owned.filter((x) => x && x.error).length, other_closed: direct.filter((x) => x.ok).length, other_errors: direct.filter((x) => !x.ok).length };
+}
+async function equityGuard(db: Db) {
+  const { data: conns } = await db.from("ongoing_copy_connections").select("id,account_id,execution_on,kill_switch_on").eq("connected", true);
+  const out: Array<Record<string, unknown>> = [];
+  await Promise.all((conns ?? []).filter((c: Record<string, unknown>) => c.execution_on || c.kill_switch_on).map(async (c: Record<string, unknown>) => {
+    const accountId = Number(c.account_id);
+    try {
+      const acct = await guardAccount(db, accountId);
+      if (!acct) { await db.rpc("ongoing_copy_guard_save", { p_account: accountId, p_reading: { error: "ACCOUNT_TOKEN_UNAVAILABLE" } }); return; }
+      let snap;
+      try { snap = await accountRiskSnapshot(acct.token, acct.accountId, acct.accNum); }
+      catch (e) { const m = String((e as Error)?.message ?? ""); await db.rpc("ongoing_copy_guard_save", { p_account: accountId, p_reading: { error: /^[A-Z0-9_]+$/.test(m) ? m : "BROKER_READ_FAILED" } }); return; }
+      const v = decodeAccountState(snap.config, snap.state).values;
+      const { data: decision, error } = await db.rpc("ongoing_copy_guard_save", { p_account: accountId, p_reading: {
+        balance: v.balance, equity: v.projectedBalance, today_net: v.todayNet, open_net: v.openNetPnL, positions: snap.positionIds.length } });
+      if (error) { out.push({ account: accountId, error: "GUARD_SAVE_FAILED" }); return; }
+      if (decision?.flatten) {
+        const r = await flattenAccount(db, Number(c.id), acct, String(decision.reason));
+        await db.rpc("ongoing_copy_guard_flattened", { p_account: accountId, p_result: { ...r, day_pnl: decision.day_pnl, equity: decision.equity } });
+        out.push({ account: accountId, tripped: true, ...r });
+        return;
+      }
+      // Owned copies no longer open at the broker were closed by their broker stop: record them from the receipt.
+      const open = new Set(snap.positionIds);
+      const { data: legs } = await db.from("book_orders").select("id,broker_position_id").eq("ongoing_copy_connection_id", Number(c.id)).eq("event", "open").eq("status", "filled");
+      for (const leg of legs ?? []) if (leg.broker_position_id && !open.has(String(leg.broker_position_id))) await db.rpc("fn_record_ongoing_broker_close", { p_open_id: leg.id });
+      out.push({ account: accountId, day_pnl: decision?.day_pnl ?? null });
+    } catch (e) { out.push({ account: accountId, error: String(e).slice(0, 120) }); }
+  }));
+  await db.from("ab_heartbeats").upsert({ worker: "equity-guard", ok: !out.some((x) => x.error), at: new Date().toISOString(), detail: { accounts: out } });
+  return { ok: true, accounts: out };
+}
+
 // Every copy or reverse that did not happen, with its reason, for the owner's Brain page (best effort:
 // a logging failure never changes what was traded).
 async function logSkips(db: Db, b: Record<string, unknown>, r: Record<string, unknown>) {
@@ -586,6 +660,7 @@ Deno.serve(async (req) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey, { auth: { persistSession: false } });
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   if (body.action === "reconcile") return json(await reconcile(db));
+  if (body.action === "equity_guard") return json(await equityGuard(db));
   if (!viaService) return json({ error: "unauthorised" }, 401);
   if (body.event === "open") {
     if (body.book !== "a" && body.book !== "b") return json({ ok: false, error: "book required" }, 400);
