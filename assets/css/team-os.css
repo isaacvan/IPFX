@@ -1,34 +1,29 @@
 /* IPFX Team workspace — shared design system.
    macOS-style split view: translucent source-list sidebar + content pane of inset grouped lists.
    Principles: content over chrome, one accent, hairlines instead of boxes, tinted capsules for status only. */
+/* Dark is the house theme. Light remains available with data-theme="light". */
 :root{
+  /* Operations-page palette: near-black page, flat #111114 cards, thin #242429 lines, cobalt accent */
+  --win:#0a0a0c; --pane:#0a0a0c; --group:#111114; --raised:#17171b;
+  --ink:#ffffff; --ink2:#9aa0aa; --ink3:#5f636b;
+  --hair:#242429; --hair2:#1b1b20; --sel:#17171b;
+  --accent:#2563eb; --accent-h:#1d4ed8; --accent-ink:#7aa2ff; --accent-t:rgba(37,99,235,.16);
+  --green:#10b981; --green-t:rgba(16,185,129,.13); --red:#ef4444; --red-t:rgba(239,68,68,.13); --orange:#f59e0b; --orange-t:rgba(245,158,11,.12);
+  --glass:rgba(10,10,12,.9); --shadow:none;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
   --win:#ececed; --pane:#f6f6f7; --group:#ffffff; --raised:#ffffff;
   --ink:#1d1d1f; --ink2:#6e6e73; --ink3:#9a9aa0;
   --hair:rgba(0,0,0,.09); --hair2:rgba(0,0,0,.055); --sel:rgba(0,0,0,.055);
   --accent:#007aff; --accent-t:rgba(0,122,255,.12);
   --green:#1a7f37; --green-t:rgba(52,199,89,.16); --red:#d70015; --red-t:rgba(255,59,48,.13); --orange:#b25000; --orange-t:rgba(255,149,0,.16);
   --glass:rgba(246,246,247,.74); --shadow:0 1px 2px rgba(0,0,0,.07),0 6px 20px rgba(0,0,0,.05);
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --win:#161618; --pane:#1b1b1d; --group:#252528; --raised:#2c2c2e;
-  --ink:#f5f5f7; --ink2:#9e9ea4; --ink3:#6b6b71;
-  --hair:rgba(255,255,255,.1); --hair2:rgba(255,255,255,.06); --sel:rgba(255,255,255,.08);
-  --accent:#0a84ff; --accent-t:rgba(10,132,255,.2);
-  --green:#30d158; --green-t:rgba(48,209,88,.17); --red:#ff453a; --red-t:rgba(255,69,58,.17); --orange:#ff9f0a; --orange-t:rgba(255,159,10,.17);
-  --glass:rgba(30,30,32,.7); --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --win:#161618; --pane:#1b1b1d; --group:#252528; --raised:#2c2c2e;
-  --ink:#f5f5f7; --ink2:#9e9ea4; --ink3:#6b6b71;
-  --hair:rgba(255,255,255,.1); --hair2:rgba(255,255,255,.06); --sel:rgba(255,255,255,.08);
-  --accent:#0a84ff; --accent-t:rgba(10,132,255,.2);
-  --green:#30d158; --green-t:rgba(48,209,88,.17); --red:#ff453a; --red-t:rgba(255,69,58,.17); --orange:#ff9f0a; --orange-t:rgba(255,159,10,.17);
-  --glass:rgba(30,30,32,.7); --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
-  color-scheme:dark;
-}
+
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--win);color:var(--ink);font-family:var(--font);font-size:13.5px;line-height:1.46;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
@@ -78,7 +73,7 @@ button,input,select{font:inherit;color:inherit;letter-spacing:inherit}
 .input,select.input{background:var(--group);border:.5px solid var(--hair);border-radius:8px;padding:7px 10px;font-size:13.5px;color:var(--ink);min-width:0;width:100%}
 .input:focus{outline:2px solid var(--accent-t);border-color:var(--accent)}
 
-.switch{width:46px;height:28px;border-radius:999px;border:0;background:var(--sel);position:relative;cursor:pointer;flex:none;transition:background .18s;padding:0}
+.switch{width:46px;height:28px;border-radius:999px;border:0;background:rgba(120,120,128,.32);position:relative;cursor:pointer;flex:none;transition:background .18s;padding:0}
 .switch[aria-checked="true"]{background:var(--green)}
 .switch::after{content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .18s}
 .switch[aria-checked="true"]::after{transform:translateX(18px)}
@@ -175,3 +170,74 @@ td:first-child{white-space:normal;min-width:160px}
 .cover .big{font-size:30px;font-weight:650;letter-spacing:-.035em;margin:2px 0 2px}
 .meter{height:8px;border-radius:99px;background:var(--sel);overflow:hidden;margin:16px 0 8px}
 .meter>i{display:block;height:100%;border-radius:99px;transition:width .4s cubic-bezier(.32,.72,0,1)}
+
+/* ---- Operations-page look (dark, flat, uppercase labels, mono numbers). Overrides the macOS defaults above. ---- */
+body{font-size:14px;line-height:1.5;letter-spacing:0}
+a{color:var(--accent-ink)}
+.num,.stat .v,.cover .big,td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:0}
+.os-side{background:var(--win);backdrop-filter:none;-webkit-backdrop-filter:none;border-right:1px solid var(--hair)}
+.os-logo{background:linear-gradient(145deg,#2563eb,#1d4ed8)}
+.os-brand b{font-weight:800}
+.os-label{text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;font-weight:700}
+.os-nav{color:var(--ink2);font-weight:600}
+.os-nav:hover{color:var(--ink);background:var(--raised)}
+.os-nav svg{color:var(--ink3)}
+.os-nav[aria-current="page"]{background:var(--accent);color:#fff;font-weight:700}
+.os-toolbar{background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
+.os-toolbar h1{font-weight:800;letter-spacing:-.02em}
+.lede{color:var(--ink2)}
+
+.btn{background:transparent;border:1px solid var(--hair);color:var(--ink2);border-radius:8px;font-weight:700;font-size:12.5px;box-shadow:none;transition:.15s}
+.btn:hover{filter:none;color:var(--ink);border-color:var(--ink3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h)}
+.btn.tinted{background:var(--accent-t);border-color:transparent;color:var(--accent-ink)}
+.btn.danger{background:var(--red-t);border-color:transparent;color:var(--red)}
+.btn.link{color:var(--accent-ink)}
+.input,select.input{background:var(--group);border:1px solid var(--hair);border-radius:999px;padding:8px 14px}
+.os-sheet .input,.os-sheet select.input{border-radius:10px}
+.input:focus{outline:none;border-color:var(--accent)}
+
+/* filter chips and segmented choices become pills */
+.seg,.tabs{background:none;padding:0;gap:8px;flex-wrap:wrap;border-radius:0}
+.seg button,.tabs button{border:1px solid var(--hair);background:var(--group);border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:600;color:var(--ink2);box-shadow:none;transition:.15s}
+.seg button:hover,.tabs button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"],.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:none;font-weight:700}
+.seg button[aria-pressed="true"].a{color:#fff}
+.seg button[aria-pressed="true"].b{background:var(--orange);border-color:var(--orange);color:#1a1205}
+.tabs{margin-bottom:18px}
+
+/* stat cards: separate bordered tiles with uppercase labels */
+.stats{gap:12px;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
+.stat{background:var(--group);border:1px solid var(--hair);border-radius:12px;padding:14px 18px}
+.stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);font-weight:700}
+.stat .v{font-size:22px;font-weight:700;margin-top:4px}
+.cover .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);font-weight:700}
+
+.grouphead{text-transform:uppercase;letter-spacing:.07em;font-size:12px;font-weight:700;color:var(--ink2)}
+.grouphead .sub{text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink3)}
+.grouphead .btn{text-transform:none;letter-spacing:0}
+details.more>summary{text-transform:uppercase;letter-spacing:.07em;font-size:12px;font-weight:700}
+.group,.tablewrap,.cover{border:1px solid var(--hair);border-radius:14px;box-shadow:none}
+.item{border-top:1px solid var(--hair2)}
+.item .body b{font-weight:700}
+th,td{border-top:1px solid var(--hair2)}
+thead th{background:var(--group);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;font-weight:700;color:var(--ink3)}
+tbody tr.click:hover{background:var(--raised)}
+
+.cap{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px}
+.cap.blue{color:var(--accent-ink)}
+.ic-blue{color:var(--accent-ink)}
+
+.banner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#f5c473}
+.banner.red{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5}
+.banner.blue{background:rgba(37,99,235,.12);border-color:rgba(37,99,235,.35);color:#bfd1ff}
+.banner .muted{color:inherit;opacity:.8}
+
+.os-sheet,.os-drawer{background:var(--group);border:1px solid var(--hair)}
+.os-scrim{background:rgba(0,0,0,.55)}
+.os-toast{background:var(--raised);border:1px solid var(--hair)}
+
+/* full trader record: a wide side panel */
+.os-drawer.wide{width:min(1200px,96vw);padding:24px 28px}
+.os-drawer.wide .grouphead{margin-top:22px}

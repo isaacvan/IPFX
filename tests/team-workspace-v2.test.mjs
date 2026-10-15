@@ -126,3 +126,32 @@ test('Settings sends only admin-console actions the server handles, with the fie
   assert.match(s, /password\|token\|secret\|ciphertext/, 'audit details hide secret fields');
   assert.match(read('assets/js/team-shell.js'), /id: 'settings', label: 'Settings', href: '\/workspace\/settings\.html'/);
 });
+
+test('team login opens the new workspace, and every classic team page links to its workspace equivalent', () => {
+  assert.match(read('team-login.html'), /\?requestedNext:'\/workspace\/';/);
+  const link = read('assets/js/workspace-link.js');
+  for (const p of ['admin.html', 'trader-analytics.html', 'team-a-book.html', 'team-b-book.html', 'team-brain.html', 'team-treasury.html', 'team-e8-monitor.html', 'team-feedback.html']) {
+    assert.match(read(p), /<script src="\/assets\/js\/workspace-link\.js/, p + ' loads the workspace link');
+    assert.ok(link.includes(`'${p}': ['/workspace/`), p + ' maps to a workspace page');
+  }
+});
+
+test('the workspace is dark by default, whatever the system theme', () => {
+  const css = read('assets/css/team-os.css');
+  const root = css.slice(css.indexOf(':root{'), css.indexOf('}', css.indexOf(':root{')));
+  assert.match(root, /--win:#0a0a0c/);
+  assert.match(root, /--mono:'JetBrains Mono'/);
+  assert.match(root, /color-scheme:dark/);
+  assert.doesNotMatch(css, /prefers-color-scheme/, 'the system light setting does not switch the workspace to light');
+});
+
+test('the trader record keeps everything the Operations trader view showed, plus hold times', () => {
+  const t = read('assets/js/ws-traders.js');
+  for (const s of ['Trade history', 'Rejected orders', 'Strategy profile', 'Instruments traded', 'Cumulative P&amp;L', 'Mirror readiness', 'Protected identity', 'Team actions on this trader', 'Per-account breakdown', 'Strategy hypotheses'])
+    assert.ok(t.includes(s), 'section: ' + s);
+  for (const c of ['Opened (UK)', 'Closed (UK)', 'Held', 'Entry (audit)', '<th>SL</th>', '<th>TP</th>', '<th>Exit</th>', 'Closed by']) assert.ok(t.includes(c), 'column: ' + c);
+  assert.match(t, /function held\(o, c\)/);
+  assert.match(t, /T\.admin\('audit_log', \{ user_id: t\.user_id/);
+  const page = read('workspace/traders.html');
+  for (const o of ['value="pf"', 'value="det"', 'value="bal"', 'value="best"']) assert.ok(page.includes(o), 'sort ' + o);
+});

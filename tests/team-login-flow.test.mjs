@@ -113,7 +113,7 @@ test('session read errors remain retryable without signing the owner out',async(
 
 test('Team destinations reject external URLs and preserve allowed nested query strings',async()=>{
  for(const next of ['https://evil.example','//evil.example','/\\evil.example','/team-brain.html/../login.html']){
-  const f=fixture({level:'aal2',search:'?next='+encodeURIComponent(next)});await f.tick();assert.deepEqual(f.navigation,['/trader-analytics.html']);
+  const f=fixture({level:'aal2',search:'?next='+encodeURIComponent(next)});await f.tick();assert.deepEqual(f.navigation,['/workspace/']);
  }
  const next='/team-brain.html?view=alerts#current',f=fixture({level:'aal2',search:'?next='+encodeURIComponent(next)});await f.tick();assert.deepEqual(f.navigation,[next]);
 });
