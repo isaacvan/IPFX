@@ -52,6 +52,7 @@
   // ---- costs: IPFX vs E8 ----
   function costsSection() {
     if (brainErr && !brain) return `<div class="grouphead">Trading costs</div><div class="banner red">Cost comparison unavailable: ${esc(brainErr)}</div>`;
+    if (!brain) return '<div class="grouphead">Trading costs: IPFX vs E8</div><div class="empty">Loading cost samples…</div>';
     const c = brain?.costs, rows = c?.spreads || [];
     const allin = new Map((c?.allin || []).map((r) => [r.symbol, r]));
     const hasDemo = rows.some((r) => fin(r.demo));
@@ -140,11 +141,13 @@
     try { await configure(id, { enabled: on }); T.toast(on ? 'Sampling on.' : 'Sampling paused.'); } catch (e) { T.toast(e.message, true); await load(); }
   }
 
+  // The E8 read is quick; the Brain's cost and shadow read takes several seconds, so each section renders as it arrives.
+  let loading = false;
   async function load() {
-    const [m, b] = await Promise.allSettled([T.e8('overview'), T.brain('overview')]);
-    if (m.status === 'fulfilled') { mon = m.value; monErr = null; loadedAt = Date.now(); } else monErr = m.reason?.message || 'unavailable';
-    if (b.status === 'fulfilled') { brain = b.value; brainErr = null; } else brainErr = b.reason?.message || 'unavailable';
-    render();
+    if (loading) return; loading = true;
+    const m = T.e8('overview').then((v) => { mon = v; monErr = null; loadedAt = Date.now(); }, (e) => { monErr = e.message || 'unavailable'; }).finally(render);
+    const b = T.brain('overview').then((v) => { brain = v; brainErr = null; }, (e) => { brainErr = e.message || 'unavailable'; }).finally(render);
+    await Promise.all([m, b]); loading = false;
     T.status(monErr && brainErr ? 'Couldn’t load' : 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
   }
 
