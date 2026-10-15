@@ -135,3 +135,11 @@ test('team login opens the new workspace, and every classic team page links to i
     assert.ok(link.includes(`'${p}': ['/workspace/`), p + ' maps to a workspace page');
   }
 });
+
+test('the workspace is dark by default, whatever the system theme', () => {
+  const css = read('assets/css/team-os.css');
+  const root = css.slice(css.indexOf(':root{'), css.indexOf('}', css.indexOf(':root{')));
+  assert.match(root, /--win:#161618/);
+  assert.match(root, /color-scheme:dark/);
+  assert.doesNotMatch(css, /prefers-color-scheme/, 'the system light setting does not switch the workspace to light');
+});

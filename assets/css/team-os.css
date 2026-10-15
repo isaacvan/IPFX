@@ -1,34 +1,27 @@
 /* IPFX Team workspace — shared design system.
    macOS-style split view: translucent source-list sidebar + content pane of inset grouped lists.
    Principles: content over chrome, one accent, hairlines instead of boxes, tinted capsules for status only. */
+/* Dark is the house theme. Light remains available with data-theme="light". */
 :root{
+  --win:#161618; --pane:#1b1b1d; --group:#252528; --raised:#2c2c2e;
+  --ink:#f5f5f7; --ink2:#9e9ea4; --ink3:#6b6b71;
+  --hair:rgba(255,255,255,.1); --hair2:rgba(255,255,255,.06); --sel:rgba(255,255,255,.08);
+  --accent:#0a84ff; --accent-t:rgba(10,132,255,.2);
+  --green:#30d158; --green-t:rgba(48,209,88,.17); --red:#ff453a; --red-t:rgba(255,69,58,.17); --orange:#ff9f0a; --orange-t:rgba(255,159,10,.17);
+  --glass:rgba(30,30,32,.7); --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
   --win:#ececed; --pane:#f6f6f7; --group:#ffffff; --raised:#ffffff;
   --ink:#1d1d1f; --ink2:#6e6e73; --ink3:#9a9aa0;
   --hair:rgba(0,0,0,.09); --hair2:rgba(0,0,0,.055); --sel:rgba(0,0,0,.055);
   --accent:#007aff; --accent-t:rgba(0,122,255,.12);
   --green:#1a7f37; --green-t:rgba(52,199,89,.16); --red:#d70015; --red-t:rgba(255,59,48,.13); --orange:#b25000; --orange-t:rgba(255,149,0,.16);
   --glass:rgba(246,246,247,.74); --shadow:0 1px 2px rgba(0,0,0,.07),0 6px 20px rgba(0,0,0,.05);
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --win:#161618; --pane:#1b1b1d; --group:#252528; --raised:#2c2c2e;
-  --ink:#f5f5f7; --ink2:#9e9ea4; --ink3:#6b6b71;
-  --hair:rgba(255,255,255,.1); --hair2:rgba(255,255,255,.06); --sel:rgba(255,255,255,.08);
-  --accent:#0a84ff; --accent-t:rgba(10,132,255,.2);
-  --green:#30d158; --green-t:rgba(48,209,88,.17); --red:#ff453a; --red-t:rgba(255,69,58,.17); --orange:#ff9f0a; --orange-t:rgba(255,159,10,.17);
-  --glass:rgba(30,30,32,.7); --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --win:#161618; --pane:#1b1b1d; --group:#252528; --raised:#2c2c2e;
-  --ink:#f5f5f7; --ink2:#9e9ea4; --ink3:#6b6b71;
-  --hair:rgba(255,255,255,.1); --hair2:rgba(255,255,255,.06); --sel:rgba(255,255,255,.08);
-  --accent:#0a84ff; --accent-t:rgba(10,132,255,.2);
-  --green:#30d158; --green-t:rgba(48,209,88,.17); --red:#ff453a; --red-t:rgba(255,69,58,.17); --orange:#ff9f0a; --orange-t:rgba(255,159,10,.17);
-  --glass:rgba(30,30,32,.7); --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
-  color-scheme:dark;
-}
+
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--win);color:var(--ink);font-family:var(--font);font-size:13.5px;line-height:1.46;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
@@ -78,7 +71,7 @@ button,input,select{font:inherit;color:inherit;letter-spacing:inherit}
 .input,select.input{background:var(--group);border:.5px solid var(--hair);border-radius:8px;padding:7px 10px;font-size:13.5px;color:var(--ink);min-width:0;width:100%}
 .input:focus{outline:2px solid var(--accent-t);border-color:var(--accent)}
 
-.switch{width:46px;height:28px;border-radius:999px;border:0;background:var(--sel);position:relative;cursor:pointer;flex:none;transition:background .18s;padding:0}
+.switch{width:46px;height:28px;border-radius:999px;border:0;background:rgba(120,120,128,.32);position:relative;cursor:pointer;flex:none;transition:background .18s;padding:0}
 .switch[aria-checked="true"]{background:var(--green)}
 .switch::after{content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .18s}
 .switch[aria-checked="true"]::after{transform:translateX(18px)}
