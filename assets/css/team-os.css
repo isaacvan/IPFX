@@ -157,3 +157,15 @@ details.more[open]>summary::before{content:"▾ "}
 .tabs button{border:0;background:none;padding:6px 14px;border-radius:7px;font-size:13px;color:var(--ink2);cursor:pointer;white-space:nowrap;font-weight:500}
 .tabs button[aria-selected="true"]{background:var(--raised);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:550}
 .tabs .count{font-size:11px;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font-weight:700}
+
+/* clickable rows + side panel (Traders) */
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:var(--sel)}
+.os-drawer-scrim{z-index:30;background:rgba(0,0,0,.22)}
+.os-drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);z-index:31;background:var(--pane);border-left:.5px solid var(--hair);box-shadow:-20px 0 60px rgba(0,0,0,.22);overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:14px}
+.os-drawer>*{flex-shrink:0}
+.os-drawer h3{margin:0;font-size:21px;font-weight:650;letter-spacing:-.03em}
+@media (prefers-reduced-motion:no-preference){.os-drawer{animation:osSlide .22s cubic-bezier(.32,.72,0,1)}@keyframes osSlide{from{transform:translateX(28px);opacity:.5}to{transform:none;opacity:1}}}
+/* numbers and short labels never break across lines; wide tables scroll inside their card instead */
+th,td{white-space:nowrap}
+td:first-child{white-space:normal;min-width:160px}

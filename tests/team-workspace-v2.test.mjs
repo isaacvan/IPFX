@@ -36,12 +36,12 @@ test('team-login returns you to the workspace page you asked for, and nowhere ou
   const page = read('team-login.html');
   const src = page.match(/const safeNext=(\/\^[\s\S]*?\$\/)\.test\(requestedNext\)/)[1];
   const re = new Function('return ' + src)();
-  for (const ok of ['/workspace/', '/workspace/books.html', '/workspace/index.html', '/workspace/queues.html', '/team-feedback.html', '/team-a-book.html']) assert.ok(re.test(ok), ok);
+  for (const ok of ['/workspace/', '/workspace/books.html', '/workspace/index.html', '/workspace/queues.html', '/workspace/traders.html', '/team-feedback.html', '/team-a-book.html']) assert.ok(re.test(ok), ok);
   for (const bad of ['//evil.com', 'https://evil.com/workspace/', '/workspace/../admin.html', '/workspace/a/b.html', '/workspace/Books.html', '/workspacebooks.html', '/workspace/x.js']) assert.ok(!re.test(bad), bad);
 });
 
 test('workspace pages load the shared shell and stay out of search engines', () => {
-  for (const p of ['workspace/index.html', 'workspace/books.html']) {
+  for (const p of ['workspace/index.html', 'workspace/books.html', 'workspace/queues.html', 'workspace/traders.html']) {
     const h = read(p);
     assert.match(h, /noindex,nofollow,noarchive/);
     assert.match(h, /\/assets\/css\/team-os\.css/);
@@ -65,4 +65,20 @@ test('Queues sends the same admin-console actions and fields as the Operations p
   assert.match(q, /window\.open\('about:blank', '_blank'\)/);
   assert.doesNotMatch(q, /kyc_document_url[^;]*Promise\.all/);
   assert.match(read('assets/js/team-shell.js'), /id: 'queues', label: 'Queues', href: '\/workspace\/queues\.html'/);
+});
+
+test('Traders sends only actions the owner functions handle, with the fields they require', () => {
+  const t = read('assets/js/ws-traders.js'), admin = read('supabase/functions/admin-console/index.ts'), copy = read('supabase/functions/_shared/ongoing-copy-controls.ts');
+  for (const a of new Set([...t.matchAll(/T\.admin\('([a-z_]+)'/g)].map((m) => m[1]))) assert.ok(admin.includes(`action === "${a}"`), `admin-console handles ${a}`);
+  for (const a of new Set([...t.matchAll(/T\.ladder\('([a-z_]+)'/g)].map((m) => m[1]))) assert.ok(copy.includes(`action==='${a}'`) || a === 'ongoing_copy_status', `ladder-admin handles ${a}`);
+  assert.match(t, /trader_detail', \{ user_id: t\.user_id \}/);
+  assert.match(t, /set_investigation_hold', \{ account_id: t\.account_id, hold: on, note: x\.note \|\| null \}/);
+  assert.match(t, /ongoing_copy_start_trader', \{ id: conn\.id, person_id: f\.person_id, version: conn\.version, reason: '[^']{5,}', confirm_funded_execution: true \}/);
+  assert.match(t, /ongoing_copy_select', \{ id: s\.connection_id, person_id: s\.person_id, enabled: false, reason: '[^']{5,}' \}/);
+  assert.match(read('assets/js/team-shell.js'), /id: 'traders', label: 'Traders', href: '\/workspace\/traders\.html'/);
+  assert.match(read('workspace/traders.html'), /noindex,nofollow,noarchive/);
+});
+
+test('confirm sheets ignore a second submit while the first is still running', () => {
+  assert.match(read('assets/js/team-shell.js'), /if \(form\.dataset\.busy\) return; form\.dataset\.busy = '1'/);
 });

@@ -10,7 +10,7 @@
   // Destinations. "classic" = not yet rebuilt; opens the current page.
   const PAGES = [
     { id: 'overview', label: 'Overview', href: '/workspace/', icon: '<path d="M4 13h7V4H4zM13 20h7v-9h-7zM4 20h7v-4H4zM13 4v5h7V4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
-    { id: 'traders', label: 'Traders', href: '/admin.html', classic: true, icon: '<circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M16 5.2a2.8 2.8 0 0 1 0 5.6M18 14.4c1.9.5 2.9 2.2 2.9 4.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+    { id: 'traders', label: 'Traders', href: '/workspace/traders.html', icon: '<circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M16 5.2a2.8 2.8 0 0 1 0 5.6M18 14.4c1.9.5 2.9 2.2 2.9 4.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
     { id: 'books', label: 'Books', href: '/workspace/books.html', icon: '<rect x="4" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="5" width="7" height="14" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/>' },
     { id: 'queues', label: 'Queues', href: '/workspace/queues.html', icon: '<path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
     { id: 'treasury', label: 'Treasury', href: '/team-treasury.html', classic: true, icon: '<path d="M12 3l9 5.5H3zM5 9v8M9.5 9v8M14.5 9v8M19 9v8M3 20h18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' },
@@ -71,11 +71,11 @@
       document.addEventListener('keydown', onKey);
       scrim.addEventListener('click', (e) => { if (e.target === scrim || e.target.closest('[data-cancel]')) close(null); });
       form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+        e.preventDefault(); if (form.dataset.busy) return; form.dataset.busy = '1';
         const values = Object.fromEntries(new FormData(form).entries());
         const btns = [...form.querySelectorAll('button')]; btns.forEach((b) => b.disabled = true); err.textContent = '';
         try { const out = onSubmit ? await onSubmit(values) : values; close(out ?? values); }
-        catch (x) { err.textContent = x.message || String(x); btns.forEach((b) => b.disabled = false); }
+        catch (x) { err.textContent = x.message || String(x); btns.forEach((b) => b.disabled = false); delete form.dataset.busy; }
       });
       document.body.appendChild(scrim);
       (form.querySelector('input,select') || form.querySelector('[type=submit]')).focus();
