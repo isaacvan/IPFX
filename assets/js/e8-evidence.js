@@ -28,7 +28,7 @@
   const accountOptions=()=>'<option value="">Choose the exact saved E8 account</option>'+(data.accounts||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.label)} · #${esc(a.account_id)}</option>`).join('');
   function render(){
    const c=data.coverage||{};
-   output.innerHTML=`<p>Last 24 hours: ${esc(c.events??0)} source events; ${esc(c.requested??0)} recorder requests; ${esc(c.observed??0)} linked observations. Missing coverage stays visible.</p>
+   output.innerHTML=`<p>Last 24 hours: ${esc(c.events??0)} source events; ${esc(c.requested??0)} recorder requests; ${esc(c.observed??0)} linked observations. Missing coverage stays visible.</p><p>Extra event-triggered wakeups today: ${esc(c.extra_wakeups_today??0)} / ${esc(c.extra_wakeup_daily_limit??1000)}. After the ceiling, events wait for existing scheduled monitoring. No new Realtime subscriptions.</p>
     <details><summary>Import a Closed Positions receipt</summary><p>Copy the exact trade from TradeLocker. Enter signed charges: −0.06 for a charge; +0.06 for a credit. A blank is unknown. The opening and all closing fills must already be matched in the broker history.</p>
      <p>${(data.candidates||[]).map((r,i)=>`<button class="btn" type="button" data-e8="candidate" data-index="${i}">Use matched IDs: ${esc(r.position_id)} · gross ${money(r.fill_gross)}</button>`).join(' ')}</p>
      <label>Optional: paste column headers and one history row<textarea class="input" data-paste rows="3" style="display:block;width:100%;box-sizing:border-box"></textarea></label><button class="btn" type="button" data-e8="paste">Fill recognised fields for review</button>

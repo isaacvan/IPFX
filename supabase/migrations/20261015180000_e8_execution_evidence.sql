@@ -14,7 +14,8 @@ create index e8_event_quote_waiting on public.e8_event_quote_demands(account_id,
 create index e8_event_quote_recent on public.e8_event_quote_demands(captured_at desc);
 create index if not exists e8_sim_events_recent on public.e8_sim_events(captured_at desc);
 create index if not exists e8_pending_events_recent on public.ipfx_sim_pending_events(captured_at desc);
-create table public.e8_event_quote_wakeups(account_id bigint primary key references public.e8_monitor_profiles,last_at timestamptz not null);
+create table public.e8_event_quote_wakeups(account_id bigint primary key references public.e8_monitor_profiles,last_at timestamptz not null,
+ utc_day date not null,day_count integer not null check(day_count>=0));
 create table public.e8_dispatch_evidence(
  operation_id bigint primary key references public.book_orders(id),account_id bigint references public.ladder_accounts(id),
  sent_at timestamptz not null,ack_at timestamptz,ack_ms numeric,receipt_lookup_ms numeric,
@@ -36,6 +37,22 @@ create table public.e8_position_receipts(
 );
 create index e8_receipts_recent on public.e8_position_receipts(created_at desc);
 create index if not exists e8_cost_fill_position on public.cost_fills(account_id,(raw->>'positionId'));
+create function public.e8_event_wakeup(p_account bigint) returns boolean language plpgsql security definer set search_path='' as $$
+declare t timestamptz:=clock_timestamp();d date:=(clock_timestamp() at time zone 'UTC')::date;w bigint;
+begin
+ -- Extra invocations are bounded globally, independent of provider budgets and source event volume.
+ if not pg_try_advisory_xact_lock(hashtext('e8-evidence-wakeup-budget')) then return false;end if;
+ if (select coalesce(sum(day_count),0) from public.e8_event_quote_wakeups where utc_day=d)>=1000 then return false;end if;
+ insert into public.e8_event_quote_wakeups(account_id,last_at,utc_day,day_count) values(p_account,t,d,1)
+ on conflict(account_id) do update set last_at=excluded.last_at,utc_day=excluded.utc_day,
+  day_count=case when public.e8_event_quote_wakeups.utc_day=d then public.e8_event_quote_wakeups.day_count+1 else 1 end
+ where public.e8_event_quote_wakeups.last_at<t-interval '1 second' returning account_id into w;
+ if w is null then return false;end if;
+ -- kick_e8_reference uses transaction now(), not clock_timestamp(); make this due in that same transaction.
+ update public.e8_monitor_profiles set next_run=least(next_run,now()) where account_id=w and enabled;
+ begin perform public.kick_e8_reference();exception when others then raise warning 'E8_EVENT_WAKEUP_UNAVAILABLE';end;
+ return true;
+end $$;
 create function public.e8_demand_capture() returns trigger language plpgsql security definer set search_path='' as $$
 declare p public.e8_sim_positions; q bigint;t timestamptz:=clock_timestamp();w bigint;
 begin
@@ -46,13 +63,7 @@ begin
  insert into public.e8_event_quote_demands(event_id,account_id,symbol,event_at,kind,decision_quote_id,decision_quote)
  values(new.id,p.reference_account_id,p.symbol,new.event_at,case when new.source_snapshot->>'phase'='close_intent' then 'close_intent' else new.kind end,q,(select to_jsonb(x) from public.e8_reference_quotes x where id=q)) on conflict do nothing;
  -- Coalesce wake-ups; the existing profile lease and shared provider budgets still gate every read.
- insert into public.e8_event_quote_wakeups(account_id,last_at) values(p.reference_account_id,t)
- on conflict(account_id) do update set last_at=excluded.last_at where public.e8_event_quote_wakeups.last_at<t-interval '1 second'
- returning account_id into w;
- if w is not null then
-  update public.e8_monitor_profiles set next_run=least(next_run,t) where account_id=w and enabled;
-  begin perform public.kick_e8_reference();exception when others then raise warning 'E8_EVENT_WAKEUP_UNAVAILABLE';end;
- end if;
+ perform public.e8_event_wakeup(p.reference_account_id);
  return new;
 exception when others then
  -- Observation outages must not roll back a trade. Archive coverage still exposes missing observations.
@@ -80,12 +91,7 @@ begin
   and received_at>=new.captured_at-interval '1 second' order by received_at desc,id desc limit 1;
  insert into public.e8_event_quote_demands(pending_event_id,account_id,symbol,event_at,kind,decision_quote_id,decision_quote)
  values(new.id,a,s,new.captured_at,'pending_'||new.kind,q,(select to_jsonb(x) from public.e8_reference_quotes x where id=q)) on conflict do nothing;
- insert into public.e8_event_quote_wakeups(account_id,last_at) values(a,t)
- on conflict(account_id) do update set last_at=excluded.last_at where public.e8_event_quote_wakeups.last_at<t-interval '1 second' returning account_id into w;
- if w is not null then
-  update public.e8_monitor_profiles set next_run=least(next_run,t) where account_id=w and enabled;
-  begin perform public.kick_e8_reference();exception when others then raise warning 'E8_PENDING_WAKEUP_UNAVAILABLE';end;
- end if;
+ perform public.e8_event_wakeup(a);
  return new;
 exception when others then raise warning 'E8_PENDING_RECORDER_UNAVAILABLE';return new;
 end $$;
@@ -208,7 +214,8 @@ create function public.e8_evidence_overview() returns jsonb language sql stable 
  'coverage',jsonb_build_object('events',(select count(*) from public.e8_sim_events where captured_at>now()-interval '1 day'),
   'pending_events',(select count(*) from public.ipfx_sim_pending_events where captured_at>now()-interval '1 day'),
   'requested',(select count(*) from public.e8_event_quote_demands where captured_at>now()-interval '1 day'),
-  'observed',(select count(*) from public.e8_event_quote_demands where captured_at>now()-interval '1 day' and observed_quote is not null)),
+  'observed',(select count(*) from public.e8_event_quote_demands where captured_at>now()-interval '1 day' and observed_quote is not null),
+  'extra_wakeups_today',(select coalesce(sum(day_count),0) from public.e8_event_quote_wakeups where utc_day=(now() at time zone 'UTC')::date),'extra_wakeup_daily_limit',1000),
  'net_accuracy_certified',false,'canEnableLive',false);
 $$;
 do $$ declare name text;begin
@@ -220,7 +227,7 @@ do $$ declare name text;begin
 end $$;
 create trigger e8_dispatch_immutable before update or delete on public.e8_dispatch_evidence for each row execute function public.e8_revision_immutable();
 create trigger e8_receipt_immutable before update or delete on public.e8_position_receipts for each row execute function public.e8_revision_immutable();
-revoke all on function public.e8_demand_capture(),public.e8_event_quote_due(bigint),public.e8_event_quote_link(bigint,text,bigint),
+revoke all on function public.e8_event_wakeup(bigint),public.e8_demand_capture(),public.e8_event_quote_due(bigint),public.e8_event_quote_link(bigint,text,bigint),
  public.e8_close_intent_capture(),public.e8_pending_demand_capture(),public.e8_record_dispatch(bigint,timestamptz,timestamptz,numeric,numeric,numeric,numeric,boolean,text),public.e8_import_position_receipt(bigint,uuid,jsonb),public.e8_evidence_overview() from public,anon,authenticated;
 grant execute on function public.e8_event_quote_due(bigint),public.e8_event_quote_link(bigint,text,bigint),
  public.e8_record_dispatch(bigint,timestamptz,timestamptz,numeric,numeric,numeric,numeric,boolean,text),public.e8_import_position_receipt(bigint,uuid,jsonb),public.e8_evidence_overview() to service_role;

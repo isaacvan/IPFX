@@ -15,7 +15,7 @@ async function fixture(){
  create table e8_instrument_evidence(account_id bigint,broker_symbol text,lot_size numeric,quote_currency text,observed_at timestamptz);
  create table e8_account_snapshots(id bigint,account_id bigint,received_at timestamptz,amounts jsonb,currency text);
  create table kick_calls(at timestamptz default clock_timestamp());
- create function kick_e8_reference() returns void language sql as 'insert into public.kick_calls default values';
+ create function kick_e8_reference() returns void language sql as 'insert into public.kick_calls(at) select clock_timestamp() where exists(select 1 from public.e8_monitor_profiles where enabled and next_run<=now())';
  create function e8_revision_immutable() returns trigger language plpgsql as $$begin raise exception 'append-only';end$$;
  insert into ladder_accounts values(3,'tradelocker','monitor','123','Synthetic E8');
  insert into e8_monitor_profiles(account_id,enabled,next_run) values(3,true,now()+interval '1 hour');
@@ -84,5 +84,14 @@ test('2,000 synthetic events retain individual evidence but coalesce to one symb
   const seconds=(Date.now()-start)/1000,waiting=(await db.query('select e8_event_quote_due(3) r')).rows[0].r;
   assert.equal(waiting.length,1);assert.equal(waiting[0].events,2000);assert.equal((await db.query('select count(*) n from e8_event_quote_demands')).rows[0].n,2000);
   assert.ok((await db.query('select count(*) n from kick_calls')).rows[0].n<=Math.ceil(seconds)+1);
+ }finally{await db.close();}
+});
+test('global daily wakeup ceiling retains event evidence without additional function invocations',{skip:!process.env.DEMO_TEST_DEPS},async()=>{
+ const db=await fixture();try{
+  await db.exec(`insert into e8_event_quote_wakeups values(3,clock_timestamp()-interval '10 seconds',(clock_timestamp() at time zone 'UTC')::date,1000);
+   insert into e8_sim_events(trade_id,event_at,kind) values('${trade}',clock_timestamp(),'open');`);
+  assert.equal((await db.query('select count(*) n from kick_calls')).rows[0].n,0);
+  assert.equal((await db.query('select count(*) n from e8_event_quote_demands')).rows[0].n,1);
+  const summary=(await db.query('select e8_evidence_overview() r')).rows[0].r;assert.equal(summary.coverage.extra_wakeups_today,1000);
  }finally{await db.close();}
 });
