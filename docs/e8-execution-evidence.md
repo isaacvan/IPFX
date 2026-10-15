@@ -1,0 +1,44 @@
+# E8 execution evidence
+
+This release adds observations and owner review tools. It does not change trader routing, risk limits, Stage 2 promotion policy, account balances, copying selections or execution switches. No broker order is submitted by the monitor or evidence endpoints.
+
+## Data flow
+
+1. New source lifecycle events, durable full-close intents and pending-order changes enqueue quote demand. Demand is per event; reads coalesce per account/instrument. Wakeups are bounded to one per account per second, in addition to the existing lease and provider request budget. An event receives its actual observed sampling delay, never a backdated price.
+2. The read-only worker prioritises event symbols inside the existing seven-symbol ceiling, then background rotation. It preserves request/receive/provider timestamps when actually supplied and exact instrument/route IDs. A missing provider timestamp remains unknown. The transport request timestamp starts after the request-budget wait.
+3. The executor submits its unchanged authorised orders. A separate best-effort background RPC records send/acknowledgement and receipt lookup durations, matching a fresh pre-send stored quote only when one exists. The RPC has no order or retry capability. Failed evidence storage cannot cause a duplicate order.
+4. The owner uses Costs & E8, or the classic A-book page, to review timings, import a position receipt, compare paired A/B paper results, or check an isolated balance interval. All actions retain verified owner authentication, MFA, request limits and server-side validation.
+
+## Receipt rules
+
+- Candidate IDs come from already-matched broker opening and closing records; long IDs stay strings.
+- Every exit, including partials, must match the same account/position, symbol, opposite side and full original quantity.
+- A pre-entry USD contract observation independently checks gross. Unknown or mismatching contract evidence refuses import.
+- Charges and credits are signed. A fee that already includes commission is not charged twice. Empty costs never become zero.
+- Receipt gross plus adjustments must match net within one cent. Imports are append-only; exact duplicates are idempotent, including reordered exit IDs. Conflicting revised receipts stay visible for review.
+- Manual imports are labelled `OWNER_REVIEWED_POSITION_RECEIPT`, not an authenticated API statement. They cannot automatically satisfy the existing prospective 95% certification target.
+- Clipboard import requires column headers and exactly one tab-separated row. It does not infer absent fields or convert GBP/EUR values to USD. Screenshot OCR and automatic browser-history capture are not included in this release; users can transcribe the displayed row.
+
+## Balance rules
+
+The interval must start/finish flat, contain one position, have complete settled history, no unrelated activity/unknown adjustments and stay within the same broker accounting day. Owner confirmations are archived and explicitly separated from machine-observed facts. If the broker omits currency, the owner may confirm USD from the statement; a reported foreign currency cannot be overridden. Result provenance remains an owner-attested interval check, not an authenticated position receipt.
+
+## Paper A/B limits
+
+Paired results use the same fresh pre-event observed quote path, opposite sides of the spread, actual exited quantities and a pre-entry broker contract. Missing costs leave net unknown. Future quotes, stale benchmarks and incomplete exit quantities refuse a completed result. For equal quantity and timing, the sum of A and reverse B gross equals the negative entry-plus-exit spread cost.
+
+This calculator uses the recorded **source exit schedule only**. It does not prove the destination's independent pending trigger, stop/TP ordering, liquidity, actual opposite-side fill, swap or real slippage. The legacy delayed sampled estimates are preserved; this release does not rewrite old trader results or certify them. Dedicated delay-distribution calibration, a full destination lifecycle simulator and a persistent execution dispatcher remain follow-up experiments, conditional on new measurements and account capabilities.
+
+## Release sequence
+
+1. Review the committed diff against current main. Fetch/merge other agents' work and check deployed bundle drift.
+2. Apply `20261015180000_e8_execution_evidence.sql` transactionally through authorised owner database access. It adds private tables, indexes, restricted RPCs and observational triggers. It contains no reset or policy changes. New triggers contain observation/wakeup failures so they do not roll back a source trade.
+3. Deploy `e8-monitor-admin`, `e8-reference`, `book-executor` and `trading-engine` preserving each endpoint's existing authentication settings. The last two also include the already-tested pending latency patch.
+4. Publish the website assets and verify anonymous backend requests are still denied. Download deployed sources and compare exact imports. Do not invoke the authenticated executor or enable copying as a smoke test.
+5. Check the owner dashboard. Real end-to-end latency and cost coverage require later human-initiated orders and matched receipts. No funded trades are needed just to install these tools.
+
+The previous automatic approval review rejected direct publication to main. That publication restriction remains until explicit approval for this concrete release; a feature branch is a review artifact, not a production deployment.
+
+## Validation
+
+The new tests execute real handlers with synthetic broker/database fixtures, PGlite migrations/RLS and isolated browser rendering. The 2,000-event test checks demand retention/coalescing only; it is not a production trading-capacity test. API request quotas, missing historical ticks and delayed provider postings remain external constraints. The complete suite and evidence screenshots are recorded in the chat audit workspace.

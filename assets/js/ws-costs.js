@@ -156,6 +156,7 @@
     ({ connect, refresh: load, sampling: () => editSampling(b.dataset.id), toggle: () => toggle(b.dataset.id, b) })[b.dataset.act]?.();
   });
   T.mount({ page: 'costs', title: 'Costs & E8' });
+  window.IPFXE8Evidence?.init((action,extra={})=>T.e8(action,extra),$('e8Evidence'));
   $('refreshBtn').addEventListener('click', load);
   load();
   setInterval(() => { if (!document.hidden && !document.querySelector('.os-scrim')) load(); }, 30000);

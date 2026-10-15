@@ -63,7 +63,11 @@ Deno.serve(async req=>{
   // 100 s. Deterministic from the clock (no stored state). Doing the whole slow list in one burst was refused by the broker (HTTP 429).
   const slow=(p.slow_symbols??[]) as string[];
   const slowPick=slow.length?[0,1].map(i=>slow[(Math.floor(started/10000)*2+i)%slow.length]).filter((x,i,a)=>a.indexOf(x)===i):[];
-  const symbolsNow=[...(p.symbols as string[]),...slowPick];
+  const {data:eventDue,error:dueError}=await db.rpc('e8_event_quote_due',{p_account:p.account_id});
+  if(dueError)throw Error('EVENT_QUOTE_QUEUE_UNAVAILABLE');
+  const eventSymbols=Array.isArray(eventDue)?eventDue.map((d:{symbol:string})=>d.symbol):[];
+  // Event demand takes priority inside the same seven-symbol ceiling; it never adds a burst on top.
+  const symbolsNow=[...new Set([...eventSymbols,...(p.symbols as string[]),...slowPick])].slice(0,7);
   const {data:ipfx,error:ipfxError}=await db.from('live_quotes').select('symbol,bid,ask,received_at').in('symbol',symbolsNow);
   const ix=new Map((ipfxError?[]:ipfx??[]).map(q=>[q.symbol,q]));
   for(const symbol of symbolsNow){
@@ -72,10 +76,16 @@ Deno.serve(async req=>{
    const candidates=exact.length?exact:map.filter(m=>norm(String(m.symbol)).startsWith(target));
    if(candidates.length!==1||candidates[0].info_route_id==null){status='PARTIAL_COVERAGE';continue;}
    const inst=candidates[0],requested=new Date().toISOString();
-   const quote=await tl.quote(token,String(a.acc_num),Number(inst.info_route_id),String(inst.tradable_instrument_id));
+   const quote=await tl.quoteEvidence(token,String(a.account_id),String(a.acc_num),Number(inst.info_route_id),String(inst.tradable_instrument_id));
    const received=new Date().toISOString();if(!quote){status='PARTIAL_COVERAGE';continue;}
-   const {error:qe}=await db.from('e8_reference_quotes').insert({account_id:a.id,symbol,bid:quote.bid,ask:quote.ask,requested_at:requested,received_at:received});
-   if(qe)throw Error('REFERENCE_QUOTE_SAVE_FAILED');
+   // The transport timestamps exclude time spent awaiting a provider request budget.
+   const quoteRequested=new Date(quote.requestedAt).toISOString(),quoteReceived=new Date(quote.receivedAt).toISOString();
+   const {data:savedQuote,error:qe}=await db.from('e8_reference_quotes').insert({account_id:a.id,symbol,bid:quote.bid,ask:quote.ask,
+    requested_at:quoteRequested,received_at:quoteReceived,broker_quote_at:quote.providerAt===null?null:new Date(quote.providerAt).toISOString(),
+    instrument_id:quote.instrumentId,route_id:quote.routeId,request_duration_ms:quote.receivedAt-quote.requestedAt}).select('id').single();
+   if(qe||!savedQuote?.id)throw Error('REFERENCE_QUOTE_SAVE_FAILED');
+   if(savedQuote?.id){const {error:linked}=await db.rpc('e8_event_quote_link',{p_account:a.id,p_symbol:symbol,p_quote:savedQuote.id});
+    if(linked)throw Error('EVENT_QUOTE_BINDING_UNAVAILABLE');}
    const x=ix.get(symbol),age=x?Date.now()-Date.parse(x.received_at):NaN,fresh=x&&Number.isFinite(age)&&age>=0&&age<=15000;
    const {error:se}=await db.from('cost_samples').insert({account_id:a.id,role:'monitor',symbol,bid:quote.bid,ask:quote.ask,spread:quote.ask-quote.bid,
     requested_at:requested,received_at:received,ipfx_received_at:fresh?x.received_at:null,

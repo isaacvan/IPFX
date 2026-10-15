@@ -5,6 +5,14 @@
   const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFndWx3ZWVtdGVvZWFnc2NtcHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzU0ODIsImV4cCI6MjA4MTQxMTQ4Mn0.I70jN5DCuCn8OtISqvTRzuzGFaYd2pV8vviEED6gFlQ';
   const sb = window.supabase.createClient(SB_URL, SB_ANON);
   const mode = document.body.dataset.book;
+  if(mode==='a'&&window.IPFXE8Evidence){
+    const host=document.createElement('section');host.className='panel';host.id='e8Evidence';document.querySelector('main')?.append(host);
+    window.IPFXE8Evidence.init(async(action,extra={})=>{
+      const {data:{session}}=await sb.auth.getSession();if(!session)throw Error('Sign into Team and complete owner MFA.');
+      const response=await fetch(SB_URL+'/functions/v1/e8-monitor-admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({action,...extra}),signal:AbortSignal.timeout(25000)});
+      const body=await response.json().catch(()=>null);if(!response.ok||!body?.ok)throw Error(body?.error||'Evidence unavailable');return body;
+    },host);
+  }
   const $ = (id) => document.getElementById(id);
   const escapeHtml = (value) => String(value ?? '—').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
   const usd = (value) => Number(value).toLocaleString('en-US', { style: 'currency', currency: 'USD' });

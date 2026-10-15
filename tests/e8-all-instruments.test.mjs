@@ -22,14 +22,14 @@ const matchE8 = (symbol) => {
   return exact.length ? exact : E8.filter((n) => norm(n).startsWith(target));
 };
 
-test('the main 5 stay every 10 seconds and the other 19 are sampled two per run in rotation (gentle on the broker API)', () => {
+test('background rotation stays bounded; event demand takes priority within the same seven-symbol request ceiling', () => {
   assert.match(sql, /alter table public\.e8_monitor_profiles add column if not exists slow_symbols text\[\] not null default '\{\}';/);
   const list = sql.match(/set slow_symbols = array\[([^\]]*)\]/)[1].match(/'(\w+)'/g).map((x) => x.replace(/'/g, ''));
   assert.equal(list.length, 19);
   assert.equal(new Set(list).size, 19, 'no duplicates');
   for (const main of ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'BTCUSD']) assert.ok(!list.includes(main), main + ' stays on the fast list only');
   assert.match(worker, /const slowPick=slow\.length\?\[0,1\]\.map\(i=>slow\[\(Math\.floor\(started\/10000\)\*2\+i\)%slow\.length\]\)/);
-  assert.match(worker, /const symbolsNow=\[\.\.\.\(p\.symbols as string\[\]\),\.\.\.slowPick\];/);
+  assert.match(worker, /const symbolsNow=\[\.\.\.new Set\(\[\.\.\.eventSymbols,\.\.\.\(p\.symbols as string\[\]\),\.\.\.slowPick\]\)\]\.slice\(0,7\);/);
   assert.match(worker, /\.in\('symbol',symbolsNow\)/);
   assert.match(worker, /for\(const symbol of symbolsNow\)\{/);
   assert.doesNotMatch(worker, /for\(const symbol of p\.symbols as string\[\]\)/, 'the old fixed list loop is gone');

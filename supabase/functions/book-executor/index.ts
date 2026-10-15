@@ -12,6 +12,7 @@ import { reserveCapacity } from "../_shared/book-capacity.ts";
 import { exactTestOpenReceipt } from "../_shared/copy-test-receipt.ts";
 import { executionInstrument, ongoingSizing, exactExecutionReceipt } from "../_shared/ongoing-execution.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
+import { saveDispatchEvidence } from '../_shared/e8-dispatch-evidence.ts';
 import { readClient, type TlEnv } from "../_shared/tradelocker-read.ts";
 import { POLICY_V1, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
 import { emergencyStop, fundedRiskUsd, legSide, lotsFor, sizeMultiplier, type Progress } from "../_shared/ab-allocator.ts";
@@ -215,10 +216,16 @@ async function open(db: Db, b: Record<string, unknown>) {
     try {
       const stop = emergencyStop(book, t.side, Number(t.open_price), Number(t.sl));
       const payload = { ...marketOrder({ qty, routeId: Number(inst.trade_route_id), side, tradableInstrumentId: Number(inst.tradable_instrument_id), sl: stop, tp: null, sourceTradeId: tradeId }), strategyId: bookStrategy(leg.book, tradeId) };
+      const sentAt=new Date().toISOString(),sentClock=globalThis.performance?.now()??Date.now();
       const ids = responseIds(await placeMarketOrder(dest.token, dest.accountId, dest.accNum, payload));
+      const ackAt=new Date().toISOString(),ackClock=globalThis.performance?.now()??Date.now();
       const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId }).catch(() => null);
       const positionId = ids.positionId ?? fill?.positionId ?? null;
       const confirmedTest=trial?.ongoing?exactExecutionReceipt(qty,ids.orderId,positionId,fill,capacity.prior_position_ids):!trial||exactTestOpenReceipt(qty,ids.orderId,positionId,fill);
+      void saveDispatchEvidence(db,{operationId:Number(claim.id),sentAt,ackAt,ackMs:ackClock-sentClock,
+        receiptLookupMs:(globalThis.performance?.now()??Date.now())-ackClock,fillPrice:fill?.price??null,fillQty:fill?.qty??null,
+        instrumentId:String(inst.tradable_instrument_id),
+        fillConfirmed:!!positionId&&confirmedTest&&!!fill&&!!ids.orderId&&fill.orderId===ids.orderId&&Math.abs(fill.qty-qty)<1e-8});
       const reusedPosition=trial?.ongoing&&!!positionId&&(capacity.prior_position_ids??[]).includes(String(positionId));
       const {error:openingReceiptError}=await db.from("book_orders").update({
         status: positionId&&confirmedTest ? "filled" : "reconciliation_required", broker_order_id: ids.orderId, broker_position_id: positionId,
@@ -275,13 +282,18 @@ async function closeLeg(db: Db, b: Record<string, unknown>) {
     const remaining = Number(planned.remaining ?? qty);
     const started = Date.now();
     try {
+      const sentAt=new Date().toISOString(),sentClock=globalThis.performance?.now()??Date.now();
       const ids = responseIds(await closePositionQty(dest.token, dest.accNum, String(leg.broker_position_id), qty));
       const acknowledgedAt = Date.now();
+      const ackAt=new Date().toISOString(),ackClock=globalThis.performance?.now()??Date.now();
       const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true, strictOrder: true }).catch(() => null);
       console.info(JSON.stringify({ event: "book_exit_timing", operation_id: claim.id,
         admission_ms: started - pipelineStarted, broker_ack_ms: acknowledgedAt - started,
         receipt_lookup_ms: Date.now() - acknowledgedAt }));
       const verified = !!fill && Math.abs(fill.qty - qty) < 1e-8 && !!ids.orderId && fill.orderId === ids.orderId;
+      void saveDispatchEvidence(db,{operationId:Number(claim.id),sentAt,ackAt,ackMs:ackClock-sentClock,
+        receiptLookupMs:(globalThis.performance?.now()??Date.now())-ackClock,fillPrice:fill?.price??null,fillQty:fill?.qty??null,fillConfirmed:verified,
+        instrumentId:instrumentFor(dest.map,String(leg.symbol))?.tradable_instrument_id==null?null:String(instrumentFor(dest.map,String(leg.symbol))!.tradable_instrument_id)});
       const dir = leg.side === "buy" ? 1 : -1;
       const pnl = fill && leg.fill_price != null && leg.price_scale_per_lot != null
         ? (fill.price - Number(leg.fill_price)) * dir * qty * Number(leg.price_scale_per_lot) : null;

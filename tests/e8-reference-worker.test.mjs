@@ -7,14 +7,14 @@ async function harness(options={}){
  const profile={account_id:1,lease:'lease',scope:'E8',symbols:['EURUSD'],last_quote_at:null,last_history_at:null,
   rate_rules:[{type:'QUOTES',limit:20,windowMs:1000},{type:'GET_ORDERS_HISTORY',limit:2,windowMs:60000}],
   broker_config:{rateLimits:[{rateLimitType:'QUOTES',limit:20,intervalNum:1,measure:'SECONDS'},{rateLimitType:'GET_ORDERS_HISTORY',limit:2,intervalNum:1,measure:'MINUTES'}]},config_at:now,...options.profile};
- const db={rpc:async(name,args)=>{calls.push({name,args});return name==='e8_monitor_claim'?{data:options.idle?null:profile,error:null}: {data:{ok:!options.budgetDenied,wait_ms:60000},error:null};},
+ const db={rpc:async(name,args)=>{calls.push({name,args});return name==='e8_monitor_claim'?{data:options.idle?null:profile,error:null}:name==='e8_event_quote_due'?{data:options.events??[],error:null}: {data:{ok:!options.budgetDenied,wait_ms:60000},error:null};},
   from(table){let operation='select',body,filters=[];const q={select(){return q;},eq(k,v){filters.push([k,v]);return q;},gt(){return q;},in(){return q;},
    update(b){operation='update';body=b;return q;},insert(b){operation='insert';body=b;return q;},upsert(b){operation='upsert';body=b;return q;},
-   maybeSingle(){return q;},then(resolve,reject){
+   maybeSingle(){return q;},single(){return q;},then(resolve,reject){
     let data=null,error=null;
-    if(table==='ladder_accounts'&&operation==='select')data={id:1,api_env:'demo',acc_num:'1',account_id:'99',access_expires_at:new Date(Date.now()+3600000).toISOString(),access_token_ciphertext:'fixture',instrument_map:[{symbol:'EURUSD',info_route_id:1,tradable_instrument_id:'10'}]};
+    if(table==='ladder_accounts'&&operation==='select')data={id:1,api_env:'demo',acc_num:'1',account_id:'99',access_expires_at:new Date(Date.now()+3600000).toISOString(),access_token_ciphertext:'fixture',instrument_map:options.map??[{symbol:'EURUSD',info_route_id:1,tradable_instrument_id:'10'}]};
     if(table==='live_quotes')data=[{symbol:'EURUSD',bid:1.1,ask:1.1002,received_at:new Date(Date.now()+60000).toISOString()}];
-    if(operation!=='select'){writes.push({table,operation,body,filters});if(table===options.failTable)error={code:'FIXTURE'};if(table==='e8_monitor_profiles')data=options.expiredLease?[]:[{account_id:1}];}
+    if(operation!=='select'){writes.push({table,operation,body,filters});if(table===options.failTable)error={code:'FIXTURE'};if(table==='e8_monitor_profiles')data=options.expiredLease?[]:[{account_id:1}];if(table==='e8_reference_quotes')data={id:42};}
     return Promise.resolve({data,error}).then(resolve,reject);
    }};return q;
   }};
@@ -25,7 +25,7 @@ async function harness(options={}){
   historyWithConfig:async()=>{calls.push({name:'broker_history'});if(options.historyError)throw Error(options.historyError);return[{id:'long-order-id',status:'filled',filledQty:.1,avgPrice:1.1,commission:0,fee:0,swap:options.swap??0,tradableInstrumentId:'10',lastModified:Date.now()}];}};
  const context=vm.createContext({Response,TextEncoder,Uint8Array,crypto:globalThis.crypto,Date,Map,JSON,Error,Number,String,Array,Math,setTimeout,
   Deno:{env:{get:n=>({COST_MONITOR_SECRET:'x'.repeat(32),TRADELOCKER_TOKEN_ENCRYPTION_KEY:'fixture'}[n]??'fixture')},serve:h=>handler=h},
-  createClient:()=>db,readClient:(_env,before)=>({ ...tl,accountState:async(...args)=>{await before('/trade/accounts/99/state');return tl.accountState(...args);},quote:async(...args)=>{await before('/trade/quotes?routeId=1');return tl.quote(...args);},historyWithConfig:async(...args)=>{await before('/trade/accounts/99/ordersHistory');return tl.historyWithConfig(...args);}}),
+  createClient:()=>db,readClient:(_env,before)=>({ ...tl,accountState:async(...args)=>{await before('/trade/accounts/99/state');return tl.accountState(...args);},quoteEvidence:async(...args)=>{await before('/trade/quotes?routeId=1');const q=await tl.quote(...args);return {...q,requestedAt:Date.now(),receivedAt:Date.now(),providerAt:null,accountId:'99',instrumentId:'10',routeId:1};},historyWithConfig:async(...args)=>{await before('/trade/accounts/99/ordersHistory');return tl.historyWithConfig(...args);}}),
   decryptSecret:async()=> 'private-fixture-never-exposed',encryptSecret:async()=> 'cipher-fixture',jwtExpiresAt:()=>now,
   applicableRules,measuredFill,referenceRules,decodeAccountState,TL_SYMBOLS:{EURUSD:'EURUSD'}});
  const source=fs.readFileSync(new URL('../supabase/functions/e8-reference/index.ts',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'');
@@ -56,6 +56,11 @@ test('fee history failure stays visible while usable quote observations are reta
 });
 test('a replaced/expired worker lease cannot acknowledge successful state',async()=>{
  const h=await harness({expiredLease:true});const r=await h.run();assert.equal(r.status,503);assert.equal(r.body.error,'MONITOR_STATE_WRITE_FAILED');
+});
+test('actual event-demand worker prioritises and deduplicates requests within the seven-symbol ceiling',async()=>{
+ const names=['EURUSD','S0','S1','S2','S3','S4','S5','S6','S7'];
+ const h=await harness({events:[{symbol:'S7'},{symbol:'S7'}],profile:{symbols:names},map:names.map((symbol,i)=>({symbol,info_route_id:i+1,tradable_instrument_id:String(i+1)}))});
+ assert.equal((await h.run()).body.samples,7);const quotes=h.writes.filter(w=>w.table==='e8_reference_quotes');assert.equal(quotes[0].body.symbol,'S7');assert.equal(new Set(quotes.map(q=>q.body.symbol)).size,7);
 });
 
 const stateProfile=()=>({rate_rules:[{type:'QUOTES',limit:20,windowMs:1000},{type:'GET_ORDERS_HISTORY',limit:2,windowMs:60000},{type:'GET_ACCOUNTS_STATE',limit:4,windowMs:2000}],

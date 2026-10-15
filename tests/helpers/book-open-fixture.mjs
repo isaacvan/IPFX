@@ -48,6 +48,7 @@ export function bookOpenFixture(options = {}) {
     },
   };
   const context = vm.createContext({ Date, Number, String, Math, Promise, POLICY_V1, emergencyStop, fundedRiskUsd, legSide, lotsFor, sizeMultiplier, exactTestOpenReceipt,ongoingSizing,exactExecutionReceipt,
+    saveDispatchEvidence:(_db,input)=>{requests.push({name:'dispatch-evidence',input});return Promise.resolve();},
     executionInstrument:async()=>({lotSize:100,minLot:.01,maxLot:100,lotStep:.01,quotingCurrency:'USD',...options.brokerSpec}),
     closeLeg:async(db,body)=>{trace.push('catchup-exit');requests.push({name:'catchup-exit',body});return {ok:true};},
     destination: async () => { await turn('destination-guard'); return options.noDestination ? null : { token: 'synthetic-only',env:'demo', accountId: 'synthetic-broker', accNum: '1', map: [gold] }; },

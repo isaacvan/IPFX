@@ -93,6 +93,8 @@ function brokerFixture({planRefused=false,noDestination=false,duplicate=false,un
   destination:async(...args)=>{trace.push('permission-start');assert.equal(args[3],'own-trade');assert.equal(args[2],true);await dest.promise;return noDestination?null:{}},
   closePositionQty:async()=>{dispatches++;trace.push('broker-submit');return{orderId:'901'}},responseIds:x=>x,
   orderFill:async()=>unconfirmed?null:{price:4000.5,qty:.01,orderId:'901'},
+  saveDispatchEvidence:(_db,input)=>{trace.push('dispatch-evidence');return Promise.resolve(input);},
+  instrumentFor:()=>({tradable_instrument_id:'6148'}),
  });vm.runInContext(stripTypeScriptTypes(executor.slice(from,to)),context);
  return{trace,logs,plan,dest,writes,dispatches:()=>dispatches,run:()=>context.closeLeg(db,{source_trade_id:'own-trade',event:'close'})};
 }
