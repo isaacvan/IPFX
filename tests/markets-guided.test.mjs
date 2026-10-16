@@ -68,3 +68,14 @@ test('the tour counts as seen the moment it opens and closes instantly with ×, 
 test('the Simple/Pro view switch was reverted: nothing is hidden by a gt-simple class', () => {
   assert.ok(!/gt-simple|SIMPLE_HIDE|gtView/.test(src), 'the full layout (all timeframes, side tabs, bottom tabs) stays as-is, undoing the earlier Simple default');
 });
+
+test('Buy/Sell moves higher: the checks collapse to one line when ready, and the Stage pass checklist moves below the trade row', () => {
+  assert.match(src, /bad\s*\n?\s*\?\s*cs\.map/, 'the full list only renders when a check fails');
+  assert.match(src, /Ready to trade — \$\{cs\[0\]\.text\} · \$\{cs\[1\]\.text\}/);
+  const tradeRowAt = html.indexOf('class="op-trade-row"');
+  const checklistAt = html.indexOf('id="stageChecklist"');
+  const dailyCapAt = html.indexOf('id="dailyCapNotice"');
+  assert.ok(tradeRowAt > 0 && checklistAt > 0 && dailyCapAt > 0);
+  assert.ok(dailyCapAt < tradeRowAt, 'the "can\'t trade right now" notice still sits right above the buttons');
+  assert.ok(checklistAt > tradeRowAt, 'the stage pass checklist (progress tracking, not a pre-trade gate) moved below Buy/Sell');
+});

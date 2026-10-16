@@ -121,7 +121,12 @@ body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:'
     const lots = lotsFor(d);
     if (lots != null && lots >= 0.01 && Math.abs(lots - ordLots) > 1e-9) setLots(lots, null);
     const cs = checks(), bad = cs.find((x) => !x.ok);
-    $('gtChecks').innerHTML = cs.map((x) => `<li class="${x.ok ? 'ok' : 'no'}"><i>${x.ok ? '✓' : '!'}</i><span>${x.ok ? x.text : x.why}</span></li>`).join('');
+    // Buy/Sell sits right under this card: when every check passes, one reassuring line beats four, so the trader
+    // doesn't have to scroll past a wall of ticks to reach the buttons. The full list comes back the moment something
+    // needs attention, so nothing diagnostic is ever hidden while a trade is actually blocked.
+    $('gtChecks').innerHTML = bad
+      ? cs.map((x) => `<li class="${x.ok ? 'ok' : 'no'}"><i>${x.ok ? '✓' : '!'}</i><span>${x.ok ? x.text : x.why}</span></li>`).join('')
+      : `<li class="ok"><i>✓</i><span>Ready to trade — ${cs[0].text} · ${cs[1].text}</span></li>`;
     btns.forEach((b) => { b.classList.toggle('gt-off', !!bad); if (bad) b.title = bad.why; else b.removeAttribute('title'); });
   }
 
