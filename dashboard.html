@@ -1353,7 +1353,7 @@ function renderAccounts(list){
     const progress=target>0?Math.min(Math.max(profit/target,0),1):0;
     const pct=Math.round(progress*100);
     const dd=start*Number(a.max_drawdown_pct||0)/100;
-    const peak=a.drawdown_mode&&a.drawdown_mode!=='static'?Number(a.trailing_peak||start):start;
+    const peak=a.drawdown_mode&&a.drawdown_mode!=='static'?Math.max(Number(a.trailing_peak||start),a.drawdown_mode==='trailing_balance'?Number(a.balance||start):0):start;
     const floor=peak-dd-paid;
     const status=a.status==='breached'?'failed':a.status==='passed'?'passed':funded?'funded':'active';
     const badges={active:'<span class="badge ba"><span class="bdot"></span>Active</span>',funded:'<span class="badge bf"><span class="bdot"></span>Funded</span>',failed:'<span class="badge bx"><span class="bdot"></span>Ended</span>',passed:'<span class="badge bf"><span class="bdot"></span>Passed</span>'};
@@ -1373,7 +1373,7 @@ function renderAccounts(list){
       <div class="ac-head"><div><div class="ac-nr"><span class="ac-name">${esc(name)}</span>${badges[status]}<span class="ac-last">${reason?esc(reason):(status==='active'||status==='funded'?'Active account':'')}</span></div></div><div class="ac-id"><span>IPFX-${String(a.id).replace(/-/g,'').slice(0,8).toUpperCase()}</span><span style="color:var(--line)">·</span><span>IPFX Markets</span></div></div>
       <div class="ac-body">
         <div class="acs"><div class="sl">Balance</div><div class="sv ${profit>=0?'pos':'neg'}">${usd(bal)}</div><div class="ss">${signed(profit)} (${start?((profit/start)*100).toFixed(2):'0.00'}%)</div></div>
-        <div class="acs"><div class="sl">Drawdown floor</div><div class="sv">${usd(floor)}</div><div class="ss">${Number(a.max_drawdown_pct||0)}% · ${a.drawdown_mode&&a.drawdown_mode!=='static'?'trailing':'static'}</div></div>
+        <div class="acs"><div class="sl">Drawdown floor</div><div class="sv">${usd(floor)}</div><div class="ss">${Number(a.max_drawdown_pct||0)}% · ${a.drawdown_mode==='trailing_balance'?'trailing (closed balance)':a.drawdown_mode&&a.drawdown_mode!=='static'?'trailing':'static'}</div></div>
         <div class="acs"><div class="sl">Profit Target</div>${targetCell}</div>
         <div class="acs"><div class="sl">Started</div><div class="sv" style="font-size:.9rem">${new Date(a.created_at).toLocaleDateString('en-GB')}</div><div class="ss">${esc(typeName[a.challenge_type]||'Challenge')}${a.stage?' · stage '+a.stage:''}</div></div>
         <div class="ac-acts">${actions}</div>

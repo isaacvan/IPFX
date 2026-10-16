@@ -35,7 +35,7 @@
 //   - profit target  (realized balance >= start * (1 + target%)) AND
 //                     the pass gate below -- target alone is not enough
 //   - pass gate      min trading days, min trades, min profitable-day %
-//   - max drawdown   static | trailing_intraday | trailing_eod -> breach
+//   - max drawdown   static | trailing_intraday | trailing_eod | trailing_balance (highest closed balance) -> breach
 //   - daily loss     (equity <= dayStart - start*daily%) -> breach
 //   - risk per trade max % of starting balance, measured off the stop
 //   - daily profit cap  blocks NEW orders once hit (not a breach)
@@ -1258,6 +1258,8 @@ function effectiveRiskLimit(acct: Acct, equityNow: number): EffectiveRiskLimit |
   const mode = acct.drawdown_mode ?? "static";
   const peak = mode === "trailing_intraday"
     ? Math.max(Number(acct.trailing_peak ?? start), equity)
+    : mode === "trailing_balance"
+    ? Math.max(Number(acct.trailing_peak ?? start), Number(acct.balance ?? start))
     : Number(acct.trailing_peak ?? start);
   const ddFloor = mode === "static"
     ? start * (1 - Number(acct.max_drawdown_pct) / 100) - paidOut
@@ -2334,6 +2336,12 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const peak = Math.max(Number(acct.trailing_peak ?? start), equity);
       if (peak > Number(acct.trailing_peak ?? start)) acct.trailing_peak = round2(peak);
       ddFloor = round2(peak - ddAmount - paidOut);
+    } else if (mode === "trailing_balance") {
+      // Peak follows the closed balance only: open profit never lifts the floor, so giving back an unrealised gain
+      // cannot breach; equity (with open trades) falling the limit below the best closed balance still does.
+      const peak = Math.max(Number(acct.trailing_peak ?? start), Number(acct.balance));
+      if (peak > Number(acct.trailing_peak ?? start)) acct.trailing_peak = round2(peak);
+      ddFloor = round2(peak - ddAmount - paidOut);
     } else if (mode === "trailing_eod") {
       // Peak is frozen until the next daily rollover above, so an
       // intraday spike that gives the profit back never tightens the floor.
@@ -2566,7 +2574,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
   const peak = Number(acct.trailing_peak ?? start);
   const ddFloor = mode === "static"
     ? round2(start * (1 - Number(acct.max_drawdown_pct) / 100) - paidOut)
-    : round2(Math.max(peak, mode === "trailing_intraday" ? equity : peak) - ddAmount - paidOut);
+    : round2(Math.max(peak, mode === "trailing_intraday" ? equity : mode === "trailing_balance" ? Number(acct.balance) : peak) - ddAmount - paidOut);
   const liveRiskLimit = effectiveRiskLimit(acct, equity);
 
   return {

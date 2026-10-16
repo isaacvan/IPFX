@@ -8,9 +8,9 @@ import { emailShell, render } from "../_shared/lifecycle-email.ts";
 
 const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? "80");
 const PER_RUN = Number(Deno.env.get("EMAIL_PER_RUN") ?? "10");
-const TEMPLATES = ["infinity_approved", "infinity_monthly_restart", "infinity_breach_notice"];
+const TEMPLATES = ["infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
 // Emails that only make sense while the trader has an active Infinity account.
-const NEEDS_ACTIVE = ["infinity_approved", "infinity_monthly_restart"];
+const NEEDS_ACTIVE = ["infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
   const live = Deno.env.get("EMAIL_OUTBOX_LIVE") === "1";
   // Owner tests first, then time-sensitive notices (breach / restart), then the approval backlog; oldest first within each.
   // deno-lint-ignore no-explicit-any
-  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" ? 2 : 0);
+  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_account_reinstated" ? 2 : 0);
   // deno-lint-ignore no-explicit-any
   const list = (rows ?? []).filter((r: any) => live || r.payload?.test === true)
     // deno-lint-ignore no-explicit-any

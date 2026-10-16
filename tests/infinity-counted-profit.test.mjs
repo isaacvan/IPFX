@@ -9,7 +9,7 @@ const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8')
 const sql = read('supabase/migrations/20261012210000_infinity_counted_profit.sql');
 const engine = read('supabase/functions/trading-engine/index.ts');
 const page = read('trading.html');
-const terms = read('terms.html');
+const terms = read('legal/2026-10-12-v2.1/terms.html');
 
 test('the pass gate refuses to move a Terms 2.1 run up until counted profit reaches the target', () => {
   assert.match(engine, /const c = await db\.rpc\("fn_infinity_counted_profit", \{ p_account: acct\.id \}\);/);
@@ -61,5 +61,8 @@ test('Terms 2.1 states counted profit and the every-requirement rule', () => {
   assert.match(terms, /<strong>Counted profit \(daily credit limit\)\.<\/strong> For runs whose application accepted Terms version 2\.1 or later/);
   assert.match(terms, /a \$20 day counts as \$14, so the \$40 target needs at least three profitable days/);
   assert.match(terms, /<strong>Every requirement at the same time\.<\/strong>/);
-  assert.equal(terms, read('legal/2026-10-12-v2.1/terms.html'));
+  // Terms 2.2 keeps these clauses (and adds the closed-balance trailing drawdown).
+  const v22 = read('legal/2026-10-16-v2.2/terms.html');
+  assert.match(v22, /<strong>Every requirement at the same time\.<\/strong>/);
+  assert.match(v22, /highest closed balance/);
 });

@@ -31,8 +31,9 @@ const MODE = {
   static: "static (measured from your starting balance)",
   trailing_intraday: "trailing (follows your highest equity)",
   trailing_eod: "end-of-day trailing (follows your highest end-of-day balance)",
+  trailing_balance: "trailing on closed balance (follows your highest closed balance; open profit never moves it)",
 };
-const MODE_SHORT = { static: "static", trailing_intraday: "trailing", trailing_eod: "end-of-day trailing" };
+const MODE_SHORT = { static: "static", trailing_intraday: "trailing", trailing_eod: "end-of-day trailing", trailing_balance: "trailing (closed balance)" };
 
 // ---------- text normalisation ----------
 // Ordered: earlier rules win. Each maps a family of phrasings to one token so a

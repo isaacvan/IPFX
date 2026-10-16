@@ -51,7 +51,7 @@ export function verifiedRuleSnapshot(trade: Record<string, unknown>, snapshots: 
   const rules = row.rules as Record<string, unknown> | undefined;
   if (!rules || rules.challenge_type !== binding.challengeType || !row.config_version_id ||
     !Number.isInteger(rules.stage) || Number(rules.stage) <= 0 || tradeStage(trade, eligible) !== rules.stage ||
-    !['static','trailing_intraday','trailing_eod'].includes(String(rules.drawdown_mode)) ||
+    !['static','trailing_intraday','trailing_eod','trailing_balance'].includes(String(rules.drawdown_mode)) ||
     !['MIDNIGHT_UTC','BROKER_ROLLOVER','ACCOUNT_TIMEZONE'].includes(String(row.anchor_mode)) ||
     !['EQUITY','BALANCE'].includes(String(row.loss_measure))) return null;
   try {

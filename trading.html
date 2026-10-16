@@ -3098,7 +3098,7 @@ function renderChallenge(){
 
   wrapT.textContent=(typeLbl[a.challenge_type]||a.challenge_type||'Challenge')+
     (a.phase==='funded'?' — Funded':(a.stage?' — Stage '+a.stage:''));
-  const ddModeLbl={static:'Static drawdown',trailing_intraday:'Trailing drawdown (intraday)',trailing_eod:'Trailing drawdown (end-of-day)'};
+  const ddModeLbl={static:'Static drawdown',trailing_intraday:'Trailing drawdown (intraday)',trailing_eod:'Trailing drawdown (end-of-day)',trailing_balance:'Trailing drawdown (closed balance)'};
   document.getElementById('ch-sub').textContent=
     (ddModeLbl[L.drawdown_mode]||'Static drawdown')+
     (L.require_stop_loss?' · stop-loss required on every order':'');
@@ -3212,6 +3212,7 @@ function renderChallenge(){
   if(L.payout_min_hold_seconds) notes.push('Trades must be held for at least 1 minute to be eligible for payouts. Profit from a trade closed sooner is excluded from your payout (losses still count).');
   if(L.drawdown_mode==='trailing_eod') notes.push('Your drawdown floor only moves up at the end of a trading day — an intraday spike you give back does not tighten it.');
   if(L.drawdown_mode==='trailing_intraday') notes.push('Your drawdown floor follows your highest equity as it happens.');
+  if(L.drawdown_mode==='trailing_balance') notes.push('Your drawdown floor follows your highest closed balance. Profit on open trades never moves it, so giving back an open gain cannot breach you; a real loss below the floor, including on open trades, still does.');
   document.getElementById('ch-note').innerHTML=notes.join('<br>');
 }
 
