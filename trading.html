@@ -1665,7 +1665,7 @@ body.light .sym-row:hover,body.light .sym-row.hl{background:rgba(0,0,0,.05)}
 body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
-<script src="/assets/js/challenge-warnings.js?v=20261013-consistency"></script>
+<script src="/assets/js/challenge-warnings.js?v=20261016-short"></script>
 </head>
 <body>
 
@@ -2910,7 +2910,7 @@ function showStageRuleReview(force){
   if(document.getElementById('ruleCriticalDialog').open)return;
   if(stageRuleReview&&stageRuleReview.key===c.key&&dialog.open)return;
   stageRuleReview=c;
-  document.getElementById('stageRulesTitle').textContent='Before trading Stage '+c.stage+': check every rule';
+  document.getElementById('stageRulesTitle').textContent='Stage '+c.stage+' rules: '+c.read.length+' things to know';
   const list=document.getElementById('stageRulesReadList');list.replaceChildren();
   c.read.forEach(text=>{
     const label=document.createElement('label'),box=document.createElement('input'),span=document.createElement('span');
@@ -7264,14 +7264,14 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
-<script src="/assets/js/markets-guided.js?v=20261016b"></script>
+<script src="/assets/js/markets-guided.js?v=20261016d"></script>
 
 <dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
-  <h2 id="stageRulesTitle" tabindex="-1">Before trading: check every rule</h2>
-  <p>Tick each item to confirm you understand it. These are reading acknowledgements — your pass checklist is verified separately from your actual trading.</p>
+  <h2 id="stageRulesTitle" tabindex="-1">Your rules: things to know</h2>
+  <p>Tick each one to start trading. Your progress is tracked for you in the Challenge tab.</p>
   <ul id="stageRuleUrgent" class="stage-rule-urgent" role="alert" hidden></ul>
   <div id="stageRulesReadList"></div>
-  <div class="rule-dlg-actions"><button id="stageRulesContinue" type="button" onclick="confirmStageRules()" disabled>I have checked every rule — continue</button><button type="button" class="secondary" onclick="managePositionsFromRules()">Manage existing positions</button></div>
+  <div class="rule-dlg-actions"><button id="stageRulesContinue" type="button" onclick="confirmStageRules()" disabled>Got it, start trading</button><button type="button" class="secondary" onclick="managePositionsFromRules()">Manage existing positions</button></div>
 </dialog>
 <dialog id="ruleCriticalDialog" class="rule-dlg critical" aria-labelledby="ruleCriticalTitle">
   <h2 id="ruleCriticalTitle" tabindex="-1">⚠ Your challenge is at risk</h2>

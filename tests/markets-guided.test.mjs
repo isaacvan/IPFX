@@ -56,3 +56,19 @@ test('trading.html loads the guided ticket after the order code, and the tour is
   assert.match(src, /window\.ipfxTour = /); assert.match(src, /gt-skip/); assert.match(src, /ipfx-markets-tour-v1/);
   assert.match(src, /ipfx-cookie-panel/, 'tour waits for the privacy choice');
 });
+
+test('the tour counts as seen the moment it opens and closes instantly with ×, Esc, Skip or a click outside', () => {
+  const tour = src.slice(src.indexOf('function tour('), src.indexOf('window.ipfxTour'));
+  assert.ok(tour.indexOf('seenTour()') < tour.indexOf('document.body.append'), 'saved before it is shown');
+  for (const close of ["'.gt-x').onclick = endTour", "'.gt-skip').onclick = endTour", 'scrim.onclick = endTour']) assert.ok(tour.includes(close), close);
+  assert.match(src, /e\.key === 'Escape'[^\n]*endTour\(\)/);
+  assert.match(src, /b\.textContent = 'Tour'/);
+});
+
+test('Simple view is the default, hides only advanced tools and Pro brings them all back', () => {
+  assert.match(src, /localStorage\.getItem\(VIEW_KEY\) \|\| 'simple'/);
+  const hide = src.slice(src.indexOf('const SIMPLE_HIDE'), src.indexOf('const isSimple'));
+  for (const kept of ["setTf('1',", "setTf('5',", "setTf('60',", "switchBtab('positions'", "switchBtab('challenge'", "switchBtab('closed'", '.op-trade-row', '#gtCard']) assert.ok(!hide.includes(kept), 'Simple keeps ' + kept);
+  for (const gone of ["'1S'", "'journal'", "'statement'", '#algoBtn', '.guide-tabs']) assert.ok(hide.includes(gone), 'Simple hides ' + gone);
+  assert.match(src, /body\.gt-simple :is\(\$\{SIMPLE_HIDE\.join/);
+});

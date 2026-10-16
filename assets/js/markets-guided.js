@@ -67,14 +67,19 @@
 .gt-checks{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
 .gt-checks li{font-size:.78rem;display:flex;gap:6px;align-items:flex-start;color:#d4d4d8}.gt-checks li i{font-style:normal;font-weight:800;width:14px}
 .gt-checks li.ok i{color:#10b981}.gt-checks li.no{color:#fbbf24}.gt-checks li.no i{color:#f59e0b}
-body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op-quickbar .op-quick:nth-child(2),body.gt-on .op-presets,body.gt-on .op-lot-minus,body.gt-on .op-lot-plus{display:none!important}
+body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op-quickbar .op-quick:nth-child(2),body.gt-on .op-presets,body.gt-on .op-lot-minus,body.gt-on .op-lot-plus{display:none!important}
 body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:' · sized from your risk'}
 .op-exec-btn.gt-off{opacity:.35;cursor:not-allowed;filter:grayscale(.4)}
-.gt-help{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1px solid #2f2f36;background:transparent;color:#e4e4e7;font-weight:800;cursor:pointer;margin-right:6px}
-.gt-tour-scrim{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.55)}
+body.gt-simple :is(${SIMPLE_HIDE.join(',')}){display:none!important}
+.gt-view{display:inline-flex;border:1px solid #2f2f36;border-radius:8px;padding:2px;margin-right:6px;height:30px;box-sizing:border-box}
+.gt-view button{border:0;background:transparent;color:#9aa0aa;font:600 12px Inter,system-ui,sans-serif;padding:0 10px;border-radius:6px;cursor:pointer}
+.gt-view button.on{background:#2563eb;color:#fff}
+.gt-help{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;border-radius:8px;border:1px solid #2f2f36;background:transparent;color:#e4e4e7;font-weight:600;font-size:12px;cursor:pointer;margin-right:6px}
+.gt-tour-scrim{position:fixed;inset:0;z-index:99990;background:transparent;cursor:pointer}
 .gt-tour-hole{position:fixed;z-index:99991;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.55),0 0 0 3px #2563eb;pointer-events:none;transition:all .25s}
 .gt-tour-card{position:fixed;z-index:99992;width:320px;background:#111114;border:1px solid #2f2f36;border-radius:14px;padding:16px;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.6);font:14px/1.5 Inter,system-ui,sans-serif}
-.gt-tour-card h4{margin:0 0 6px;font-size:15px}.gt-tour-card p{margin:0 0 12px;color:#c4c4cc;font-size:13px}
+.gt-tour-card h4{margin:0 0 6px;font-size:15px;padding-right:22px}
+.gt-tour-card .gt-x{position:absolute;top:8px;right:8px;width:28px;height:28px;padding:0;background:transparent;color:#9aa0aa;font-size:20px;line-height:1;border-radius:8px}.gt-tour-card .gt-x:hover{background:#1f1f25;color:#fff}.gt-tour-card p{margin:0 0 12px;color:#c4c4cc;font-size:13px}
 .gt-tour-card .gt-tour-foot{display:flex;justify-content:space-between;align-items:center}
 .gt-tour-card .gt-tour-foot span{color:#7c7c86;font-size:12px}
 .gt-tour-card button{border:0;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer}
@@ -153,35 +158,81 @@ body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:'
     { sel: '.op-trade-row', title: 'Buy or Sell', text: 'The green ticks above must all be ticked. Then click Buy if you think price goes up, Sell if it goes down.' },
     { sel: '.btab[onclick*="challenge"]', title: 'Watch your progress', text: 'Your target, loss limits and every rule you still need to meet are in the Challenge tab.' },
   ];
+  const seenTour = () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch (_) {} };
+  const endTour = () => { document.querySelectorAll('.gt-tour-scrim,.gt-tour-hole,.gt-tour-card').forEach((n) => n.remove()); document.removeEventListener('keydown', tourKeys, true); };
+  function tourKeys(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endTour(); } }
+  // Shown once: the moment it opens it counts as seen, so closing it any way (×, Esc, click outside, Skip, leaving the
+  // page) means it never opens by itself again. The Tour button in the top bar replays it.
   function tour(i = 0) {
-    document.querySelectorAll('.gt-tour-scrim,.gt-tour-hole,.gt-tour-card').forEach((n) => n.remove());
-    if (i >= STEPS.length) { try { localStorage.setItem(TOUR_KEY, '1'); } catch (_) {} return; }
+    endTour();
+    if (i >= STEPS.length) return;
+    seenTour();
     const s = STEPS[i], target = [s.sel, s.alt].map((q) => q && document.querySelector(q)).find((n) => n && !n.hidden && n.offsetParent !== null);
     if (!target) return tour(i + 1);
     const r = target.getBoundingClientRect(), pad = 6;
     const hole = document.createElement('div'); hole.className = 'gt-tour-hole';
     Object.assign(hole.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
     const card = document.createElement('div'); card.className = 'gt-tour-card'; card.setAttribute('role', 'dialog'); card.setAttribute('aria-label', s.title);
-    card.innerHTML = `<h4>${s.title}</h4><p>${s.text}</p><div class="gt-tour-foot"><span>${i + 1} of ${STEPS.length}</span><div><button class="gt-skip" type="button">Skip</button><button class="gt-next" type="button">${i + 1 === STEPS.length ? 'Start trading' : 'Next'}</button></div></div>`;
+    card.innerHTML = `<button class="gt-x" type="button" aria-label="Close tour" title="Close (Esc)">×</button><h4>${s.title}</h4><p>${s.text}</p><div class="gt-tour-foot"><span>${i + 1} of ${STEPS.length}</span><div><button class="gt-skip" type="button">Skip</button><button class="gt-next" type="button">${i + 1 === STEPS.length ? 'Start trading' : 'Next'}</button></div></div>`;
     const left = r.left - 340 > 12 ? r.left - 340 : Math.min(window.innerWidth - 332, r.right + 12);
     Object.assign(card.style, { left: Math.max(12, left) + 'px', top: Math.min(window.innerHeight - 200, Math.max(12, r.top)) + 'px' });
     const scrim = document.createElement('div'); scrim.className = 'gt-tour-scrim';
     document.body.append(scrim, hole, card);
+    document.addEventListener('keydown', tourKeys, true);
+    scrim.onclick = endTour;
+    card.querySelector('.gt-x').onclick = endTour;
     card.querySelector('.gt-next').onclick = () => tour(i + 1);
-    card.querySelector('.gt-skip').onclick = () => tour(STEPS.length);
+    card.querySelector('.gt-skip').onclick = endTour;
     card.querySelector('.gt-next').focus();
   }
   window.ipfxTour = () => tour(0);
   function helpButton() {
     if ($('gtHelp')) return;
     const fb = document.querySelector('.tb-feedback'); if (!fb) return;
-    const b = document.createElement('button'); b.type = 'button'; b.id = 'gtHelp'; b.className = 'gt-help'; b.textContent = '?'; b.title = 'Show me how IPFX Markets works';
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'gtHelp'; b.className = 'gt-help'; b.textContent = 'Tour'; b.title = 'Show me how IPFX Markets works';
     b.onclick = () => tour(0); fb.before(b);
   }
 
+
+  // ---- Simple view (default) ----
+  // New traders saw 12 timeframes, 4 side tabs, 10 bottom tabs and a row of tool icons before their first trade. Simple
+  // hides the advanced tools; Pro brings every one of them back. Nothing is removed and the choice is remembered.
+  const VIEW_KEY = 'ipfx-markets-view';
+  const SIMPLE_HIDE = [
+    ...["'1S'", "'15S'", "'30S'", "'3'", "'30'", "'W'"].map((tf) => `.tf-btn[onclick*="setTf(${tf},"]`),
+    '.style-btn[onclick*="setStyle(8"]', '#gridBtn', '#resetLayoutBtn', '#setupBtn', '#algoBtn',
+    '.chart-footer .cf-ranges', '.chart-footer .cf-scale', '#guidePanel .guide-tabs', '#hkChip', '#tab-order .op-advanced', '#tab-order .op-margin-row',
+    ...['orders', 'account', 'risk', 'journal', 'alerts', 'statement'].map((t) => `.btab[onclick*="switchBtab('${t}'"]`),
+    'body:not(.gt-tv) #chartEngineBtn',
+  ];
+  const isSimple = () => document.body.classList.contains('gt-simple');
+  function setView(v, save = true) {
+    const simple = v !== 'pro';
+    document.body.classList.toggle('gt-simple', simple);
+    if (save) { try { localStorage.setItem(VIEW_KEY, simple ? 'simple' : 'pro'); } catch (_) {} }
+    document.querySelectorAll('#gtView button').forEach((b) => b.classList.toggle('on', (b.dataset.view === 'simple') === simple));
+    if (!simple) return;
+    // Never leave the trader looking at a hidden tab.
+    const side = document.querySelector('#guidePanel .gtab.active');
+    const order = document.querySelector('.gtab[onclick*="switchTab(\'order\'"]');
+    if (side && order && side !== order && typeof switchTab === 'function') switchTab('order', order);
+    const bt = document.querySelector('.btab.active'), pos = document.querySelector('.btab[onclick*="switchBtab(\'positions\'"]');
+    if (bt && pos && bt.offsetParent === null && typeof switchBtab === 'function') switchBtab('positions', pos);
+  }
+  function viewSwitch() {
+    if ($('gtView')) return;
+    const help = $('gtHelp'); if (!help) return;
+    const w = document.createElement('div'); w.id = 'gtView'; w.className = 'gt-view'; w.setAttribute('role', 'group'); w.setAttribute('aria-label', 'Screen layout');
+    w.innerHTML = '<button type="button" data-view="simple" title="Only what you need to trade">Simple</button><button type="button" data-view="pro" title="Every tool: more timeframes, depth, scalp panel, journal, alerts, statement">Pro</button>';
+    w.addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
+    help.before(w);
+    let v = 'simple'; try { v = localStorage.getItem(VIEW_KEY) || 'simple'; } catch (_) {}
+    setView(v, false);
+  }
+
   function start() {
-    css(); mount(); helpButton();
-    setInterval(refresh, 500);
+    css(); mount(); helpButton(); viewSwitch();
+    setInterval(() => { refresh(); document.body.classList.toggle('gt-tv', typeof chartEngine !== 'undefined' && chartEngine === 'tv'); }, 500);
     // First visit: wait until the account and prices have loaded (and the cookie choice is made) so the tour points at the real ticket.
     let tries = 0;
     const t = setInterval(() => {

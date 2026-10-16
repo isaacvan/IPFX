@@ -10,14 +10,15 @@ test('checklist covers all Stage 1 gates with actual values, including eligible 
  assert.equal(row('target').done,false);assert.equal(c.ready,false);assert.equal(row('flat').done,true);
  s.account.balance=1100;assert.equal(checklist(s).rows.find(r=>r.id==='target').done,false,'short-held winning profit does not falsely meet target');
  s.open_trades=[{id:'open'}];assert.equal(checklist(s).rows.find(r=>r.id==='flat').done,false);
- for(const rule of ['14 elapsed','10 qualifying days','30 exposure sessions','30 qualifying trades','35%','25.00','50.00','5.00','30 seconds','14.00'])assert.ok(c.read.some(text=>text.includes(rule)),rule);
+ assert.ok(c.read.length<=5,'five short lines at most');
+ for(const rule of ['14 days','10 trading days','30 sessions','30 trades','35%','25.00','50.00','5.00','30s','14.00'])assert.ok(c.read.some(text=>text.includes(rule)),rule);
 });
 test('Stage 2 uses saved rules instead of hard-coded old targets and profitable-day bar',()=>{
  const s=fixture(),a=s.account;a.stage=2;a.starting_balance=5000;a.limits.target_balance=5350;
  a.progress.min_profitable_days_pct=40;a.progress.profitable_days_pct=35;a.progress.min_profitable_day_net_usd=2.5;
  a.progress.qualification.rules.min_trading_days=15;
- const c=checklist(s);assert.match(c.rows.find(r=>r.id==='days').text,/15/);assert.match(c.read.find(t=>t.startsWith('Reach')),/350.00/);
- assert.equal(c.rows.find(r=>r.id==='profitable').done,false);assert.match(c.read.find(t=>t.startsWith('At least 40%')),/2.50/);
+ const c=checklist(s);assert.match(c.rows.find(r=>r.id==='days').text,/15/);assert.match(c.read.find(t=>t.startsWith('To pass')),/350.00/);
+ assert.equal(c.rows.find(r=>r.id==='profitable').done,false);assert.match(c.read.find(t=>t.includes('40% of trading days')),/2.50/);
 });
 test('read acknowledgements remain stable across live P&L changes, reset for new accounts and cannot make a stage ready',()=>{
  const s=fixture(),key=checklist(s).key;s.account.equity=980;s.account.progress.eligible_closed_balance=980;

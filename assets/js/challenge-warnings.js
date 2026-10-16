@@ -83,56 +83,59 @@
     const a=state&&state.account;
     if(!a||a.is_demo||a.challenge_type!=='infinity'||Number(a.stage)>3)return null;
     const L=a.limits||{},P=a.progress||{},Q=P.qualification||{},R=Q.rules||{};
-    const rows=[],read=[];
+    const rows=[],read=[],need=[];
     const add=(id,text,done)=>{rows.push({id,text,done:done===true});};
     const target=number(L.target_balance),eligible=number(P.eligible_closed_balance);
     if(target>0){
       add('target',`Eligible closed balance: ${Number.isFinite(eligible)?money(eligible):'awaiting verification'} / ${money(target)} target`,Number.isFinite(eligible)&&eligible>=target);
-      read.push(`Reach ${money(target-number(a.starting_balance))} eligible net closed profit. Winning trades held under 60 seconds do not count; losses still count.`);
     }
     if(Q.applies&&Q.rules){
       if(number(R.min_elapsed_days)>0){
+        need.push(`${R.min_elapsed_days} days`);
         add('elapsed',`Elapsed calendar days: ${Number.isFinite(number(Q.elapsed_days))?number(Q.elapsed_days).toFixed(1):'awaiting verification'} / ${R.min_elapsed_days}`,number(Q.elapsed_days)>=number(R.min_elapsed_days));
-        read.push(`Complete at least ${R.min_elapsed_days} elapsed calendar days in this stage.`);
       }
       if(number(R.min_trading_days)>0){
+        need.push(`${R.min_trading_days} trading days`);
         add('days',`Qualifying trading days: ${Q.meaningful_days??'awaiting verification'} / ${R.min_trading_days}`,number(Q.meaningful_days)>=number(R.min_trading_days)&&number(P.trading_days)>=number(P.min_trading_days));
-        read.push(`Trade on at least ${R.min_trading_days} qualifying days. Several trades in one day do not create extra trading days.`);
       }
       if(number(R.min_sessions)>0){
+        need.push(`${R.min_sessions} sessions (trades within an hour of each other count as one)`);
         add('sessions',`Exposure sessions: ${Q.exposure_sessions??'awaiting verification'} / ${R.min_sessions}`,number(Q.exposure_sessions)>=number(R.min_sessions));
-        read.push(`Complete ${R.min_sessions} exposure sessions. Overlapping positions count together; a new session starts after being flat for more than ${R.session_flat_gap_minutes??60} minutes.`);
       }
       if(number(R.max_best_day_share)>0){
         const best=number(Q.best_day_share),limit=number(R.max_best_day_share)*100;
+        need.push(`no single day over ${(number(R.max_best_day_share)*100).toFixed(0)}% of your profit`);
         add('consistency',`Best-day contribution: ${Number.isFinite(best)?(best*100).toFixed(1)+'%':'not yet measurable'} / ${limit.toFixed(0)}% maximum`,Number.isFinite(best)&&best<=number(R.max_best_day_share));
-        read.push(`Keep your best day at or below ${limit.toFixed(0)}% of total positive daily profit.`);
       }
     }else{
       add('qualification','Saved qualification rules unavailable — wait for verification',false);
     }
     if(number(P.min_trades)>0){
+      need.push(`${P.min_trades} trades`);
       add('trades',`Qualifying completed trades: ${P.trades_closed??'awaiting verification'} / ${P.min_trades}`,number(P.trades_closed)>=number(P.min_trades));
-      read.push(`Complete ${P.min_trades} qualifying trades, held at least 60 seconds. Partial closes do not create extra counted trades.`);
     }
     if(number(P.min_profitable_days_pct)>0){
+      need.push(`${P.min_profitable_days_pct}% of trading days in profit${Number.isFinite(number(P.min_profitable_day_net_usd))?` (over ${money(number(P.min_profitable_day_net_usd))})`:''}`);
       add('profitable',`Qualifying profitable days: ${P.profitable_days_pct??'awaiting verification'}% / ${P.min_profitable_days_pct}% minimum`,number(P.profitable_days_pct)>=number(P.min_profitable_days_pct));
-      read.push(`At least ${P.min_profitable_days_pct}% of your trading days must qualify as profitable${Number.isFinite(number(P.min_profitable_day_net_usd))?` with net closed profit above ${money(number(P.min_profitable_day_net_usd))}`:''}.`);
     }
     add('flat',`Open positions: ${(state.open_trades||[]).length} — close all before promotion`,(state.open_trades||[]).length===0);
-    read.push('Close all open positions before promotion. Reaching the profit target alone does not pass the stage.');
     add('standing',`Account in good standing; stop-loss strikes ${a.sl_strikes??0}/${a.sl_strikes_max??3}`,a.status==='active'&&number(a.sl_strikes??0)<number(a.sl_strikes_max??3));
-    if(number(L.daily_loss_allowance_usd)>0)read.push(`Daily loss allowance: ${money(number(L.daily_loss_allowance_usd))}. Equity touching the loss floor ends this run, including floating losses.`);
-    if(number(L.drawdown_allowance_usd)>0)read.push(`Drawdown allowance: ${money(number(L.drawdown_allowance_usd))}. ${L.drawdown_mode==='trailing_eod'?'The peak updates at the end of the UTC day.':L.drawdown_mode==='trailing_balance'?'The peak follows your highest closed balance; open profit never moves it.':'The trailing peak can rise intraday.'} Watch the live floor.`);
-    if(number(L.base_risk_per_trade_usd)>0)read.push(`Base risk per trade: ${money(number(L.base_risk_per_trade_usd))}; your current limit can be lower as loss room is used. Total open risk must not exceed ${L.total_open_risk_multiple??3} times the current per-trade limit.`);
-    if(number(L.stop_loss_deadline_seconds)>0)read.push(`Set a stop-loss on every position within ${L.stop_loss_deadline_seconds} seconds. A missed deadline closes it and records a strike; ${a.sl_strikes_max??3} strikes end the run.`);
-    if(number(L.daily_profit_cap_usd)>0)read.push(`At ${money(number(L.daily_profit_cap_usd))} daily gain, new entries pause until 00:00 UTC. Existing positions can close above the cap; this is not a breach.`);
-    read.push('Make your own trading decisions. Do not share accounts, copy between participants or coordinate opposing positions to game the challenge.');
-    read.push('A failed run cannot be restarted until the next eligible month. These acknowledgements do not change or replace your accepted rules.');
     add('server',P.requirements_met===true?'Server progression checks verified':'Server progression checks still pending',P.requirements_met===true);
+    // What the trader ticks before trading: five short lines, same rules and numbers (wording only).
+    if(target>0)read.push(`To pass: make ${money(target-number(a.starting_balance))} profit${need.length?' with at least '+need.join(', '):''}, then close every trade. Trades held under 1 minute don't count.`);
+    const lossBits=[];
+    if(number(L.daily_loss_allowance_usd)>0)lossBits.push(`lose ${money(number(L.daily_loss_allowance_usd))} in one day`);
+    if(number(L.drawdown_allowance_usd)>0)lossBits.push(`drop ${money(number(L.drawdown_allowance_usd))} below your ${L.drawdown_mode==='trailing_balance'?'highest closed balance':L.drawdown_mode==='trailing_eod'?'highest end-of-day balance':'highest equity'}`);
+    if(lossBits.length)read.push(`The run ends if you ${lossBits.join(' or ')} (open trades count). You can restart next month.`);
+    const tradeBits=[];
+    if(number(L.stop_loss_deadline_seconds)>0)tradeBits.push(`every trade needs a stop-loss within ${L.stop_loss_deadline_seconds}s (the ticket adds it for you; ${a.sl_strikes_max??3} misses end the run)`);
+    if(number(L.base_risk_per_trade_usd)>0)tradeBits.push(`risk up to ${money(number(L.base_risk_per_trade_usd))} per trade and ${money(number(L.base_risk_per_trade_usd)*number(L.total_open_risk_multiple??3))} across open trades`);
+    if(tradeBits.length)read.push(tradeBits.join('; ').replace(/^./,c=>c.toUpperCase())+'.');
+    if(number(L.daily_profit_cap_usd)>0)read.push(`Up ${money(number(L.daily_profit_cap_usd))} in a day? New trades pause until 00:00 UTC. That's not a breach.`);
+    read.push('Trade your own account with your own decisions: no sharing, copying or hedging with others.');
     const ready=Q.applies===true&&Q.eligible===true&&rows.every(r=>r.done);
     // Stable saved-rule identity: changing live P&L never resets an acknowledgement.
-    const key='stage-read-v1:'+a.id+':'+JSON.stringify(read);
+    const key='stage-read-v2:'+a.id+':'+JSON.stringify(read);
     return {stage:Number(a.stage),rows,read,key,available:Q.applies===true&&!!Q.rules,ready};
   }
   root.IPFXRuleWarnings={build,announcement,checklist,consistency,consistencyText};
