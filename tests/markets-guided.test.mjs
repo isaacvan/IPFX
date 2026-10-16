@@ -65,10 +65,6 @@ test('the tour counts as seen the moment it opens and closes instantly with ×, 
   assert.match(src, /b\.textContent = 'Tour'/);
 });
 
-test('Simple view is the default, hides only advanced tools and Pro brings them all back', () => {
-  assert.match(src, /localStorage\.getItem\(VIEW_KEY\) \|\| 'simple'/);
-  const hide = src.slice(src.indexOf('const SIMPLE_HIDE'), src.indexOf('const isSimple'));
-  for (const kept of ["setTf('1',", "setTf('5',", "setTf('60',", "switchBtab('positions'", "switchBtab('challenge'", "switchBtab('closed'", '.op-trade-row', '#gtCard']) assert.ok(!hide.includes(kept), 'Simple keeps ' + kept);
-  for (const gone of ["'1S'", "'journal'", "'statement'", '#algoBtn', '.guide-tabs']) assert.ok(hide.includes(gone), 'Simple hides ' + gone);
-  assert.match(src, /body\.gt-simple :is\(\$\{SIMPLE_HIDE\.join/);
+test('the Simple/Pro view switch was reverted: nothing is hidden by a gt-simple class', () => {
+  assert.ok(!/gt-simple|SIMPLE_HIDE|gtView/.test(src), 'the full layout (all timeframes, side tabs, bottom tabs) stays as-is, undoing the earlier Simple default');
 });

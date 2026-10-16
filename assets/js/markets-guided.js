@@ -70,10 +70,6 @@
 body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op-quickbar .op-quick:nth-child(2),body.gt-on .op-presets,body.gt-on .op-lot-minus,body.gt-on .op-lot-plus{display:none!important}
 body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:' · sized from your risk'}
 .op-exec-btn.gt-off{opacity:.35;cursor:not-allowed;filter:grayscale(.4)}
-body.gt-simple :is(${SIMPLE_HIDE.join(',')}){display:none!important}
-.gt-view{display:inline-flex;border:1px solid #2f2f36;border-radius:8px;padding:2px;margin-right:6px;height:30px;box-sizing:border-box}
-.gt-view button{border:0;background:transparent;color:#9aa0aa;font:600 12px Inter,system-ui,sans-serif;padding:0 10px;border-radius:6px;cursor:pointer}
-.gt-view button.on{background:#2563eb;color:#fff}
 .gt-help{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;border-radius:8px;border:1px solid #2f2f36;background:transparent;color:#e4e4e7;font-weight:600;font-size:12px;cursor:pointer;margin-right:6px}
 .gt-tour-scrim{position:fixed;inset:0;z-index:99990;background:transparent;cursor:pointer}
 .gt-tour-hole{position:fixed;z-index:99991;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.55),0 0 0 3px #2563eb;pointer-events:none;transition:all .25s}
@@ -192,47 +188,9 @@ body.gt-simple :is(${SIMPLE_HIDE.join(',')}){display:none!important}
     const b = document.createElement('button'); b.type = 'button'; b.id = 'gtHelp'; b.className = 'gt-help'; b.textContent = 'Tour'; b.title = 'Show me how IPFX Markets works';
     b.onclick = () => tour(0); fb.before(b);
   }
-
-
-  // ---- Simple view (default) ----
-  // New traders saw 12 timeframes, 4 side tabs, 10 bottom tabs and a row of tool icons before their first trade. Simple
-  // hides the advanced tools; Pro brings every one of them back. Nothing is removed and the choice is remembered.
-  const VIEW_KEY = 'ipfx-markets-view';
-  const SIMPLE_HIDE = [
-    ...["'1S'", "'15S'", "'30S'", "'3'", "'30'", "'W'"].map((tf) => `.tf-btn[onclick*="setTf(${tf},"]`),
-    '.style-btn[onclick*="setStyle(8"]', '#gridBtn', '#resetLayoutBtn', '#setupBtn', '#algoBtn',
-    '.chart-footer .cf-ranges', '.chart-footer .cf-scale', '#guidePanel .guide-tabs', '#hkChip', '#tab-order .op-advanced', '#tab-order .op-margin-row',
-    ...['orders', 'account', 'risk', 'journal', 'alerts', 'statement'].map((t) => `.btab[onclick*="switchBtab('${t}'"]`),
-    'body:not(.gt-tv) #chartEngineBtn',
-  ];
-  const isSimple = () => document.body.classList.contains('gt-simple');
-  function setView(v, save = true) {
-    const simple = v !== 'pro';
-    document.body.classList.toggle('gt-simple', simple);
-    if (save) { try { localStorage.setItem(VIEW_KEY, simple ? 'simple' : 'pro'); } catch (_) {} }
-    document.querySelectorAll('#gtView button').forEach((b) => b.classList.toggle('on', (b.dataset.view === 'simple') === simple));
-    if (!simple) return;
-    // Never leave the trader looking at a hidden tab.
-    const side = document.querySelector('#guidePanel .gtab.active');
-    const order = document.querySelector('.gtab[onclick*="switchTab(\'order\'"]');
-    if (side && order && side !== order && typeof switchTab === 'function') switchTab('order', order);
-    const bt = document.querySelector('.btab.active'), pos = document.querySelector('.btab[onclick*="switchBtab(\'positions\'"]');
-    if (bt && pos && bt.offsetParent === null && typeof switchBtab === 'function') switchBtab('positions', pos);
-  }
-  function viewSwitch() {
-    if ($('gtView')) return;
-    const help = $('gtHelp'); if (!help) return;
-    const w = document.createElement('div'); w.id = 'gtView'; w.className = 'gt-view'; w.setAttribute('role', 'group'); w.setAttribute('aria-label', 'Screen layout');
-    w.innerHTML = '<button type="button" data-view="simple" title="Only what you need to trade">Simple</button><button type="button" data-view="pro" title="Every tool: more timeframes, depth, scalp panel, journal, alerts, statement">Pro</button>';
-    w.addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
-    help.before(w);
-    let v = 'simple'; try { v = localStorage.getItem(VIEW_KEY) || 'simple'; } catch (_) {}
-    setView(v, false);
-  }
-
   function start() {
-    css(); mount(); helpButton(); viewSwitch();
-    setInterval(() => { refresh(); document.body.classList.toggle('gt-tv', typeof chartEngine !== 'undefined' && chartEngine === 'tv'); }, 500);
+    css(); mount(); helpButton();
+    setInterval(refresh, 500);
     // First visit: wait until the account and prices have loaded (and the cookie choice is made) so the tour points at the real ticket.
     let tries = 0;
     const t = setInterval(() => {
