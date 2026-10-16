@@ -45,6 +45,14 @@ An ongoing copy can exist at the broker while its opening history receipt is sti
 
 Missing order identity, history outage, mismatched quantity/position, reused positions, a failed receipt write or a concurrent state change cannot cause a guessed close or risk release. Those cases retain reconciliation. This removes a scheduled-reconciliation wait when the exact receipt is already available; it cannot guarantee broker completion time or recover a missing acknowledgement without evidence.
 
+## Read-only position diagnostic
+
+The owner evidence panel can diagnose a copied broker position from saved records. The endpoint retains owner/MFA checks, accepts an exact string position ID, scopes the opening to the selected account's book, and uses bounded database reads. It makes no provider requests or record mutations. Complete, unique opening/exit receipts must match account, position, side, symbol, quantity and journal prices; a pre-entry USD contract must independently match the exact instrument and lot size.
+
+The report separates source-to-dispatch timing, source-to-broker-order creation, request acknowledgement, receipt lookup and observed pre-send quote shortfall. Missing dispatch records are not reconstructed. Order creation and acknowledgement are not exact execution timestamps; source times are records/close requests, not measured mouse clicks. Quotes from another account/instrument, later quotes and stale quotes never become a slippage benchmark.
+
+For an isolated flat interval with a stable subsequent snapshot, exact interval order IDs and consistent balance/daily gross/net/fee deltas, the report can show a **balance cost candidate**. It remains unverified and requires review of account currency, other adjustments, broker day and settlement. Unknown currency is explicit and any proposed USD result is conditional; foreign-currency balances cannot be mixed with USD gross. Combined cost does not establish commission versus swap. The tool does not set a cost model, rewrite trader P&L, certify accuracy or enable execution.
+
 ## Validation
 
 The new tests execute real handlers with synthetic broker/database fixtures, PGlite migrations/RLS and isolated browser rendering. The 2,000-event test checks demand retention/coalescing only; it is not a production trading-capacity test. API request quotas, missing historical ticks and delayed provider postings remain external constraints. The complete suite and evidence screenshots are recorded in the chat audit workspace.

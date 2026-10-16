@@ -3,6 +3,7 @@ import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 import {allowRequest,readJsonObject} from '../_shared/request-guards.ts';
 import {finiteNumber,replayReference,type ReplayRequest} from '../_shared/e8-reference.ts';
 import {receiptCosts,isolatedBalance,pairedPaper,type QuoteEvidence,type PaperEvent} from '../_shared/e8-evidence.ts';
+import {loadTradeDiagnostic} from '../_shared/e8-trade-diagnostics.ts';
 const ORIGINS=new Set(['https://ipfxcapital.com','https://www.ipfxcapital.com','http://localhost:3000','http://localhost:8127']);
 function aal(token:string){try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(atob(p+'='.repeat((4-p.length%4)%4))).aal;}catch{return null;}}
 Deno.serve(async req=>{
@@ -33,6 +34,11 @@ Deno.serve(async req=>{
  const id=Number(body.account_id);if(!Number.isSafeInteger(id)||id<1)return json({ok:false,error:'Choose an E8 monitor account'},400);
  const {data:a,error:ae}=await db.from('ladder_accounts').select('role,platform,execution_enabled,server,api_env,instrument_map').eq('id',id).maybeSingle();
  if(ae||!a||a.platform!=='tradelocker')return json({ok:false,error:'Choose an existing TradeLocker account'},409);
+ if(body.action==='diagnose_position'){
+  if(typeof body.position_id!=='string'||!(/^[1-9]\d{0,23}$/).test(body.position_id))return json({ok:false,error:'Enter the exact broker position ID'},400);
+  try{return json({ok:true,diagnostic:await loadTradeDiagnostic(db,id,body.position_id)});}
+  catch{return json({ok:false,error:'Saved trade diagnostics are temporarily unavailable'},503);}
+ }
  if(body.action==='import_receipt'){
   const r=body.receipt as Record<string,unknown>|null;
   if(!r||body.confirm_reviewed!==true)return json({ok:false,error:'Review the exact account, position, quantities and signed costs first'},400);

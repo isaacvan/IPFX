@@ -9,7 +9,8 @@ async function harness(options={}){
   from:table=>{const q={select(){return q},eq(){return q},in(){return q},gt(){return q},lte(){return q},limit(){return q},maybeSingle(){return q},insert(body){calls.push({table,body});return q},then(resolve){return resolve({data:table==='admins'?options.notAdmin?null:{user_id:user.id}:table==='ladder_accounts'?{role:'monitor',platform:'tradelocker',execution_enabled:false}:table==='e8_account_snapshots'?options.snapshots:table==='cost_fills'?[{raw:{positionId:'999'}},{raw:{positionId:'999'}}]:null,error:null})}};return q;}};
  const context=vm.createContext({Request,Response,TextEncoder,Uint8Array,Date,Number,String,JSON,Array,Object,Map,Set,Math,Error,atob,crypto,
   Deno:{env:{get:key=>key==='IPFX_OWNER_EMAIL'?'owner@example.invalid':'synthetic'},serve:h=>handler=h},
-  createClient:()=>db,allowRequest:async()=>!options.rateDenied,readJsonObject:async req=>req.json(),receiptCosts,isolatedBalance,pairedPaper,finiteNumber});
+  createClient:()=>db,allowRequest:async()=>!options.rateDenied,readJsonObject:async req=>req.json(),receiptCosts,isolatedBalance,pairedPaper,finiteNumber,
+  loadTradeDiagnostic:async(_db,accountId,positionId)=>{calls.push({diagnostic:true,accountId,positionId});return{available:false,reason:'SYNTHETIC_MISSING_RECEIPTS',netVerified:false};}});
  const source=fs.readFileSync(new URL('../supabase/functions/e8-monitor-admin/index.ts',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'');vm.runInContext(stripTypeScriptTypes(source),context);
  const token='synthetic.'+Buffer.from(JSON.stringify({aal:options.noMfa?'aal1':'aal2'})).toString('base64url')+'.synthetic';
  return {calls,run:async body=>{const r=await handler(new Request('https://fixture.invalid',{method:'POST',headers:{Origin:'https://ipfxcapital.com',Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)}));return {status:r.status,body:await r.json()};}};
@@ -32,4 +33,9 @@ test('receipt import requires review, rejects missing costs and sends only a nor
  assert.equal((await h.run({action:'import_receipt',account_id:3,confirm_reviewed:true,receipt:{...r,swap:null}})).status,400);
  assert.equal(h.calls.length,0);const result=await h.run({action:'import_receipt',account_id:3,confirm_reviewed:true,receipt:{...r,accessToken:'NEVER_PERSIST',canEnableLive:true}});
  assert.equal(result.status,200);assert.equal(h.calls.length,1);assert.equal(h.calls[0].name,'e8_import_position_receipt');assert.equal(JSON.stringify(h.calls).includes('NEVER_PERSIST'),false);assert.equal(h.calls[0].args.p_actor,user.id);
+});
+test('read-only diagnostics retain owner/MFA checks, validate exact string identities and do not mutate records',async()=>{
+ for(const options of[{noSession:true},{noMfa:true},{notAdmin:true},{rateDenied:true}]){const h=await harness(options);assert.ok([401,403,429].includes((await h.run({action:'diagnose_position',account_id:3,position_id:'999'})).status));assert.equal(h.calls.length,0);}
+ const h=await harness();for(const value of[999,'','1x','0','9'.repeat(25)])assert.equal((await h.run({action:'diagnose_position',account_id:3,position_id:value})).status,400);
+ const result=await h.run({action:'diagnose_position',account_id:3,position_id:'999'});assert.equal(result.status,200);assert.equal(result.body.diagnostic.netVerified,false);assert.deepEqual(h.calls,[{diagnostic:true,accountId:3,positionId:'999'}]);
 });
