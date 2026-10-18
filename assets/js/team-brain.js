@@ -405,8 +405,26 @@
       <p class="small" style="margin-top:10px">The model comes from the side saved when the copy opened. A and B results are separated. Contract size, conversion and small-lot scaling remain assumptions. Partial closes below the broker lot step are quote estimates sampled after the source exit; they are not confirmed broker fills (no extra order; the demo lot is the minimum and cannot be split)${x.incomplete ? ` · ${esc(x.incomplete)} trade(s) excluded because source exits, prices or quantities are incomplete` : ''}. Unknown commission, swap and execution evidence never becomes zero fees or verified E8 net.</p>`;
   }
 
+  // Reverse copy is paper only. The pass rule is fixed in the database (ab_b_paper_scorecard) and cannot be tuned here.
+  function renderBPaper() {
+    const x = data.b_paper, el = $('bPaper'); if (!el) return;
+    if (!x) { el.innerHTML = '<div class="empty-ok">Paper test unavailable right now. Refresh to try again.</div>'; return; }
+    const usd = (v) => fin(v) ? (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString() : '—';
+    const r = (v) => fin(v) ? (v > 0 ? '+' : '') + Number(v).toFixed(2) + 'R' : '—';
+    const cls = (v) => !fin(v) || Number(v) === 0 ? '' : Number(v) < 0 ? 'neg' : 'pos';
+    const label = { PASS: 'Passed: can go to E8 at small size', FAIL: 'Failed: keep it off E8', NO_EDGE_YET: 'No proven edge yet: keep it off E8', NOT_ENOUGH_DATA: 'Not enough trades yet' }[x.verdict] || x.verdict;
+    const vcls = x.verdict === 'PASS' ? 'pos' : x.verdict === 'FAIL' ? 'neg' : '';
+    const k = x.rules || {};
+    const tile = (t, v, note, c) => `<div class="tile"><span>${t}</span><strong class="${c || ''}">${v}</strong><div class="sub2">${note}</div></div>`;
+    el.innerHTML = `<div class="tiles" style="margin:0 0 12px">${tile('Verdict', esc(label), esc(x.why || ''), vcls)}
+      ${tile('Paper result', usd(x.pnl_usd), 'at $' + esc(k.risk_per_trade_usd) + ' a trade · ' + esc(x.trades) + ' trades from ' + esc(x.traders) + ' traders', cls(x.pnl_usd))}
+      ${tile('Average per trade', r(x.mean_r), '95% range ' + r(x.low95_r) + ' to ' + r(x.high95_r) + ' (needs to be above 0)', cls(x.mean_r))}
+      ${tile('Worst day / deepest fall', usd(x.worst_day_usd) + ' / ' + usd(-(x.max_drawdown_usd || 0)), 'E8 limits: ' + usd(-k.day_limit_usd) + ' a day, ' + usd(-k.drawdown_limit_usd) + ' overall', (x.worst_day_usd <= -k.day_limit_usd || x.max_drawdown_usd >= k.drawdown_limit_usd) ? 'neg' : '')}</div>
+      <p class="small">Pass needs all of: at least ${esc(k.min_trades)} reversed trades from ${esc(k.min_traders)} traders, the 95% range above zero after costs, and staying inside the E8 limits at $${esc(k.risk_per_trade_usd)} a trade. Rule tested: ${esc(k.selection)}. ${esc(k.basis)}. Period ${esc(x.from)} to ${esc(x.to)}. Reverse copy is <b>not</b> sent to E8.</p>`;
+  }
+
   function render() {
-    renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderCosts(); renderShadow(); renderWatch(); renderBoard(); renderMoves(); renderHealth();
+    renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderCosts(); renderShadow(); renderBPaper(); renderWatch(); renderBoard(); renderMoves(); renderHealth();
   }
 
   // ---------- notifications ----------
@@ -599,7 +617,7 @@
       let res = await call(full ? 'overview' : 'pulse');
       if (!full && res.metrics_as_of && res.metrics_as_of !== data.metrics_as_of) res = await call('overview');
       if (res.light) {
-        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders.map(t=>({...t,accounts:res.account_contexts&&Object.hasOwn(res.account_contexts,t.person_id)?res.account_contexts[t.person_id]:t.accounts??null})), events: data.events, costs: data.costs, shadow: data.shadow };
+        data = { ...data, ...res, books: { ...res.books, paper_daily: data.books.paper_daily }, traders: data.traders.map(t=>({...t,accounts:res.account_contexts&&Object.hasOwn(res.account_contexts,t.person_id)?res.account_contexts[t.person_id]:t.accounts??null})), events: data.events, costs: data.costs, shadow: data.shadow, b_paper: data.b_paper };
         renderHero(); renderTiles(); renderAlerts(); renderBooks(); renderHealth();renderBoard();
       } else { data = res; lastFull = Date.now(); render(); }
       lastLoad = Date.now(); notifyNew();
