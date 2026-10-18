@@ -41,6 +41,14 @@ Deno.serve(async (req) => {
   if (!body) return json({ ok: false, error: "Invalid request" }, 400);
   const action = String(body.action || "overview");
 
+  // Books page: what copying (A-book) and reverse-copying (B-book) every Infinity trade on E8 would have made. Read-only.
+  if (action === "e8_copy_backtest") {
+    const from = typeof body.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.from) ? body.from : null;
+    const { data, error } = await db.rpc("ab_e8_copy_backtest", { p_from: from, p_to: null });
+    if (error) return json({ ok: false, error: "Backtest unavailable: " + error.message }, 500);
+    return json({ ok: true, backtest: data });
+  }
+
   if (action === "solution_context" || action === "alert_solution") {
     const id=Number(body.alert_id);
     if(!Number.isSafeInteger(id)||id<1) return json({ok:false,error:"Choose an alert"},400);

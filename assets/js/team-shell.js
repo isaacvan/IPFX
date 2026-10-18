@@ -41,7 +41,7 @@
   }
   const admin = (action, body = {}) => post('admin-console', { action, ...body });
   const ladder = (action, body = {}, timeout) => post('ladder-admin', { action, ...body }, timeout);
-  const brain = (action, body = {}) => post('brain-monitor', { action, ...body });
+  const brain = (action, body = {}, timeout) => post('brain-monitor', { action, ...body }, timeout);
   const e8 = (action, body = {}) => post('e8-monitor-admin', { action, ...body });
   const book = (action, body = {}, mode = 'b') => post('team-book-connect', { action, book: mode, ...body });
   async function population() {
