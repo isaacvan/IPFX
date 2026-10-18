@@ -1,7 +1,7 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import test from 'node:test'; import assert from 'node:assert/strict';
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const js = read('assets/js/team-brain.js');
-const sql = read('supabase/migrations/20261018100000_b_paper_scorecard.sql');
+const sql = read('supabase/migrations/20261018120000_b_paper_wrong_way_filter.sql');
 const exec = read('supabase/functions/book-executor/index.ts');
 const monitor = read('supabase/functions/brain-monitor/index.ts');
 
@@ -33,8 +33,14 @@ test('only a PASS verdict reads as allowed; missing data is not a pass', () => {
   assert.match(render(null), /unavailable/);
 });
 
+test('only wrong-way-beyond-costs traders are reversed, never the plain unprofitable filter', () => {
+  assert.doesNotMatch(sql, /h\.pnl <= 0/);
+  assert.match(sql, /reliably wrong by more than costs/);
+});
+
 test('the pass rule is fixed in the database and the function changes nothing', () => {
-  for (const s of ['risk constant numeric := 25', 'room constant numeric := 2.5', 'min_trades constant int := 300', 'min_people constant int := 30',
+  for (const s of ['risk constant numeric := 25', 'room constant numeric := 2.5', 'min_trades constant int := 300', 'min_people constant int := 10', 'min_history constant int := 15', 'gross_bar constant numeric := -0.2',
+    '(p.same_r - p.reverse_r) / 2', 'h.m + 1.645 * h.sd / sqrt(h.k) < gross_bar',
     'day_limit constant numeric := 625', 'dd_limit constant numeric := 3000', "'live_on_e8', false", 'lo > 0', 'p.closed_at <= l.opened_at'])
     assert.ok(sql.includes(s), s);
   assert.doesNotMatch(sql.replace(/insert into _bp/g, ''), /\binsert into\b|\bupdate public\.|\bdelete from\b/i);
