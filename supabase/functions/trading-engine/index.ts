@@ -537,24 +537,35 @@ async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<st
 // messages. Polling still delivers every price, so this only trims duplicate pushes.
 const PUSH_MIN_GAP_MS = 500;
 const lastPushAt = new Map<string, number>();
-let watched = new Set<string>(); let watchedAt = 0;
+// `watched` = symbols anyone has open (also feeds the hub). `rtWatched` = symbols a page on the Realtime price route has open;
+// only those are broadcast on Realtime, because pages on the hub ignore Realtime prices (saves Realtime messages).
+let watched = new Set<string>(); let rtWatched = new Set<string>(); let watchedAt = 0;
 async function refreshWatched(db: Db): Promise<void> {
   if (Date.now() - watchedAt < 5_000) return;
   watchedAt = Date.now();
-  const { data } = await db.from("quote_watch").select("symbol").gte("last_seen", new Date(Date.now() - 60_000).toISOString());
-  watched = new Set((data ?? []).map((r: Record<string, unknown>) => String(r.symbol)));
+  const since = new Date(Date.now() - 60_000).toISOString();
+  const { data } = await db.from("quote_watch").select("symbol,last_seen,rt_seen").or(`last_seen.gte.${since},rt_seen.gte.${since}`);
+  watched = new Set((data ?? []).filter((r: Record<string, unknown>) => String(r.last_seen ?? "") >= since).map((r: Record<string, unknown>) => String(r.symbol)));
+  rtWatched = new Set((data ?? []).filter((r: Record<string, unknown>) => String(r.rt_seen ?? "") >= since).map((r: Record<string, unknown>) => String(r.symbol)));
 }
-const watchWrittenAt = new Map<string, number>();
-function noteWatched(db: Db, symbol: string): void {
+const watchWrittenAt = new Map<string, number>(); const rtWrittenAt = new Map<string, number>();
+// `rt` = the polling page is on the Realtime price route. Old pages do not send it, so only an explicit false means "on the hub".
+function noteWatched(db: Db, symbol: string, rt = true): void {
   const now = Date.now();
+  const stamp = new Date(now).toISOString();
+  if (rt && now - (rtWrittenAt.get(symbol) ?? 0) >= 20_000) {
+    rtWrittenAt.set(symbol, now); watchWrittenAt.set(symbol, now);
+    emailLater(Promise.resolve(db.from("quote_watch").upsert({ symbol, last_seen: stamp, rt_seen: stamp })).then(() => {}, () => {}));
+    return;
+  }
   if (now - (watchWrittenAt.get(symbol) ?? 0) < 20_000) return;
   watchWrittenAt.set(symbol, now);
-  emailLater(Promise.resolve(db.from("quote_watch").upsert({ symbol, last_seen: new Date(now).toISOString() })).then(() => {}, () => {}));
+  emailLater(Promise.resolve(db.from("quote_watch").upsert({ symbol, last_seen: stamp })).then(() => {}, () => {}));
 }
 
 async function broadcastQuotes(qs: Quote[]): Promise<void> {
   const now = Date.now();
-  qs = qs.filter((q) => watched.has(q.symbol) && now - (lastPushAt.get(q.symbol) ?? 0) >= PUSH_MIN_GAP_MS);
+  qs = qs.filter((q) => rtWatched.has(q.symbol) && now - (lastPushAt.get(q.symbol) ?? 0) >= PUSH_MIN_GAP_MS);
   if (!qs.length) return;
   for (const q of qs) lastPushAt.set(q.symbol, now);
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -3313,7 +3324,7 @@ if (body.action === "sweep") {
   // order buttons instead of pretending the feed is broker-grade.
   if (body.action === "price") {
     const symbol = cleanSymbol(body.symbol);
-    if (symbol) noteWatched(db, symbol);
+    if (symbol) noteWatched(db, symbol, body.rt !== false);
     if (!symbol) return err("Unknown instrument");
     noteDemand(symbol);
     await warmQuotes();

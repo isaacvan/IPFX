@@ -6239,7 +6239,7 @@ async function pollTicketPrice(){
   const tok=await Promise.race([freshToken(),new Promise(r=>setTimeout(()=>r(null),2500))]);
   if(tok){
     try{
-      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym,enforce_risk:true}),signal:AbortSignal.timeout(2500)});
+      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym,enforce_risk:true,rt:!hubLive()}),signal:AbortSignal.timeout(2500)});
       const j=await r.json().catch(()=>null);
       if(polledSym!==activeSym){priceFetchBusy=false;pollTicketPrice();return;}
       if(j&&j.risk_status&&j.risk_status.status==='breached'&&!engineBusy){
