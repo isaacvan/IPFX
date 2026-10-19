@@ -299,6 +299,10 @@ begin
  'gross_per_trade',(select avg((x->>'gross')::numeric) from jsonb_array_elements(tr)x where x->>'reason' is null),
  'cost_per_trade',(select avg((x->>'spread')::numeric+(x->>'commission')::numeric+(x->>'slippage')::numeric) from jsonb_array_elements(tr)x where x->>'reason' is null),
  'gross_spread_multiple',(select avg((x->>'spread_multiple')::numeric) from jsonb_array_elements(tr)x where x->>'reason' is null),
+ 'a_win_rate',(select avg(((x->>'a_net')::numeric>0)::int) from jsonb_array_elements(tr)x where x->>'reason' is null),
+ 'b_win_rate',(select avg(((x->>'b_net')::numeric>0)::int) from jsonb_array_elements(tr)x where x->>'reason' is null),
+ 'a_profit_factor',(select sum(greatest((x->>'a_net')::numeric,0))/nullif(sum(greatest(-(x->>'a_net')::numeric,0)),0) from jsonb_array_elements(tr)x where x->>'reason' is null),
+ 'b_profit_factor',(select sum(greatest((x->>'b_net')::numeric,0))/nullif(sum(greatest(-(x->>'b_net')::numeric,0)),0) from jsonb_array_elements(tr)x where x->>'reason' is null),
  'source_trades',jsonb_array_length(tr),'not_priced',(select count(*) from jsonb_array_elements(tr)x where x->>'reason' is not null),
  'symbols',(select coalesce(jsonb_agg(jsonb_build_object('symbol',symbol,'trades',k,'share',k::numeric/nullif(jsonb_array_length(tr),0)) order by symbol),'[]')
  from(select x->>'symbol' symbol,count(*) k from jsonb_array_elements(tr)x group by 1)s),

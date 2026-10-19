@@ -108,7 +108,7 @@
       return [`<input type="checkbox" data-et="select" data-id="${esc(id)}" data-focus="select-${esc(id)}" aria-label="Include ${esc(r.trader || id)} in portfolio"${selected.has(id) ? ' checked' : ''}>`,
         `<button type="button" class="et-person" data-et="detail" data-id="${esc(id)}" data-focus="trader-${esc(id)}">${esc(r.trader || id)}</button><div>${badge(r.evidence_class)} <small>${esc(text(r.tier))}</small></div><div class="et-reason">${reasonHTML}</div>`,
         `<b class="num">${count(r.trades)}</b><small>${count(r.active_days)} completed days · ${count(r.inference_trades)} eligible</small>`, symbols(r.symbols),
-        `${signed(r.a_net)}<small>${interval(r.a_interval)}</small>`, `${signed(r.b_net)}<small>${interval(r.b_interval)}</small>`,
+        `${signed(r.a_net)}<small>${interval(r.a_interval)}</small><small>WR ${pct(r.a_win_rate)} · PF ${fixed(r.a_profit_factor)}</small>`, `${signed(r.b_net)}<small>${interval(r.b_interval)}</small><small>WR ${pct(r.b_win_rate)} · PF ${fixed(r.b_profit_factor)}</small>`,
         `${signed(r.gross_per_trade)}<small>${fixed(r.gross_spread_multiple)} × spread</small>`, `${money(r.cost_per_trade)}<small>A + B: ${number(r.a_net) !== null && number(r.b_net) !== null ? money(number(r.a_net) + number(r.b_net)) : '—'}</small>`,
         `<span class="num">${pct(r.p_copy)} / ${pct(r.p_reverse)}</span><small>Copy / reverse</small>`, `<span class="num">${fixed(r.q_copy,4)} / ${fixed(r.q_reverse,4)}</span><small>Copy / reverse</small>`,
         `${esc(stability)}<small>${esc(flags || 'E8 flags not reported')}</small><small>${esc(gap(r.sample_gap))}</small>`];

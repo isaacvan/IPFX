@@ -368,7 +368,20 @@ begin
    'behavior',jsonb_build_object('reset_at',behavior_reset,'rule','Within-symbol source size differs by more than configured multiple from previous 20 source sizes','multiple',volume_multiple),
    'inference',jsonb_build_object('trades',n,'observed_trades',observed,'a_net',aa->'total','b_net',bb->'total','interval_basis','95% approximate repeated-sample NET TOTAL uncertainty on completed UTC-day inference subset; not realized cash uncertainty',
     'publication_rule','max(available_at,closed_at+120s)+embargo <= asof; no inferred publication timestamp','embargo_seconds',embargo),
-   'tail',jsonb_build_object('favorable_top3_share',concentration),'subminute_share',subminute,
+   'tail',jsonb_build_object('favorable_top3_share',concentration,
+    'negative_gross_size_cv',(select stddev_samp(-(v->>'g')::double precision)/nullif(avg(-(v->>'g')::double precision),0) from jsonb_array_elements(hist)v where (v->>'g')::double precision<0),
+    'max_gross_loss',(select min((v->>'g')::double precision) from jsonb_array_elements(hist)v),
+    'skewness',case when n>=30 and (gs->>'variance')::double precision>0 then
+      n::double precision/((n-1.0)*(n-2.0))*(select sum(power(((v->>'g')::double precision-gm)/sqrt((gs->>'variance')::double precision),3)) from jsonb_array_elements(hist)v) end,
+    'excess_kurtosis',case when n>=30 and (gs->>'variance')::double precision>0 then
+      n::double precision*(n+1.0)/((n-1.0)*(n-2.0)*(n-3.0))*(select sum(power(((v->>'g')::double precision-gm)/sqrt((gs->>'variance')::double precision),4)) from jsonb_array_elements(hist)v)
+      -3*(n-1.0)*(n-1.0)/((n-2.0)*(n-3.0)) end,
+    'basis','Eligible E8 gross outcomes; moment estimates are unstable in small samples; skew/kurtosis withheld below 30 trades'),
+   'holding',jsonb_build_object('mean_seconds',(select avg((v->>'hold_s')::double precision) from jsonb_array_elements(hist)v),
+    'median_seconds',(select percentile_cont(.5) within group(order by (v->>'hold_s')::double precision) from jsonb_array_elements(hist)v)),
+   'activity',jsonb_build_object('days_since_last_entry',extract(epoch from p_asof-last_entry)/86400,
+    'trades_per_completed_active_day',n::double precision/nullif(d,0),'observed_source_size_mean',(select avg((v->>'source_volume')::double precision) from jsonb_array_elements(obs)v)),
+   'subminute_share',subminute,
    'power',jsonb_build_object('additional_trades',samplegap,'method','1.96^2 * serial-inflated per-trade variance / observed net-edge^2; fixed-look heuristic, excludes family/sequential penalties')));
 end $$;
 
