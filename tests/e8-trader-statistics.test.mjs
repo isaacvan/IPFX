@@ -182,6 +182,14 @@ test('numerical CDFs match distribution reference points', { skip }, async () =>
   }
 });
 
+test('tail moments have finite sample correction and withhold tiny-sample claims', { skip }, async()=>{
+ const r=await infer(fixture(300,.2));
+ assert.ok(Math.abs(r.details.tail.skewness)<1e-8);
+ assert.ok(Number.isFinite(r.details.tail.excess_kurtosis));
+ assert.ok(r.details.tail.negative_gross_size_cv>0);
+ assert.equal((await infer(fixture(29,.2))).details.tail.skewness,null);
+});
+
 async function setClock(at) { await db.query('update public.test_clock set at=$1 where true', [new Date(at).toISOString()]); }
 async function register(person, config = {}, bound = 3) {
   const result = (await db.query('select public.ab_e8_trader_start($1,$2,$3,$4::jsonb,$5) r',

@@ -82,6 +82,8 @@ test('raw global control lots and A/B reconcile; all people and all stress cells
   const detail = await rpc(db, 'select public.ab_e8_trader_perf_detail($1,2,0) r', [U]);
   assert.equal(detail.sensitivity.length, 12);
   assert.equal(detail.row.evidence_class, 'INSUFFICIENT_DATA');
+  assert.equal(detail.row.a_win_rate,1);assert.equal(detail.row.b_win_rate,0);
+  assert.equal(detail.row.a_profit_factor,null);assert.equal(detail.row.b_profit_factor,0);
   assert.equal(detail.row.details.fdr.hypotheses, 4 * 12 * 2, 'one family includes every person, side and displayed execution scenario');
   const t = detail.trades[0];
   assert.equal(t.lots, .06); assert.ok(Math.abs(t.a_net - 12.24) < 1e-8); assert.ok(Math.abs(t.b_net + 17.76) < 1e-8);
