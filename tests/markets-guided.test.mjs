@@ -5,24 +5,26 @@ import test from 'node:test'; import assert from 'node:assert/strict'; import fs
 const src = fs.readFileSync(new URL('../assets/js/markets-guided.js', import.meta.url), 'utf8');
 const html = fs.readFileSync(new URL('../trading.html', import.meta.url), 'utf8');
 
-function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg = null, type = 'market', slOn = false, slValue = '' } = {}) {
+function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg = null, type = 'market', slOn = false, slValue = '', symbol = 'EURUSD', bid = 1.1226, ask = 1.1227, digits = 5, contract = 100000, mount = false } = {}) {
   const sent = [], msgs = [], ticks = [];
-  const els = { slPrice: { value: slValue, addEventListener() {} }, gtCard: { hidden: true }, gtStop: { value: '' }, gtStopSub: { textContent: '' }, gtChips: { innerHTML: '' }, gtChecks: { innerHTML: '' }, gtLotNote: { innerHTML: '' }, 'ord-lots': {} };
+  const events = {};
+  const els = { slPrice: { value: slValue, addEventListener(type, fn) { events[type] = fn; }, focus() {} }, gtCard: mount ? null : { hidden: true }, gtStop: { value: '', addEventListener() {} }, gtStopSub: { textContent: '' }, gtChips: { innerHTML: '' }, gtChecks: { innerHTML: '' }, gtLotNote: { innerHTML: '' }, gtExact: { onclick: null }, 'ord-lots': {} };
   const node = () => ({ id: '', className: '', style: {}, appendChild() {}, before() {}, after() {}, addEventListener() {}, setAttribute() {}, classList: { toggle() {}, remove() {} } });
+  const bar = node(); bar.after = (el) => { els.gtCard = el; };
   const ctx = {
-    document: { readyState: 'complete', head: node(), body: node(), getElementById: (id) => els[id] || null, querySelector: () => null, querySelectorAll: () => [], createElement: node, addEventListener() {} },
+    document: { readyState: 'complete', head: node(), body: node(), getElementById: (id) => els[id] || null, querySelector: (sel) => mount && sel === '#tab-order .op-quickbar' ? bar : null, querySelectorAll: () => [], createElement: node, addEventListener() {} },
     localStorage: { getItem: () => '1', setItem() {} }, setInterval: (fn) => { ticks.push(fn); return 0; }, clearInterval() {}, setTimeout: () => 0,
     engineState: { account: { status, is_demo: demo, limits: { require_stop_loss: true, max_risk_per_trade_usd: cap } } },
-    activeSym: 'EURUSD', liveQuotesBySymbol: new Map([['EURUSD', { bid: 1.1226, ask: 1.1227, digits: 5 }]]),
-    WL_DATA: { forex: [{ sym: 'EURUSD' }] }, execSymbol: (s) => s, futSym: () => null, symMeta: () => ({ quoteCurrency: 'USD' }),
-    contractSizeFor: () => 100000, clientUsdPerQuote: () => 1, feedFresh: () => fresh, dailyCapMessage: () => capMsg,
+    activeSym: symbol, liveQuotesBySymbol: new Map([[symbol, { bid, ask, digits }]]),
+    WL_DATA: { forex: [{ sym: 'EURUSD' }], metals: [{ sym: 'XAUUSD' }] }, execSymbol: (s) => s, futSym: () => null, symMeta: () => ({ quoteCurrency: 'USD' }),
+    contractSizeFor: () => contract, clientUsdPerQuote: () => 1, feedFresh: () => fresh, dailyCapMessage: () => capMsg,
     orderType: type, slOn, ordLots: 0.01, engineMsg: (m) => msgs.push(m), setLots(v) { ctx.ordLots = v; },
     toggleSLTP() { ctx.slOn = !ctx.slOn; },
   };
   ctx.window = ctx;
   ctx.placeOrder = async (side) => { sent.push({ side, sl: ctx.slOn ? +els.slPrice.value : null, lots: ctx.ordLots }); };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  return { ctx, sent, msgs, els, tick: () => ticks[0]() };   // tick = the ticket's 500ms refresh
+  return { ctx, sent, msgs, els, events, tick: () => ticks[0]() };   // tick = the ticket's 500ms refresh
 }
 
 test('a trader can type a smaller lot size than the risk limit suggests, and it is kept (a 0.01 on gold was being overridden)', async () => {
@@ -64,8 +66,45 @@ test('challenge market orders always carry a stop on the correct side and risk-s
   for (const o of sent) assert.ok(Math.abs((o.side === 'buy' ? 1.1227 : 1.1226) - o.sl) * 100000 * o.lots <= 5 * 0.95 + 1e-9);
 });
 
+test('gold with a $5 Stage 1 cap has a usable default stop at the 0.01 lot minimum', async () => {
+  const { ctx, sent, els, tick } = page({ symbol: 'XAUUSD', bid: 4299.7, ask: 4300, digits: 2, contract: 100 });
+  tick();
+  assert.match(els.gtChecks.innerHTML, /Ready to trade/);
+  await ctx.window.placeOrder('buy');
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].lots, 0.01);
+  assert.ok(sent[0].sl < 4300);
+  assert.ok((4300 - sent[0].sl) * 100 * sent[0].lots <= 4.75 + 0.001);
+});
+
+test('a manually entered stop is validated for each side and never silently replaced', async () => {
+  const { ctx, sent, msgs, els, events, tick } = page({ mount: true });
+  tick();
+  els.gtExact.onclick();
+  assert.equal(ctx.slOn, true, 'exact stop control reveals the native stop field');
+  els.slPrice.value = '1.12100';
+  events.input();
+  assert.match(els.gtChecks.innerHTML, /BUY: Risk/);
+  assert.match(els.gtChecks.innerHTML, /SELL: For sell, set a stop on the loss side/);
+  await ctx.window.placeOrder('sell');
+  assert.equal(sent.length, 0);
+  assert.match(msgs.at(-1), /loss side/);
+  await ctx.window.placeOrder('buy');
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].sl, 1.121);
+  assert.ok(sent[0].lots * (1.1227 - 1.121) * 100000 <= 4.75 + 0.001);
+});
+
+test('an active challenge waits for a quote for the selected market', async () => {
+  const { ctx, sent, msgs } = page();
+  ctx.liveQuotesBySymbol.clear();
+  await ctx.window.placeOrder('buy');
+  assert.equal(sent.length, 0);
+  assert.match(msgs.at(-1), /live price for this market/);
+});
+
 test('orders are held back with the reason when a check fails', async () => {
-  for (const [opts, why] of [[{ fresh: false }, /Prices reconnecting/], [{ capMsg: 'Daily profit cap reached' }, /Daily profit cap/], [{ cap: 0.2 }, /Stop too wide/]]) {
+  for (const [opts, why] of [[{ fresh: false }, /Prices reconnecting/], [{ capMsg: 'Daily profit cap reached' }, /Daily profit cap/], [{ cap: 0.2 }, /needs more than your current risk limit/]]) {
     const { ctx, sent, msgs } = page(opts);
     await ctx.window.placeOrder('buy');
     assert.equal(sent.length, 0, JSON.stringify(opts)); assert.match(msgs.at(-1), why);
@@ -101,7 +140,7 @@ test('the Simple/Pro view switch was reverted: nothing is hidden by a gt-simple 
 });
 
 test('Buy/Sell moves higher: the checks collapse to one line when ready, and the Stage pass checklist moves below the trade row', () => {
-  assert.match(src, /bad\s*\n?\s*\?\s*cs\.map/, 'the full list only renders when a check fails');
+  assert.match(src, /: cs\.map/, 'the full list only renders when a check fails');
   assert.match(src, /Ready to trade — \$\{cs\[0\]\.text\} · \$\{cs\[1\]\.text\}/);
   const tradeRowAt = html.indexOf('class="op-trade-row"');
   const checklistAt = html.indexOf('id="stageChecklist"');
