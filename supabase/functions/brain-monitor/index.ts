@@ -41,12 +41,14 @@ Deno.serve(async (req) => {
   if (!body) return json({ ok: false, error: "Invalid request" }, 400);
   const action = String(body.action || "overview");
 
-  // Books page: what copying (A-book) and reverse-copying (B-book) every Infinity trade on E8 would have made. Read-only.
+  // Books page: what copying (A-book) and reverse-copying (B-book) every Infinity trade would have made on E8. Read-only.
+  // The calculation takes ~25s and the API session is cut off at 8s, so a scheduled job (ipfx-e8-copy-backtest, every 10
+  // minutes) saves it in ab_e8_copy_backtest_cache and this only reads the saved copy.
   if (action === "e8_copy_backtest") {
-    const from = typeof body.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.from) ? body.from : null;
-    const { data, error } = await db.rpc("ab_e8_copy_backtest", { p_from: from, p_to: null });
+    const { data, error } = await db.from("ab_e8_copy_backtest_cache").select("computed_at,result").eq("id", 1).maybeSingle();
     if (error) return json({ ok: false, error: "Backtest unavailable: " + error.message }, 500);
-    return json({ ok: true, backtest: data });
+    if (!data) return json({ ok: true, backtest: { available: false, reason: "The first calculation is still running. Try again in a minute." } });
+    return json({ ok: true, backtest: data.result, computed_at: data.computed_at });
   }
 
   if (action === "solution_context" || action === "alert_solution") {

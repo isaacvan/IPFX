@@ -82,7 +82,8 @@ test('E8 daily loss closes the A account; later trades are marked as not takeabl
 });
 
 test('read-only and owner-only: only temp tables are written, and only the service role (owner edge function) can run it', () => {
-  for (const m of sql.matchAll(/\b(insert into|update|delete from|truncate)\s+([a-z_.]+)/gi)) assert.match(m[2], /^_bt_/, `${m[1]} ${m[2]} must be a temp table`);
+  const noComments = sql.replace(/--.*$/gm, '');
+  for (const m of noComments.matchAll(/\b(insert into|update|delete from|truncate)\s+([a-z_.]+)/gi)) assert.match(m[2], /^_bt_/, `${m[1]} ${m[2]} must be a temp table`);
   assert.match(sql, /security definer set search_path to ''/);
   assert.match(sql, /revoke all on function public\.ab_e8_copy_backtest\(date, date\) from public, anon, authenticated;/);
   assert.match(sql, /grant execute on function public\.ab_e8_copy_backtest\(date, date\) to service_role;/);
@@ -92,4 +93,37 @@ test('read-only and owner-only: only temp tables are written, and only the servi
   const page = fs.readFileSync(new URL('../workspace/books.html', import.meta.url), 'utf8');
   assert.match(page, /<div id="e8bt"><\/div>/);
   assert.ok(page.indexOf('ws-books-backtest.js') > page.indexOf('ws-books.js'));
+});
+
+const cacheSql = fs.readFileSync(new URL('../supabase/migrations/20261018200000_e8_copy_backtest_cache.sql', import.meta.url), 'utf8');
+
+test('the API session rejects an UPDATE without WHERE (safeupdate) and cuts queries off at 8s: every UPDATE has a WHERE and the page only reads a saved result', () => {
+  // Statement-level check: each UPDATE in the function must reach a top-level WHERE before its terminating semicolon.
+  for (const m of sql.replace(/--.*$/gm, '').matchAll(/\n\s*update\s+[\s\S]*?;/gi)) {
+    let depth = 0, top = false;
+    for (const t of m[0].matchAll(/\(|\)|\bwhere\b/gi)) { if (t[0] === '(') depth++; else if (t[0] === ')') depth--; else if (depth === 0) top = true; }
+    assert.ok(top, 'UPDATE without a top-level WHERE would be refused over the API: ' + m[0].trim().slice(0, 80));
+  }
+  const fn = fs.readFileSync(new URL('../supabase/functions/brain-monitor/index.ts', import.meta.url), 'utf8');
+  const at = fn.indexOf('action === "e8_copy_backtest"'), block = fn.slice(at, fn.indexOf('action === "solution_context"'));
+  assert.ok(!/rpc\("ab_e8_copy_backtest"/.test(block), 'the ~25s calculation must not run inside an API request (8s limit)');
+  assert.match(block, /from\("ab_e8_copy_backtest_cache"\)/);
+  assert.match(cacheSql, /cron\.schedule\('ipfx-e8-copy-backtest', '\*\/10 \* \* \* \*', 'select public\.ab_e8_copy_backtest_refresh\(\)'\)/);
+  assert.match(cacheSql, /revoke all on public\.ab_e8_copy_backtest_cache from public, anon, authenticated;/);
+  assert.match(cacheSql, /grant execute on function public\.ab_e8_copy_backtest_refresh\(\) to service_role;/);
+});
+
+test('the scheduled refresh saves the result the page reads, and refreshing again replaces it', { skip }, async () => {
+  const db = await db0();
+  try {
+    await db.exec(cacheSql.replace(/^begin;|commit;$/gm, ''));
+    assert.equal((await db.query('select count(*)n from public.ab_e8_copy_backtest_cache')).rows[0].n, 0);
+    const a = (await db.query('select public.ab_e8_copy_backtest_refresh() r')).rows[0].r;
+    assert.equal(a.ok, true);
+    const row = (await db.query('select computed_at, took_ms, result from public.ab_e8_copy_backtest_cache where id = 1')).rows[0];
+    assert.equal(row.result.available, true); assert.equal(row.result.coverage.priced, 3);
+    assert.equal(row.result.trades.length, 4, 'all four non-practice trades are listed, priced or not');
+    await db.query('select public.ab_e8_copy_backtest_refresh()');
+    assert.equal((await db.query('select count(*)n from public.ab_e8_copy_backtest_cache')).rows[0].n, 1, 'one saved row, replaced in place');
+  } finally { await db.close(); }
 });

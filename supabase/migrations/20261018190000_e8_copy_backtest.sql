@@ -85,7 +85,8 @@ begin
       when in_at is null then 'No E8 price within 30s of the trader''s entry'
       when out_at is null then 'No E8 price within 30s of the trader''s exit'
       when contract is null then 'E8 contract size unknown'
-      when fx is null then 'No E8 currency conversion price' end;
+      when fx is null then 'No E8 currency conversion price' end
+   where true;  -- the API session rejects an UPDATE without WHERE (safeupdate)
   -- Real E8 sizes only: 0.06 / 0.07 alternating in the order the copies would have opened.
   update _bt_src s set lots = case when x.k % 2 = 1 then 0.06 else 0.07 end
     from (select trade_id, row_number() over (order by in_at, trade_id) k from _bt_src where reason is null) x
@@ -104,8 +105,8 @@ begin
     cross join lateral (select case when (s.side = 'buy') = (b.book = 'a') then 1 else -1 end as dir) d
    where s.reason is null;
   update _bt_pos set gross = (exit - entry) * dir * contract * lots * fx,
-                     margin = entry * contract * lots * fx / lev;
-  update _bt_pos set net = gross - comm;
+                     margin = entry * contract * lots * fx / lev where true;
+  update _bt_pos set net = gross - comm where true;
 
   -- 4. Minute-by-minute equity at E8 bid/ask (last quote carried forward), for the E8 daily-loss and drawdown rules.
   create temp table if not exists _bt_mk (symbol text, m timestamptz, bid numeric, ask numeric) on commit drop;

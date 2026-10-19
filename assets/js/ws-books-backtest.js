@@ -7,7 +7,7 @@
   const T = window.TeamOS, { esc, usd, ukTime } = T;
   const root = document.getElementById('e8bt');
   if (!root) return;
-  let r = null, err = '', busy = false;
+  let r = null, err = '', busy = false, saved = null;
   const shown = { a: 100, b: 100 }, query = { a: '', b: '' }, hideAfter = { a: false, b: false };
   const NAME = { a: 'A-book', b: 'B-book' };
   const WHAT = { a: 'copied in the trader’s direction', b: 'reverse-copied: the opposite of every trade' };
@@ -25,7 +25,7 @@
   async function run() {
     if (busy) return;
     busy = true; err = ''; render();
-    try { r = (await T.brain('e8_copy_backtest', {}, 120000)).backtest; if (!r?.available) err = r?.reason || 'Not available yet'; }
+    try { const j = await T.brain('e8_copy_backtest'); r = j.backtest; saved = j.computed_at || null; if (!r?.available) err = r?.reason || 'Not available yet'; }
     catch (e) { err = e.message; }
     finally { busy = false; render(); }
   }
@@ -127,11 +127,11 @@
 
   function render() {
     const head = `<div class="grouphead" style="margin-top:36px">Copied on E8 <span class="sub">Every Infinity trade, copied (A-book) and reverse-copied (B-book) at 0.065 lots on E8 prices</span>
-      <button class="btn sm" data-bt="run"${busy ? ' disabled' : ''}>${busy ? 'Calculating…' : r ? 'Recalculate' : 'Calculate'}</button></div>`;
-    if (busy && !r) { root.innerHTML = head + '<div class="empty">Repricing every trade on E8’s own quotes. This takes about 30 seconds.</div>'; return; }
+      <button class="btn sm" data-bt="run"${busy ? ' disabled' : ''}>${busy ? 'Loading…' : 'Refresh'}</button></div>`;
+    if (busy && !r) { root.innerHTML = head + '<div class="empty">Loading…</div>'; return; }
     if (err && !r) { root.innerHTML = head + `<div class="banner red">${esc(err)}<button class="btn sm" data-bt="run">Try again</button></div>`; return; }
     if (!r) { root.innerHTML = head; return; }
-    root.innerHTML = head + `<p class="lede" style="margin:4px 0 0">${esc(ukTime(r.from))} to ${esc(ukTime(r.to))} · calculated ${esc(ukTime(r.as_of))}${err ? ` · <span class="bad">${esc(err)}</span>` : ''}</p>`
+    root.innerHTML = head + `<p class="lede" style="margin:4px 0 0">${esc(ukTime(r.from))} to ${esc(ukTime(r.to))} · calculated ${esc(ukTime(saved || r.as_of))} (updates every 10 minutes)${err ? ` · <span class="bad">${esc(err)}</span>` : ''}</p>`
       + bookBlock('a') + bookBlock('b') + notes();
   }
 
