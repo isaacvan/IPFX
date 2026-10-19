@@ -1911,11 +1911,13 @@ async function closeTrade(
   prepareExit?: (hasBookHedge: boolean) => Promise<{ price: number; shortfallUsd: number } | null>,
 ): Promise<boolean> {
   const closeStarted = Date.now();
+  // A false result is returned to the trader as "could not close", so record exactly why in the function logs.
+  const notDone = (reason: string): false => { console.error(JSON.stringify({ event: "close_not_completed", trade_id: t.id, reason, ms: Date.now() - closeStarted })); return false; };
   const { data: intent, error: intentError } = await db.rpc("fn_request_ipfx_full_close", {
     p_trade: t.id, p_account: acct.id, p_user: acct.user_id, p_volume: Number(t.volume),
     p_decision: { reason, exit, quote: q ?? null, at: new Date().toISOString() },
   });
-  if (intentError || !intent?.ok) return false;
+  if (intentError || !intent?.ok) return notDone("close_request_rejected:" + (intentError ? "error" : String(intent?.reason ?? "unknown")));
   // Copied trade: close the hedge first and fill the trader no better than the broker did.
   const legs = await bookLegs(db, t.id);
   // Price preparation only reads quotes. Run it alongside the owned broker close,
@@ -1925,18 +1927,18 @@ async function closeTrade(
   let hedge: HedgeClose;
   if (legs.a) {
     const r = await bookNow({ event: "close", source_trade_id: t.id });
-    if (r?.duplicate_a === true) return false; // another request is closing this hedge right now
+    if (r?.duplicate_a === true) return notDone("copy_close_already_in_flight"); // another request is closing this hedge right now
     const px = Number(r?.fill_price);
     hedge = px > 0 ? { state: "filled", price: px } : { state: "unhedged" };
   } else {
     hedge = await hedgeCloseFirst(db, acct, t);
   }
-  if (hedge.state === "busy") return false; // another request is closing this hedge right now
+  if (hedge.state === "busy") return notDone("hedge_busy"); // another request is closing this hedge right now
   if (pricing) {
     const prepared = await pricing;
     if (prepared.failed) {
       console.error(JSON.stringify({ event: "close_price_preparation_failed", trade_id: t.id }));
-      return false; // the journal retains the broker outcome; retry source settlement safely
+      return notDone("price_preparation_failed"); // the journal retains the broker outcome; retry source settlement safely
     }
     if (prepared.value) { exit = prepared.value.price; exec = { shortfallUsd: prepared.value.shortfallUsd }; }
   }
@@ -1952,7 +1954,7 @@ async function closeTrade(
     exit = roundAdverse(t.symbol, worse, takingAsk);
   }
   const gross = await tradePnl(t, exit);
-  if (gross === null) return false;
+  if (gross === null) return notDone("no_pnl_conversion");
   const v2 = rulesV2(acct);
   const commission = v2 ? round2((await symbolCheck(db, t.symbol)).commissionPerLot * Number(t.volume)) : 0;
   const rawPnl = gross - commission;
@@ -1971,7 +1973,7 @@ async function closeTrade(
     p_commission: commission, p_shortfall: round2(exec?.shortfallUsd ?? 0),
     p_stripped_profit: strip ? round2(rawPnl) : null,
   });
-  if (e1 || !committed?.ok) return false; // closed or resized elsewhere; no duplicate credit
+  if (e1 || !committed?.ok) return notDone("commit_" + (e1 ? "error" : String(committed?.reason ?? "unknown"))); // closed or resized elsewhere; no duplicate credit
   acct.balance = Number(committed.balance);
   // The source close is committed. Broker copying must not hold up the UI;
   // EdgeRuntime.waitUntil keeps the exact-ID mirror dispatch alive. A hedge already closed
@@ -4076,7 +4078,9 @@ if (body.action === "sweep") {
       // stopped waiting while a copied trade's broker leg was still confirming. Say what actually happened rather than a
       // blanket "already closed": it is closed now, or the first request is still finishing, or it was closed elsewhere.
       const { data: now } = await db.from("trades").select("status,close_requested_at").eq("id", target.id).maybeSingle();
-      if (now?.status === "open" && now.close_requested_at) closingInProgress = true;
+      const askedMsAgo = now?.close_requested_at ? Date.now() - Date.parse(String(now.close_requested_at)) : null;
+      if (now?.status === "open" && askedMsAgo !== null && askedMsAgo < 20_000) closingInProgress = true; // the first request is still running
+      else if (now?.status === "open") return err("We couldn't finish closing this position just now. It is still open: please try again.", 409);
       else if (now?.status !== "closed") return err("This position was already closed (for example by its stop or take-profit)", 409);
     }
   } else if (action === "close_all") {

@@ -10,12 +10,13 @@ test('server: a second close of the same position says what happened instead of 
   const at = closeBlock.indexOf('if (!done) {');
   assert.ok(at > 0, 'the false result of closeTrade is handled explicitly');
   const handler = closeBlock.slice(at);
-  // closed meanwhile: fall through to the normal fresh-state reply (no error)
+  // still finishing (requested in the last 20s): tell the client the first request is running
+  assert.match(handler, /now\?\.status === "open" && askedMsAgo !== null && askedMsAgo < 20_000\) closingInProgress = true/);
+  // open but nobody is finishing it: say so honestly and let them retry, never "already closed"
+  assert.match(handler, /else if \(now\?\.status === "open"\) return err\("We couldn't finish closing this position/);
+  // closed meanwhile: fall through to the normal fresh-state reply (no error); only a position that is neither gets the 409
   assert.match(handler, /else if \(now\?\.status !== "closed"\) return err\("This position was already closed/);
-  // still finishing: tell the client
-  assert.match(handler, /now\?\.status === "open" && now\.close_requested_at\) closingInProgress = true/);
-  // the honest 409 is only for a position that is neither closed nor being closed
-  assert.equal((handler.match(/return err\(/g) || []).length, 1);
+  assert.equal((handler.match(/return err\(/g) || []).length, 2);
   assert.match(engine, /\.\.\.\(closingInProgress \? \{ closing: true \} : \{\}\)/);
 });
 
@@ -43,4 +44,10 @@ test('behaviour: the client treats a "closing" reply as success, not an error', 
   assert.ok(msgs.some((m) => /already being processed/.test(m)));
   assert.ok(!msgs.some((m) => /already closed/.test(m)));
   assert.deepEqual(timers.slice(-3), [3000, 8000, 15000], 'it re-reads the account three times so the position disappears on its own');
+});
+
+test('engine: every reason a close does not complete is logged, so a failed close can be diagnosed', () => {
+  const fn = engine.slice(engine.indexOf('async function closeTrade('), engine.indexOf('// Third stop-loss warning in an Infinity run'));
+  assert.equal((fn.match(/return false/g) || []).length, 1, 'only the logging helper itself returns a bare false');
+  for (const r of ['close_request_rejected', 'copy_close_already_in_flight', 'hedge_busy', 'price_preparation_failed', 'no_pnl_conversion', 'commit_']) assert.ok(fn.includes(r), r);
 });

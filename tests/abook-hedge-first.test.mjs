@@ -184,7 +184,7 @@ test('engine fills copied trades hedge-first on market opens, pending fills and 
   assert.match(engine, /const call = fireMirror\(db, acct, t, event, riskUsd, \{ sync: true, armed: true \}\);\s*\n\s*mirrorLater\(call\);/);
   assert.doesNotMatch(engine, /signal: AbortSignal\.timeout\(opts\.timeoutMs\)/);
   assert.match(engine, /worseFill\(takingAsk, fill, later \? \(takingAsk \? later\.ask : later\.bid\) : null, brokerFill\)/);
-  assert.match(engine, /hedge = await hedgeCloseFirst\(db, acct, t\);\s*\n\s*\}\s*\n\s*if \(hedge\.state === "busy"\) return false;/);
+  assert.match(engine, /hedge = await hedgeCloseFirst\(db, acct, t\);\s*\n\s*\}\s*\n\s*if \(hedge\.state === "busy"\) return notDone\("hedge_busy"\);/);
   assert.match(engine, /if \(hedge\.state !== "filled"\) mirrorLater\(fireMirror\(db, acct, t, "close"\)\);/);
   assert.match(engine, /function roundAdverse\(/);
   // Pending (limit/stop) fills on a copied account are re-priced to no better than the broker.
