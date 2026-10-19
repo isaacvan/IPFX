@@ -6,11 +6,12 @@ const src = fs.readFileSync(new URL('../assets/js/markets-guided.js', import.met
 const html = fs.readFileSync(new URL('../trading.html', import.meta.url), 'utf8');
 
 function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg = null, type = 'market', slOn = false, slValue = '' } = {}) {
-  const sent = [], msgs = [], els = { slPrice: { value: slValue, addEventListener() {} } };
+  const sent = [], msgs = [], ticks = [];
+  const els = { slPrice: { value: slValue, addEventListener() {} }, gtCard: { hidden: true }, gtStop: { value: '' }, gtStopSub: { textContent: '' }, gtChips: { innerHTML: '' }, gtChecks: { innerHTML: '' }, gtLotNote: { innerHTML: '' }, 'ord-lots': {} };
   const node = () => ({ id: '', className: '', style: {}, appendChild() {}, before() {}, after() {}, addEventListener() {}, setAttribute() {}, classList: { toggle() {}, remove() {} } });
   const ctx = {
     document: { readyState: 'complete', head: node(), body: node(), getElementById: (id) => els[id] || null, querySelector: () => null, querySelectorAll: () => [], createElement: node, addEventListener() {} },
-    localStorage: { getItem: () => '1', setItem() {} }, setInterval: () => 0, clearInterval() {}, setTimeout: () => 0,
+    localStorage: { getItem: () => '1', setItem() {} }, setInterval: (fn) => { ticks.push(fn); return 0; }, clearInterval() {}, setTimeout: () => 0,
     engineState: { account: { status, is_demo: demo, limits: { require_stop_loss: true, max_risk_per_trade_usd: cap } } },
     activeSym: 'EURUSD', liveQuotesBySymbol: new Map([['EURUSD', { bid: 1.1226, ask: 1.1227, digits: 5 }]]),
     WL_DATA: { forex: [{ sym: 'EURUSD' }] }, execSymbol: (s) => s, futSym: () => null, symMeta: () => ({ quoteCurrency: 'USD' }),
@@ -21,8 +22,38 @@ function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg =
   ctx.window = ctx;
   ctx.placeOrder = async (side) => { sent.push({ side, sl: ctx.slOn ? +els.slPrice.value : null, lots: ctx.ordLots }); };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  return { ctx, sent, msgs, els };
+  return { ctx, sent, msgs, els, tick: () => ticks[0]() };   // tick = the ticket's 500ms refresh
 }
+
+test('a trader can type a smaller lot size than the risk limit suggests, and it is kept (a 0.01 on gold was being overridden)', async () => {
+  const { ctx, sent, els, tick } = page();
+  tick();                                              // ticket suggests the maximum: 0.02 lots
+  assert.equal(ctx.ordLots, 0.02); assert.match(els.gtLotNote.innerHTML, /Size 0\.02 lots · up to 0\.02/); assert.ok(!/autolots/.test(els.gtLotNote.innerHTML));
+  ctx.ordLots = 0.01;                                  // the trader types 0.01 in the lot box
+  tick(); tick();                                      // later refreshes must not put 0.02 back
+  assert.equal(ctx.ordLots, 0.01); assert.match(els.gtLotNote.innerHTML, /Size 0\.01 lots · up to 0\.02/); assert.match(els.gtLotNote.innerHTML, /Use max/);
+  assert.match(els.gtChecks.innerHTML, /Risk \$2\.25 of \$5\.00 · 0\.01 lots/, 'the shown risk follows the chosen size');
+  await ctx.window.placeOrder('buy');
+  assert.equal(sent[0].lots, 0.01); assert.equal(sent[0].sl, 1.12045, 'the stop is still added');
+});
+
+test('a size is applied even if the trader clicks Buy before the next refresh, and a size above the limit is cut back', async () => {
+  const { ctx, sent, tick } = page();
+  tick(); ctx.ordLots = 0.01; await ctx.window.placeOrder('sell');      // no refresh in between
+  assert.equal(sent[0].lots, 0.01);
+  ctx.ordLots = 0.5; tick(); assert.equal(ctx.ordLots, 0.02, 'never above what the risk limit allows');
+  await ctx.window.placeOrder('buy'); assert.equal(sent[1].lots, 0.02);
+});
+
+test('with no choice made the ticket still suggests the maximum size', async () => {
+  const { ctx, sent, tick } = page(); tick(); tick();
+  assert.equal(ctx.ordLots, 0.02); await ctx.window.placeOrder('buy'); assert.equal(sent[0].lots, 0.02);
+});
+
+test('the lot box stays editable on challenge accounts', () => {
+  assert.ok(!/ord-lots\{pointer-events:none\}/.test(src), 'lot box is no longer locked');
+  assert.ok(!/\.op-lot-minus[^}]*display:none/.test(src) && !/\.op-lot-plus[^}]*display:none/.test(src), '+ and − are visible again');
+});
 
 test('challenge market orders always carry a stop on the correct side and risk-sized lots under the cap', async () => {
   const { ctx, sent } = page();

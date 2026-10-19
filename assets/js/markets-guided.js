@@ -13,6 +13,8 @@
   let riskChoice = 'max';      // 'max' | dollars
   let stopPips = null;         // trader's stop distance in pips/points; null = suggested default
   let manualStopPrice = false; // trader typed an exact stop price in the classic field
+  let userLots = null;         // lot size the trader chose; null = use the maximum their risk limit allows
+  let lastSet = null;          // the lot size this script last put in the box (anything else in the box is the trader's choice)
 
   const acct = () => (typeof engineState !== 'undefined' && engineState && engineState.account) || null;
   const lim = () => (acct() && acct().limits) || {};
@@ -32,16 +34,19 @@
   const cap = () => { const v = +lim().max_risk_per_trade_usd; return isFinite(v) && v > 0 ? v : null; };
   const budget = () => { const c = cap(); if (c == null) return null; return (riskChoice === 'max' ? c : Math.min(c, riskChoice)) * BUFFER; };
   const usd = (v) => '$' + (+v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // The ticket suggests the largest size the risk limit allows, but the trader can always type a smaller one (never a larger one).
+  const syncUser = () => { if (lastSet != null && Math.abs(ordLots - lastSet) > 1e-9) userLots = Math.round(ordLots * 100) / 100; };
+  const useLots = (max) => (max == null || max < 0.01 ? null : userLots != null ? Math.max(0.01, Math.min(userLots, max)) : max);
   const lotsFor = (d) => { const p = perLot(d), b = budget(); return p && b ? Math.floor((b / p) * 100 + 1e-9) / 100 : null; };
   const stopFor = (side) => { const q = quote(); const entry = side === 'buy' ? (q ? q.ask : mid()) : (q ? q.bid : mid()); const s = side === 'buy' ? entry - dist() : entry + dist(); return +s.toFixed(digits()); };
 
   // ---- checks shown above Buy/Sell ----
   function checks() {
-    const a = acct(), d = dist(), lots = lotsFor(d), p = perLot(d), c = cap();
+    const a = acct(), d = dist(), max = lotsFor(d), lots = useLots(max), p = perLot(d), c = cap();
     const out = [];
     out.push({ ok: d > 0 && d >= mid() * 0.0002, text: d > 0 ? `Stop ${(d / pipSize()).toFixed(1)} ${unit()} away` : 'Set a stop distance', why: 'Stop too close to price for the broker' });
     const risk = lots && p ? lots * p : null;
-    out.push({ ok: lots != null && lots >= 0.01, text: risk != null && lots >= 0.01 ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(2)} lots` : 'Risk', why: p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
+    out.push({ ok: max != null && max >= 0.01, text: risk != null && lots >= 0.01 ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(2)} lots` : 'Risk', why: p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
     const fresh = typeof feedFresh !== 'function' || feedFresh();
     out.push({ ok: fresh, text: 'Prices live', why: 'Prices reconnecting… orders resume automatically' });
     const capMsg = typeof dailyCapMessage === 'function' ? dailyCapMessage() : null;
@@ -67,8 +72,8 @@
 .gt-checks{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
 .gt-checks li{font-size:.78rem;display:flex;gap:6px;align-items:flex-start;color:#d4d4d8}.gt-checks li i{font-style:normal;font-weight:800;width:14px}
 .gt-checks li.ok i{color:#10b981}.gt-checks li.no{color:#fbbf24}.gt-checks li.no i{color:#f59e0b}
-body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op-quickbar .op-quick:nth-child(2),body.gt-on .op-presets,body.gt-on .op-lot-minus,body.gt-on .op-lot-plus{display:none!important}
-body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:' · sized from your risk'}
+body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op-quickbar .op-quick:nth-child(2),body.gt-on .op-presets{display:none!important}
+.gt-lotnote button{border:0;background:none;color:#60a5fa;font:inherit;cursor:pointer;text-decoration:underline;padding:0 0 0 6px}
 .op-exec-btn.gt-off{opacity:.35;cursor:not-allowed;filter:grayscale(.4)}
 .gt-help{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;border-radius:8px;border:1px solid #2f2f36;background:transparent;color:#e4e4e7;font-weight:600;font-size:12px;cursor:pointer;margin-right:6px}
 .gt-tour-scrim{position:fixed;inset:0;z-index:99990;background:transparent;cursor:pointer}
@@ -90,13 +95,15 @@ body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:'
       <div class="gt-row" id="gtStopRow"><span>Stop loss</span><div class="gt-step"><button type="button" data-gt="stop-" aria-label="Move stop closer">−</button><input id="gtStop" inputmode="decimal" aria-label="Stop distance"><button type="button" data-gt="stop+" aria-label="Move stop further">+</button></div></div>
       <div class="gt-sub" id="gtStopSub"></div>
       <div class="gt-row" id="gtRiskRow"><span>Risk per trade</span><div class="gt-chips" id="gtChips"></div></div>
+      <div class="gt-sub gt-lotnote" id="gtLotNote"></div>
       <ul class="gt-checks" id="gtChecks"></ul>`;
     bar.after(el);
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-gt]'); if (!b) return;
       const g = b.dataset.gt;
       if (g === 'stop-' || g === 'stop+') { const cur = dist() / pipSize(); const step = cur >= 100 ? 10 : cur >= 20 ? 2 : 1; stopPips = Math.max(step, cur + (g === 'stop+' ? step : -step)); manualStopPrice = false; }
-      else if (g.startsWith('risk:')) { const v = g.slice(5); riskChoice = v === 'max' ? 'max' : +v; }
+      else if (g.startsWith('risk:')) { const v = g.slice(5); riskChoice = v === 'max' ? 'max' : +v; userLots = null; }
+      else if (g === 'autolots') { userLots = null; }
       refresh();
     });
     $('gtStop').addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (v > 0) { stopPips = v; manualStopPrice = false; } refresh(); });
@@ -111,15 +118,17 @@ body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:'
     card.hidden = !active;
     const btns = document.querySelectorAll('#tab-order .op-exec-btn');
     if (!active) { btns.forEach((b) => { b.classList.remove('gt-off'); b.removeAttribute('title'); }); return; }
-    if (lastSym !== activeSym) { lastSym = activeSym; stopPips = null; manualStopPrice = false; }
+    if (lastSym !== activeSym) { lastSym = activeSym; stopPips = null; manualStopPrice = false; userLots = null; lastSet = null; }
     const d = dist();
     if (document.activeElement !== $('gtStop')) $('gtStop').value = (d / pipSize()).toFixed(1);
     $('gtStopSub').textContent = `${unit()} from entry · buy stop ${stopFor('buy').toFixed(digits())} · sell stop ${stopFor('sell').toFixed(digits())}`;
     const c = cap();
     const chips = c ? [1, 2.5].filter((v) => v < c).map((v) => ({ k: String(v), t: usd(v) })).concat([{ k: 'max', t: 'Max ' + usd(c) }]) : [];
     $('gtChips').innerHTML = chips.map((x) => `<button type="button" data-gt="risk:${x.k}" class="${String(riskChoice) === x.k ? 'on' : ''}">${x.t}</button>`).join('');
-    const lots = lotsFor(d);
-    if (lots != null && lots >= 0.01 && Math.abs(lots - ordLots) > 1e-9) setLots(lots, null);
+    syncUser();
+    const max = lotsFor(d), lots = useLots(max), editing = document.activeElement === $('ord-lots');
+    if (lots != null && !editing) { if (Math.abs(lots - ordLots) > 1e-9) setLots(lots, null); lastSet = ordLots; }
+    $('gtLotNote').innerHTML = lots == null ? '' : `Size ${lots.toFixed(2)} lots · up to ${max.toFixed(2)} at this stop and risk${userLots != null ? '<button type="button" data-gt="autolots">Use max</button>' : ''}`;
     const cs = checks(), bad = cs.find((x) => !x.ok);
     // Buy/Sell sits right under this card: when every check passes, one reassuring line beats four, so the trader
     // doesn't have to scroll past a wall of ticks to reach the buttons. The full list comes back the moment something
@@ -140,11 +149,12 @@ body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:'
       const typed = parseFloat(slField && slField.value);
       const typedOk = manualStopPrice && isFinite(typed) && (side === 'buy' ? typed < mid() : typed > mid());
       const stop = typedOk ? typed : stopFor(side);
-      const lots = lotsFor(Math.abs((side === 'buy' ? quote()?.ask ?? mid() : quote()?.bid ?? mid()) - stop));
+      syncUser();
+      const max = lotsFor(Math.abs((side === 'buy' ? quote()?.ask ?? mid() : quote()?.bid ?? mid()) - stop)), lots = useLots(max);
       if (!(lots >= 0.01)) { engineMsg('Stop too wide for your risk limit at the minimum size: move the stop closer.'); return; }
       if (!slOn) toggleSLTP('sl');
       slField.value = String(stop);
-      setLots(lots, null);
+      setLots(lots, null); lastSet = ordLots;
     } else if (on() && !slOn) {
       engineMsg('Add a stop loss to this pending order: your challenge requires one on every order.'); return;
     }
@@ -155,7 +165,7 @@ body.gt-on #ord-lots{pointer-events:none}body.gt-on .op-lot-sub::after{content:'
   const STEPS = [
     { sel: '#op-sym', title: 'Pick a market', text: 'Choose what to trade here, or press / to search. The chart follows your choice.' },
     { sel: '#gtStopRow', alt: '.op-quickbar', title: 'Your stop loss is automatic', text: 'Every challenge trade needs a stop loss. Set how far away it sits; we place it on the right side when you click Buy or Sell.' },
-    { sel: '#gtRiskRow', alt: '.op-lot-stack', title: 'Choose how much to risk', text: 'Pick a dollar amount. We work out the lot size so the trade never risks more than your limit.' },
+    { sel: '#gtRiskRow', alt: '.op-lot-stack', title: 'Choose how much to risk', text: 'Pick a dollar amount and we suggest the biggest lot size that fits. You can type a smaller size in the lot box, but never one above your limit.' },
     { sel: '.op-trade-row', title: 'Buy or Sell', text: 'The green ticks above must all be ticked. Then click Buy if you think price goes up, Sell if it goes down.' },
     { sel: '.btab[onclick*="challenge"]', title: 'Watch your progress', text: 'Your target, loss limits and every rule you still need to meet are in the Challenge tab.' },
   ];
