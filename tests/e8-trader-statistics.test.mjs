@@ -16,6 +16,7 @@ before(async () => {
     create function public.test_clock() returns timestamptz language sql as 'select at from public.test_clock';`);
   try {
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019090000_e8_trader_statistics.sql', import.meta.url), 'utf8').replaceAll('clock_timestamp()', 'public.test_clock()'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019140000_e8_trader_linear_fdr.sql', import.meta.url), 'utf8'));
   } catch (e) { throw new Error(`${e.message}; position=${e.position}; context=${e.where}`); }
 });
 after(async () => { await db?.close(); });
@@ -42,6 +43,16 @@ async function infer(trades, config = {}, population = [], cutoff = asof) {
 async function adjust(rows, config = {}) {
   return (await db.query('select public.ab_e8_trader_adjust($1::jsonb,$2::jsonb) r', [JSON.stringify(rows), JSON.stringify(config)])).rows[0].r;
 }
+
+test('whole-grid BY cumulative scan matches independent reference for 12,000 hypotheses including ties', { skip }, async () => {
+  const input=Array.from({length:6000},(_,i)=>({trader_id:String(i),pvalue_copy:(i%997)/100000,pvalue_reverse:(i%173)/1000,evidence_class:'INSUFFICIENT_DATA'}));
+  const hypotheses=input.flatMap((r,i)=>['copy','reverse'].map(direction=>({i,direction,p:r['pvalue_'+direction]}))).sort((a,b)=>a.p-b.p||a.i-b.i||a.direction.localeCompare(b.direction));
+  const h=hypotheses.reduce((sum,_,i)=>sum+1/(i+1),0),expected=new Map();let last=1;
+  for(let j=hypotheses.length-1;j>=0;j--){const t=hypotheses[j];last=Math.min(last,t.p*hypotheses.length*h/(j+1));expected.set(t.i+':'+t.direction,last);}
+  const out=await adjust(input);
+  assert.equal(out.length,input.length);
+  for(let i=0;i<out.length;i++) for(const direction of ['copy','reverse']) assert.ok(Math.abs(out[i]['q_'+direction]-expected.get(i+':'+direction))<1e-11);
+});
 
 test('empty input, tiers and completed UTC days are honest', { skip }, async () => {
   const empty = await infer([]);

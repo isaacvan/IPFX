@@ -15,9 +15,23 @@ async function fixture(){
  insert into public.ab_risk_limits values('a',1000,10000,10000,625,5,2.5,1),('b',1000,10000,10000,625,5,2.5,1);
  update public.trades set sl=3998,tp=4004.4 where user_id='${V}';`);
  await db.exec(read('supabase/migrations/20261019120000_e8_trader_allocator_replay.sql'));
+ await db.exec(read('supabase/migrations/20261019190000_e8_trader_allocator_working_set.sql'));
+ try { await db.exec(read('supabase/migrations/20261019210000_e8_trader_narrow_path_events.sql')); }
+ catch(error){await db.close();throw error;}
  const r=(await db.query('select public.ab_e8_trader_perf_refresh_private() r')).rows[0].r;
  assert.equal(r.ok,true,JSON.stringify(r));return db;
 }
+
+test('closed accepted positions retain cash and release crowd/risk in the compact admission set',{skip},async()=>{
+ const db=await fixture();try{
+ await db.exec(`insert into public.ab_e8_trader_perf_trade_cache
+ select 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',latency,slippage,trader_id,fingerprint,computed_at,
+ payload||'{"trade_id":"dddddddd-dddd-4ddd-8ddd-dddddddddddd","in_at":"2026-10-12T10:20:03Z","out_at":"2026-10-12T10:30:06Z"}'::jsonb,minute_path
+ from public.ab_e8_trader_perf_trade_cache where trader_id='${U}' and latency=2 and slippage=0;`);
+ const a=(await db.query("select public.ab_e8_trader_perf_admit($1,'a',2,0) r",[[U]])).rows[0].r;
+ assert.equal(a.accepted,2);assert.equal(a.rejected,0);
+ }finally{await db.close();}
+});
 test('shared allocator rejects crowding at entry, preserves lots and reveals refusal reasons',{skip},async()=>{
  const db=await fixture();try{
  const a=(await db.query("select public.ab_e8_trader_perf_admit($1,'a',2,0) r",[[U,V]])).rows[0].r;

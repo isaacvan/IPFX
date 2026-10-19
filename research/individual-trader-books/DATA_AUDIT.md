@@ -21,4 +21,10 @@ Identity handling: person linkage uses ledger person IDs when available, rather 
 
 ## Required live verification before calling the feature complete
 
-Current quote coverage, per-person reconciliation, runtime under PostgreSQL, cache-only REST under service role, denial under anon, deployed source equality, owner-page rendering with saved results, and two autonomous cron successes remain deployment evidence to collect. Local tests do not substitute for these checks.
+Production verification on 19 October at 23:25 UTC: 465 registered Infinity people, 1,683 closed source trades, 1,436 priced and 247 unpriced. Maximum priced observations per person: 43. All 465 remain `INSUFFICIENT_DATA`; none meets the 100-trade reporting gate. These counts include people without priced trades, unlike the frozen export's represented trading population.
+
+The current raw totals reconcile to A −$1,861.88481320598 and B −$5,248.13082075465. These are all-window hypothetical sums, not collectible account returns after an E8 breach. Maximum absolute per-trade `A+B+2×cost` error across the 12 execution cells: exactly zero in PostgreSQL numeric arithmetic.
+
+Unpriced base-case reasons: 95 lack an entry quote within 30 seconds, 30 lack an exit quote within 30 seconds, and 122 lack an unambiguous match in the existing source control cache. Unmatched records are retained with their reason; none is assigned invented prices.
+
+Actual service-role REST reads succeeded: first page 197,093 bytes / 755ms; detail 267,058 bytes / 208ms; one-person portfolio 33,981 bytes / 239ms. The scheduling RPC passed safeupdate in 112ms. Anonymous RPC and table reads returned 401. The deployed edge denied a nonowner token (401), and its four source files matched the local feature exactly. Real Books HTML with saved production results rendered 100 rows, 465 population, drawer curves and selected portfolio at 1280/1440/1920 with zero page errors; owner sign-in was stubbed. Two autonomous runs were matched to actual successful feature-run records at 23:13 and 23:23 UTC. Final performance and website publication evidence is recorded in JOURNAL.md.

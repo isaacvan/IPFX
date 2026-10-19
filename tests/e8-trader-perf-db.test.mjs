@@ -58,6 +58,14 @@ async function fixture({ tick = true } = {}) {
   try {
     await db.exec(migration);
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019090000_e8_trader_statistics.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019130000_e8_trader_tick_metadata.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019140000_e8_trader_linear_fdr.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019150000_e8_trader_empty_inference.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019160000_e8_trader_replay_work_reuse.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019170000_e8_trader_compact_family.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019180000_e8_trader_fingerprint_blocks.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019220000_e8_trader_stat_work_reuse.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019230000_e8_trader_shared_horizon_quotes.sql', import.meta.url), 'utf8'));
   } catch (error) {
     await db.close();
     if (error.position) throw new Error(`${error.message}: ${migration.slice(Math.max(0, Number(error.position)-90),Number(error.position)+90)}`);
@@ -74,6 +82,20 @@ async function refresh(db) {
   assert.equal(r.ok, true, JSON.stringify(r)); return r;
 }
 async function using(fn, options) { const db = await fixture(options); try { await fn(db); } finally { await db.close(); } }
+
+test('E8 default tick bands price stress cells; unsupported schedules remain unknown', { skip }, async () => using(async db => {
+  for(const df of [1,2,5,10,30,31,50]) assert.ok(Math.abs((await db.query('select public.ab_e8_trader_t_cdf(public.ab_e8_trader_critical($1),$1) v',[df])).rows[0].v-.975)<1e-12);
+  const peers=Array.from({length:30},(_,i)=>({v:i,day:'2026-01-'+String(1+i%10).padStart(2,'0')}));
+  assert.deepEqual((await db.query('select public.ab_e8_trader_prior_moments($1,.000001) v',[JSON.stringify(peers)])).rows[0].v,(await db.query('select public.ab_e8_trader_moments($1,.000001) v',[JSON.stringify(peers)])).rows[0].v);
+  assert.deepEqual((await db.query("select public.ab_e8_trader_prior_moments('[]',.000001) v")).rows[0].v,{});
+  await db.exec(`update public.e8_instrument_evidence set details=jsonb_set(details,'{tickSize}','[{"tickSize":0.01,"leftRangeLimit":null}]')`);
+  await refresh(db);
+  const t=(await db.query('select payload from public.ab_e8_trader_perf_trade_cache where trade_id=$1 and latency=2 and slippage=1',[T1])).rows[0].payload;
+  assert.equal(t.reason,null);assert.ok(Math.abs(t.slippage-.12)<1e-10);
+  for(const value of [[],[{tickSize:.01,leftRangeLimit:100}],[{tickSize:.01},{tickSize:.02}],{tickSize:.01},'invalid',-1]) {
+    assert.equal((await db.query('select public.ab_e8_trader_tick_size($1::jsonb) v',[JSON.stringify(value)])).rows[0].v,null);
+  }
+}));
 
 test('raw global control lots and A/B reconcile; all people and all stress cells survive the real helpers', { skip }, async () => using(async db => {
   assert.equal((await refresh(db)).repriced, 3);
@@ -92,6 +114,12 @@ test('raw global control lots and A/B reconcile; all people and all stress cells
   for (const cell of (await db.query('select payload from public.ab_e8_trader_perf_trade_cache')).rows) {
     const t = cell.payload;
     if (t.reason == null) assert.ok(Math.abs(t.a_net + t.b_net + 2 * (t.spread + t.commission + t.slippage)) < 1e-8);
+  }
+  const paths=(await db.query('select slippage,payload,minute_path from public.ab_e8_trader_perf_trade_cache where trade_id=$1 and latency=2 order by slippage',[T1])).rows;
+  for(const p of paths) {
+    assert.ok(Math.abs(p.minute_path[0].a_float-paths[0].minute_path[0].a_float+p.payload.slippage/2)<1e-8);
+    assert.ok(Math.abs(p.minute_path.at(-1).a_delta-paths[0].minute_path.at(-1).a_delta+p.payload.slippage)<1e-8);
+    assert.ok(Math.abs(p.minute_path.at(-1).b_delta-paths[0].minute_path.at(-1).b_delta+p.payload.slippage)<1e-8);
   }
   const sums = (await db.query("select sum((payload->>'a_net')::numeric) a,sum((payload->>'b_net')::numeric) b from public.ab_e8_trader_perf_trade_cache where latency=2 and slippage=0")).rows[0];
   const control = (await db.query('select result from public.ab_e8_copy_backtest_cache')).rows[0].result;
