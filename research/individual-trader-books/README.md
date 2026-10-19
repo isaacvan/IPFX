@@ -19,6 +19,7 @@ Read [OWNER_NOTE.md](OWNER_NOTE.md), [DATA_AUDIT.md](DATA_AUDIT.md), [PREREGISTR
 13. `20261019210000_e8_trader_narrow_path_events.sql`: narrow portfolio minute events, fast temporary compression where supported, bounded 32MB sort memory for the advisory-locked compute worker.
 14. `20261019220000_e8_trader_stat_work_reuse.sql`: reuse identical deterministic Student critical values and skip peer-prior moments outside existing eligibility gates.
 15. `20261019230000_e8_trader_shared_horizon_quotes.sql`: observe each horizon quote/FX once per trade and entry latency, keeping separate costs and missingness for all slippage scenarios.
+16. `20261019233000_e8_trader_nightly_refit.sql`: nightly full statistical refit revalidates every price fingerprint and replays changed prices. Explicit `p_rebuild=true` additionally forces unchanged price rewrites for diagnostics.
 
 The `brain-monitor` change adds three cache-reader actions behind existing owner/admin/MFA checks. `workspace/books.html` mounts `ws-books-traders.js` and its scoped CSS after the existing Books modules. No existing trading, Terms or financial-record function is changed.
 

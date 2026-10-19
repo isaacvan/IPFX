@@ -66,6 +66,7 @@ async function fixture({ tick = true } = {}) {
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019180000_e8_trader_fingerprint_blocks.sql', import.meta.url), 'utf8'));
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019220000_e8_trader_stat_work_reuse.sql', import.meta.url), 'utf8'));
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019230000_e8_trader_shared_horizon_quotes.sql', import.meta.url), 'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261019233000_e8_trader_nightly_refit.sql', import.meta.url), 'utf8'));
   } catch (error) {
     await db.close();
     if (error.position) throw new Error(`${error.message}: ${migration.slice(Math.max(0, Number(error.position)-90),Number(error.position)+90)}`);
@@ -193,7 +194,10 @@ test('incremental cache reprices only relevant changes; nightly flag rebuilds; p
   assert.equal((await rpc(db, 'select public.ab_e8_trader_perf_refresh() r')).scheduled, true);
   assert.equal((await db.query('select count(*) n from public.ab_e8_trader_perf_runs')).rows[0].n, runs);
   await db.query('select public.ab_e8_trader_perf_nightly()');
-  assert.equal((await refresh(db)).repriced, 3);
+  await db.exec("update public.ab_e8_trader_perf_trader_cache set row_data=jsonb_set(row_data,'{p_copy}','999') where true");
+  assert.equal((await refresh(db)).repriced, 0, 'nightly validates all fingerprints and refits statistics without rewriting unchanged prices');
+  assert.equal((await db.query("select count(*) n from public.ab_e8_trader_perf_trader_cache where row_data->>'p_copy'='999'")).rows[0].n,0);
+  assert.equal((await rpc(db,'select public.ab_e8_trader_perf_refresh_private(true) r')).repriced,3,'explicit audit still forces every price replay');
   await db.exec(`update public.ab_e8_trader_perf_cache set metadata=metadata||'{"walkforward_cells":{"5:1":{"status":"saved prospective result"}},"walkforward":{"status":"base saved prospective"}}'::jsonb where id=1`);
   await refresh(db);
   assert.equal((await rpc(db,'select public.ab_e8_trader_perf_read(5,1) r')).walk_forward.status,'saved prospective result');

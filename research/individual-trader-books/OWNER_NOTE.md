@@ -9,5 +9,5 @@ All 465 registered people remain insufficient. The largest priced sample is only
 Unknown fills, swaps and broker liquidation effects remain explicit, rather than fabricated.
 New cron jobs refresh the cache, monitor staleness and link future trades to captured prior labels.
 Actionable sequential claims additionally require audited bounds and a complete prospective stream.
-Real REST reads passed, anonymous access was denied, and two autonomous refreshes were observed.
+REST reads passed; anonymous access was denied; automatic refreshes and a 38-second nightly refit were verified.
 Real Books HTML rendered saved production data with sign-in stubbed; no owner login was used.

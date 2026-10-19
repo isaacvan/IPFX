@@ -1,4 +1,6 @@
--- Read-only deployment evidence. Run only after the four new migrations.
+-- Read-only deployment evidence. Run after all feature migrations in README order.
+-- The management query endpoint returns only the final statement's result.
+-- Run statements separately when collecting every diagnostic below.
 select now() checked_at,c.computed_at,c.source_computed_at,
  now()-c.computed_at cache_age,c.metadata->'reconciliation' reconciliation,
  c.metadata->'timings_ms' timings_ms,c.metadata->>'version' code_version
