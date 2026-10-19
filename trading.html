@@ -4843,7 +4843,9 @@ async function engineCall(body){
   // timeout, which can be minutes: every button dead until then. This
   // fails fast with a clear message instead.
   const ctrl=new AbortController();
-  const killer=setTimeout(()=>ctrl.abort(),15000);
+  // A close of a trade copied to the broker can take longer than a normal request while the copy leg confirms, so it gets a longer
+  // wait. Giving up at 15s made traders click again and hit a confusing "already closed" error.
+  const killer=setTimeout(()=>ctrl.abort(),['close','close_all','partial_close'].includes(body.action)?60000:15000);
   let acknowledged=null;
   try{
     const requestBody={...body,account_mode:['open','place_pending'].includes(body.action)&&accountModeIntent==='challenge'?'challenge':selectedAccountMode};
@@ -5337,8 +5339,16 @@ async function closeTradeById(id){
   if(before&&!(await quickCloseConfirm([before])))return false;
   if(engineBusy)return false;
   engineBusy=true;
+  const slow=setTimeout(()=>engineMsg('Closing your position… confirming it with the broker, one moment.',true),2500);
   const r=await engineCall({action:'close',trade_id:id});
+  clearTimeout(slow);
   engineBusy=false;
+  if(r&&r.closing){
+    // The close was already requested and is still finishing: do not click again, just refresh until it shows as closed.
+    engineMsg('Your close is already being processed and will finish in a few seconds.',true);
+    [3000,8000,15000].forEach(ms=>setTimeout(()=>{engineCall({action:'state'});},ms));
+    return true;
+  }
   if(r){
     const closed=(r.closed_trades||[]).find(function(t){return t.id===id;});
     const symbol=execSymbol((closed||before||{}).symbol);

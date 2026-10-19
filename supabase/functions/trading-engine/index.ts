@@ -3458,6 +3458,7 @@ if (body.action === "sweep") {
   }
   const state = await enforce(db, acct as Acct);
   const action = body.action;
+  let closingInProgress = false; // a close was requested twice and the first request is still finishing
 
   // A challenge order submitted after the account was already failed must
   // not silently become a practice order. An explicit demo choice is allowed.
@@ -4070,7 +4071,14 @@ if (body.action === "sweep") {
       return ex ? { price: ex.price, shortfallUsd: await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, Number(target.volume)) } : null;
     } : undefined;
     const done = await closeTrade(db, acct as Acct, target, exit, "manual", q, clientIp, undefined, prepareExit);
-    if (!done) return err("This position was already closed (for example by its stop or take-profit)", 409);
+    if (!done) {
+      // closeTrade is false whenever another request got to the position first: a second click, or a retry after the browser
+      // stopped waiting while a copied trade's broker leg was still confirming. Say what actually happened rather than a
+      // blanket "already closed": it is closed now, or the first request is still finishing, or it was closed elsewhere.
+      const { data: now } = await db.from("trades").select("status,close_requested_at").eq("id", target.id).maybeSingle();
+      if (now?.status === "open" && now.close_requested_at) closingInProgress = true;
+      else if (now?.status !== "closed") return err("This position was already closed (for example by its stop or take-profit)", 409);
+    }
   } else if (action === "close_all") {
     const v2c = rulesV2(acct as Acct);
     const arrivals = new Map<string, Quote>();
@@ -4262,7 +4270,7 @@ if (body.action === "sweep") {
       switched_to_demo: true,
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
-  return new Response(JSON.stringify(await statePayload(db, acct as Acct, after.open, after.equity, after.floating)),
+  return new Response(JSON.stringify({ ...(await statePayload(db, acct as Acct, after.open, after.equity, after.floating)), ...(closingInProgress ? { closing: true } : {}) }),
     { headers: { ...CORS, "Content-Type": "application/json" } });
 };
 
