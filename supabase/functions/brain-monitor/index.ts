@@ -4,6 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, readJsonObject } from "../_shared/request-guards.ts";
 import { solutionOptions } from "../_shared/brain-solutions.ts";
+import { e8TraderPerformanceRead } from "../_shared/e8-trader-performance.ts";
 
 const ORIGINS = new Set(["https://ipfxcapital.com", "https://www.ipfxcapital.com", "http://localhost:3000", "http://localhost:8127"]);
 const JOBS = [
@@ -40,6 +41,11 @@ Deno.serve(async (req) => {
   const body = await readJsonObject(req, 4_096).catch(() => null) as Record<string, unknown> | null;
   if (!body) return json({ ok: false, error: "Invalid request" }, 400);
   const action = String(body.action || "overview");
+
+  if (["e8_trader_performance", "e8_trader_detail", "e8_trader_portfolio"].includes(action)) {
+    const traderPerformance = await e8TraderPerformanceRead(db, action, body);
+    if (traderPerformance) return json(traderPerformance.body, traderPerformance.status);
+  }
 
   // Books page: what copying (A-book) and reverse-copying (B-book) every Infinity trade would have made on E8. Read-only.
   // The calculation takes ~25s and the API session is cut off at 8s, so a scheduled job (ipfx-e8-copy-backtest, every 10
