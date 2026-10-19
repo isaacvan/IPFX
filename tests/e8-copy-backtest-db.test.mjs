@@ -127,3 +127,61 @@ test('the scheduled refresh saves the result the page reads, and refreshing agai
     assert.equal((await db.query('select count(*)n from public.ab_e8_copy_backtest_cache')).rows[0].n, 1, 'one saved row, replaced in place');
   } finally { await db.close(); }
 });
+
+
+// ---- Profit-filtered books (owner request 2026-10-19): A-book only traders in profit, B-book only traders not in profit ----
+const U2 = '55555555-5555-4555-8555-555555555555', ACC2 = '66666666-6666-4666-8666-666666666666';
+async function dbProfit() {
+  const db = await db0();
+  await db.exec(`insert into auth.users values('${U2}','winner@example.invalid');insert into public.trading_accounts values('${ACC2}','infinity','evaluation');`);
+  // U1 (db0): T1 buy 10:00 +5, T2 buy 11:00 -60, T3 buy 12:00 0, T4 unpriced +1  -> final result -54 (not in profit).
+  // U2: one winning trade at 13:00 (+20) -> final result +20 (ended in profit), and no history before it.
+  await db.query(`insert into public.trades(account_id,user_id,symbol,side,opened_at,closed_at,pnl,status) values($1,$2,'XAUUSD','buy','2026-10-12T13:00:00Z','2026-10-12T13:10:00Z',20,'closed')`, [ACC2, U2]);
+  await db.query(`insert into public.e8_reference_quotes(account_id,symbol,bid,ask,received_at) values(3,'XAUUSD',4000,4000.4,'2026-10-12T13:00:03Z'),(3,'XAUUSD',4002,4002.4,'2026-10-12T13:10:06Z')`);
+  return db;
+}
+
+test('A-book copies only traders in profit and B-book reverses only traders in loss, using only what was known at the time', { skip }, async () => {
+  const db = await dbProfit();
+  try {
+    const r = (await db.query(`select public.ab_e8_copy_backtest('2026-10-12','2026-10-12') r`)).rows[0].r;
+    const t = Object.fromEntries(r.trades.filter((x) => x.reason == null).map((x) => [x.opened_at.slice(11, 16), x]));
+    // Closed P&L the trader had BEFORE each trade (2 minute publication lag): T1 0, T2 +5, T3 +5-60 = -55, W1 0 (no history).
+    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => Number(t[k].trader_before)), [0, 5, -55, 0]);
+    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => Number(t[k].trader_total)), [-54, -54, -54, 20]);
+    // In profit when copied: only T2 (the trader was +5). The first trade of every trader is never taken.
+    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => t[k].ap_net != null), [false, true, false, false]);
+    // In loss when reversed: only T3 (the trader was -55). Exactly $0 / no history is in neither.
+    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => t[k].bp_net != null), [false, false, true, false]);
+    // Ended in profit / not in profit split every priced trade into exactly one of the two.
+    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => [t[k].ah_net != null, t[k].bh_net != null]), [[false, true], [false, true], [false, true], [true, false]]);
+    const B = r.books;
+    // ap: T2 alone is that book's first copy, so 0.06 lots (it is 0.07 in the all-traders book): (3900-4000)*100*0.06 - 6*0.06.
+    assert.equal(Number(t['11:00'].ap_lots), 0.06); assert.equal(Number(t['11:00'].a_lots), 0.07);
+    assert.equal(Number(B.ap.summary.net_pnl), -600.36); assert.equal(B.ap.summary.trades, 1); assert.equal(B.ap.e8.breached, false);
+    // ah: only the winner's trade: (4002-4000.4)*100*0.06 - 0.36 = 9.24.
+    assert.equal(Number(B.ah.summary.net_pnl), 9.24); assert.equal(B.ah.summary.trades, 1);
+    // bp: T3 reversed, sell at the bid 4000, buy back at the ask 4000.8: -0.8*6 - 0.36 = -5.16.
+    assert.equal(Number(B.bp.summary.net_pnl), -5.16); assert.equal(B.bp.summary.trades, 1);
+    // bh: all three of U1's priced trades reversed: -17.76 + 693.98 - 5.16.
+    assert.equal(Number(B.bh.summary.net_pnl), 671.06); assert.equal(B.bh.summary.trades, 3);
+    // The all-traders books still take every priced trade.
+    assert.equal(B.a.summary.trades, 4); assert.equal(B.b.summary.trades, 4);
+  } finally { await db.close(); }
+});
+
+test('a profit filter that matches nobody gives an empty book, not an error', { skip }, async () => {
+  const db = await db0();
+  try {
+    // Only U1 exists: nobody ended in profit, so the hindsight A-book is empty.
+    const r = (await db.query(`select public.ab_e8_copy_backtest('2026-10-12','2026-10-12') r`)).rows[0].r;
+    assert.equal(r.books.ah.summary.trades, 0); assert.equal(r.books.ah.e8.breached, false);
+    assert.deepEqual(r.books.ah.traders, []); assert.deepEqual(r.books.ah.daily, []);
+  } finally { await db.close(); }
+});
+
+test('the equity timeline uses the precomputed day-start balances (a per-row subquery made it take over a minute)', () => {
+  assert.match(sql, /join _bt_ds ds on ds\.book = tl\.book/);
+  assert.match(sql, /insert into _bt_ds/);
+  assert.ok(!/ds as \(/.test(sql), 'no inline day-start subquery in the timeline');
+});

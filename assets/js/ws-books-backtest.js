@@ -1,7 +1,9 @@
 /* Books → "Copied on E8": what every Infinity trade would have made on a $50,000 E8 account, copied in the trader's
    direction (A-book) and reverse-copied (B-book). The books are separate accounts. Real E8 sizes (0.06/0.07
    alternating = 0.065 average), E8's own bid/ask after the measured copy delay, E8 contract sizes, commission, and
-   E8's $625 daily / $3,000 drawdown rules on equity marked every minute. Read-only: brain-monitor → ab_e8_copy_backtest. */
+   E8's $625 daily / $3,000 drawdown rules on equity marked every minute. Each book can be viewed for the traders the owner
+   wants in it: A-book only traders in profit, B-book only traders not in profit (decided from what was known at the time,
+   or, labelled as hindsight, from their final result), or all traders. Read-only: brain-monitor → ab_e8_copy_backtest. */
 (() => {
   'use strict';
   const T = window.TeamOS, { esc, usd, ukTime } = T;
@@ -10,7 +12,25 @@
   let r = null, err = '', busy = false, saved = null;
   const shown = { a: 100, b: 100 }, query = { a: '', b: '' }, hideAfter = { a: false, b: false };
   const NAME = { a: 'A-book', b: 'B-book' };
-  const WHAT = { a: 'copied in the trader’s direction', b: 'reverse-copied: the opposite of every trade' };
+  // The data key for each view: ap/ah/a for A-book, bp/bh/b for B-book (see the SQL header for the exact rules).
+  const MODES = {
+    a: [
+      { key: 'ap', label: 'In profit when copied', what: 'copied only while the trader’s account is in profit',
+        note: 'A trader’s trade is copied only if their own closed P&amp;L before that trade was above $0 (trades closed at least 2 minutes earlier). Their first trade is never copied. Only what was known at the time.' },
+      { key: 'ah', label: 'Ended in profit (hindsight)', what: 'copied only for traders who ended in profit', hindsight: true,
+        note: 'Traders are picked by their <b>final</b> result, which nobody knew when the trades were placed. This is a best case, not a result you could have had.' },
+      { key: 'a', label: 'All traders', what: 'copied in the trader’s direction, every trader' },
+    ],
+    b: [
+      { key: 'bp', label: 'In loss when reversed', what: 'reverse-copied only while the trader’s account is in loss',
+        note: 'A trader’s trade is reversed only if their own closed P&amp;L before that trade was below $0 (trades closed at least 2 minutes earlier). Traders at exactly $0 or with no history are skipped. Only what was known at the time.' },
+      { key: 'bh', label: 'Ended not in profit (hindsight)', what: 'reverse-copied only for traders who did not end in profit', hindsight: true,
+        note: 'Traders are picked by their <b>final</b> result, which nobody knew when the trades were placed. This is a best case, not a result you could have had.' },
+      { key: 'b', label: 'All traders', what: 'reverse-copied: the opposite of every trade, every trader' },
+    ],
+  };
+  const mode = { a: 'ap', b: 'bp' };
+  const cur = (k) => MODES[k].find((m) => m.key === mode[k]) || MODES[k][0];
 
   const sign = (v) => (Number(v) > 0 ? 'good' : Number(v) < 0 ? 'bad' : '');
   const money = (v) => (v == null ? '—' : `<span class="num ${sign(v)}">${usd(v)}</span>`);
@@ -41,7 +61,7 @@
       ${tile('Per trade', money(s.expectancy), `95% range ${usd(s.ci95_low)} to ${usd(s.ci95_high)}`)}
       ${tile('Avg win / loss', `<span class="num" style="font-size:18px;white-space:nowrap"><span class="good">${usd(s.avg_win)}</span> / <span class="bad">${usd(s.avg_loss)}</span></span>`, `avg hold ${hold(s.avg_hold_s)}`)}
       ${tile('Costs paid', `<span class="num bad">${usd(-(Number(s.spread_paid) + Number(s.commission)))}</span>`, `spread ${usd(s.spread_paid)} · commission ${usd(s.commission)}`)}
-      ${tile('Max drawdown', `<span class="num bad">${usd(-b.e8.max_drawdown)}</span>`, `lowest equity ${usd(b.e8.lowest_equity)}`)}
+      ${tile('Max drawdown', `<span class="num bad">${usd(-(b.e8.max_drawdown || 0))}</span>`, `lowest equity ${usd(b.e8.lowest_equity)}`)}
     </div>`;
   }
 
@@ -70,33 +90,41 @@
   }
 
   function tradesTable(k) {
-    const q = query[k].trim().toLowerCase();
-    const all = (r.trades || []).filter((t) => t.reason == null)
+    const d = mode[k], fam = k, q = query[k].trim().toLowerCase();
+    const all = (r.trades || []).filter((t) => t[d + '_net'] != null)
       .filter((t) => !q || String(t.trader).toLowerCase().includes(q) || String(t.symbol).toLowerCase().includes(q))
-      .filter((t) => !(hideAfter[k] && t[k + '_after_breach']));
+      .filter((t) => !(hideAfter[k] && t[d + '_after_breach']));
     const rows = all.slice(0, shown[k]);
     return `<div class="row" style="gap:10px;margin:10px 0;flex-wrap:wrap">
         <input class="input" style="max-width:260px" placeholder="Filter by trader or symbol" value="${esc(query[k])}" data-bt="q" data-book="${k}" aria-label="Filter ${NAME[k]} trades">
         <label class="muted" style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" data-bt="after" data-book="${k}"${hideAfter[k] ? ' checked' : ''}> Only trades before the E8 breach</label>
-        <span class="muted" style="font-size:13px">${all.length} trades${r.books[k].e8.breached && !hideAfter[k] ? ' · faded rows came after the E8 breach and could not have been taken' : ''}</span></div>
+        <span class="muted" style="font-size:13px">${all.length} trades${r.books[d].e8.breached && !hideAfter[k] ? ' · faded rows came after the E8 breach and could not have been taken' : ''}</span></div>
       <div class="tablewrap"><div class="scroll" style="max-height:560px"><table><thead><tr>
-        <th>Opened (UK)</th><th>Trader</th><th>Symbol</th><th>Copy</th><th class="r">Lots</th><th class="r">E8 entry → exit</th><th class="r">Held</th><th class="r">Trader P&amp;L</th><th class="r">E8 P&amp;L</th></tr></thead><tbody>
+        <th>Opened (UK)</th><th>Trader</th><th>Symbol</th><th>Copy</th><th class="r">Lots</th><th class="r">E8 entry → exit</th><th class="r">Held</th><th class="r" title="The trader’s own closed P&amp;L before this trade">Trader so far</th><th class="r">Trader P&amp;L</th><th class="r">E8 P&amp;L</th></tr></thead><tbody>
         ${rows.map((t) => {
-          const after = t[k + '_after_breach'];
+          const after = t[d + '_after_breach'], side = k === 'a' ? t.side : flip(t.side);
           return `<tr${after ? ' style="opacity:.5" title="After the E8 breach: this trade could not have been taken"' : ''}><td class="num muted" style="white-space:nowrap">${esc(when(t.opened_at))}</td>
             <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.trader)}">${esc(t.trader)}</td><td>${esc(t.symbol)}</td>
-            <td class="${(k === 'a' ? t.side : flip(t.side)) === 'buy' ? 'good' : 'bad'}">${esc(k === 'a' ? t.side : flip(t.side))}</td><td class="r num">${fixed(t.lots)}</td>
-            <td class="r num" style="white-space:nowrap">${px(t[k + '_entry'], t.symbol)} → ${px(t[k + '_exit'], t.symbol)}</td>
-            <td class="r num muted">${hold(t.hold_s)}</td><td class="r num muted">${usd(t.trader_pnl)}</td><td class="r" style="white-space:nowrap">${money(t[k + '_net'])}</td></tr>`;
-        }).join('') || '<tr><td colspan="9" class="muted">No trades match.</td></tr>'}
+            <td class="${side === 'buy' ? 'good' : 'bad'}">${esc(side)}</td><td class="r num">${fixed(t[d + '_lots'])}</td>
+            <td class="r num" style="white-space:nowrap">${px(t[fam + '_entry'], t.symbol)} → ${px(t[fam + '_exit'], t.symbol)}</td>
+            <td class="r num muted">${hold(t.hold_s)}</td><td class="r num muted">${usd(t.trader_before)}</td><td class="r num muted">${usd(t.trader_pnl)}</td><td class="r" style="white-space:nowrap">${money(t[d + '_net'])}</td></tr>`;
+        }).join('') || '<tr><td colspan="10" class="muted">No trades match.</td></tr>'}
       </tbody></table></div></div>
       ${all.length > rows.length ? `<div class="row" style="margin-top:8px"><button class="btn sm" data-bt="more" data-book="${k}">Show ${Math.min(200, all.length - rows.length)} more</button><button class="btn sm link" data-bt="all" data-book="${k}">Show all ${all.length}</button></div>` : ''}`;
   }
 
   function bookBlock(k) {
-    const b = r.books[k], set = r.settings, s = b.summary;
+    const m = cur(k), b = r.books[m.key], set = r.settings;
+    const pick = `<div class="seg" role="group" aria-label="${NAME[k]} traders" style="margin:6px 0 4px">${MODES[k].map((o) =>
+      `<button type="button" data-bt="mode" data-book="${k}" data-mode="${o.key}" aria-pressed="${o.key === m.key}">${o.label}</button>`).join('')}</div>`;
+    const head = (verdict) => `<div class="grouphead" style="margin-top:28px">${NAME[k]} <span class="sub">${m.what} · its own $${Number(set.account_size).toLocaleString('en-GB')} E8 account</span>${verdict}</div>${pick}
+      ${m.note ? `<p class="muted" style="font-size:13px;margin:6px 0 10px">${m.note}</p>` : ''}
+      ${m.hindsight ? '<div class="banner"><span><b>Hindsight view.</b> It uses the traders’ final results to decide who to include, so it flatters the numbers. Use the first view for what you could actually have done.</span></div>' : ''}`;
+    if (!b) return head('') + '<div class="empty">This view is not in the saved result yet. It appears within 10 minutes.</div>';
+    const s = b.summary;
+    if (!s.trades) return head('<span class="cap">No trades</span>') + '<div class="empty">No trades qualified under this rule.</div>';
     const verdict = b.e8.breached ? '<span class="cap red">E8 account lost</span>' : Number(s.net_pnl) > 0 ? '<span class="cap green">Profitable</span>' : '<span class="cap">Losing</span>';
-    return `<div class="grouphead" style="margin-top:28px">${NAME[k]} <span class="sub">${WHAT[k]} · its own $${Number(set.account_size).toLocaleString('en-GB')} E8 account</span>${verdict}</div>
+    return `${head(verdict)}
       ${stats(b)}${e8Rules(b, set)}
       <div class="grouphead">Day by day</div>${dailyTable(b, set)}
       <details class="more"><summary>By trader · ${b.traders.length}</summary>${breakdown(b.traders, 'trader', 'Trader')}</details>
@@ -114,6 +142,7 @@
         <li><b>Costs:</b> E8’s own spread at each fill. ${esc(set.commission)}. ${esc(set.swaps)}; ${set.overnight_copies} copies were held through the daily rollover.</li>
         <li><b>E8 rules:</b> separate $${Number(set.account_size).toLocaleString('en-GB')} accounts, ${usd(set.daily_loss_limit)} daily loss from the start-of-day balance (${esc(set.day)} day) and ${usd(set.max_drawdown_limit)} maximum drawdown, checked on equity marked to E8 bid/ask every minute.</li>
         <li><b>Coverage:</b> ${c.priced} of ${c.source_trades} Infinity trades since ${esc(ukTime(r.from))} (when E8 prices start). ${c.not_priced} had no E8 price within ${set.max_wait_s}s and are left out rather than guessed.</li>
+        <li><b>Who is in each book:</b> ${esc(set.profit_filter || '')}</li>
         <li>Your E8 payout is your profit split of the account profit, and only on profit withdrawn before any breach.</li>
       </ul>
       <div class="grouphead">Model vs your real E8 fills</div>
@@ -126,7 +155,7 @@
   }
 
   function render() {
-    const head = `<div class="grouphead" style="margin-top:36px">Copied on E8 <span class="sub">Every Infinity trade, copied (A-book) and reverse-copied (B-book) at 0.065 lots on E8 prices</span>
+    const head = `<div class="grouphead" style="margin-top:36px">Copied on E8 <span class="sub">Infinity trades copied (A-book, traders in profit) and reverse-copied (B-book, traders not in profit) at 0.065 lots on E8 prices</span>
       <button class="btn sm" data-bt="run"${busy ? ' disabled' : ''}>${busy ? 'Loading…' : 'Refresh'}</button></div>`;
     if (busy && !r) { root.innerHTML = head + '<div class="empty">Loading…</div>'; return; }
     if (err && !r) { root.innerHTML = head + `<div class="banner red">${esc(err)}<button class="btn sm" data-bt="run">Try again</button></div>`; return; }
@@ -139,6 +168,7 @@
     const b = e.target.closest('[data-bt]'); if (!b || b.disabled) return;
     const k = b.dataset.book;
     if (b.dataset.bt === 'run') run();
+    if (b.dataset.bt === 'mode') { mode[k] = b.dataset.mode; shown[k] = 100; query[k] = ''; hideAfter[k] = false; render(); }
     if (b.dataset.bt === 'more') { shown[k] += 200; render(); }
     if (b.dataset.bt === 'all') { shown[k] = Infinity; render(); }
   });
