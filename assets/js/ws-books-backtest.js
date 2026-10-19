@@ -15,8 +15,8 @@
   // The data key for each view: ap/ah/a for A-book, bp/bh/b for B-book (see the SQL header for the exact rules).
   const MODES = {
     a: [
-      { key: 'ap', label: 'In profit when copied', what: 'copied only while the trader’s account is in profit',
-        note: 'A trader’s trade is copied only if their own closed P&amp;L before that trade was above $0 (trades closed at least 2 minutes earlier). Their first trade is never copied. Only what was known at the time.' },
+      { key: 'ap', label: 'Over $20 in profit when copied', what: 'copied only while the trader’s account is more than $20 in profit',
+        note: 'A trader’s trade is copied only if their own closed P&amp;L before that trade was more than $20 (trades closed at least 2 minutes earlier). A trader’s first trades are not copied until they get there. Only what was known at the time.' },
       { key: 'ah', label: 'Ended in profit (hindsight)', what: 'copied only for traders who ended in profit', hindsight: true,
         note: 'Traders are picked by their <b>final</b> result, which nobody knew when the trades were placed. This is a best case, not a result you could have had.' },
       { key: 'a', label: 'All traders', what: 'copied in the trader’s direction, every trader' },

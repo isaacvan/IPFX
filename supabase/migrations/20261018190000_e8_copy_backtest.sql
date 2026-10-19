@@ -3,7 +3,7 @@
 --   A-book: copied in the trader's direction.   B-book: reverse-copied (opposite direction).
 --   Each book also has two profit-filtered versions (owner request 2026-10-19: A-book only traders in profit, B-book only
 --   traders not in profit). "in profit when copied" ('ap') copies a trade only if the trader's own closed P&L BEFORE that trade
---   (trades closed at least 2 minutes earlier, the ledger publication lag) is above $0; "in loss when reversed" ('bp') reverses
+--   (trades closed at least 2 minutes earlier, the ledger publication lag) is above $20; "in loss when reversed" ('bp') reverses
 --   only if it is below $0; a trader with no history, or exactly $0, is in neither. These use only what was known at the time.
 --   "ended in profit" ('ah') / "ended not in profit" ('bh') split traders by their FINAL result: that is hindsight, it was not
 --   knowable when the trades were placed, and is shown only as a best case.
@@ -27,6 +27,7 @@ declare
   open_delay constant interval := interval '2 seconds';
   close_delay constant interval := interval '5 seconds';
   max_wait constant interval := interval '30 seconds';
+  profit_bar constant numeric := 20;  -- A-book copies a trader only once their closed P&L is MORE than this (owner, 2026-10-19)
   start_bal constant numeric := 50000; day_limit constant numeric := 625; dd_limit constant numeric := 3000;
   assumed_comm constant numeric := 5.5; default_lev constant numeric := 30;
   first_quote timestamptz; since timestamptz; upto timestamptz;
@@ -119,7 +120,7 @@ begin
       cross join lateral (select case when (s.side = 'buy') = (b.book in ('a', 'ap', 'ah')) then 1 else -1 end as dir) d
      where s.reason is null
        and (b.book in ('a', 'b')
-         or (b.book = 'ap' and s.before_pnl > 0) or (b.book = 'ah' and s.total_pnl > 0)
+         or (b.book = 'ap' and s.before_pnl > profit_bar) or (b.book = 'ah' and s.total_pnl > 0)
          or (b.book = 'bp' and s.before_pnl < 0) or (b.book = 'bh' and s.total_pnl <= 0))
   ), sized as (
     select el.*, case when row_number() over (partition by el.book order by el.in_at, el.trade_id) % 2 = 1 then 0.06 else 0.07 end as lots_b from el
@@ -315,7 +316,7 @@ begin
       'commission_assumed_trades', (select count(*) from _bt_src where reason is null and comm_assumed),
       'swaps', 'Not included: E8 publishes no swap rates', 'overnight_copies', overnight,
       'first_e8_price', first_quote,
-      'profit_filter', 'A in profit / B in loss: the trader''s closed P&L on their IPFX accounts before the trade (trades closed at least 2 minutes earlier) is above $0 / below $0; no history or exactly $0 is in neither. Ended in profit / not in profit: the trader''s final result, which is hindsight.'),
+      'profit_filter', 'A more than $20 in profit / B in loss: the trader''s closed P&L on their IPFX accounts before the trade (trades closed at least 2 minutes earlier) is above $20 / below $0; a trader at $20 or less (A) or $0 or more (B), or with no history, is skipped. Ended in profit / not in profit: the trader''s final result, which is hindsight.'),
     'coverage', cov, 'books', books, 'trades', trades_json, 'real_fill_check', cal);
 end $$;
 revoke all on function public.ab_e8_copy_backtest(date, date) from public, anon, authenticated;

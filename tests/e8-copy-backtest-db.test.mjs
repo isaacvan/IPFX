@@ -135,38 +135,39 @@ async function dbProfit() {
   const db = await db0();
   await db.exec(`insert into auth.users values('${U2}','winner@example.invalid');insert into public.trading_accounts values('${ACC2}','infinity','evaluation');`);
   // U1 (db0): T1 buy 10:00 +5, T2 buy 11:00 -60, T3 buy 12:00 0, T4 unpriced +1  -> final result -54 (not in profit).
-  // U2: one winning trade at 13:00 (+20) -> final result +20 (ended in profit), and no history before it.
-  await db.query(`insert into public.trades(account_id,user_id,symbol,side,opened_at,closed_at,pnl,status) values($1,$2,'XAUUSD','buy','2026-10-12T13:00:00Z','2026-10-12T13:10:00Z',20,'closed')`, [ACC2, U2]);
-  await db.query(`insert into public.e8_reference_quotes(account_id,symbol,bid,ask,received_at) values(3,'XAUUSD',4000,4000.4,'2026-10-12T13:00:03Z'),(3,'XAUUSD',4002,4002.4,'2026-10-12T13:10:06Z')`);
+  // U2: W1 at 13:00 (+30, no history before it), then W2 at 15:00 -> final result +30 (ended in profit).
+  await db.query(`insert into public.trades(account_id,user_id,symbol,side,opened_at,closed_at,pnl,status) values($1,$2,'XAUUSD','buy','2026-10-12T13:00:00Z','2026-10-12T13:10:00Z',30,'closed'),($1,$2,'XAUUSD','buy','2026-10-12T15:00:00Z','2026-10-12T15:10:00Z',0,'closed')`, [ACC2, U2]);
+  await db.query(`insert into public.e8_reference_quotes(account_id,symbol,bid,ask,received_at) values(3,'XAUUSD',4000,4000.4,'2026-10-12T13:00:03Z'),(3,'XAUUSD',4002,4002.4,'2026-10-12T13:10:06Z'),(3,'XAUUSD',4010,4010.4,'2026-10-12T15:00:03Z'),(3,'XAUUSD',4012,4012.4,'2026-10-12T15:10:06Z')`);
   return db;
 }
 
-test('A-book copies only traders in profit and B-book reverses only traders in loss, using only what was known at the time', { skip }, async () => {
+test('A-book copies only traders more than $20 in profit and B-book reverses only traders in loss, using only what was known at the time', { skip }, async () => {
   const db = await dbProfit();
   try {
     const r = (await db.query(`select public.ab_e8_copy_backtest('2026-10-12','2026-10-12') r`)).rows[0].r;
     const t = Object.fromEntries(r.trades.filter((x) => x.reason == null).map((x) => [x.opened_at.slice(11, 16), x]));
-    // Closed P&L the trader had BEFORE each trade (2 minute publication lag): T1 0, T2 +5, T3 +5-60 = -55, W1 0 (no history).
-    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => Number(t[k].trader_before)), [0, 5, -55, 0]);
-    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => Number(t[k].trader_total)), [-54, -54, -54, 20]);
-    // In profit when copied: only T2 (the trader was +5). The first trade of every trader is never taken.
-    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => t[k].ap_net != null), [false, true, false, false]);
-    // In loss when reversed: only T3 (the trader was -55). Exactly $0 / no history is in neither.
-    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => t[k].bp_net != null), [false, false, true, false]);
+    // Closed P&L the trader had BEFORE each trade (2 minute publication lag): T1 0, T2 +5, T3 +5-60 = -55, W1 0, W2 +30.
+    const K = ['10:00', '11:00', '12:00', '13:00', '15:00'];
+    assert.deepEqual(K.map((k) => Number(t[k].trader_before)), [0, 5, -55, 0, 30]);
+    assert.deepEqual(K.map((k) => Number(t[k].trader_total)), [-54, -54, -54, 30, 30]);
+    // Copied only when MORE than $20 in profit before the trade: W2 (+30). T2 (+5) is in profit but under the bar; W1 has no history.
+    assert.deepEqual(K.map((k) => t[k].ap_net != null), [false, false, false, false, true]);
+    // In loss when reversed: only T3 (the trader was -55). Exactly $0 / no history / in profit is in neither.
+    assert.deepEqual(K.map((k) => t[k].bp_net != null), [false, false, true, false, false]);
     // Ended in profit / not in profit split every priced trade into exactly one of the two.
-    assert.deepEqual(['10:00', '11:00', '12:00', '13:00'].map((k) => [t[k].ah_net != null, t[k].bh_net != null]), [[false, true], [false, true], [false, true], [true, false]]);
+    assert.deepEqual(K.map((k) => [t[k].ah_net != null, t[k].bh_net != null]), [[false, true], [false, true], [false, true], [true, false], [true, false]]);
     const B = r.books;
-    // ap: T2 alone is that book's first copy, so 0.06 lots (it is 0.07 in the all-traders book): (3900-4000)*100*0.06 - 6*0.06.
-    assert.equal(Number(t['11:00'].ap_lots), 0.06); assert.equal(Number(t['11:00'].a_lots), 0.07);
-    assert.equal(Number(B.ap.summary.net_pnl), -600.36); assert.equal(B.ap.summary.trades, 1); assert.equal(B.ap.e8.breached, false);
-    // ah: only the winner's trade: (4002-4000.4)*100*0.06 - 0.36 = 9.24.
-    assert.equal(Number(B.ah.summary.net_pnl), 9.24); assert.equal(B.ah.summary.trades, 1);
+    // ap: W2 alone is that book's first copy, so 0.06 lots (0.06 here too in the all-traders book is the 5th, so 0.06): (4012-4010.4)*100*0.06 - 0.36.
+    assert.equal(Number(t['15:00'].ap_lots), 0.06);
+    assert.equal(Number(B.ap.summary.net_pnl), 9.24); assert.equal(B.ap.summary.trades, 1); assert.equal(B.ap.e8.breached, false);
+    // ah: both of the winner's trades: W1 0.06 lots 9.24, W2 0.07 lots (4012-4010.4)*100*0.07 - 0.42 = 10.78.
+    assert.equal(Number(B.ah.summary.net_pnl), 20.02); assert.equal(B.ah.summary.trades, 2);
     // bp: T3 reversed, sell at the bid 4000, buy back at the ask 4000.8: -0.8*6 - 0.36 = -5.16.
     assert.equal(Number(B.bp.summary.net_pnl), -5.16); assert.equal(B.bp.summary.trades, 1);
     // bh: all three of U1's priced trades reversed: -17.76 + 693.98 - 5.16.
     assert.equal(Number(B.bh.summary.net_pnl), 671.06); assert.equal(B.bh.summary.trades, 3);
     // The all-traders books still take every priced trade.
-    assert.equal(B.a.summary.trades, 4); assert.equal(B.b.summary.trades, 4);
+    assert.equal(B.a.summary.trades, 5); assert.equal(B.b.summary.trades, 5);
   } finally { await db.close(); }
 });
 
