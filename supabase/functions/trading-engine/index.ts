@@ -380,7 +380,8 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
   // Level 1: in-process Map. Free, but only shared with other requests
   // that happen to land on this exact warm isolate.
   const hit = quoteCache.get(symKey);
-  if (hit && Date.now() - hit.receivedTs < CACHE_TTL_MS) return hit;
+  const hitAge = hit ? Date.now() - hit.receivedTs : NaN;
+  if (hit && hitAge >= 0 && hitAge < CACHE_TTL_MS && quoteClockValid(hit)) return hit;
   const inst = INSTRUMENTS[symKey];
   if (!inst) return null;
 
@@ -394,7 +395,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
     const { data: cached } = await db2.from("live_quotes").select("*").eq("symbol", symKey).maybeSingle();
     if (cached) {
       const ageMs = Date.now() - new Date(cached.received_at).getTime();
-      if (ageMs < CACHE_TTL_MS) {
+      if (ageMs >= 0 && ageMs < CACHE_TTL_MS) {
         const q: Quote = {
           symbol: symKey, mid: Number(cached.mid), bid: Number(cached.bid), ask: Number(cached.ask),
           spread: Number(cached.spread),
@@ -403,8 +404,10 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
           receivedTs: new Date(cached.received_at).getTime(),
           source: cached.source || (FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo"),
         };
-        quoteCache.set(symKey, q);
-        return q;
+        if (quoteClockValid(q)) {
+          quoteCache.set(symKey, q);
+          return q;
+        }
       }
     }
   } catch (_) { /* shared cache is an optimisation, never a hard dependency */ }
@@ -434,7 +437,8 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
   // filling orders or triggering stops. A genuine move is accepted once the
   // last good quote is older than the window.
   const prev = quoteCache.get(symKey) ?? (await lastKnownQuote(symKey));
-  if (prev && prev.mid > 0 && q.receivedTs - prev.receivedTs < BAD_TICK_WINDOW_MS) {
+  if (prev && prev.mid > 0 && quoteClockValid(prev, q.receivedTs)
+    && q.receivedTs - prev.receivedTs >= 0 && q.receivedTs - prev.receivedTs < BAD_TICK_WINDOW_MS) {
     const move = Math.abs(q.mid - prev.mid) / prev.mid;
     if (move > (BAD_TICK_MAX_MOVE[inst.cls] ?? 0.03)) return null;
   }
@@ -467,15 +471,16 @@ async function warmQuotes(force = false): Promise<void> {
     const now = Date.now();
     for (const row of data ?? []) {
       const receivedTs = Date.parse(row.received_at);
-      if (!isFinite(receivedTs) || now - receivedTs >= CACHE_TTL_MS) continue;
+      if (!isFinite(receivedTs) || now - receivedTs < 0 || now - receivedTs >= CACHE_TTL_MS) continue;
       const cur = quoteCache.get(row.symbol);
-      if (cur && cur.receivedTs >= receivedTs) continue;
-      quoteCache.set(row.symbol, {
+      if (cur && quoteClockValid(cur, now) && cur.receivedTs <= now && cur.receivedTs >= receivedTs) continue;
+      const q: Quote = {
         symbol: row.symbol, mid: Number(row.mid), bid: Number(row.bid), ask: Number(row.ask), spread: Number(row.spread),
         providerTs: row.provider_ts ? Date.parse(row.provider_ts) : null, receivedTs,
         feedTs: row.feed_ts ? Date.parse(row.feed_ts) : null, 
         source: row.source || (FXCM_SYMBOLS[row.symbol] ? "fxcm-basic" : "yahoo-demo"),
-      });
+      };
+      if (quoteClockValid(q, now)) quoteCache.set(row.symbol, q);
     }
   } catch (_) { /* optimisation only: fetchQuote still falls back per symbol */ }
 }
@@ -980,6 +985,7 @@ function quoteStale(q: Quote): boolean {
   const cls = INSTRUMENTS[q.symbol]?.cls;
   const limit = cls === "crypto" ? STALE_MS_CRYPTO : cls === "future" ? STALE_MS_FUTURES : STALE_MS;
   const now = Date.now();
+  if (!quoteClockValid(q, now)) return true;
   if ((q.source === "fxcm-basic" || q.source === "tradelocker" || q.source === "ctrader") && q.feedTs != null) {
     // Feed-level liveness first: if nothing in the whole FXCM feed has moved within the limit, fail closed.
     if (now - q.feedTs > limit) return true;
@@ -987,6 +993,14 @@ function quoteStale(q: Quote): boolean {
     return now - refTs > Math.max(limit, SYMBOL_QUIET_MAX_MS);
   }
   return now - refTs > limit;
+}
+function quoteClockValid(q: Quote, now = Date.now()): boolean {
+  // Match the minute of clock allowance in fxcmTimestamp(). The same
+  // validation protects freshness, cache admission and recovery ordering.
+  const refTs = q.providerTs ?? q.receivedTs, clockSkewMs = 60_000;
+  return Number.isFinite(refTs) && Number.isFinite(q.receivedTs)
+    && refTs <= now + clockSkewMs && q.receivedTs <= now + clockSkewMs && refTs <= q.receivedTs + clockSkewMs
+    && (q.feedTs == null || (Number.isFinite(q.feedTs) && q.feedTs <= now + clockSkewMs));
 }
 
 // backward-compatible mid-price accessor for PnL/conversion math

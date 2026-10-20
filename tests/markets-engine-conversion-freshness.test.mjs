@@ -36,6 +36,24 @@ test('invalid conversion sides, midpoint and timestamp never produce a dollar am
   const f=fixture();f.quote('USDJPY',150,patch);assert.equal(await f.c.usdPerQuote('JPY'),null,JSON.stringify(patch));
  }
 });
+test('malformed timestamps cannot make a price usable even with a healthy-looking heartbeat',async()=>{
+ for(const patch of[{providerTs:NaN},{receivedTs:NaN},{source:'ctrader',providerTs:70000,feedTs:NaN},{source:'ctrader',providerTs:70000,feedTs:Infinity}]){
+  const f=fixture();f.quote('USDJPY',150,patch);assert.equal(f.c.quoteStale(f.quotes.get('USDJPY')),true,JSON.stringify(patch));assert.equal(await f.c.usdPerQuote('JPY'),null);
+ }
+});
+test('timestamps beyond the existing one-minute provider clock tolerance cannot grant freshness',async()=>{
+ for(const field of ['providerTs','receivedTs','feedTs']){
+  const f=fixture();f.quote('USDJPY',150,{source:'ctrader',feedTs:100000,[field]:160001});
+  assert.equal(f.c.quoteStale(f.quotes.get('USDJPY')),true,field);assert.equal(await f.c.usdPerQuote('JPY'),null,field);
+ }
+ const f=fixture();f.quote('USDJPY',150,{providerTs:150000,receivedTs:80000});assert.equal(f.c.quoteStale(f.quotes.get('USDJPY')),true,'provider clock compared with original receipt');
+});
+test('timestamp validation preserves null-provider fallback, allowed clock skew and healthy quiet quotes',async()=>{
+ const f=fixture();for(const patch of[{providerTs:null},{providerTs:160000},{source:'ctrader',providerTs:70000,feedTs:99000}]){
+  f.quote('USDJPY',150,patch);assert.equal(f.c.quoteStale(f.quotes.get('USDJPY')),false);assert.equal(await f.c.usdPerQuote('JPY'),1/150);
+ }
+});
+
 test('a stale or missing conversion is unknown P&L, margin and open risk, never zero exposure',async()=>{
  for(const stale of[false,true]){
   const f=fixture();f.quote('EURJPY',161);if(stale)f.quote('USDJPY',150,{providerTs:90000});
