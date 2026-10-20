@@ -1583,7 +1583,7 @@ async function processPendingOrders(
     // the same pattern as the closeTrade fix above.
     const { data: claimed } = await db.from("pending_orders").update({
       status: "filled", fill_price: fill, resolved_at: new Date().toISOString(),
-    }).eq("id", o.id).eq("status", "pending").select("id");
+    }).eq("id", o.id).eq("status", "pending").select("id,oco_group");
     if (!claimed || claimed.length === 0) continue; // lost the race — the other caller fills it
 
     const { data: inserted, error } = await db.from("trades").insert({
@@ -1606,10 +1606,13 @@ async function processPendingOrders(
     await db.from("pending_orders").update({ filled_trade_id: inserted.id }).eq("id", o.id);
     // One-cancels-other: the first leg of an OCO group to fill cancels the rest.
     // (A unique index allows only one 'filled' row per group, so a racing leg can't also fill.)
-    if (o.oco_group) {
+    // The pending snapshot can predate a new OCO link. Use the group on
+    // the row actually claimed, so that older processors cancel new siblings.
+    const claimedGroup = claimed[0].oco_group;
+    if (claimedGroup) {
       await db.from("pending_orders").update({
         status: "cancelled", reject_reason: "OCO: other leg filled", resolved_at: new Date().toISOString(),
-      }).eq("oco_group", o.oco_group).eq("status", "pending").neq("id", o.id);
+      }).eq("oco_group", claimedGroup).eq("account_id", acct.id).eq("status", "pending").neq("id", o.id);
     }
 
     await logAudit(db, {
@@ -3714,14 +3717,21 @@ if (body.action === "sweep") {
 
       // OCO: link this order to an existing resting order; whichever fills first cancels the other.
       let ocoGroup: string | null = null;
-      let ocoLinkId: string | null = null;
       if (body.oco_with) {
-        const { data: link } = await db.from("pending_orders").select("id,oco_group,status,symbol")
-          .eq("id", String(body.oco_with)).eq("account_id", (acct as Acct).id).maybeSingle();
+        const { data: link, error: linkError } = await db.from("pending_orders").select("id,oco_group,status,symbol")
+          .eq("id", String(body.oco_with)).eq("account_id", (acct as Acct).id).eq("user_id", user.id).maybeSingle();
+        if (linkError) return err("Could not check the linked order. Try again after checking pending orders.", 503);
         if (!link || link.status !== "pending") return err("The order you linked is no longer pending", 409);
         if (link.symbol !== symbol) return err("Both OCO orders must be on the same instrument");
         ocoGroup = link.oco_group ?? link.id;
-        ocoLinkId = link.oco_group ? null : link.id;
+        // Group the original BEFORE exposing a new executable leg. Its
+        // status and prior group must still match the snapshot we checked.
+        let linkUpdate = db.from("pending_orders").update({ oco_group: ocoGroup })
+          .eq("id", link.id).eq("account_id", (acct as Acct).id).eq("user_id", user.id).eq("status", "pending");
+        linkUpdate = link.oco_group == null ? linkUpdate.is("oco_group", null) : linkUpdate.eq("oco_group", link.oco_group);
+        const { data: linked, error: linkUpdateError } = await linkUpdate.select("id");
+        if (linkUpdateError) return err("Could not link the order. Check pending orders before retrying.", 503);
+        if (!linked?.length) return err("The linked order changed, filled or was cancelled first. Review pending orders before linking again.", 409);
       }
 
       const { data: created, error: pErr } = await db.from("pending_orders").insert({
@@ -3729,13 +3739,21 @@ if (body.action === "sweep") {
         order_type: orderType, volume, trigger_price: trigger, sl, tp,
         expires_at: expiresAt, oco_group: ocoGroup,
       }).select("*").single();
-      if (pErr) return err("Could not place the order", 500);
-      if (ocoLinkId) {
-        const { data: linked } = await db.from("pending_orders").update({ oco_group: ocoGroup })
-          .eq("id", ocoLinkId).eq("status", "pending").select("id");
-        if (!linked || !linked.length) {
-          await db.from("pending_orders").update({ status: "cancelled", reject_reason: "OCO: linked order filled first", resolved_at: new Date().toISOString() }).eq("id", created.id);
-          return err("The order you linked filled or was cancelled first — the new order was not placed", 409);
+      if (pErr || !created) return err("Could not place the order", 500);
+      if (ocoGroup) {
+        // A winner can finish and cancel its then-existing siblings before
+        // this INSERT commits. Reconcile that gap without rewriting a fill.
+        // A merely claimed leg is not yet a successful trade: its processor
+        // will cancel siblings after linking filled_trade_id.
+        const { data: winner, error: winnerError } = await db.from("pending_orders").select("id")
+          .eq("oco_group", ocoGroup).eq("account_id", (acct as Acct).id).eq("status", "filled")
+          .not("filled_trade_id", "is", null).neq("id", created.id).limit(1).maybeSingle();
+        if (winner || winnerError) {
+          const { data: cancelled, error: cancelError } = await db.from("pending_orders").update({
+            status: "cancelled", reject_reason: winner ? "OCO: other leg filled" : "OCO: status could not be confirmed", resolved_at: new Date().toISOString(),
+          }).eq("id", created.id).eq("account_id", (acct as Acct).id).eq("status", "pending").select("id");
+          if (winner && !cancelError && cancelled?.length) return err("The linked OCO group filled first. The new pending leg was cancelled.", 409);
+          return err("Could not confirm OCO status. Check pending orders, positions and history before retrying.", 503);
         }
       }
       const orderId = await logAudit(db, {
