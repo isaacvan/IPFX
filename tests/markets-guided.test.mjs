@@ -103,6 +103,13 @@ test('an active challenge waits for a quote for the selected market', async () =
   assert.match(msgs.at(-1), /live price for this market/);
 });
 
+test('an incomplete exact stop cannot fall back to an automatic stop and place a trade',async()=>{
+ const f=page({mount:true});f.tick();f.els.gtExact.onclick();f.els.slPrice.value='';f.els.slPrice.validity={badInput:true};f.events.input();
+ await f.ctx.placeOrder('buy');assert.equal(f.sent.length,0);assert.match(f.msgs.at(-1),/valid|finish|stop/i);
+ f.els.slPrice.validity.badInput=false;f.els.slPrice.value='1.121';f.events.input();await f.ctx.placeOrder('buy');
+ assert.equal(f.sent.length,1);assert.equal(f.sent[0].sl,1.121);
+});
+
 test('orders are held back with the reason when a check fails', async () => {
   for (const [opts, why] of [[{ fresh: false }, /Prices reconnecting/], [{ capMsg: 'Daily profit cap reached' }, /Daily profit cap/], [{ cap: 0.2 }, /needs more than your current risk limit/]]) {
     const { ctx, sent, msgs } = page(opts);

@@ -116,6 +116,21 @@ test('a pending acknowledgement cannot erase a newly edited different-market tic
  assert.equal(nodes.triggerPrice.value,'2700');assert.equal(nodes.pendOco.value,'new-order');assert.match(messages.at(-1),/BUY limit 0.02 EURUSD/);
 });
 
+test('classic market and pending entry refuse unfinished and invalid active stop/target fields',async()=>{
+ for(const orderType of ['market','limit'])for(const field of ['slPrice','tpPrice'])for(const value of ['','-1','0','Infinity','1.12suffix']){
+  const calls=[],messages=[],nodes={ruleCriticalDialog:{open:false},slPrice:{value:'1.12'},tpPrice:{value:'1.13'},triggerPrice:{value:'1.125'},pendOco:{value:''}};
+  nodes[field]={value,validity:{badInput:value===''}};
+  const c=vm.createContext({activeSym:'EURUSD',ordLots:.02,engineBusy:false,slOn:true,tpOn:true,orderType,crypto:{randomUUID:()=> 'synthetic-order'},
+   document:{getElementById:id=>nodes[id],querySelector:()=>null},pendingExpiryIso:()=>null,
+   blockInfinityTradeAttempt:()=>false,stageRulesBlockEntry:()=>false,dailyCapMessage:()=>null,feedFresh:()=>true,
+   execSymbol:s=>s,engineMsg:m=>messages.push(m),engineCall:async p=>{calls.push(p);return null;}});
+  vm.runInContext(section('async function placeOrder(side){','async function cancelPending('),c);
+  await c.placeOrder('buy');assert.equal(calls.length,0,`${orderType} ${field} ${value}`);assert.match(messages[0],/valid positive/);assert.equal(c.engineBusy,false);
+  nodes[field].value=field==='slPrice'?'1.12':'1.13';nodes[field].validity.badInput=false;
+  await c.placeOrder('buy');assert.equal(calls.length,1);assert.equal(calls[0].sl,1.12);assert.equal(calls[0].tp,1.13);
+ }
+});
+
 test('spot SL/TP steppers retain quote precision and move exactly one displayed tick',()=>{
  for(const [symbol,digits,price,expected] of[['EURUSD',5,'1.10000','1.10001'],['USDJPY',3,'150.123','150.124'],['XAGUSD',3,'31.123','31.124'],['XAUUSD',2,'2700.12','2700.13'],['DJI',0,'41000','41001']]){
   const nodes=new Map(),node=id=>{if(!nodes.has(id))nodes.set(id,{value:price,classList:{add(){},toggle(){}},dispatchEvent(){}});return nodes.get(id);};

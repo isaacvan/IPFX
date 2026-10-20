@@ -5202,8 +5202,15 @@ async function placeOrder(side){
   if(engineBusy)return;
   if(typeof feedFresh==='function'&&!feedFresh()){engineMsg('Market data is stale — orders are paused until the feed recovers.');return;}
 
-  const sl=slOn?parseFloat(document.getElementById('slPrice').value):NaN;
-  const tp=tpOn?parseFloat(document.getElementById('tpPrice').value):NaN;
+  for(const [enabled,id,label] of [[slOn,'slPrice','stop loss'],[tpOn,'tpPrice','take profit']]){
+    if(!enabled)continue;
+    const field=document.getElementById(id),value=field.value.trim();
+    if(field.validity?.badInput||(value!==''&&(!Number.isFinite(Number(value))||Number(value)<=0))){
+      engineMsg('Enter a valid positive '+label+' price before submitting.');return;
+    }
+  }
+  const sl=slOn&&document.getElementById('slPrice').value.trim()!==''?Number(document.getElementById('slPrice').value):NaN;
+  const tp=tpOn&&document.getElementById('tpPrice').value.trim()!==''?Number(document.getElementById('tpPrice').value):NaN;
 
   // Limit/stop go on the book instead of filling now.
   if(orderType!=='market'){
@@ -5432,13 +5439,13 @@ function openModifyDialog(id){
 function openPartialDialog(id){
   const t=omFindTrade(id); if(!t)return;
   omStart(id,'partial');
-  const vol=+t.volume;
+  const vol=+t.volume,future=typeof futSym==='function'&&!!futSym(t.symbol);
   document.getElementById('omTitle').textContent='Partial close';
   document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${vol.toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
-  document.getElementById('omF1Label').textContent='Lots to close';
-  document.getElementById('omF1').value=(Math.max(0.01,Math.floor(vol/2*100)/100)).toFixed(2);
+  document.getElementById('omF1Label').textContent=future?'Contracts to close':'Lots to close';
+  document.getElementById('omF1').value=future?String(Math.max(1,Math.floor(vol/2))):(Math.max(0.01,Math.floor(vol/2*100)/100)).toFixed(2);
   document.getElementById('omF2Wrap').style.display='none';
-  document.getElementById('omHint').textContent=`Position is ${vol.toFixed(2)} lots. Both the closed slice and the remainder must be at least 0.01.`;
+  document.getElementById('omHint').textContent=future?`Position is ${vol} contracts. Close whole contracts and leave at least one open.`:`Position is ${vol.toFixed(2)} lots. Both the closed slice and the remainder must be at least 0.01.`;
   document.getElementById('omGo').textContent='Close part';
   omError(null);
   document.getElementById('omDlg').classList.add('open');
@@ -5464,23 +5471,28 @@ async function omSubmit(){
   if(!omCurrent(context)){omError('The account changed. Reopen this position before continuing.');return;}
   const t=omFindTrade(id);
   if(!t){omError('That position is no longer open.');return;}
-  const v1=document.getElementById('omF1').value.trim();
-  const v2=document.getElementById('omF2').value.trim();
+  const f1=document.getElementById('omF1'),f2=document.getElementById('omF2');
+  const v1=f1.value.trim(),v2=f2.value.trim();
+  if(f1.validity?.badInput||(mode==='modify'&&f2.validity?.badInput)){
+    omError('Finish entering a valid number before submitting.');return;
+  }
   let payload;
 
   if(mode==='trail'){
-    const d=v1===''?null:parseFloat(v1);
+    const d=v1===''?null:Number(v1);
     if(d!==null&&(!isFinite(d)||d<=0)){omError('Enter a positive distance, or leave it blank to switch trailing off.');return;}
     payload={action:'set_trailing',trade_id:omTradeId,distance:d};
   }else if(mode==='partial'){
-    const vol=parseFloat(v1);
-    if(!isFinite(vol)||vol<0.01){omError('Enter at least 0.01 lots.');return;}
+    const vol=Number(v1),future=typeof futSym==='function'&&!!futSym(t.symbol),minimum=future?1:0.01;
+    if(!isFinite(vol)||vol<minimum){omError(future?'Enter at least one whole contract.':'Enter at least 0.01 lots.');return;}
+    if(future?!Number.isInteger(vol):Math.abs(vol*100-Math.round(vol*100))>1e-8){omError(future?'Use whole contracts.':'Use 0.01 lot increments.');return;}
     if(vol>=+t.volume){omError('That is the whole position — use Close instead.');return;}
-    if(+(+t.volume-vol).toFixed(2)<0.01){omError('The remainder would be under 0.01 lots.');return;}
+    if(+(+t.volume-vol).toFixed(2)<minimum){omError(future?'Leave at least one whole contract open.':'The remainder would be under 0.01 lots.');return;}
     payload={action:'partial_close',trade_id:omTradeId,volume:vol};
   }else{
     if(v1===''&&v2===''){omError('Set a stop loss or a take profit.');return;}
-    payload={action:'modify',trade_id:omTradeId,sl:v1===''?null:parseFloat(v1),tp:v2===''?null:parseFloat(v2)};
+    if([v1,v2].some(v=>v!==''&&(!Number.isFinite(Number(v))||Number(v)<=0))){omError('Enter valid positive stop-loss and take-profit prices.');return;}
+    payload={action:'modify',trade_id:omTradeId,sl:v1===''?null:Number(v1),tp:v2===''?null:Number(v2)};
   }
 
   const go=document.getElementById('omGo');
@@ -7377,7 +7389,7 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
-<script src="/assets/js/markets-guided.js?v=20261019b"></script>
+<script src="/assets/js/markets-guided.js?v=20261020a"></script>
 
 <dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
   <h2 id="stageRulesTitle" tabindex="-1">Your rules: things to know</h2>

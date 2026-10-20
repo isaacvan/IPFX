@@ -11,8 +11,11 @@ const slice=(a,b)=>html.slice(html.indexOf(a),html.indexOf(b,html.indexOf(a)));
 const enabled=Boolean(process.env.MARKETS_BROWSER_TEST);
 const dependency=process.env.E8_PLAYWRIGHT||path.join(process.env.USERPROFILE||'','.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 async function fixture(){
+ const trace=step=>{if(process.env.MARKETS_BROWSER_TRACE)process.stdout.write(`${new Date().toISOString()} browser fixture: ${step}\n`);};
  const {chromium}=require(dependency);
+ trace('launch');
  const browser=await chromium.launch({headless:true,executablePath:process.env.E8_CHROME||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ trace('launched');
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],requests=[];
   page.setDefaultTimeout(10000);
@@ -24,6 +27,7 @@ async function fixture(){
    return route.abort();
   });
   await page.goto('https://markets-fixture.invalid/trading.html');
+  trace('synthetic HTML loaded');
   await page.exposeFunction('syntheticEngine',async body=>{requests.push(body);return{ok:true,account:{id:'synthetic-demo',is_demo:false,status:'active',challenge_type:'infinity',limits:{require_stop_loss:true,max_risk_per_trade_usd:5}},open_trades:body.action==='open'?[{id:'synthetic-trade',side:body.side,symbol:body.symbol,opened_at:'2026-10-20T00:00Z',open_price:body.side==='buy'?1.1227:1.1226}]:[]};});
   await page.addScriptTag({content:`
    var activeSym='EURUSD',ordLots=.01,orderType='market',slOn=false,tpOn=false,engineBusy=false,domDigits=5,ordMidPrice=1.12265,FUT_SPECS={};
@@ -50,6 +54,7 @@ async function fixture(){
   `});
   await page.addScriptTag({content:read('assets/js/markets-guided.js')});
   await page.locator('#gtCard:not([hidden])').waitFor({timeout:30000});
+  trace('ticket ready');
   return{page,browser,errors,requests};
  }catch(error){await browser.close();throw error;}
 }
@@ -125,6 +130,28 @@ test('real tour and native dialogs suppress enabled trading shortcuts, while dis
   await f.page.keyboard.press('Shift+B');await f.page.waitForFunction(()=>messages.some(m=>m.includes('filled')),null,{timeout:10000});
   assert.equal(f.requests.length,1);assert.equal(f.requests[0].action,'open');assert.equal(f.requests[0].side,'buy');
   assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close();}
+});
+
+test('native unfinished numbers cannot remove stops, disable trailing or silently change a partial slice',{skip:!enabled,timeout:Number(process.env.MARKETS_BROWSER_TIMEOUT||60000)},async()=>{
+ const f=await fixture();try{
+  await f.page.evaluate(()=>{engineState.open_trades=[{id:'synthetic-position',side:'buy',symbol:'EURUSD',volume:.1,open_price:1.1227,sl:1.12,tp:1.13,trail_distance:.002}];});
+  for(const open of ['openModifyDialog','openTrailDialog']){
+   await f.page.evaluate(name=>window[name]('synthetic-position'),open);
+   await f.page.locator('#omF1').fill('');await f.page.locator('#omF1').pressSequentially('1e');
+   assert.equal(await f.page.locator('#omF1').evaluate(el=>el.validity.badInput),true);
+   await f.page.locator('#omGo').click();assert.equal(f.requests.length,0);assert.match(await f.page.locator('#omErr').innerText(),/valid number/);
+  }
+  await f.page.evaluate(()=>openPartialDialog('synthetic-position'));await f.page.locator('#omF1').fill('0.015');
+  await f.page.locator('#omGo').click();assert.equal(f.requests.length,0);assert.match(await f.page.locator('#omErr').innerText(),/0\.01 lot increments/);
+  await f.page.locator('#omF1').fill('0.05');await f.page.locator('#omGo').click();
+  await f.page.waitForFunction(()=>messages.includes('Partial close filled'));assert.equal(f.requests.length,1);assert.equal(f.requests[0].volume,.05);
+  await f.page.locator('#gtExact').click();await f.page.locator('#slPrice').fill('');await f.page.locator('#slPrice').pressSequentially('1e');
+  assert.equal(await f.page.locator('#slPrice').evaluate(el=>el.validity.badInput),true);
+  await f.page.locator('#tab-order .op-exec-buy').click({force:true});assert.equal(f.requests.length,1);assert.match(await f.page.evaluate(()=>messages.at(-1)),/valid stop price/);
+  await f.page.locator('#slPrice').fill('1.121');await f.page.locator('#tab-order .op-exec-buy').click();
+  await f.page.waitForFunction(()=>messages.some(m=>m.includes('filled')&&!m.includes('Partial')));
+  assert.equal(f.requests.length,2);assert.equal(f.requests[1].sl,1.121);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close();}
 });
 

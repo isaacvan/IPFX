@@ -78,3 +78,32 @@ test('valid modify, trailing off and partial payloads retain existing action sem
   {action:'partial_close',trade_id:'one',volume:.05}]);
  assert.equal(f.c.engineBusy,false);assert.equal(f.node('omGo').disabled,false);
 });
+
+test('incomplete numeric input cannot remove an existing stop or disable trailing',async()=>{
+ for(const open of['openModifyDialog','openTrailDialog']){
+  const f=fixture();f.c[open]('one');f.node('omF1').value='';f.node('omF1').validity={badInput:true};await f.c.omSubmit();
+  assert.equal(f.calls.length,0,open);assert.match(f.node('omErr').textContent,/valid|finish/i);
+ }
+ const f=fixture();f.c.openModifyDialog('one');f.node('omF2').value='';f.node('omF2').validity={badInput:true};await f.c.omSubmit();assert.equal(f.calls.length,0);
+});
+test('partial-close quantities cannot be silently rounded to a different slice',async()=>{
+ for(const value of['0.015','0.019','0.0501']){
+  const f=fixture();f.c.openPartialDialog('one');f.node('omF1').value=value;await f.c.omSubmit();
+  assert.equal(f.calls.length,0,value);assert.match(f.node('omErr').textContent,/0\.01|increment/i);
+ }
+});
+test('management rejects nonfinite or nonpositive nonblank levels before sending',async()=>{
+ for(const value of['-1','0','Infinity','1.12suffix']){
+  const f=fixture();f.c.openModifyDialog('one');f.node('omF1').value=value;await f.c.omSubmit();assert.equal(f.calls.length,0,value);
+ }
+});
+test('futures partial close uses whole contracts and a whole-contract default',async()=>{
+ const f=fixture();f.c.futSym=s=>s==='CME:ES'?'ES':null;f.c.engineState.open_trades[0].symbol='CME:ES';f.c.engineState.open_trades[0].volume=3;
+ f.c.openPartialDialog('one');assert.equal(f.node('omF1').value,'1');assert.match(f.node('omF1Label').textContent,/contracts/i);
+ f.node('omF1').value='1.5';await f.c.omSubmit();assert.equal(f.calls.length,0);
+ f.node('omF1').value='1';await f.c.omSubmit();assert.equal(f.calls.length,1);assert.equal(f.calls[0].volume,1);
+});
+test('ordinary decimal slices remain accepted and hidden unused fields do not block them',async()=>{
+ const f=fixture();f.c.engineState.open_trades[0].volume=.58;f.c.openPartialDialog('one');f.node('omF1').value='.29';
+ f.node('omF2').validity={badInput:true};await f.c.omSubmit();assert.equal(f.calls.length,1);assert.equal(f.calls[0].volume,.29);
+});

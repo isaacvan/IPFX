@@ -51,15 +51,16 @@
 
   // ---- checks shown above Buy/Sell ----
   function checks(side = null) {
-    const a = acct(), q = quote(), typed = parseFloat($('slPrice')?.value);
+    const a = acct(), q = quote(), field = $('slPrice'), typed = Number(field?.value);
     const entry = side === 'buy' ? q?.ask : side === 'sell' ? q?.bid : null;
     const manual = manualStopPrice && side != null;
+    const invalidInput = !!field?.validity?.badInput;
     const validSide = !manual || (Number.isFinite(typed) && typed > 0 && (side === 'buy' ? typed < entry : typed > entry));
     const d = manual && validSide ? Math.abs(entry - typed) : dist();
     const max = lotsFor(d), lots = useLots(max), p = perLot(d), c = cap();
     const out = [];
-    out.push({ ok: !!q && validSide && d > 0 && d >= minDist(), text: d > 0 ? `Stop ${(d / pipSize()).toFixed(1)} ${unit()} away` : 'Set a stop distance',
-      why: !q ? 'Waiting for a live price for this market' : !validSide ? `For ${side}, set a stop on the loss side of the entry price` : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too close to price for the broker' });
+    out.push({ ok: !invalidInput && !!q && validSide && d > 0 && d >= minDist(), text: d > 0 ? `Stop ${(d / pipSize()).toFixed(1)} ${unit()} away` : 'Set a stop distance',
+      why: invalidInput ? 'Finish entering a valid stop price before submitting.' : !q ? 'Waiting for a live price for this market' : !validSide ? `For ${side}, set a stop on the loss side of the entry price` : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too close to price for the broker' });
     const risk = lots && p ? lots * p : null;
     out.push({ ok: max != null && max >= 0.01, text: risk != null && lots >= 0.01 ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(2)} lots` : 'Risk', why: p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
     const fresh = typeof feedFresh !== 'function' || feedFresh();
@@ -125,7 +126,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     });
     $('gtStop').addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (v > 0) { stopPips = v; manualStopPrice = false; $('slPrice').value = ''; } refresh(); });
     $('gtExact').onclick = () => { if (!slOn) toggleSLTP('sl'); $('slPrice').focus(); };
-    const sl = $('slPrice'); if (sl) sl.addEventListener('input', () => { manualStopPrice = sl.value.trim() !== ''; refresh(); });
+    const sl = $('slPrice'); if (sl) sl.addEventListener('input', () => { manualStopPrice = sl.value.trim() !== '' || !!sl.validity?.badInput; refresh(); });
   }
   let lastSym = typeof activeSym === 'undefined' ? null : activeSym;
   function refresh() {
@@ -144,7 +145,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     const chips = c ? [1, 2.5].filter((v) => v < c).map((v) => ({ k: String(v), t: usd(v) })).concat([{ k: 'max', t: 'Max ' + usd(c) }]) : [];
     $('gtChips').innerHTML = chips.map((x) => `<button type="button" data-gt="risk:${x.k}" class="${String(riskChoice) === x.k ? 'on' : ''}">${x.t}</button>`).join('');
     syncUser();
-    const q = quote(), typed = parseFloat($('slPrice')?.value);
+    const q = quote(), typed = Number($('slPrice')?.value);
     const manualSide = manualStopPrice && q && Number.isFinite(typed) && typed > 0
       ? typed < q.bid ? 'buy' : typed > q.ask ? 'sell' : null : null;
     const sizingDist = manualStopPrice ? manualSide ? Math.abs((manualSide === 'buy' ? q.ask : q.bid) - typed) : null : d;
@@ -170,7 +171,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
       const bad = checks(side).find((x) => !x.ok);
       if (bad) { engineMsg(bad.why); return; }
       const slField = $('slPrice');
-      const typed = parseFloat(slField && slField.value);
+      const typed = Number(slField && slField.value);
       const stop = manualStopPrice ? typed : stopFor(side);
       syncUser();
       const max = lotsFor(Math.abs((side === 'buy' ? quote()?.ask ?? mid() : quote()?.bid ?? mid()) - stop)), lots = useLots(max);
