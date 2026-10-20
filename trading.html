@@ -5583,16 +5583,36 @@ function execSymbol(raw){
   const aliases={US500:'SPXUSD',SPX500:'SPXUSD',NAS100:'NSXUSD',US30:'DJI'};
   return aliases[s]||s;
 }
+function validClientQuote(q){
+  return !!q&&Number.isFinite(q.bid)&&Number.isFinite(q.ask)&&q.bid>0&&q.ask>=q.bid;
+}
+function clientQuoteFresh(q){
+  const age=q?Date.now()-q.receivedAt:Infinity;
+  return validClientQuote(q)&&Number.isFinite(age)&&age>=0&&age<STALE_MS;
+}
 function cacheLiveQuote(q){
-  if(!q||!isFinite(q.bid)||!isFinite(q.ask)||q.status==='stale'||q.status==='closed'||q.status==='no_feed')return;
-  const symbol=execSymbol(q.symbol||activeSym);
-  liveQuotesBySymbol.set(symbol,{symbol:symbol,bid:+q.bid,ask:+q.ask,mid:isFinite(q.mid)?+q.mid:(+q.bid+ +q.ask)/2,spread:isFinite(q.spread)?+q.spread:(+q.ask- +q.bid),digits:q.digits,receivedAt:Date.now()});
+  if(!q)return false;
+  const symbol=execSymbol(q.symbol||activeSym),previous=liveQuotesBySymbol.get(symbol);
+  const watermarks=cacheLiveQuote.watermarks||(cacheLiveQuote.watermarks=new Map()),previousTs=watermarks.get(symbol)??previous?.sourceTs;
+  const sourceTs=Number.isFinite(q.received_ts)?q.received_ts:Number.isFinite(q.rt)?q.rt:null;
+  if(sourceTs!=null&&previousTs!=null&&sourceTs<previousTs)return false;
+  if(sourceTs!=null)watermarks.set(symbol,sourceTs);
+  if(!validClientQuote(q)||(q.status!=null&&!['live','demo'].includes(q.status))){liveQuotesBySymbol.delete(symbol);return false;}
+  liveQuotesBySymbol.set(symbol,{symbol,bid:q.bid,ask:q.ask,mid:(q.bid+q.ask)/2,spread:q.ask-q.bid,digits:q.digits,sourceTs:sourceTs??previousTs??null,receivedAt:Date.now()});
+  return true;
+}
+function clientConversionPair(currency){
+  return ({JPY:'USDJPY',CAD:'USDCAD',CHF:'USDCHF',GBP:'GBPUSD',EUR:'EURUSD'})[currency]||null;
+}
+function clientConversionSymbols(){
+  return [...new Set([activeSym,...((engineState&&engineState.open_trades)||[]).map(t=>t.symbol)]
+    .map(symbol=>clientConversionPair(symMeta(symbol).quoteCurrency)).filter(Boolean))];
 }
 function clientUsdPerQuote(quoteCurrency){
   if(!quoteCurrency||quoteCurrency==='USD')return 1;
-  const pair=quoteCurrency==='JPY'?'USDJPY':quoteCurrency==='CAD'?'USDCAD':quoteCurrency==='CHF'?'USDCHF':quoteCurrency==='GBP'?'GBPUSD':quoteCurrency==='EUR'?'EURUSD':null;
+  const pair=clientConversionPair(quoteCurrency);
   const q=pair?liveQuotesBySymbol.get(pair):null;
-  if(!q||!isFinite(q.mid)||q.mid<=0)return null;
+  if(!clientQuoteFresh(q))return null;
   return quoteCurrency==='GBP'||quoteCurrency==='EUR'?q.mid:1/q.mid;
 }
 function refreshClientMarks(){
@@ -5601,7 +5621,7 @@ function refreshClientMarks(){
   open.forEach(function(p){
     const q=liveQuotesBySymbol.get(execSymbol(p.symbol));
     let pnl=p.live_pnl==null?null:+p.live_pnl;
-    if(q){
+    if(clientQuoteFresh(q)){
       const meta=symMeta(p.symbol);
       const conv=clientUsdPerQuote(meta.quoteCurrency);
       const mark=p.side==='buy'?q.bid:q.ask;
@@ -6126,15 +6146,12 @@ setInterval(()=>{
   if(Date.now()-lastStateAt>=every){acctPending=false;engineCall({action:'state'});}
 },1000);
 function updateOrdPrices(value){
-  const q=(value&&typeof value==='object')?value:{mid:+value};
-  const mid=+q.mid;
-  if(!isFinite(mid))return;
+  const q=value;
+  if(!q||execSymbol(q.symbol||activeSym)!==execSymbol(activeSym)||!cacheLiveQuote(q))return false;
+  const mid=(q.bid+q.ask)/2;
   ordMidPrice=mid;
   if(Number.isInteger(q.digits))domDigits=q.digits;
-  const fallbackSpread=domDigits<=2?0.5:domDigits<=3?0.03:0.0002;
-  const ask=isFinite(q.ask)?+q.ask:mid+fallbackSpread/2;
-  const bid=isFinite(q.bid)?+q.bid:mid-fallbackSpread/2;
-  const spread=isFinite(q.spread)?+q.spread:ask-bid;
+  const ask=q.ask,bid=q.bid,spread=ask-bid;
   const digits=Math.max(0,Math.min(6,domDigits||2));
   const fmt=function(v){return v.toFixed(digits);};
   const ap=document.getElementById('ord-ask-price');
@@ -6157,10 +6174,10 @@ function updateOrdPrices(value){
   const balance=engineState&&engineState.account?+engineState.account.equity:10000;
   const mEl=document.getElementById('op-margin');
   if(mEl)mEl.textContent='~$'+margin.toFixed(2)+' ('+(balance>0?margin/balance*100:0).toFixed(2)+'%)';
-  cacheLiveQuote(Object.assign({},q,{symbol:q.symbol||activeSym,bid:bid,ask:ask,mid:mid,spread:spread,digits:digits}));
   refreshClientMarks();
   updatePnlPreview();
   if(typeof updateSltpReadouts==='function')updateSltpReadouts();
+  return true;
 }
 // Real quote for the active instrument, from the engine's price feed.
 // Between polls we leave the last real price (animateDom keeps the ladder
@@ -6169,7 +6186,7 @@ let priceFetchBusy=false;
 // ── FEED STATUS + STALE DETECTION (fail-closed execution) ──
 // Quotes come from the server-side single-source gateway. Order buttons
 // are disabled whenever the last genuine provider quote is stale.
-let lastQuoteTs=0, feedState='connecting';
+let lastQuoteTs=0,lastQuoteSym=null, feedState='connecting';
 const STALE_MS=6000; // client-side guard; normal poll cadence is 750 ms
 function setFeed(state,label){
   feedState=state;
@@ -6186,7 +6203,11 @@ function setFeed(state,label){
   if(typeof ipfxChart!=='undefined'&&ipfxChart)ipfxChart.refreshLegend();
   syncTicketStatus();
 }
-function feedFresh(){ return lastQuoteTs>0 && (Date.now()-lastQuoteTs)<STALE_MS; }
+function feedFresh(){
+  const age=Date.now()-lastQuoteTs;
+  return ['live','demo'].includes(feedState)&&lastQuoteSym===execSymbol(activeSym)&&lastQuoteTs>0&&age>=0&&age<STALE_MS
+    &&clientQuoteFresh(liveQuotesBySymbol.get(execSymbol(activeSym)));
+}
 function applyFeedGate(){
   // Keep the buttons clickable so an attempted order explains the stale feed.
   // placeOrder() still rejects before sending anything to the engine.
@@ -6250,7 +6271,7 @@ async function connectHub(){
 }
 function hubLive(){return hubOk&&Date.now()-hubLastMsg<8000;}
 function hubSymbols(){
-  const s=new Set([execSymbol(activeSym)]);
+  const s=new Set([execSymbol(activeSym),...clientConversionSymbols()]);
   try{if(typeof wlEntries==='function')for(const i of wlEntries())s.add(execSymbol(i.sym));}catch(_){}
   return [...s].filter(Boolean).slice(0,60);
 }
@@ -6261,12 +6282,12 @@ function syncHubSubs(){
   hubSubsKey=key;hubWs.send(JSON.stringify({t:'sub',s:syms}));
 }
 function onHubQuote(p){
-  if(!p||!isFinite(p.b)||!isFinite(p.a))return;
+  if(!p||!validClientQuote({bid:p.b,ask:p.a}))return;
   if(p.s===execSymbol(activeSym))onPushedQuote({s:p.s,b:p.b,a:p.a,m:isFinite(p.m)?p.m:(p.b+p.a)/2,sp:p.sp,d:p.d,rt:p.rt});
+  if(!cacheLiveQuote({symbol:p.s,mid:p.m,bid:p.b,ask:p.a,spread:p.sp,digits:p.d,status:'live',rt:p.rt}))return;
   const d=Number.isInteger(p.d)?p.d:5,bidEl=document.getElementById('wlb-'+p.s),askEl=document.getElementById('wla-'+p.s);
   if(bidEl&&typeof flashWlCell==='function')flashWlCell(bidEl,p.b.toFixed(d));
   if(askEl&&typeof flashWlCell==='function')flashWlCell(askEl,p.a.toFixed(d));
-  if(typeof cacheLiveQuote==='function')cacheLiveQuote({symbol:p.s,mid:p.m,bid:p.b,ask:p.a,spread:p.sp,digits:p.d,status:'live'});
 }
 // ---- realtime quote push ----
 // The server's quote pump broadcasts every price change on a private channel per symbol. The platform
@@ -6294,17 +6315,17 @@ async function ensureQuoteStream(){
   }finally{rtQuoteBusy=false;}
 }
 function onPushedQuote(p){
-  if(!p||p.s!==execSymbol(activeSym)||!isFinite(p.m)||!isFinite(p.b)||!isFinite(p.a))return;
+  if(!p||p.s!==execSymbol(activeSym)||!validClientQuote({bid:p.b,ask:p.a}))return;
   if(feedState==='closed'||pollsPaused())return;
   if(p.rt&&p.rt<=quoteAppliedRt)return;
-  quoteAppliedRt=p.rt||Date.now();
+  const q={symbol:p.s,mid:(p.b+p.a)/2,bid:p.b,ask:p.a,spread:p.a-p.b,digits:p.d,status:'live',rt:p.rt};
+  if(!updateOrdPrices(q))return;
+  quoteAppliedRt=p.rt||quoteAppliedRt;
   lastPushedQuoteAt=Date.now();
   if(Number.isInteger(p.d))domDigits=p.d;
-  domPrice=p.m;lastQuoteTs=Date.now();
-  const q={symbol:p.s,mid:p.m,bid:p.b,ask:p.a,spread:p.sp,digits:p.d,status:'live'};
-  updateOrdPrices(q);
-  if(ipfxChart)ipfxChart.onQuote(p.m,p.b,p.a);
-  if(typeof cacheLiveQuote==='function')cacheLiveQuote(q);
+  domPrice=q.mid;lastQuoteTs=Date.now();lastQuoteSym=p.s;
+  setFeed('live');
+  if(ipfxChart)ipfxChart.onQuote(q.mid,p.b,p.a);
 }
 async function pollTicketPrice(){
   connectHub();syncHubSubs();
@@ -6314,38 +6335,47 @@ async function pollTicketPrice(){
   const polledSym=activeSym;
   // Never let one slow request freeze the price: give up after 2.5s and poll again (a hung request used to
   // block polling until it finished, so the ticket flipped STALE then LIVE).
-  const tok=await Promise.race([freshToken(),new Promise(r=>setTimeout(()=>r(null),2500))]);
-  if(tok){
-    try{
-      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:activeSym,enforce_risk:true,rt:!hubLive()}),signal:AbortSignal.timeout(2500)});
+  try{
+    const tok=await Promise.race([freshToken(),new Promise(r=>setTimeout(()=>r(null),2500))]);
+    if(!tok||polledSym!==activeSym)return;
+      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:polledSym,enforce_risk:true,rt:!hubLive()}),signal:AbortSignal.timeout(2500)});
       const j=await r.json().catch(()=>null);
-      if(polledSym!==activeSym){priceFetchBusy=false;pollTicketPrice();return;}
+      if(polledSym!==activeSym)return;
+      if(j?.symbol&&execSymbol(j.symbol)!==execSymbol(polledSym))return;
       if(j&&j.risk_status&&j.risk_status.status==='breached'&&!engineBusy){
         engineCall({action:'state'});
       }
+      if(Number.isFinite(j?.received_ts)&&j.received_ts<quoteAppliedRt)return;
       if(j&&j.ok&&j.status==='closed'){
+        cacheLiveQuote(j);
         domDigits=j.digits;
         setFeed('closed','MARKET CLOSED');
       }else if(j&&j.ok&&j.status==='no_feed'){
+        cacheLiveQuote(j);
         setFeed('closed','NO FEED');
-      }else if(j&&j.ok&&isFinite(j.mid)){
+      }else if(j&&j.ok&&j.status==='stale'){
+        cacheLiveQuote(j);setFeed('stale');
+      }else if(j&&j.ok&&['live','demo'].includes(j.status)&&validClientQuote(j)){
         domDigits=j.digits;
-        lastQuoteTs=Date.now();
         if(!(j.received_ts&&j.received_ts<quoteAppliedRt)){
-          quoteAppliedRt=j.received_ts||quoteAppliedRt;
-          domPrice=j.mid;
-          updateOrdPrices(j);
-          if(ipfxChart&&polledSym===activeSym&&j.status!=='stale')ipfxChart.onQuote(j.mid,j.bid,j.ask);
+          if(updateOrdPrices(j)){
+            quoteAppliedRt=j.received_ts||quoteAppliedRt;
+            domPrice=(j.bid+j.ask)/2;lastQuoteTs=Date.now();lastQuoteSym=execSymbol(polledSym);
+            setFeed(j.status);
+            if(ipfxChart)ipfxChart.onQuote(domPrice,j.bid,j.ask);
+          }
         }
         // engine reports its own status ('live', 'demo', or 'stale') based on the
         // provider tick age — trust that over our own poll cadence.
-        setFeed(j.status==='stale'?'stale':j.status==='live'?'live':'demo');
       }else{
+        if(j&&j.ok){cacheLiveQuote(j);setFeed('stale');}
         if(!feedFresh())setFeed(lastQuoteTs?'stale':'closed');
       }
-    }catch(e){ if(e&&e.name!=='TimeoutError'&&!feedFresh())setFeed('stale'); }
+  }catch(e){ if(!feedFresh())setFeed('stale'); }
+  finally{
+    priceFetchBusy=false;
+    if(polledSym!==activeSym)pollTicketPrice();
   }
-  priceFetchBusy=false;
 }
 // continuously re-evaluate staleness even if a poll is in flight
 setInterval(()=>{ if(hasSession()&&!feedFresh()&&feedState!=='closed')setFeed(lastQuoteTs?'stale':'connecting'); },1000);
@@ -6659,8 +6689,8 @@ const WL_DATA={
 function clearOrdPrices(){
   ['ord-ask-price','ord-bid-price','op-ask-val','op-bid-val'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
   const m=document.getElementById('op-margin');if(m)m.textContent='—';
-  ordMidPrice=0;lastQuoteTs=0;
-  applyFeedGate();
+  ordMidPrice=0;lastQuoteTs=0;lastQuoteSym=null;quoteAppliedRt=0;
+  setFeed('connecting');
 }
 function changeInstrument(sym){
   if(sym!==activeSym)clearOrdPrices();
@@ -6760,28 +6790,28 @@ function flashWlCell(el,newText){
 }
 let lastWlPoll=0;
 async function pollWatchlist(){
-  if(wlCollapsed||wlPollBusy||typeof hasSession!=='function'||!hasSession()||document.hidden)return;
+  const conversions=clientConversionSymbols();
+  if((wlCollapsed&&!conversions.length)||wlPollBusy||typeof hasSession!=='function'||!hasSession()||document.hidden)return;
   // Idle for 5+ minutes: refresh the watchlist every 15s instead of every 4s.
   if(Date.now()-lastUserActivity>300000&&Date.now()-lastWlPoll<15000)return;
-  if(hubLive()&&Date.now()-lastWlPoll<30000)return;
+  if(hubLive()&&Date.now()-lastWlPoll<(conversions.some(s=>!clientQuoteFresh(liveQuotesBySymbol.get(s)))?4000:30000))return;
   lastWlPoll=Date.now();
   const list=document.getElementById('wlList');
-  if(!list||!list.children.length)return;
+  if((!list||!list.children.length)&&!conversions.length)return;
   wlPollBusy=true;
   try{
     const tok=await freshToken();
     if(tok){
-      const syms=wlEntries().map(i=>i.sym);
+      const syms=[...new Set([...conversions,...(wlCollapsed?[]:wlEntries().map(i=>i.sym))])];
       const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'prices',symbols:syms})});
       const j=await r.json().catch(()=>null);
       if(j&&j.ok&&Array.isArray(j.quotes)){
         for(const q of j.quotes){
-          if(!isFinite(q.bid)||!isFinite(q.ask))continue;
+          if(!cacheLiveQuote(q))continue;
           const d=q.digits??5;
           const bidEl=document.getElementById('wlb-'+q.symbol), askEl=document.getElementById('wla-'+q.symbol);
           if(bidEl)flashWlCell(bidEl,q.bid.toFixed(d));
           if(askEl)flashWlCell(askEl,q.ask.toFixed(d));
-          cacheLiveQuote(q);
         }
         refreshClientMarks();
       }

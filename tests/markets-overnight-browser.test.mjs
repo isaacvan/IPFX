@@ -49,7 +49,7 @@ async function fixture(){
    ${slice('async function flattenAll(){','function fmtPx(')}
   `});
   await page.addScriptTag({content:read('assets/js/markets-guided.js')});
-  await page.locator('#gtCard:not([hidden])').waitFor();
+  await page.locator('#gtCard:not([hidden])').waitFor({timeout:30000});
   return{page,browser,errors,requests};
  }catch(error){await browser.close();throw error;}
 }
@@ -125,5 +125,35 @@ test('real tour and native dialogs suppress enabled trading shortcuts, while dis
   await f.page.keyboard.press('Shift+B');await f.page.waitForFunction(()=>messages.some(m=>m.includes('filled')),null,{timeout:10000});
   assert.equal(f.requests.length,1);assert.equal(f.requests[0].action,'open');assert.equal(f.requests[0].side,'buy');
   assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close();}
+});
+
+test('real quote polling blocks a server stale price and a valid push recovers the ticket',{skip:!enabled,timeout:60000},async()=>{
+ const f=await fixture();try{
+  await f.page.addScriptTag({content:`
+   var ipfxChart=null,priceFetchBusy=false,lastTicketPoll=0,quoteAppliedRt=0,lastPushedQuoteAt=0,domPrice=0;
+   var estMarginExposure=()=>({margin:1}),refreshClientMarks=()=>{},syncTicketStatus=()=>{},connectHub=()=>{},syncHubSubs=()=>{},ensureQuoteStream=()=>{},hasSession=()=>true,pollsPaused=()=>false,ticketPollDue=()=>true,hubLive=()=>false;
+   var quoteReply={ok:true,symbol:'EURUSD',status:'live',bid:1.1226,ask:1.1227,mid:1.12265,digits:5,received_ts:1000};
+   var priorSyntheticFetch=window.fetch;
+   window.fetch=async(url,init)=>JSON.parse(init.body).action==='price'?{ok:true,json:async()=>({...quoteReply})}:priorSyntheticFetch(url,init);
+   ${slice('function execSymbol(raw){','function refreshClientMarks(){')}
+   ${slice('let lastQuoteTs=0','// Load shaping')}
+   ${slice('function updateOrdPrices(value){','// Real quote for the active instrument')}
+   ${slice('function onPushedQuote(p){','async function pollTicketPrice(){')}
+   ${slice('async function pollTicketPrice(){','// continuously re-evaluate staleness')}
+  `});
+  await f.page.evaluate(()=>pollTicketPrice());
+  assert.equal(await f.page.evaluate(()=>feedFresh()),true,JSON.stringify(await f.page.evaluate(()=>({feedState,lastQuoteTs,lastQuoteSym,quote:liveQuotesBySymbol.get('EURUSD'),messages})))+' errors '+JSON.stringify(f.errors));
+  await f.page.locator('#tab-order .op-exec-buy').click();await f.page.waitForFunction(()=>messages.some(m=>m.includes('filled')),null,{timeout:10000});
+  assert.equal(f.requests.length,1);
+  await f.page.evaluate(async()=>{quoteReply.status='stale';await pollTicketPrice();});
+  assert.equal(await f.page.locator('#feedLbl').innerText(),'DELAYED');
+  assert.equal(await f.page.locator('#tab-order .op-exec-buy').getAttribute('aria-disabled'),'true');
+  // aria-disabled explains the gate; native buttons stay clickable to show its reason.
+  await f.page.locator('#tab-order .op-exec-buy').click({force:true});assert.equal(f.requests.length,1);
+  await f.page.evaluate(()=>onPushedQuote({s:'EURUSD',b:1.1226,a:1.1227,d:5,rt:2000}));
+  assert.equal(await f.page.locator('#feedLbl').innerText(),'LIVE');assert.equal(await f.page.evaluate(()=>feedFresh()),true);
+  await f.page.locator('#tab-order .op-exec-buy').click();await f.page.waitForFunction(()=>messages.filter(m=>m.includes('filled')).length===2,null,{timeout:10000});
+  assert.equal(f.requests.length,2);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close();}
 });

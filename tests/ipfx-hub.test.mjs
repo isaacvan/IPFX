@@ -90,7 +90,7 @@ test('trading page: hub first, everything falls back when it drops; own checks r
   assert.match(page, /ws\.onclose=\(\)=>\{hubOk=false;hubRisk=false;hubWs=null;/);
   assert.match(page, /if\(pushing&&hubRisk&&hubLive\(\)\)return since>=10000;/);
   assert.match(page, /hubRisk=m\.risk==='active'&&m\.rk===true&&m\.feed!=null&&m\.feed<5000;/);
-  assert.match(page, /if\(hubLive\(\)&&Date\.now\(\)-lastWlPoll<30000\)return;/);
+  assert.ok(page.includes("if(hubLive()&&Date.now()-lastWlPoll<(conversions.some(s=>!clientQuoteFresh(liveQuotesBySymbol.get(s)))?4000:30000))return;"), 'healthy hub keeps the slow fallback unless a required conversion expires');
 });
 
 test('Brain: red alert when the hub stops reporting (a quiet feed only counts while the market is open)', () => {
