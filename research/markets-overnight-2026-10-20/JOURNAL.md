@@ -34,6 +34,8 @@ Second pass: added a regression for an older lockout payload arriving after a ne
 
 Second-pass release checks: full suite 1,196 passed, zero failed, nine optional skipped (1,205 total); final focused group grew to 44 passing cases with actual account-selector away/back and pending-ticket preservation checks. Two desktop browser tests passed after exercising the real spot stepper. Production HTML matched origin/main f550ef3 exactly before publication. Aggregate complaint audit read counts only: three feedback submissions, all mention size/stop controls and one mentions closing. This tiny, overlapping keyword count is prioritization evidence, not a comprehensive complaint survey; no customer messages/emails were printed or committed. No credentials were retrieved.
 
+Second batch published as 44119d1. After Pages propagation, live `/trading.html` returned 200 and matched the complete reviewed local HTML exactly, including both precision and lockout snapshot fixes. Working branch now tracks origin/main and is clean after this audit record. Continue with the next outstanding matrix row on the scheduled follow-up; the overnight audit is ongoing, not a claim that all possible bugs have been excluded.
+
 ## Resume instructions
 
 Read TEST_MATRIX.md. Finish the current publication if pending, inspect git and log evidence, then rotate to the next untested area. Avoid rerunning identical passing broad suites without changed production risk. Follow fetch/diff/three-way preservation before publication; these first fixes are frontend-only, so no edge deployment or privileged keys are needed. Record subsequent findings and limits here, then update the matrix.
