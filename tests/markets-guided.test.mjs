@@ -7,9 +7,9 @@ const html = fs.readFileSync(new URL('../trading.html', import.meta.url), 'utf8'
 
 function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg = null, type = 'market', slOn = false, slValue = '', symbol = 'EURUSD', bid = 1.1226, ask = 1.1227, digits = 5, contract = 100000, mount = false } = {}) {
   const sent = [], msgs = [], ticks = [];
-  const events = {};
-  const els = { slPrice: { value: slValue, addEventListener(type, fn) { events[type] = fn; }, focus() {} }, gtCard: mount ? null : { hidden: true }, gtStop: { value: '', addEventListener() {} }, gtStopSub: { textContent: '' }, gtChips: { innerHTML: '' }, gtChecks: { innerHTML: '' }, gtLotNote: { innerHTML: '' }, gtExact: { onclick: null }, 'ord-lots': {} };
-  const node = () => ({ id: '', className: '', style: {}, appendChild() {}, before() {}, after() {}, addEventListener() {}, setAttribute() {}, classList: { toggle() {}, remove() {} } });
+  const events = {}, distanceEvents = {};
+  const els = { slPrice: { value: slValue, addEventListener(type, fn) { events[type] = fn; }, focus() {} }, gtCard: mount ? null : { hidden: true }, gtStop: { value: '', addEventListener(type,fn) { distanceEvents[type]=fn; } }, gtStopSub: { textContent: '' }, gtChips: { innerHTML: '' }, gtChecks: { innerHTML: '' }, gtLotNote: { innerHTML: '' }, gtExact: { onclick: null }, 'ord-lots': {} };
+  const node = () => ({ id: '', className: '', style: {}, listeners: {}, appendChild() {}, before() {}, after() {}, addEventListener(type,fn) { this.listeners[type]=fn; }, setAttribute() {}, classList: { toggle() {}, remove() {} } });
   const bar = node(); bar.after = (el) => { els.gtCard = el; };
   const ctx = {
     document: { readyState: 'complete', head: node(), body: node(), getElementById: (id) => els[id] || null, querySelector: (sel) => mount && sel === '#tab-order .op-quickbar' ? bar : null, querySelectorAll: () => [], createElement: node, addEventListener() {} },
@@ -24,7 +24,7 @@ function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg =
   ctx.window = ctx;
   ctx.placeOrder = async (side) => { sent.push({ side, sl: ctx.slOn ? +els.slPrice.value : null, lots: ctx.ordLots }); };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  return { ctx, sent, msgs, els, events, tick: () => ticks[0]() };   // tick = the ticket's 500ms refresh
+  return { ctx, sent, msgs, els, events, distanceEvents, tick: () => ticks[0]() };   // tick = the ticket's 500ms refresh
 }
 
 test('a trader can type a smaller lot size than the risk limit suggests, and it is kept (a 0.01 on gold was being overridden)', async () => {
@@ -108,6 +108,22 @@ test('an incomplete exact stop cannot fall back to an automatic stop and place a
  await f.ctx.placeOrder('buy');assert.equal(f.sent.length,0);assert.match(f.msgs.at(-1),/valid|finish|stop/i);
  f.els.slPrice.validity.badInput=false;f.els.slPrice.value='1.121';f.events.input();await f.ctx.placeOrder('buy');
  assert.equal(f.sent.length,1);assert.equal(f.sent[0].sl,1.121);
+});
+
+test('invalid stop-distance text cannot silently fall back to a different executable stop',async()=>{
+ for(const value of ['20e','20suffix','','-5','0','Infinity','NaN']){
+  const f=page({mount:true});f.tick();f.els.gtStop.value=value;f.distanceEvents.change({target:f.els.gtStop});f.tick();
+  await f.ctx.placeOrder('buy');assert.equal(f.sent.length,0,value);assert.match(f.msgs.at(-1),/valid|positive|finish/i);assert.equal(f.els.gtStop.value,value,'keep the rejected text for correction');
+  f.els.gtStop.value='25';f.distanceEvents.change({target:f.els.gtStop});await f.ctx.placeOrder('buy');assert.equal(f.sent.length,1);assert.equal(f.sent[0].sl,1.1202);
+ }
+});
+test('an explicit distance step or exact-price choice recovers from rejected distance text',async()=>{
+ for(const exact of [false,true]){
+  const f=page({mount:true});f.tick();f.els.gtStop.value='20e';f.distanceEvents.change({target:f.els.gtStop});await f.ctx.placeOrder('buy');assert.equal(f.sent.length,0);
+  if(exact){f.els.gtExact.onclick();f.els.slPrice.value='1.121';f.events.input();}
+  else f.els.gtCard.listeners.click({target:{closest:()=>({dataset:{gt:'stop+'}})}});
+  await f.ctx.placeOrder('buy');assert.equal(f.sent.length,1);if(exact)assert.equal(f.sent[0].sl,1.121);
+ }
 });
 
 test('orders are held back with the reason when a check fails', async () => {

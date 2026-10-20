@@ -12,6 +12,7 @@
   const BUFFER = 0.95, TOUR_KEY = 'ipfx-markets-tour-v1';
   let riskChoice = 'max';      // 'max' | dollars
   let stopPips = null;         // trader's stop distance in pips/points; null = suggested default
+  let invalidStopDistance = false;
   let manualStopPrice = false; // trader typed an exact stop price in the classic field
   let userLots = null;         // lot size the trader chose; null = use the maximum their risk limit allows
   let lastSet = null;          // the lot size this script last put in the box (anything else in the box is the trader's choice)
@@ -55,12 +56,13 @@
     const entry = side === 'buy' ? q?.ask : side === 'sell' ? q?.bid : null;
     const manual = manualStopPrice && side != null;
     const invalidInput = !!field?.validity?.badInput;
+    const invalidDistance = invalidStopDistance && !manualStopPrice;
     const validSide = !manual || (Number.isFinite(typed) && typed > 0 && (side === 'buy' ? typed < entry : typed > entry));
     const d = manual && validSide ? Math.abs(entry - typed) : dist();
     const max = lotsFor(d), lots = useLots(max), p = perLot(d), c = cap();
     const out = [];
-    out.push({ ok: !invalidInput && !!q && validSide && d > 0 && d >= minDist(), text: d > 0 ? `Stop ${(d / pipSize()).toFixed(1)} ${unit()} away` : 'Set a stop distance',
-      why: invalidInput ? 'Finish entering a valid stop price before submitting.' : !q ? 'Waiting for a live price for this market' : !validSide ? `For ${side}, set a stop on the loss side of the entry price` : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too close to price for the broker' });
+    out.push({ ok: !invalidInput && !invalidDistance && !!q && validSide && d > 0 && d >= minDist(), text: d > 0 ? `Stop ${(d / pipSize()).toFixed(1)} ${unit()} away` : 'Set a stop distance',
+      why: invalidInput ? 'Finish entering a valid stop price before submitting.' : invalidDistance ? 'Enter a valid positive stop distance before submitting.' : !q ? 'Waiting for a live price for this market' : !validSide ? `For ${side}, set a stop on the loss side of the entry price` : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too close to price for the broker' });
     const risk = lots && p ? lots * p : null;
     out.push({ ok: max != null && max >= 0.01, text: risk != null && lots >= 0.01 ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(2)} lots` : 'Risk', why: p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
     const fresh = typeof feedFresh !== 'function' || feedFresh();
@@ -119,13 +121,21 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-gt]'); if (!b) return;
       const g = b.dataset.gt;
-      if (g === 'stop-' || g === 'stop+') { const cur = dist() / pipSize(); const step = cur >= 100 ? 10 : cur >= 20 ? 2 : 1; stopPips = Math.max(step, cur + (g === 'stop+' ? step : -step)); manualStopPrice = false; $('slPrice').value = ''; }
+      if (g === 'stop-' || g === 'stop+') { const cur = dist() / pipSize(); const step = cur >= 100 ? 10 : cur >= 20 ? 2 : 1; stopPips = Math.max(step, cur + (g === 'stop+' ? step : -step)); invalidStopDistance = false; manualStopPrice = false; $('slPrice').value = ''; }
       else if (g.startsWith('risk:')) { const v = g.slice(5); riskChoice = v === 'max' ? 'max' : +v; userLots = null; }
       else if (g === 'autolots') { userLots = null; }
       refresh();
     });
-    $('gtStop').addEventListener('change', (e) => { const v = parseFloat(e.target.value); if (v > 0) { stopPips = v; manualStopPrice = false; $('slPrice').value = ''; } refresh(); });
-    $('gtExact').onclick = () => { if (!slOn) toggleSLTP('sl'); $('slPrice').focus(); };
+    const editDistance = (e) => {
+      const raw = e.target.value.trim(), v = Number(raw);
+      invalidStopDistance = raw === '' || !Number.isFinite(v) || v <= 0;
+      manualStopPrice = false;
+      if (!invalidStopDistance) { stopPips = v; $('slPrice').value = ''; }
+      refresh();
+    };
+    $('gtStop').addEventListener('input', editDistance);
+    $('gtStop').addEventListener('change', editDistance);
+    $('gtExact').onclick = () => { invalidStopDistance = false; if (!slOn) toggleSLTP('sl'); refresh(); $('slPrice').focus(); };
     const sl = $('slPrice'); if (sl) sl.addEventListener('input', () => { manualStopPrice = sl.value.trim() !== '' || !!sl.validity?.badInput; refresh(); });
   }
   let lastSym = typeof activeSym === 'undefined' ? null : activeSym;
@@ -137,10 +147,10 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     card.hidden = !active;
     const btns = document.querySelectorAll('#tab-order .op-exec-btn');
     if (!active) { btns.forEach((b) => { b.classList.remove('gt-off'); b.removeAttribute('title'); }); return; }
-    if (lastSym !== activeSym) { lastSym = activeSym; stopPips = null; manualStopPrice = false; userLots = null; lastSet = null; $('slPrice').value = ''; }
+    if (lastSym !== activeSym) { lastSym = activeSym; stopPips = null; invalidStopDistance = false; manualStopPrice = false; userLots = null; lastSet = null; $('slPrice').value = ''; }
     const d = dist();
-    if (document.activeElement !== $('gtStop')) $('gtStop').value = (d / pipSize()).toFixed(1);
-    $('gtStopSub').textContent = manualStopPrice ? 'Exact stop price selected. Buy and Sell are checked separately.' : `${unit()} from entry · buy stop ${stopFor('buy').toFixed(digits())} · sell stop ${stopFor('sell').toFixed(digits())}`;
+    if (!invalidStopDistance && document.activeElement !== $('gtStop')) $('gtStop').value = (d / pipSize()).toFixed(1);
+    $('gtStopSub').textContent = manualStopPrice ? 'Exact stop price selected. Buy and Sell are checked separately.' : invalidStopDistance ? 'Finish the stop distance to preview Buy and Sell stops.' : `${unit()} from entry · buy stop ${stopFor('buy').toFixed(digits())} · sell stop ${stopFor('sell').toFixed(digits())}`;
     const c = cap();
     const chips = c ? [1, 2.5].filter((v) => v < c).map((v) => ({ k: String(v), t: usd(v) })).concat([{ k: 'max', t: 'Max ' + usd(c) }]) : [];
     $('gtChips').innerHTML = chips.map((x) => `<button type="button" data-gt="risk:${x.k}" class="${String(riskChoice) === x.k ? 'on' : ''}">${x.t}</button>`).join('');
@@ -193,7 +203,9 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     { sel: '.op-trade-row', title: 'Buy or Sell', text: 'The green ticks above must all be ticked. Then click Buy if you think price goes up, Sell if it goes down.' },
     { sel: '.btab[onclick*="challenge"]', title: 'Watch your progress', text: 'Your target, loss limits and every rule you still need to meet are in the Challenge tab.' },
   ];
-  const seenTour = () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch (_) {} };
+  let tourSeen = false;
+  const hasSeenTour = () => { if (tourSeen) return true; try { tourSeen = localStorage.getItem(TOUR_KEY) === '1'; } catch (_) {} return tourSeen; };
+  const seenTour = () => { tourSeen = true; try { localStorage.setItem(TOUR_KEY, '1'); } catch (_) {} };
   const endTour = () => { document.querySelectorAll('.gt-tour-scrim,.gt-tour-hole,.gt-tour-card').forEach((n) => n.remove()); document.removeEventListener('keydown', tourKeys, true); };
   function tourKeys(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endTour(); } }
   // Shown once: the moment it opens it counts as seen, so closing it any way (×, Esc, click outside, Skip, leaving the
@@ -231,14 +243,26 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     css(); mount(); helpButton();
     setInterval(refresh, 500);
     // First visit: wait until the account and prices have loaded (and the cookie choice is made) so the tour points at the real ticket.
-    let tries = 0;
+    let tries = 0, pending = false;
+    const ready = () => {
+      const cookie = document.querySelector('.ipfx-cookie-panel');
+      if (cookie && cookie.getClientRects().length) return false;
+      const ticket = document.querySelector('.op-trade-row');
+      const modal = [...document.querySelectorAll('.omdlg.open,dialog[open],[role="dialog"],[role="alertdialog"]')].some((el) => el.getClientRects().length);
+      return !!(acct() && ticket && ticket.getClientRects().length && !modal);
+    };
     const t = setInterval(() => {
       tries++;
-      let seen = false; try { seen = localStorage.getItem(TOUR_KEY) === '1'; } catch (_) {}
-      if (seen || tries > 300) { clearInterval(t); return; }
-      const cookie = document.querySelector('.ipfx-cookie-panel');
-      if (cookie && cookie.getClientRects().length) return; // let the privacy choice go first
-      if (acct() && document.querySelector('.op-trade-row') && !document.querySelector('dialog[open]')) { clearInterval(t); setTimeout(() => tour(0), 600); }
+      if (hasSeenTour() || tries > 300) { clearInterval(t); return; }
+      if (pending || !ready()) return;
+      pending = true;
+      setTimeout(() => {
+        pending = false;
+        // A manual replay/dismissal or a new dialog can happen during the delay.
+        if (hasSeenTour() || tries > 300) { clearInterval(t); return; }
+        if (!ready()) return;
+        clearInterval(t); tour(0);
+      }, 600);
     }, 1000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
