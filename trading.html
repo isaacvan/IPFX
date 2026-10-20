@@ -5071,7 +5071,7 @@ function printStatement(){
 // ---- keyboard trading (opt-in) ----
 // Shift+B buy · Shift+S sell · Shift+X close all (press twice within 1.5s).
 // Off by default; ignored while typing, while a dialog is open, and on key auto-repeat.
-let hotkeysOn=false,lastHotkeyOrder=0,flattenArmedAt=0;
+let hotkeysOn=false,lastHotkeyOrder=0,flattenArmedAt=0,flattenArmedContext=null;
 try{hotkeysOn=localStorage.getItem('ipfx-hotkeys')==='on';}catch(_){}
 function renderHotkeyChip(){
   const c=document.getElementById('hkChip');if(!c)return;
@@ -5081,20 +5081,30 @@ function renderHotkeyChip(){
 function toggleHotkeys(){
   if(!hotkeysOn&&!confirm('Turn on keyboard trading?\n\nShift+B = BUY market, Shift+S = SELL market at the lot size in the ticket — instantly, with no confirmation.\nShift+X twice = close ALL positions.\n\nOnly turn this on if you trade from the keyboard.'))return;
   hotkeysOn=!hotkeysOn;
+  flattenArmedAt=0;flattenArmedContext=null;
   try{localStorage.setItem('ipfx-hotkeys',hotkeysOn?'on':'off');}catch(_){}
   renderHotkeyChip();
 }
+document.addEventListener('focusin',()=>{flattenArmedAt=0;flattenArmedContext=null;});
 document.addEventListener('keydown',e=>{
   if(!hotkeysOn||!e.shiftKey||e.ctrlKey||e.altKey||e.metaKey||e.repeat)return;
   const t=e.target,tag=t&&t.tagName;
-  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable))return;
-  if(document.querySelector('.omdlg.open'))return; // includes the 1-minute warning
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable)){
+    flattenArmedAt=0;flattenArmedContext=null;return;
+  }
+  // Include the tour and native dialogs; hidden dialog markup must not block trading.
+  if(Array.from(document.querySelectorAll('.omdlg.open,dialog[open],[role="dialog"],[role="alertdialog"]')).some(d=>d.getClientRects().length)){
+    flattenArmedAt=0;flattenArmedContext=null;return;
+  }
   const k=e.key.toLowerCase();
   if(k!=='b'&&k!=='s'&&k!=='x')return;
   e.preventDefault();
   if(k==='x'){
-    if(Date.now()-flattenArmedAt<1500){flattenArmedAt=0;flattenAll();}
-    else{flattenArmedAt=Date.now();engineMsg('Press Shift+X again to close ALL positions');}
+    const context={accountId:engineState?.account?.id,mode:selectedAccountMode,version:engineCall.modeVersion||0};
+    if(flattenArmedAt&&Date.now()-flattenArmedAt<1500&&flattenArmedContext?.accountId===context.accountId
+      &&flattenArmedContext.mode===context.mode&&flattenArmedContext.version===context.version){
+      flattenArmedAt=0;flattenArmedContext=null;flattenAll();
+    }else{flattenArmedAt=Date.now();flattenArmedContext=context;engineMsg('Press Shift+X again to close ALL positions');}
     return;
   }
   if(Date.now()-lastHotkeyOrder<700)return; // guard against accidental double-taps

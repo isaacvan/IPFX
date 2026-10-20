@@ -45,6 +45,8 @@ async function fixture(){
    ${slice('function adjSltp(type,dir){','function updateSltpReadouts(')}
    ${slice('function payoutMinHold(){','async function closeTradeById(')}
    ${slice('let omTradeId=null','// Break-even:')}
+   ${slice('let hotkeysOn=false','function adjLots(')}
+   ${slice('async function flattenAll(){','function fmtPx(')}
   `});
   await page.addScriptTag({content:read('assets/js/markets-guided.js')});
   await page.locator('#gtCard:not([hidden])').waitFor();
@@ -106,5 +108,22 @@ test('real position dialog guards partial-close confirmation and permits a confi
  }catch(error){
   error.message+='; dialog state '+JSON.stringify(await f.page.evaluate(()=>({title:document.getElementById('omTitle').textContent,busy:engineBusy,submitting:omSubmitting,messages,dialog:document.getElementById('omDlg').className,confirmation:document.getElementById('mhDlg')?.className})))+'; errors '+JSON.stringify(f.errors)+'; requests '+JSON.stringify(f.requests);
   throw error;
+ }finally{await f.browser.close();}
+});
+
+test('real tour and native dialogs suppress enabled trading shortcuts, while dismissed dialogs permit trading',{skip:!enabled,timeout:60000},async()=>{
+ const f=await fixture();try{
+  await f.page.evaluate(()=>{hotkeysOn=true;});
+  await f.page.locator('#gtHelp').click();
+  for(const key of['Shift+B','Shift+S','Shift+X','Shift+X'])await f.page.keyboard.press(key);
+  assert.equal(f.requests.length,0);assert.equal(await f.page.evaluate(()=>flattenArmedAt),0);
+  await f.page.keyboard.press('Escape');
+  await f.page.evaluate(()=>{const d=document.createElement('dialog');d.id='synthetic-modal';d.innerHTML='<button>Continue</button>';document.body.append(d);d.showModal();d.querySelector('button').focus();});
+  for(const key of['Shift+B','Shift+X','Shift+X'])await f.page.keyboard.press(key);
+  assert.equal(f.requests.length,0);
+  await f.page.evaluate(()=>{document.getElementById('synthetic-modal').close();document.getElementById('gtHelp').focus();});
+  await f.page.keyboard.press('Shift+B');await f.page.waitForFunction(()=>messages.some(m=>m.includes('filled')),null,{timeout:10000});
+  assert.equal(f.requests.length,1);assert.equal(f.requests[0].action,'open');assert.equal(f.requests[0].side,'buy');
+  assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close();}
 });

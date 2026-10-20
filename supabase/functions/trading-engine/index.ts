@@ -3739,7 +3739,7 @@ if (body.action === "sweep") {
     if (!id) return err("order_id required");
     const { data: upd } = await db.from("pending_orders")
       .update({ status: "cancelled", resolved_at: new Date().toISOString() })
-      .eq("id", id).eq("user_id", user.id).eq("status", "pending").select("*");
+      .eq("id", id).eq("user_id", user.id).eq("account_id", (acct as Acct).id).eq("status", "pending").select("*");
     if (!upd || !upd.length) return err("That order is no longer pending", 409);
     await logAudit(db, {
       pending_order_id: id, user_id: user.id, account_id: (acct as Acct).id, event: "cancel_pending",
