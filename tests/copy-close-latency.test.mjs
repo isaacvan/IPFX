@@ -23,7 +23,7 @@ function sourceFixture(options={}){
   bookLegs:async()=>({a:true,b:false}),bookNow:async()=>{trace.push('broker-dispatch');return broker.promise},
   round2:x=>Math.round(x*100)/100,roundAdverse:(_,x)=>x,worseFill:(buy,...xs)=>buy?Math.max(...xs):Math.min(...xs),
   shortfallUsd:async(_,buy,from,to)=>Math.max(0,buy?to-from:from-to),
-  tradePnl:async(t,exit)=>(exit-t.open_price)*(t.side==='buy'?1:-1),rulesV2:()=>true,symbolCheck:async()=>({commissionPerLot:6}),
+  tradePnl:async(t,exit)=>options.missingConversion?null:(exit-t.open_price)*(t.side==='buy'?1:-1),rulesV2:()=>true,symbolCheck:async()=>({commissionPerLot:6}),
   fireMirror:async()=>{},mirrorLater(){},bookLater(){},shadowLater(){},logAudit:async()=>{},
  });
  vm.runInContext(stripTypeScriptTypes(closeCode),context);
@@ -59,6 +59,11 @@ test('failed durable fence sends no broker close; duplicate in-flight close or f
 test('overlapping pricing preserves adverse broker pricing and shortfall for a closing sell',async()=>{
  const f=sourceFixture({side:'sell'}),run=f.run();await flush();f.quotes.resolve();f.broker.resolve({fill_price:4000.2});assert.equal(await run,true);
  assert.equal(f.credit[0].p_exit,4000.2);assert.ok(Math.abs(f.credit[0].p_shortfall-.9)<1e-9);
+});
+
+test('an unpriced conversion after a confirmed hedge cannot commit an invented source P&L',async()=>{
+ const f=sourceFixture({missingConversion:true}),run=f.run();await flush();f.quotes.resolve();f.broker.resolve({fill_price:3999.7});
+ assert.equal(await run,false);assert.equal(f.credit.length,0);assert.ok(f.trace.includes('broker-dispatch'));
 });
 
 test('manual close and Close All skip synthetic sleep only for managed A copies; unhedged timing remains',async()=>{

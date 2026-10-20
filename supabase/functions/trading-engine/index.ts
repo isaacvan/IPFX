@@ -992,7 +992,10 @@ function quoteStale(q: Quote): boolean {
 // backward-compatible mid-price accessor for PnL/conversion math
 async function mid(symKey: string): Promise<number | null> {
   const q = await fetchQuote(symKey);
-  return q ? q.mid : null;
+  if (!q || !Number.isFinite(q.bid) || !Number.isFinite(q.ask) || !Number.isFinite(q.mid)
+    || q.bid <= 0 || q.ask < q.bid || q.mid < q.bid || q.mid > q.ask
+    || !Number.isFinite(q.providerTs ?? q.receivedTs) || !Number.isFinite(q.receivedTs) || quoteStale(q)) return null;
+  return q.mid;
 }
 
 // USD value of 1 unit of a quote currency (for PnL conversion)
@@ -1562,9 +1565,10 @@ async function processPendingOrders(
     }
 
     const conv = await usdPerQuote(inst.quote);
-    if (conv === null) { await reject("No conversion rate at trigger"); continue; }
+    if (conv === null) continue; // A temporary conversion outage must not consume the resting order.
     const usedMargin = await usedMarginUsd(working);
     const openRisk = v2 ? await openRiskUsd(working) : null;
+    if (usedMargin === null || (v2 && openRisk === null)) continue;
     const gate = ruleGate(acct, inst, Number(o.volume), fill, sl, conv, equityNow, usedMargin, openRisk);
     if (gate) { await reject(gate); continue; }
 
@@ -2281,6 +2285,11 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
 
   // Resting limit/stop orders are checked before marking to market, so a
   // fill this tick is included in the equity the rules are judged on.
+  if (!venueMode && !quoteRiskUnavailable && open.length) {
+    const currencies = [...new Set(open.map(t => INSTRUMENTS[t.symbol]?.quote ?? ""))];
+    const conversions = await Promise.all(currencies.map(currency => usdPerQuote(currency)));
+    if (conversions.some(rate => rate === null)) quoteRiskUnavailable = true;
+  }
   if (!venueMode) open = await processPendingOrders(db, acct, open, round2(Number(acct.balance)), !quoteRiskUnavailable && !infinityMonthlyBlocked);
 
   // mark to market
@@ -2304,6 +2313,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       (t as any).live_pnl = round2(pnl);
       // deno-lint-ignore no-explicit-any
       (t as any).mark = mark;
+    } else {
+      // Unknown conversion is missing portfolio evidence, not a flat position.
+      unpriced++;
+      quoteRiskUnavailable = true;
     }
   }
   let equity = round2(Number(acct.balance) + floating);
@@ -2520,13 +2533,14 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   return { open, equity, floating: round2(floating), unpriced };
 }
 
-async function usedMarginUsd(open: Tr[]): Promise<number> {
+async function usedMarginUsd(open: Tr[]): Promise<number | null> {
   let total = 0;
   for (const t of open) {
     const inst = INSTRUMENTS[t.symbol];
+    if (!inst) return null;
     const m = await mid(t.symbol);
     const conv = await usdPerQuote(inst.quote);
-    if (m === null || conv === null) continue;
+    if (m === null || conv === null) return null;
     total += (inst.contract * Number(t.volume) * m * conv) / LEVERAGE;
   }
   return total;
@@ -2781,13 +2795,13 @@ async function stopFill(db: Db, acct: Acct, symKey: string, px: number, takingAs
 
 // Money at risk if every open stop is hit (positions without a stop, or with
 // a stop already in profit, contribute nothing).
-async function openRiskUsd(open: Tr[]): Promise<number> {
+async function openRiskUsd(open: Tr[]): Promise<number | null> {
   let total = 0;
   for (const t of open) {
     if (t.sl === null || t.sl === undefined) continue;
     const inst = INSTRUMENTS[t.symbol];
     const conv = inst ? await usdPerQuote(inst.quote) : null;
-    if (!inst || conv === null) continue;
+    if (!inst || conv === null) return null;
     const perUnit = t.side === "buy" ? Number(t.open_price) - Number(t.sl) : Number(t.sl) - Number(t.open_price);
     total += Math.max(0, perUnit) * inst.contract * Number(t.volume) * conv;
   }
@@ -3941,12 +3955,14 @@ if (body.action === "sweep") {
       }
       const needed = (inst.contract * volume * q.mid * conv) / LEVERAGE;
       const used = await usedMarginUsd(state.open);
+      if (used === null) return reject("Pricing is unavailable for an existing position — new orders are paused until it returns.", q);
       if (used + needed > state.equity) return reject("Insufficient margin ($" + Math.round(needed) + " needed)", q);
 
       const v2 = rulesV2(A);
       if (v2 && A.max_risk_per_trade_pct != null && sl !== null) {
         const riskUsd = Math.abs(fill - sl) * inst.contract * volume * conv;
         const openRisk = await openRiskUsd(state.open);
+        if (openRisk === null) return reject("Could not verify total open risk — wait for conversion prices to recover.", q);
         const limit = effectiveRiskLimit(A, state.equity);
         const perTrade = limit?.effective ?? round2(startBal * Number(A.max_risk_per_trade_pct) / 100);
         const cap = round2(perTrade * MAX_TOTAL_RISK_MULTIPLE);
