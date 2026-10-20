@@ -15,6 +15,7 @@ async function fixture(){
  const browser=await chromium.launch({headless:true,executablePath:process.env.E8_CHROME||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],requests=[];
+  page.setDefaultTimeout(10000);
   page.on('pageerror',e=>errors.push(e.message));
   const document=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,'');
   await page.route('**/*',route=>{
@@ -42,6 +43,8 @@ async function fixture(){
    ${slice('async function placeOrder(side){','async function cancelPending(')}
    ${slice('function toggleSLTP(type){','// ── SL/TP quick-adjust')}
    ${slice('function adjSltp(type,dir){','function updateSltpReadouts(')}
+   ${slice('function payoutMinHold(){','async function closeTradeById(')}
+   ${slice('let omTradeId=null','// Break-even:')}
   `});
   await page.addScriptTag({content:read('assets/js/markets-guided.js')});
   await page.locator('#gtCard:not([hidden])').waitFor();
@@ -78,5 +81,30 @@ test('real Markets tour closes instantly with each dismissal route and stays dis
   await f.page.waitForTimeout(1200);assert.equal(await f.page.locator('.gt-tour-card').count(),0);
   await f.page.locator('#gtHelp').click();assert.equal(await f.page.locator('.gt-tour-card').count(),1);
   assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close();}
+});
+
+test('real position dialog guards partial-close confirmation and permits a confirmed valid slice',{skip:!enabled,timeout:60000},async()=>{
+ const f=await fixture();try{
+  const open=()=>f.page.evaluate(()=>{
+   selectedAccountMode='challenge';engineState.account.id='synthetic-demo';
+   engineState.account.limits.payout_min_hold_seconds=60;
+   engineState.open_trades=[{id:'synthetic-position',side:'buy',symbol:'EURUSD',volume:.1,open_price:1.1227,opened_at:new Date().toISOString()}];
+   openPartialDialog('synthetic-position');
+  });
+  await open();await f.page.locator('#omGo').click();await f.page.locator('#mhClose').waitFor({state:'visible'});
+  assert.equal(await f.page.locator('#omGo').isDisabled(),true);
+  await f.page.evaluate(()=>omSubmit());
+  await f.page.evaluate(()=>{selectedAccountMode='demo';engineState.account.id='another-synthetic-account';});
+  await f.page.locator('#mhClose').click();await f.page.waitForFunction(()=>!omSubmitting,null,{timeout:10000});
+  assert.equal(f.requests.length,0);assert.match(await f.page.locator('#omErr').innerText(),/account changed/i);
+  await open();await f.page.locator('#omGo').click();await f.page.locator('#mhClose').click();
+  await f.page.waitForFunction(()=>messages.includes('Partial close filled'),null,{timeout:10000});
+  assert.equal(f.requests.length,1);assert.deepEqual(f.requests[0],{action:'partial_close',trade_id:'synthetic-position',volume:.05,account_mode:'challenge'});
+  assert.equal(await f.page.locator('#omDlg').evaluate(el=>el.classList.contains('open')),false);
+  assert.deepEqual(f.errors,[]);
+ }catch(error){
+  error.message+='; dialog state '+JSON.stringify(await f.page.evaluate(()=>({title:document.getElementById('omTitle').textContent,busy:engineBusy,submitting:omSubmitting,messages,dialog:document.getElementById('omDlg').className,confirmation:document.getElementById('mhDlg')?.className})))+'; errors '+JSON.stringify(f.errors)+'; requests '+JSON.stringify(f.requests);
+  throw error;
  }finally{await f.browser.close();}
 });

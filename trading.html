@@ -5384,11 +5384,20 @@ function closePosition(){
 
 // ---- order management: modify SL/TP, partial close ----
 // Both go through the engine; the browser never decides a fill price.
-let omTradeId=null, omMode=null;
+let omTradeId=null, omMode=null, omContext=null, omSubmitting=false;
+function omStart(id,mode){
+  omTradeId=id;omMode=mode;
+  omContext={accountId:engineState?.account?.id,accountMode:selectedAccountMode,version:engineCall.modeVersion||0};
+  document.getElementById('omGo').disabled=omSubmitting;
+}
+function omCurrent(context){
+  return context===omContext&&context.accountId===engineState?.account?.id
+    &&context.accountMode===selectedAccountMode&&context.version===(engineCall.modeVersion||0);
+}
 function omFindTrade(id){
   return ((engineState&&engineState.open_trades)||[]).find(t=>t.id===id)||null;
 }
-function omClose(){document.getElementById('omDlg').classList.remove('open');omTradeId=null;omMode=null;}
+function omClose(){document.getElementById('omDlg').classList.remove('open');omTradeId=null;omMode=null;omContext=null;}
 function omError(msg){
   const e=document.getElementById('omErr');
   if(!msg){e.style.display='none';e.textContent='';return;}
@@ -5396,9 +5405,9 @@ function omError(msg){
 }
 function openModifyDialog(id){
   const t=omFindTrade(id); if(!t)return;
-  omTradeId=id; omMode='modify';
+  omStart(id,'modify');
   document.getElementById('omTitle').textContent='Modify position';
-  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price)}`;
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
   document.getElementById('omF1Label').textContent='Stop loss';
   document.getElementById('omF2Label').textContent='Take profit';
   document.getElementById('omF1').value=t.sl==null?'':t.sl;
@@ -5412,10 +5421,10 @@ function openModifyDialog(id){
 }
 function openPartialDialog(id){
   const t=omFindTrade(id); if(!t)return;
-  omTradeId=id; omMode='partial';
+  omStart(id,'partial');
   const vol=+t.volume;
   document.getElementById('omTitle').textContent='Partial close';
-  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${vol.toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price)}`;
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${vol.toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
   document.getElementById('omF1Label').textContent='Lots to close';
   document.getElementById('omF1').value=(Math.max(0.01,Math.floor(vol/2*100)/100)).toFixed(2);
   document.getElementById('omF2Wrap').style.display='none';
@@ -5427,9 +5436,9 @@ function openPartialDialog(id){
 }
 function openTrailDialog(id){
   const t=omFindTrade(id); if(!t)return;
-  omTradeId=id; omMode='trail';
+  omStart(id,'trail');
   document.getElementById('omTitle').textContent='Trailing stop';
-  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price)}`;
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
   document.getElementById('omF1Label').textContent='Trail distance (price units)';
   document.getElementById('omF1').value=t.trail_distance==null?'':t.trail_distance;
   document.getElementById('omF2Wrap').style.display='none';
@@ -5440,40 +5449,58 @@ function openTrailDialog(id){
   document.getElementById('omF1').select();
 }
 async function omSubmit(){
-  if(!omTradeId||engineBusy)return;
-  const t=omFindTrade(omTradeId);
+  if(!omTradeId||engineBusy||omSubmitting)return;
+  const context=omContext,mode=omMode,id=omTradeId;
+  if(!omCurrent(context)){omError('The account changed. Reopen this position before continuing.');return;}
+  const t=omFindTrade(id);
   if(!t){omError('That position is no longer open.');return;}
   const v1=document.getElementById('omF1').value.trim();
   const v2=document.getElementById('omF2').value.trim();
   let payload;
 
-  if(omMode==='trail'){
+  if(mode==='trail'){
     const d=v1===''?null:parseFloat(v1);
     if(d!==null&&(!isFinite(d)||d<=0)){omError('Enter a positive distance, or leave it blank to switch trailing off.');return;}
     payload={action:'set_trailing',trade_id:omTradeId,distance:d};
-  }else if(omMode==='partial'){
+  }else if(mode==='partial'){
     const vol=parseFloat(v1);
     if(!isFinite(vol)||vol<0.01){omError('Enter at least 0.01 lots.');return;}
     if(vol>=+t.volume){omError('That is the whole position — use Close instead.');return;}
     if(+(+t.volume-vol).toFixed(2)<0.01){omError('The remainder would be under 0.01 lots.');return;}
     payload={action:'partial_close',trade_id:omTradeId,volume:vol};
-    if(!(await quickCloseConfirm([t])))return;
   }else{
     if(v1===''&&v2===''){omError('Set a stop loss or a take profit.');return;}
     payload={action:'modify',trade_id:omTradeId,sl:v1===''?null:parseFloat(v1),tp:v2===''?null:parseFloat(v2)};
   }
 
   const go=document.getElementById('omGo');
-  const label=go.textContent; go.disabled=true; go.textContent='Working…';
-  engineBusy=true;
-  const r=await engineCall(payload);
-  engineBusy=false;
-  go.disabled=false; go.textContent=label;
-
-  // engineCall surfaces engine errors itself; a null result means it failed.
-  if(!r){omError('The engine rejected that — see the message above the chart.');return;}
-  engineMsg(omMode==='partial'?'Partial close filled':omMode==='trail'?(payload.distance==null?'Trailing stop off':'Trailing stop on'):'Position updated',true);
-  omClose();
+  const label=go.textContent,volume=Number(t.volume);
+  omSubmitting=true;go.disabled=true;
+  let ownsBusy=false;
+  try{
+    if(mode==='partial'){
+      go.textContent='Confirming…';
+      if(!(await quickCloseConfirm([t])))return;
+    }
+    if(!omCurrent(context)){
+      if(context===omContext)omError('The account changed. Reopen this position before continuing.');
+      return;
+    }
+    if(engineBusy){omError('Another action is still processing. Wait for confirmation before continuing.');return;}
+    const current=omFindTrade(id);
+    if(!current||Number(current.volume)!==volume){omError('This position changed. Reopen it and review the current size before continuing.');return;}
+    go.textContent='Working…';engineBusy=true;ownsBusy=true;
+    const r=await engineCall(payload);
+    if(!omCurrent(context))return;
+    // A missing acknowledgement can mean an uncertain outcome, not a rejection.
+    if(!r){omError('The action was not confirmed. See the message above the chart and check positions and history before retrying.');return;}
+    engineMsg(mode==='partial'?'Partial close filled':mode==='trail'?(payload.distance==null?'Trailing stop off':'Trailing stop on'):'Position updated',true);
+    omClose();
+  }finally{
+    if(ownsBusy)engineBusy=false;
+    omSubmitting=false;go.disabled=false;
+    if(context===omContext||omContext===null)go.textContent=label;
+  }
 }
 // Break-even: move the stop to the entry price through the normal server-validated modify path.
 // The engine rejects it (with a message) when price hasn't moved far enough in the trade's favour.

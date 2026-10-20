@@ -36,6 +36,22 @@ Second-pass release checks: full suite 1,196 passed, zero failed, nine optional 
 
 Second batch published as 44119d1. After Pages propagation, live `/trading.html` returned 200 and matched the complete reviewed local HTML exactly, including both precision and lockout snapshot fixes. Working branch now tracks origin/main and is clean after this audit record. Continue with the next outstanding matrix row on the scheduled follow-up; the overnight audit is ongoing, not a claim that all possible bugs have been excluded.
 
+## Third pass: position-management confirmations
+
+Heartbeat at 00:56 UTC; fetched main 7c7cbd3 with no concurrent changes. Reproduced eight failing behavioral cases in the actual `omSubmit`/dialog functions (plus one passing valid-action control). The first fixture omitted the browser's automatic string conversion for input values; fixed that harness before recording the eight product failures.
+
+- A short-hold partial-close confirmation could survive an account switch, a position resize/closure, or a closed/replaced dialog. Bind the dialog to its account ID, account mode and selector epoch; recheck the original position and volume after confirmation. Account switches away and back also invalidate the dialog.
+- Repeated clicks created overlapping confirmations and could dispatch duplicate partial closes. Reserve the dialog's submit state before awaiting confirmation and recheck the global action lock before dispatch. Release only the lock this operation acquired.
+- Late replies relabelled/closed a newer dialog or attached an old error to it. Capture dialog identity and mode; only update the originating dialog while its context is current.
+- A missing management acknowledgement was labelled “rejected,” contradicting the engine's uncertain-outcome warning. Tell the trader to check positions/history before retrying.
+- Management price labels formatted another market's entry using the currently selected market's precision. Pass the position's own symbol to the existing formatter.
+
+Focused management/action/feedback/duplicate-close group: 35 passed. New management coverage includes valid modify, trailing-off and partial-close payloads, and confirms that an unrelated action's busy lock is retained. Full suite and actual-HTML partial-close interaction tests are running; publication pending their results and concurrent-source comparison. No broker, live/funded/challenge account or credential access occurred; the isolated fixture is synthetic.
+
+Third-pass release checks: full suite 1,207 passed, zero failed, ten optional skipped (1,217 total). The initial new browser interaction timed out while the broader suite was also running; no product error or cause was captured. Added bounded Playwright waits and failure-state diagnostics. The partial-close test then passed alone, followed by all three desktop browser tests passing together (zero failures/skips, ~17 seconds), without further production changes. The actual warning dialog was used: a changed account sent zero requests; a fresh confirmed 0.05-lot slice sent exactly one synthetic request and closed the originating management dialog. Signed-in production interactions remain untested because owner browser control is disabled.
+
+Before publication, fetched main again: still 7c7cbd3, no divergence; live HTML returned 200 and matched that baseline exactly. Reviewed the diff: frontend context/submit guards, price formatting and honest acknowledgement text only. No layout, financial rules, execution pricing, broker transport or performance architecture changed. Publication commit and live verification follow below.
+
 ## Resume instructions
 
 Read TEST_MATRIX.md. Finish the current publication if pending, inspect git and log evidence, then rotate to the next untested area. Avoid rerunning identical passing broad suites without changed production risk. Follow fetch/diff/three-way preservation before publication; these first fixes are frontend-only, so no edge deployment or privileged keys are needed. Record subsequent findings and limits here, then update the matrix.

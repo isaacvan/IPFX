@@ -16,10 +16,10 @@ Use actual production functions in meaningful regression tests; browser transpor
 | Selected-symbol feed freshness | Source audit pending | Stale/closed status while last tick is young, reconnect, crossed/zero prices; do not invent provider freshness |
 | Non-USD risk/conversion | Existing JPY/missing conversion fixtures | Conversion quote expiry, gap/zero/crossed quotes, account switch |
 | Pending orders | Existing stop-required and acknowledgement fixtures | Trigger precision, expiry around 22:00 UTC, cancel/OCO failures, minimum lots |
-| Partial close/modify/trailing | Not yet tested in this audit | Remainder/step precision, repeated submit, stale trade/context during confirmation |
+| Partial close/modify/trailing | Eight reproduced failures fixed: repeated confirmation, account/position/dialog changes, late result, uncertain acknowledgement and own-symbol precision; valid-action payload control passes; actual HTML warning/cancel/confirmed-slice interaction passed | Decimal/futures slice precision, numeric input-in-progress and cross-action confirmation ownership |
 | Challenge/monthly inactive state | Existing breach refusal fixtures | UI state across restart boundary; do not change rules/records |
 | Desktop layout/accessibility | Actual HTML browser checks passed at 1280/1440/1920 | Keyboard shortcuts inside inputs/dialogs, zoom/height, active tab controls and clutter regressions |
-| Backend invariants | Broad repository suite pending | Existing atomic close/idempotency/risk fixtures; production read-only aggregate checks only if necessary |
+| Backend invariants | Third-pass full suite: 1,207 passed, zero failed, ten optional skipped; frontend guards only | Existing atomic close/idempotency/risk fixtures; production read-only aggregate checks only if necessary |
 
 At the cutoff summarize verified fixes, test evidence, deployments and still-untested areas. “Every possible bug” cannot be proven absent; do not claim exhaustive coverage.
 
