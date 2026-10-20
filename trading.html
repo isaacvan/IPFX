@@ -4837,8 +4837,9 @@ function showVenueBanner(account){
 }
 async function engineCall(body){
   if(['open','place_pending'].includes(body.action)&&blockInfinityTradeAttempt())return null;
-  const tok=await freshToken();
-  if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
+  const selectedAtStart=selectedAccountMode, modeVersion=engineCall.modeVersion||0;
+  const sequence=engineCall.sequence=(engineCall.sequence||0)+1;
+  const requestBody={...body,account_mode:['open','place_pending'].includes(body.action)&&accountModeIntent==='challenge'?'challenge':selectedAtStart};
   // A stalled connection (not an error — just hanging) previously left
   // engineBusy stuck true with zero feedback until the OS-level TCP
   // timeout, which can be minutes: every button dead until then. This
@@ -4847,19 +4848,32 @@ async function engineCall(body){
   // A close of a trade copied to the broker can take longer than a normal request while the copy leg confirms, so it gets a longer
   // wait. Giving up at 15s made traders click again and hit a confusing "already closed" error.
   const killer=setTimeout(()=>ctrl.abort(),['close','close_all','partial_close'].includes(body.action)?60000:15000);
-  let acknowledged=null;
+  let acknowledged=null, sent=false, abortAuth;
   try{
-    const requestBody={...body,account_mode:['open','place_pending'].includes(body.action)&&accountModeIntent==='challenge'?'challenge':selectedAccountMode};
+    const authDeadline=new Promise((_,reject)=>{abortAuth=()=>{const e=new Error('Session check timed out');e.name='AbortError';reject(e);};ctrl.signal.addEventListener('abort',abortAuth,{once:true});});
+    const tok=await Promise.race([freshToken(),authDeadline]);
+    ctrl.signal.removeEventListener('abort',abortAuth);
+    if(!tok){engineMsg('Log in via your dashboard to trade — trades are recorded for challenge verification.');return null;}
+    if(modeVersion!==(engineCall.modeVersion||0)||selectedAtStart!==selectedAccountMode){engineMsg('The selected account changed. Review the ticket and submit again; no action was sent.');return null;}
+    sent=true;
     const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(requestBody),signal:ctrl.signal});
     const j=await r.json().catch(()=>null);
-    if(j&&j.infinity_lockout){if(engineState)engineState.infinity_lockout=j.infinity_lockout;}
-    if(j&&j.order_blocked&&j.infinity_lockout?.locked){showInfinityTradeWarning(j.infinity_lockout);}
+    const sameContext=modeVersion===(engineCall.modeVersion||0)&&selectedAtStart===selectedAccountMode;
+    if(sameContext&&j?.infinity_lockout){if(engineState)engineState.infinity_lockout=j.infinity_lockout;}
+    if(sameContext&&j?.order_blocked&&j.infinity_lockout?.locked)showInfinityTradeWarning(j.infinity_lockout);
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
     if(!r.ok||!j||j.ok===false){engineMsg(r.status>=500?'No confirmation from the server. Check positions and history before retrying.':((j&&j.error)||'Order rejected'));return null;}
     acknowledged=j;
+    // Replies belong to the account selected at dispatch. Older polls cannot
+    // replace a newer confirmed snapshot or undo a subsequent account switch.
+    if(modeVersion!==(engineCall.modeVersion||0)||selectedAtStart!==selectedAccountMode||sequence<(engineCall.appliedSequence||0)){
+      if(j.order_blocked){engineMsg('Account has been breached. No order has been placed.');return null;}
+      return j;
+    }
     // Pending-order acknowledgements are not account snapshots. Preserve
     // visible positions until the caller fetches a complete state response.
     if(!j.account)return j;
+    engineCall.appliedSequence=sequence;
     if(j.switched_to_demo||j.account?.is_demo){
       selectedAccountMode='demo';
       localStorage.setItem('ipfx-account-mode','demo');
@@ -4888,11 +4902,13 @@ async function engineCall(body){
     if(typeof renderJournal==='function')renderJournal();return j;
   }catch(e){
     if(acknowledged){lastStateAt=0;if(acknowledged.order_blocked){engineMsg('Account has been breached. No order has been placed.');return null;}engineMsg('Action confirmed. Account display needs a refresh.');return acknowledged;}
+    if(!sent){engineMsg('Sign-in could not be checked — no action was sent. Open your dashboard and try again.');return null;}
     engineMsg(body.action==='state'?'Connection is slow — account state could not be refreshed.':
-      (e&&e.name==='AbortError'?'No confirmation after 15s. The action may have completed. Check positions and history before retrying.':
+      (e&&e.name==='AbortError'?'No confirmation after '+(['close','close_all','partial_close'].includes(body.action)?60:15)+'s. The action may have completed. Check positions and history before retrying.':
       'Connection lost. The action may have completed. Check positions and history before retrying.'));
     return null;
   }finally{
+    if(abortAuth)ctrl.signal.removeEventListener('abort',abortAuth);
     clearTimeout(killer);
   }
 }
@@ -5192,9 +5208,11 @@ async function placeOrder(side){
     const r=await engineCall(p);
     engineBusy=false;
     if(r){
-      engineMsg(`${side.toUpperCase()} ${orderType} ${ordLots.toFixed(2)} lots resting at ${fmtPx(trig)}`,true);
-      document.getElementById('triggerPrice').value='';
-      const ocoSel=document.getElementById('pendOco');if(ocoSel)ocoSel.value='';
+      engineMsg(`${side.toUpperCase()} ${p.order_type} ${p.volume.toFixed(2)} ${execSymbol(p.symbol)} resting at ${fmtPx(trig,p.symbol)}`,true);
+      if(execSymbol(activeSym)===execSymbol(p.symbol)&&orderType===p.order_type){
+        const triggerField=document.getElementById('triggerPrice');if(parseFloat(triggerField.value)===trig)triggerField.value='';
+        const ocoSel=document.getElementById('pendOco');if(ocoSel&&ocoSel.value===(p.oco_with||''))ocoSel.value='';
+      }
       engineCall({action:'state'});
     }
     return;
@@ -5207,8 +5225,8 @@ async function placeOrder(side){
   const res=await engineCall(payload);
   engineBusy=false;
   if(res){
-    const filled=(res.open_trades||[]).filter(function(t){return t.side===side&&execSymbol(t.symbol)===execSymbol(activeSym);}).sort(function(a,b){return new Date(b.opened_at)-new Date(a.opened_at);})[0];
-    engineMsg(side.toUpperCase()+' '+ordLots.toFixed(2)+' '+execSymbol(activeSym)+' filled'+(filled?' @ '+fmtPx(filled.open_price):''),true);
+    const filled=(res.open_trades||[]).filter(function(t){return t.side===side&&execSymbol(t.symbol)===execSymbol(payload.symbol);}).sort(function(a,b){return new Date(b.opened_at)-new Date(a.opened_at);})[0];
+    engineMsg(side.toUpperCase()+' '+payload.volume.toFixed(2)+' '+execSymbol(payload.symbol)+' filled'+(filled?' @ '+fmtPx(filled.open_price,payload.symbol):''),true);
     const flash=document.querySelector('.op-exec-'+side+',.ord-'+(side==='buy'?'buy':'sell'));
     if(flash){flash.style.transform='scale(0.95)';setTimeout(()=>{flash.style.transform='';},120);}
   }
@@ -5477,10 +5495,13 @@ async function moveToBreakEven(id){
 }
 async function reversePosition(){
   const o=engineState&&engineState.open_trades;
-  if(!o||!o.length){placeOrder('buy');return;}
-  const last=o[o.length-1];
+  const symbol=execSymbol(activeSym), accountId=engineState?.account?.id, mode=selectedAccountMode;
+  const last=(o||[]).filter(t=>execSymbol(t.symbol)===symbol).at(-1);
+  if(!last){engineMsg('No open position on this market to reverse.');return;}
   if(!(await closeTradeById(last.id)))return;
-  placeOrder(last.side==='buy'?'sell':'buy');
+  if(execSymbol(activeSym)!==symbol||engineState?.account?.id!==accountId||selectedAccountMode!==mode){engineMsg('The market or account changed. The reverse entry was cancelled; review positions before continuing.');return;}
+  if((engineState?.open_trades||[]).some(t=>t.id===last.id)){engineMsg('The original position is still closing. Wait for it to disappear before reversing.');return;}
+  return placeOrder(last.side==='buy'?'sell':'buy');
 }
 function cancelAll(){flattenAll();}
 function confirmCloseAll(btn){
@@ -5494,11 +5515,17 @@ function confirmCloseAll(btn){
 }
 async function flattenAll(){
   if(engineBusy)return;
+  const accountId=engineState?.account?.id, mode=selectedAccountMode;
   if(!(await quickCloseConfirm((engineState&&engineState.open_trades)||[])))return;
+  if(engineState?.account?.id!==accountId||selectedAccountMode!==mode){engineMsg('The selected account changed. Review positions before closing them.');return;}
   if(engineBusy)return;engineBusy=true;
   const r=await engineCall({action:'close_all'});
   engineBusy=false;
-  if(r)engineMsg('All positions closed',true);
+  if(r){
+    const remaining=Array.isArray(r.open_trades)?r.open_trades.length:null;
+    if(remaining===0)engineMsg('All positions closed',true);
+    else engineMsg(remaining==null?'Close requested. Refresh positions to confirm the result.':remaining+' position'+(remaining===1?' is':'s are')+' still open. Review positions before retrying.');
+  }
 }
 function fmtPx(v,symbol){
   const n=+v;
@@ -5809,6 +5836,7 @@ function renderEngineAccount(){
 }
 async function setAccountMode(mode){
   if(mode!=='challenge'&&mode!=='demo')return;
+  engineCall.modeVersion=(engineCall.modeVersion||0)+1;
   accountModeIntent=mode;localStorage.setItem('ipfx-account-intent',mode);
   if(mode==='challenge'&&currentInfinityLock()?.locked)showInfinityTradeWarning(currentInfinityLock());
   selectedAccountMode=mode;
