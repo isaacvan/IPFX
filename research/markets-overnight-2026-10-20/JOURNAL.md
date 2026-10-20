@@ -52,6 +52,8 @@ Third-pass release checks: full suite 1,207 passed, zero failed, ten optional sk
 
 Before publication, fetched main again: still 7c7cbd3, no divergence; live HTML returned 200 and matched that baseline exactly. Reviewed the diff: frontend context/submit guards, price formatting and honest acknowledgement text only. No layout, financial rules, execution pricing, broker transport or performance architecture changed. Publication commit and live verification follow below.
 
+Published as fee841d using a normal fast-forward push after a final ancestry check. Pages initially served the previous HTML; at 01:04 UTC live `/trading.html` returned HTTP 200 and matched the complete reviewed local HTML exactly. No edge/database deployment was needed. The next pass should reproduce pending-cancel account ownership and keyboard trading during a tour, recorded as source concerns in TEST_MATRIX.md; neither is claimed fixed or fully reproduced yet. The >60-second server expiry minimum explains the pending ticket's two-minute end-of-day buffer and does not justify changing that behavior. The overnight audit remains active until the original cutoff.
+
 ## Resume instructions
 
 Read TEST_MATRIX.md. Finish the current publication if pending, inspect git and log evidence, then rotate to the next untested area. Avoid rerunning identical passing broad suites without changed production risk. Follow fetch/diff/three-way preservation before publication; these first fixes are frontend-only, so no edge deployment or privileged keys are needed. Record subsequent findings and limits here, then update the matrix.
