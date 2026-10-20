@@ -25,7 +25,7 @@ async function fixture(){
   await page.goto('https://markets-fixture.invalid/trading.html');
   await page.exposeFunction('syntheticEngine',async body=>{requests.push(body);return{ok:true,account:{id:'synthetic-demo',is_demo:false,status:'active',challenge_type:'infinity',limits:{require_stop_loss:true,max_risk_per_trade_usd:5}},open_trades:body.action==='open'?[{id:'synthetic-trade',side:body.side,symbol:body.symbol,opened_at:'2026-10-20T00:00Z',open_price:body.side==='buy'?1.1227:1.1226}]:[]};});
   await page.addScriptTag({content:`
-   var activeSym='EURUSD',ordLots=.01,orderType='market',slOn=false,tpOn=false,engineBusy=false;
+   var activeSym='EURUSD',ordLots=.01,orderType='market',slOn=false,tpOn=false,engineBusy=false,domDigits=5,ordMidPrice=1.12265,FUT_SPECS={};
    var selectedAccountMode='challenge',accountModeIntent='challenge',lastStateAt=0;
    var engineState={account:{id:'synthetic-demo',is_demo:false,status:'active',challenge_type:'infinity',limits:{require_stop_loss:true,max_risk_per_trade_usd:5}},open_trades:[]};
    var liveQuotesBySymbol=new Map([['EURUSD',{bid:1.1226,ask:1.1227,digits:5}]]),WL_DATA={forex:[{sym:'EURUSD'}]},ENGINE_URL='https://synthetic-engine.invalid';
@@ -38,8 +38,10 @@ async function fixture(){
    ${slice('async function engineCall(body){','// Non-trading engine calls')}
    ${slice('function setLots(n,btn){','// Typed lot size')}
    ${slice('function lotsInputTyping(el){','// ---- order type (market / limit / stop)')}
+   ${slice('function pxDigits(symbol){','// USD value of one unit')}
    ${slice('async function placeOrder(side){','async function cancelPending(')}
    ${slice('function toggleSLTP(type){','// ── SL/TP quick-adjust')}
+   ${slice('function adjSltp(type,dir){','function updateSltpReadouts(')}
   `});
   await page.addScriptTag({content:read('assets/js/markets-guided.js')});
   await page.locator('#gtCard:not([hidden])').waitFor();
@@ -52,8 +54,12 @@ test('real desktop Markets ticket retains smaller lots, attaches a stop, and blo
   await f.page.locator('#tab-order .op-exec-buy').click();
   await f.page.waitForFunction(()=>messages.some(m=>m.includes('filled')));
   assert.equal(f.requests.length,1);assert.equal(f.requests[0].volume,.01);assert.ok(f.requests[0].sl<1.1227);
+  await f.page.locator('#gtExact').click();
+  const oldStop=Number(await f.page.locator('#slPrice').inputValue());
+  await f.page.locator('.op-sltp-grp').first().getByRole('button',{name:'+',exact:true}).click();
+  assert.equal(Number(await f.page.locator('#slPrice').inputValue()),Number((oldStop+.00001).toFixed(5)));
   await f.page.evaluate(()=>{feedFresh=()=>false;});
-  await f.page.locator('#tab-order .op-exec-sell').click();
+  await f.page.locator('#tab-order .op-exec-buy').click();
   assert.equal(f.requests.length,1);assert.match(await f.page.evaluate(()=>messages.at(-1)),/reconnecting|stale/i);
   for(const width of[1280,1440,1920]){await f.page.setViewportSize({width,height:1000});assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
   assert.deepEqual(f.errors,[]);

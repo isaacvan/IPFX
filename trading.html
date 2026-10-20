@@ -4859,8 +4859,9 @@ async function engineCall(body){
     const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(requestBody),signal:ctrl.signal});
     const j=await r.json().catch(()=>null);
     const sameContext=modeVersion===(engineCall.modeVersion||0)&&selectedAtStart===selectedAccountMode;
-    if(sameContext&&j?.infinity_lockout){if(engineState)engineState.infinity_lockout=j.infinity_lockout;}
-    if(sameContext&&j?.order_blocked&&j.infinity_lockout?.locked)showInfinityTradeWarning(j.infinity_lockout);
+    const currentSnapshot=sameContext&&sequence>=(engineCall.appliedSequence||0);
+    if(currentSnapshot&&j?.infinity_lockout){if(engineState)engineState.infinity_lockout=j.infinity_lockout;}
+    if(currentSnapshot&&j?.order_blocked&&j.infinity_lockout?.locked)showInfinityTradeWarning(j.infinity_lockout);
     if(r.status===401){engineMsg('Session expired — open your dashboard to sign in again.');return null;}
     if(!r.ok||!j||j.ok===false){engineMsg(r.status>=500?'No confirmation from the server. Check positions and history before retrying.':((j&&j.error)||'Order rejected'));return null;}
     acknowledged=j;
@@ -6774,8 +6775,11 @@ function adjSltp(type,dir){
   const el=document.getElementById(type==='sl'?'slPrice':'tpPrice');
   if(!el)return;
   const entry=(typeof ordMidPrice==='number'&&ordMidPrice)||0;
-  const step=domDigits<=2?0.5:domDigits<=4?0.0002:0.01;
-  const decimals=domDigits<=2?2:domDigits<=4?4:2;
+  const future=typeof futSym==='function'&&futSym(activeSym);
+  // Spot controls move by one displayed quote tick. Decimal buckets rounded
+  // five-digit FX stops to cents and added a fourth decimal to JPY/silver.
+  const decimals=future?(domDigits<=2?2:domDigits<=4?4:2):pxDigits(activeSym);
+  const step=future?(domDigits<=2?0.5:domDigits<=4?0.0002:0.01):10**-decimals;
   let cur=parseFloat(el.value);
   if(!isFinite(cur)||cur<=0)cur=entry||0;
   cur=Math.max(0,cur+dir*step);

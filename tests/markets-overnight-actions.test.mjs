@@ -15,12 +15,18 @@ function engine(){
   announceAutoClosedTrades(){},showVenueBanner(){},handleAlerts(){},liveQuotesBySymbol:new Map(),renderPositions(){},renderEngineAccount(){},
   fetch:async(url,options)=>{calls.push(JSON.parse(options.body));const d=deferred();requests.push(d);return d.promise;}});
  vm.runInContext(section('async function engineCall(body){','// Non-trading engine calls'),c);
- const reply=(index,id)=>requests[index].resolve({ok:true,status:200,json:async()=>({ok:true,account:{id,is_demo:true,challenge_type:'demo'},open_trades:[]})});
+ const reply=(index,id,extra={})=>requests[index].resolve({ok:true,status:200,json:async()=>({ok:true,account:{id,is_demo:true,challenge_type:'demo'},open_trades:[],...extra})});
  return{c,calls,timers,messages,reply,original};
 }
 test('a late poll cannot overwrite a more recent confirmed account snapshot',async()=>{
  const f=engine(),a=f.c.engineCall({action:'state'}),b=f.c.engineCall({action:'state'});await new Promise(setImmediate);
  f.reply(1,'new');await b;f.reply(0,'old');await a;assert.equal(f.c.engineState.account.id,'new');
+});
+test('a late old lockout cannot overwrite a newer account lockout status',async()=>{
+ const f=engine(),a=f.c.engineCall({action:'state'}),b=f.c.engineCall({action:'state'});await new Promise(setImmediate);
+ f.reply(1,'new',{infinity_lockout:{locked:false}});await b;
+ f.reply(0,'old',{infinity_lockout:{locked:true}});await a;
+ assert.equal(f.c.engineState.infinity_lockout.locked,false);
 });
 test('switching account during token refresh never dispatches the click into the new account',async()=>{
  const f=engine(),auth=deferred();f.c.freshToken=()=>auth.promise;
@@ -28,6 +34,14 @@ test('switching account during token refresh never dispatches the click into the
  f.c.selectedAccountMode='challenge';f.c.accountModeIntent='challenge';auth.resolve('synthetic');await new Promise(setImmediate);
  if(f.calls.length)f.reply(0,'unexpected');await a;
  assert.equal(f.calls.length,0);assert.match(f.messages.at(-1).m,/account changed/i);
+});
+test('switching away and back while auth waits still cancels the original unsent click',async()=>{
+ const f=engine(),auth=deferred();f.c.freshToken=()=>auth.promise;
+ f.c.document={getElementById:()=>({classList:{toggle(){}}})};f.c.currentInfinityLock=()=>null;
+ vm.runInContext(section('async function setAccountMode(mode){','let infStripe='),f.c);
+ const order=f.c.engineCall({action:'open'}),away=f.c.setAccountMode('challenge'),back=f.c.setAccountMode('demo');
+ auth.resolve('synthetic');await new Promise(setImmediate);
+ assert.deepEqual(f.calls.map(c=>c.action),['state']);f.reply(0,'demo');await Promise.all([order,away,back]);
 });
 test('a delayed reply from another account never replaces the newly selected account',async()=>{
  const f=engine(),a=f.c.engineCall({action:'state'});await new Promise(setImmediate);
@@ -89,4 +103,26 @@ test('fill feedback stays tied to the submitted symbol and lots while the trader
  const p=c.placeOrder('buy');c.activeSym='XAUUSD';c.ordLots=.5;
  d.resolve({ok:true,open_trades:[{symbol:'EURUSD',side:'buy',opened_at:'2026-10-20',open_price:1.1}]});await p;
  assert.match(messages.at(-1),/BUY 0.02 EURUSD filled/);assert.match(messages.at(-1),/EURUSD:1.1/);
+});
+test('a pending acknowledgement cannot erase a newly edited different-market ticket',async()=>{
+ const d=deferred(),messages=[],nodes={ruleCriticalDialog:{open:false},triggerPrice:{value:'1.11'},pendOco:{value:'old-order'}};
+ const c=vm.createContext({activeSym:'EURUSD',ordLots:.02,engineBusy:false,slOn:false,tpOn:false,orderType:'limit',
+  document:{getElementById:id=>nodes[id],querySelector:()=>null},pendingExpiryIso:()=>null,
+  blockInfinityTradeAttempt:()=>false,stageRulesBlockEntry:()=>false,dailyCapMessage:()=>null,feedFresh:()=>true,
+  execSymbol:s=>s,fmtPx:(p,s)=>s+':'+p,engineMsg:m=>messages.push(m),engineCall:body=>body.action==='state'?null:d.promise});
+ vm.runInContext(section('async function placeOrder(side){','async function cancelPending('),c);
+ const p=c.placeOrder('buy');c.activeSym='XAUUSD';c.ordLots=.5;nodes.triggerPrice.value='2700';nodes.pendOco.value='new-order';
+ d.resolve({ok:true,pending:{id:'fixture'}});await p;
+ assert.equal(nodes.triggerPrice.value,'2700');assert.equal(nodes.pendOco.value,'new-order');assert.match(messages.at(-1),/BUY limit 0.02 EURUSD/);
+});
+
+test('spot SL/TP steppers retain quote precision and move exactly one displayed tick',()=>{
+ for(const [symbol,digits,price,expected] of[['EURUSD',5,'1.10000','1.10001'],['USDJPY',3,'150.123','150.124'],['XAGUSD',3,'31.123','31.124'],['XAUUSD',2,'2700.12','2700.13'],['DJI',0,'41000','41001']]){
+  const nodes=new Map(),node=id=>{if(!nodes.has(id))nodes.set(id,{value:price,classList:{add(){},toggle(){}},dispatchEvent(){}});return nodes.get(id);};
+  const c=vm.createContext({activeSym:symbol,domDigits:digits,ordMidPrice:Number(price),slOn:false,tpOn:false,
+   pxDigits:()=>digits,futSym:()=>null,document:{getElementById:node},updatePnlPreview(){},updateRiskPreview(){},updateSltpReadouts(){},Event});
+  vm.runInContext(section('function adjSltp(type,dir){','function updateSltpReadouts('),c);
+  c.adjSltp('sl',1);assert.equal(node('slPrice').value,expected,symbol);
+  c.adjSltp('sl',-1);assert.equal(node('slPrice').value,price,symbol+' round trip');
+ }
 });

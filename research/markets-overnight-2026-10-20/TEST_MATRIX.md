@@ -4,15 +4,15 @@ Use actual production functions in meaningful regression tests; browser transpor
 
 | Area | First-pass evidence | Next action |
 |---|---|---|
-| Overlapping account refreshes | Reproduced late-response overwrite; sequence/context fix | Validate switch-away-and-back epoch and acknowledged actions amid polls |
+| Overlapping account refreshes | Late-response and old-lockout fixes; actual selector away/back regression passed | Acknowledged actions amid polls and auto-demo fallback |
 | Session acquisition failures | Reproduced exception and hang; bounded abort/catch fix | Reconnection and signed-out display; no credential reads |
 | Account switch during pending work | Reproduced wrong-account dispatch and stale response; captured context fix | Short-hold partial-close and account switch cases |
 | Reverse | Reproduced wrong market, unconfirmed close, empty-market buy, changed account/market | Confirm no automatic second leg after partial failures |
 | Close All | Reproduced false success and cross-account confirmation | Mixed stale quotes, close failures, duplicate clicks and confirmation cancellation |
-| Fill/acknowledgement messages | Submitted symbol/volume now retained through edits | Pending acknowledgement must retain newly edited trigger/OCO fields |
+| Fill/acknowledgement messages | Submitted symbol/volume retained; different-market pending trigger/OCO preservation passed | Same-market edits, duplicate submissions and HTTP-error detail |
 | Lot entry, stops, cap | Existing guided-ticket regressions passing in initial group | Decimal edge cases, input-in-progress, symbol switch before 500ms refresh, account-specific defaults |
-| Tour | Existing close/seen tests; actual HTML browser test pending | Auto-start races, keyboard focus restore, unavailable localStorage, late account load, resize |
-| SL/TP steppers | Source audit pending | `adjSltp` uses digit buckets that may produce an inappropriate FX/JPY step; reproduce against actual symbol precision before editing |
+| Tour | Existing close/seen tests; actual HTML dismissal and manual replay passed | Auto-start races, keyboard focus restore, unavailable localStorage, late account load, resize |
+| SL/TP steppers | Reproduced wrong FX/JPY/silver precision; five spot tick round trips pass; actual HTML stepper passed | Futures tick specifications and fractional bond-price precision require separate audit |
 | Selected-symbol feed freshness | Source audit pending | Stale/closed status while last tick is young, reconnect, crossed/zero prices; do not invent provider freshness |
 | Non-USD risk/conversion | Existing JPY/missing conversion fixtures | Conversion quote expiry, gap/zero/crossed quotes, account switch |
 | Pending orders | Existing stop-required and acknowledgement fixtures | Trigger precision, expiry around 22:00 UTC, cancel/OCO failures, minimum lots |
