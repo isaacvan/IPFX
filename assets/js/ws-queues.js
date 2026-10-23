@@ -31,12 +31,57 @@
     finally { busy = false; }
   }
 
+  // ---- Approve all: only applications with BOTH ID photos (front and back) on file ----
+  // Skipped on purpose: an identity check that was rejected, and applicants who say they are politically exposed (PEP),
+  // who need a person to look at them. Everything else goes through the same application_decide action as the Approve button.
+  const hasBothIds = (a) => { const t = new Set((a.documents || []).map((d) => d.doc_type)); return t.has('id_front') && t.has('id_back'); };
+  const isPep = (a) => (a.application_details || {}).pep === true;
+  const canBulkApprove = (a) => hasBothIds(a) && ['pending', 'verified'].includes((a.kyc || {}).status || '') && !isPep(a);
+  async function approveRun(list, decide, progress) {
+    const out = { approved: 0, failed: 0, firstError: null };
+    for (let i = 0; i < list.length; i++) {
+      if (progress) progress(i + 1, list.length);
+      try { await decide(list[i]); out.approved++; } catch (e) { out.failed++; out.firstError = out.firstError || (e && e.message) || String(e); }
+    }
+    return out;
+  }
+  async function approveAll() {
+    if (busy) return; busy = true;
+    let all = [];
+    try {
+      T.status('Checking every pending application…');
+      let page = 0, more = true;
+      while (more && page < 40) { const r = await T.admin('application_queue', { status: 'pending', page }); all = all.concat(r.applications || []); more = !!r.has_more; page++; }
+    } catch (e) { T.toast(e.message, true); return; } finally { busy = false; }
+    const ok = all.filter(canBulkApprove);
+    const noPhotos = all.filter((a) => !hasBothIds(a)).length;
+    const pep = all.filter((a) => hasBothIds(a) && isPep(a)).length;
+    const other = all.length - ok.length - noPhotos - pep;
+    if (!ok.length) { T.toast('No pending application has both the front and back ID photo.', true); return; }
+    const skipped = [noPhotos ? `${noPhotos} without both ID photos` : '', pep ? `${pep} flagged PEP (check these by hand)` : '', other ? `${other} with a rejected identity check` : ''].filter(Boolean);
+    const done = await T.sheet({
+      title: `Approve ${ok.length} application${ok.length === 1 ? '' : 's'}?`,
+      text: `Every trader below gets their Infinity account and an approval email now. Only applications with <b>both the front and back ID photo</b> on file are included.${skipped.length ? ' Left for you to review: ' + skipped.join(', ') + '.' : ''}`,
+      confirm: `Approve ${ok.length}`,
+      onSubmit: async () => {
+        busy = true;
+        try {
+          const res = await approveRun(ok, (a) => T.admin('application_decide', { application_id: a.id, status: 'approved' }), (i, n) => T.status(`Approving ${i} of ${n}…`));
+          if (!res.approved) throw new Error(res.firstError || 'Nothing was approved');
+          return res;
+        } finally { busy = false; }
+      },
+    });
+    if (done) { T.toast(`Approved ${done.approved}${done.failed ? `, ${done.failed} failed (${done.firstError})` : ''}.`, done.failed > 0); data.applications = null; load(); }
+  }
+
   // ---- renderers ----
   function applications() {
     const r = data.applications; if (!r) return '<div class="empty">Loading…</div>';
+    const bulkN = (r.applications || []).filter(canBulkApprove).length;
     const seg = `<div class="row" style="margin-bottom:12px"><div class="seg">${['pending', 'approved', 'denied'].map((s) => `<button type="button" data-app-status="${s}" aria-pressed="${s === appStatus}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div>
       <span class="muted" style="font-size:12.5px">${r.total == null ? '' : esc(r.total) + ' ' + esc(appStatus)}</span>
-      <span style="margin-left:auto" class="row"><button class="btn sm" type="button" data-act="appPrev"${appPage ? '' : ' disabled'}>Previous</button><button class="btn sm" type="button" data-act="appNext"${r.has_more ? '' : ' disabled'}>Next</button></span></div>`;
+      <span style="margin-left:auto" class="row">${appStatus === 'pending' && (bulkN > 0 || r.has_more) ? `<button class="btn sm primary" type="button" data-act="appAll" title="Approve every pending application that has both the front and back ID photo">Approve all${bulkN > 0 && !r.has_more ? ' (' + bulkN + ')' : ''}</button>` : ''}<button class="btn sm" type="button" data-act="appPrev"${appPage ? '' : ' disabled'}>Previous</button><button class="btn sm" type="button" data-act="appNext"${r.has_more ? '' : ' disabled'}>Next</button></span></div>`;
     if (!r.applications.length) return seg + `<div class="group"><div class="empty">No ${esc(appStatus)} applications.</div></div>`;
     return seg + `<div class="group">${r.applications.map((a) => {
       const det = a.application_details || {}, kyc = a.kyc?.status || 'unverified';
@@ -159,6 +204,7 @@
       case 'retry': load(); break;
       case 'doc': openDoc(id); break;
       case 'reveal': reveal(user); break;
+      case 'appAll': approveAll(); break;
       case 'appPrev': appPage = Math.max(0, appPage - 1); data.applications = null; render(); await loadTab('applications').catch((x) => T.toast(x.message, true)); render(); break;
       case 'appNext': appPage++; data.applications = null; render(); await loadTab('applications').catch((x) => T.toast(x.message, true)); render(); break;
       case 'appYes': if (await T.sheet({ title: 'Approve this application?', text: 'The trader gets their Infinity account and can start trading.', confirm: 'Approve', onSubmit: () => T.admin('application_decide', { application_id: id, status: 'approved' }) })) { T.toast('Approved.'); data.applications = null; load(); } break;
