@@ -15,6 +15,21 @@
 
   const LWC = window.LightweightCharts;
   const CANDLES_URL = "https://agulweemteoeagscmppy.supabase.co/functions/v1/chart-candles";
+  // Big Build step 1: the IPFX hub serves chart history (free, no database write per request). The chart-candles Edge Function
+  // is the fallback whenever the hub cannot answer, or has no second-level ticks yet for a symbol.
+  const HUB_CANDLES_URL = "https://hub.ipfxcapital.com/candles";
+  async function fetchCandles(sym, tfx) {
+    const qs = `symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(tfx)}`;
+    try {
+      const r = await fetch(`${HUB_CANDLES_URL}?${qs}`, { signal: AbortSignal.timeout(4000) });
+      const j = await r.json();
+      if (r.ok && j && j.ok && (j.bars.length || j.source !== "ipfx-ticks")) return j;
+    } catch (_) { /* fall back */ }
+    const r = await fetch(`${CANDLES_URL}?forceFunctionRegion=eu-west-1&${qs}`);
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || "Chart history unavailable");
+    return j;
+  }
   const TZ = "Europe/London";
   const TF_SECONDS = { "1S": 1, "15S": 15, "30S": 30, "1": 60, "3": 180, "5": 300, "15": 900, "30": 1800, "60": 3600, "240": 14400, D: 86400, W: 604800 };
   const UP = "#10b981", DOWN = "#ef4444", BLUE = "#2563eb";
@@ -474,7 +489,7 @@
       const key = sym + "|" + tf, hit = otherCache.get(key);
       if (!hit || (!hit.pending && Date.now() - hit.at > 300000)) {
         otherCache.set(key, { ...(hit || {}), pending: true });
-        fetch(`${CANDLES_URL}?forceFunctionRegion=eu-west-1&symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(tf)}`).then((r) => r.json()).then((j) => {
+        fetchCandles(sym, tf).then((j) => {
           if (!j || !j.ok) throw new Error("no data");
           otherCache.set(key, { at: Date.now(), closes: new Map(j.bars.map((b) => [b.t, b.c])) });
           indFull = true; scheduleIndicators();
@@ -620,7 +635,7 @@
       if (!symbol || loadingHistory || !raw.some((b) => b.volume > 0)) return;
       const sym = symbol, timeframe = tf;
       try {
-        const j = await (await fetch(`${CANDLES_URL}?forceFunctionRegion=eu-west-1&symbol=${encodeURIComponent(sym)}&tf=${encodeURIComponent(timeframe)}`)).json();
+        const j = await fetchCandles(sym, timeframe);
         if (!j || !j.ok || sym !== symbol || timeframe !== tf) return;
         const m = new Map(j.bars.map((b) => [b.t, b.v || 0]));
         let changed = false;
@@ -713,10 +728,8 @@
       makeSeries();
       hooks.loading(true);
       try {
-        const r = await fetch(`${CANDLES_URL}?forceFunctionRegion=eu-west-1&symbol=${encodeURIComponent(symbol)}&tf=${encodeURIComponent(tf)}`);
-        const j = await r.json().catch(() => null);
+        const j = await fetchCandles(symbol, tf);
         if (seq !== loadSeq) return; // a newer symbol/timeframe won the race
-        if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || "Chart history unavailable");
         proxy = !!j.proxy;
         closesOnly = !!j.closes_only;
         volumeSource = j.volume_source || null;

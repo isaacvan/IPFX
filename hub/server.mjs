@@ -6,6 +6,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 import { Risk } from './risk.mjs';
 import { riskJournal } from './risk-journal.mjs';
+import { TickStore, createCandles, rateLimiter } from './candles.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -47,7 +48,13 @@ const quotes = new Map();                         // symbol -> {s,b,a,m,sp,d,pt,
 const subsBySymbol = new Map();                   // symbol -> Set<ws>
 const risk = new Risk({ quotes, rpc, engine, mode: RISK_MODE, log,
   journal: RISK_MODE === 'active' ? riskJournal(env.RISK_JOURNAL_PATH || (process.platform === 'win32' ? join(tmpdir(),'ipfx-hub-'+process.pid,'risk-queue.json') : '/var/lib/ipfx-hub/risk-queue.json')) : null });
-const counters = { ingests: 0, quotesIn: 0, framesOut: 0, dropsSlow: 0, authOk: 0, authFail: 0, rejectedQuotes: 0 };
+const counters = { ingests: 0, quotesIn: 0, framesOut: 0, dropsSlow: 0, authOk: 0, authFail: 0, rejectedQuotes: 0, candleRequests: 0, candleLimited: 0 };
+// Chart candles (Big Build step 1): the last 6 hours of price changes live here instead of the Supabase quote_ticks table.
+const STATE_DIR = env.STATE_DIRECTORY || (process.platform === 'win32' ? join(tmpdir(), 'ipfx-hub-' + process.pid) : '/var/lib/ipfx-hub');
+const ticks = new TickStore({ path: join(STATE_DIR, 'ticks.json'), log });
+const restoredTicks = ticks.load();
+const candles = createCandles({ store: ticks, log });
+const candleLimit = rateLimiter({ perMinute: 120 });
 let lastIngestAt = 0;
 
 function ingest(list) {
@@ -61,6 +68,7 @@ function ingest(list) {
     lastIngestAt = now;
     const q = { s: x.s, b: x.b, a: x.a, m: (x.b + x.a) / 2, sp: x.a - x.b, d: x.d, pt: x.pt, rt: x.rt, at: now };
     quotes.set(q.s, q); counters.quotesIn++;
+    ticks.add(q.s, q.rt, q.m);
     const frag = JSON.stringify({ s: q.s, b: q.b, a: q.a, m: q.m, sp: q.sp, d: q.d, pt: q.pt, rt: q.rt });
     for (const ws of subsBySymbol.get(q.s) ?? []) {
       if (!perClient.has(ws)) perClient.set(ws, []);
@@ -109,7 +117,18 @@ const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'appli
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') {
-      return send(res, 200, { ok: true, clients: wss.clients.size, quotes: quotes.size, ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: risk.summary(), admission: { accepted: counters.authOk, rejected: counters.authFail } });
+      return send(res, 200, { ok: true, clients: wss.clients.size, quotes: quotes.size, ticks: ticks.size(), ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: risk.summary(), admission: { accepted: counters.authOk, rejected: counters.authFail } });
+    }
+    // Public chart history for IPFX Markets (same answer format as the chart-candles Edge Function, which stays as the fallback).
+    if (req.method === 'GET' && req.url.startsWith('/candles?')) {
+      const u = new URL(req.url, 'http://hub');
+      const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+      counters.candleRequests++;
+      const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
+      if (!candleLimit(ip)) { counters.candleLimited++; res.writeHead(429, { ...cors, 'Cache-Control': 'no-store' }); return res.end('{"ok":false,"error":"Too many chart requests, wait a moment."}'); }
+      const out = await candles(u.searchParams.get('symbol'), u.searchParams.get('tf'));
+      res.writeHead(out.status, { ...cors, 'Cache-Control': out.cache ? `public, max-age=${out.cache}` : 'no-store' });
+      return res.end(JSON.stringify(out.body));
     }
     if (req.method === 'POST' && (req.url === '/ingest' || req.url === '/event')) {
       if (!secretOk(req.headers['x-hub-secret'])) return send(res, 401, { ok: false });
@@ -178,15 +197,19 @@ setInterval(() => {
   if (syms.length) rpc('hub_watch', { p_symbols: syms }).catch((e) => log('watch failed', String(e)));
 }, 20_000).unref();
 
+// keep 6 hours of ticks; save them once a minute so a restart (deploy, reboot) keeps chart history
+setInterval(() => { ticks.prune(); ticks.save(); }, 60_000).unref();
+for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { ticks.save(); process.exit(0); });
+
 // heartbeat for the owner's Brain page
 const started = Date.now();
 setInterval(() => {
   const mem = process.memoryUsage();
   const detail = { ok: risk.healthy() && (!lastIngestAt || Date.now() - lastIngestAt < 60_000), clients: wss.clients.size,
     authed: [...wss.clients].filter((w) => w.uid).length, ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null,
-    quotes: quotes.size, uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
+    quotes: quotes.size, ticks: ticks.size(), uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
   rpc('hub_heartbeat', { p_detail: detail }).catch((e) => log('heartbeat failed', String(e)));
 }, 30_000).unref();
 
-server.listen(PORT, '127.0.0.1', () => log(`ipfx-hub listening on ${PORT}, risk ${RISK_MODE}`));
+server.listen(PORT, '127.0.0.1', () => log(`ipfx-hub listening on ${PORT}, risk ${RISK_MODE}, ${restoredTicks} ticks restored`));
 risk.start().then(() => log('risk watcher ready', JSON.stringify(risk.summary()))).catch((e) => log('risk start failed', String(e)));

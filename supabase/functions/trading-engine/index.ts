@@ -497,6 +497,13 @@ for (const [k, v] of Object.entries(FXCM_SYMBOLS)) (FXCM_REVERSE[v] ??= []).push
 // price changed, plus a heartbeat for the rest so freshness never lapses. The engine judges freshness on feed_ts (STALE_MS is 8s;
 // 20s crypto, 15s futures), so a 1.5s heartbeat leaves a wide margin. Readers see the same prices, at most 1.5s apart for quiet symbols.
 const ROW_HEARTBEAT_MS = 1500;
+// Big Build step 1 (2026-10-24): chart candles now come from the hub's own tick history, so quote_ticks keeps only what the database
+// still reads: symbols someone has open or holds (trade lows, Brain quote windows around trade open/close) and the currency pairs used
+// to convert non-USD P&L in the trade-lows job.
+const TICK_FX = new Set(["USDJPY", "GBPUSD", "USDCAD", "USDCHF"]);
+function ticksToStore(changed: { symbol: string }[], watchedNow: Set<string>): { symbol: string }[] {
+  return changed.filter((q) => watchedNow.has(q.symbol) || TICK_FX.has(q.symbol));
+}
 function rowsToWrite(rows: Record<string, unknown>[], changed: { symbol: string }[], lastWriteAt: Map<string, number>, now: number): Record<string, unknown>[] {
   const changedSymbols = new Set(changed.map((q) => q.symbol));
   return rows.filter((r) => {
@@ -612,7 +619,8 @@ let hubInFlight = false, hubPauseUntil = 0;
 function pushToHub(qs: Quote[]): void {
   const url = Deno.env.get("HUB_INGEST_URL"), secret = Deno.env.get("HUB_SECRET");
   if (!url || !secret) return;
-  for (const q of qs) if (watched.has(q.symbol)) hubPending.set(q.symbol, q);
+  // Every price change goes to the hub (not only watched symbols): it keeps the 6-hour tick history that serves chart candles.
+  for (const q of qs) hubPending.set(q.symbol, q);
   if (hubInFlight || !hubPending.size || Date.now() < hubPauseUntil) return;
   const batch = [...hubPending.values()];
   hubPending.clear();
@@ -979,11 +987,12 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
       if (changed.length) pushToHub(changed);
       if (rows.length) {
         const toWrite = rowsToWrite(rows, changed, rowWrittenAt, Date.now());
+        const tickRows = ticksToStore(changed, watched) as Quote[];
         await Promise.all([
           toWrite.length ? db.from("live_quotes").upsert(toWrite) : null,
           broadcastQuotes(changed),
           // every price change, for the 1s / 15s / 30s chart candles (kept 6h)
-          changed.length ? db.from("quote_ticks").insert(changed.map((q) => ({ symbol: q.symbol, ts: new Date(q.receivedTs).toISOString(), mid: q.mid, bid: q.bid, ask: q.ask }))) : null,
+          tickRows.length ? db.from("quote_ticks").insert(tickRows.map((q) => ({ symbol: q.symbol, ts: new Date(q.receivedTs).toISOString(), mid: q.mid, bid: q.bid, ask: q.ask }))) : null,
         ]);
         pushed += changed.length;
       }

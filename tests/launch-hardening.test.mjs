@@ -108,7 +108,9 @@ test('low-latency quote path: pump, batch warm, realtime push, region pinning, a
   assert.match(platform, /ENGINE_URL='[^']+\?forceFunctionRegion=eu-west-1'/);
   assert.match(platform, /channel\('quotes:'\+key,\{config:\{private:true\}\}\)/);
   assert.match(platform, /j\.received_ts<quoteAppliedRt/);
-  assert.match(read('assets/js/ipfx-chart.js'), /forceFunctionRegion=eu-west-1&symbol=/);
+  // The Edge fallback stays pinned to the database region (the hub serves candles first since the Big Build).
+  assert.match(read('assets/js/ipfx-chart.js'), /forceFunctionRegion=eu-west-1&\$\{qs\}/);
+  assert.match(read('assets/js/ipfx-chart.js'), /const qs = `symbol=\$\{encodeURIComponent\(sym\)\}&tf=/);
 });
 
 test('Infinity: winning trades held under 1 minute are excluded from payouts, with a warning before closing early', () => {

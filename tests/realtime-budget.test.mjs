@@ -49,7 +49,7 @@ test('Realtime price broadcasts only go out for symbols a Realtime-route page is
   assert.match(e, /upsert\(\{ symbol, last_seen: stamp \}\)/, 'hub-only pages still mark the symbol watched for the hub');
   assert.match(t, /enforce_risk:true,rt:!hubLive\(\)/);
   // the hub still gets every watched symbol
-  assert.match(e, /for \(const q of qs\) if \(watched\.has\(q\.symbol\)\) hubPending\.set\(q\.symbol, q\);/);
+  assert.match(e, /for \(const q of qs\) hubPending\.set\(q\.symbol, q\);/, 'the hub gets every price change (it keeps the chart tick history)');
 });
 
 test('noteWatched stamps the Realtime route only for Realtime pages', () => {
