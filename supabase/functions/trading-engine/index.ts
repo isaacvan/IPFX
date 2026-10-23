@@ -492,6 +492,20 @@ const PUMP_INTERVAL_MS = 250;
 const FXCM_REVERSE: Record<string, string[]> = {};
 for (const [k, v] of Object.entries(FXCM_SYMBOLS)) (FXCM_REVERSE[v] ??= []).push(k);
 
+// Disk I/O budget (2026-10-23): the pump used to rewrite EVERY symbol's row on EVERY tick (about 4 times a second) even when the
+// price had not moved, which kept the database disk saturated and made logins and prices time out. A row is now written when its
+// price changed, plus a heartbeat for the rest so freshness never lapses. The engine judges freshness on feed_ts (STALE_MS is 8s;
+// 20s crypto, 15s futures), so a 1.5s heartbeat leaves a wide margin. Readers see the same prices, at most 1.5s apart for quiet symbols.
+const ROW_HEARTBEAT_MS = 1500;
+function rowsToWrite(rows: Record<string, unknown>[], changed: { symbol: string }[], lastWriteAt: Map<string, number>, now: number): Record<string, unknown>[] {
+  const changedSymbols = new Set(changed.map((q) => q.symbol));
+  return rows.filter((r) => {
+    const sym = String(r.symbol);
+    if (!changedSymbols.has(sym) && now - (lastWriteAt.get(sym) ?? 0) < ROW_HEARTBEAT_MS) return false;
+    lastWriteAt.set(sym, now);
+    return true;
+  });
+}
 async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<string, unknown>[]; changed: Quote[] }> {
   const r = await fetch("https://rates.fxcm.com/RatesXML?ts=" + Date.now(), {
     headers: { "Accept": "application/xml", "Cache-Control": "no-cache", "User-Agent": "IPFXEngine/2.0" },
@@ -938,6 +952,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
     }
   } catch (_) { /* no reference yet: the first tick seeds it */ }
   let ticks = 0, pushed = 0;
+  const rowWrittenAt = new Map<string, number>();
   while (Date.now() < until) {
     const t0 = Date.now();
     try {
@@ -963,8 +978,9 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
       await refreshWatched(db).catch(() => {});
       if (changed.length) pushToHub(changed);
       if (rows.length) {
+        const toWrite = rowsToWrite(rows, changed, rowWrittenAt, Date.now());
         await Promise.all([
-          db.from("live_quotes").upsert(rows),
+          toWrite.length ? db.from("live_quotes").upsert(toWrite) : null,
           broadcastQuotes(changed),
           // every price change, for the 1s / 15s / 30s chart candles (kept 6h)
           changed.length ? db.from("quote_ticks").insert(changed.map((q) => ({ symbol: q.symbol, ts: new Date(q.receivedTs).toISOString(), mid: q.mid, bid: q.bid, ask: q.ask }))) : null,
