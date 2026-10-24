@@ -79,7 +79,7 @@ test('security: hub holds no service key; every hub call checks its own secret; 
   assert.doesNotMatch(sql, /vault\.create_secret/, 'the secret is set outside migrations (public repo)');
   const eng = read('supabase/functions/trading-engine/index.ts');
   assert.match(eng, /if \(!hubSecretOk\(req\.headers\.get\("x-hub-secret"\)\)\) return err\("Not authorized", 401\);/);
-  assert.match(eng, /if \(changed\.length\) pushToHub\(changed\);/);
+  assert.match(eng, /if \(hubBatch\.length\) pushToHub\(hubBatch\);/);
   assert.doesNotMatch(eng, /await pushToHub/);
   assert.ok(eng.indexOf('body.action === "hub_enforce"') < eng.indexOf('authClient.auth.getUser()'));
 });
@@ -88,9 +88,9 @@ test('trading page: hub first, everything falls back when it drops; own checks r
   const page = read('trading.html');
   assert.match(page, /const HUB_WS='wss:\/\/hub\.ipfxcapital\.com\/ws';/);
   assert.match(page, /ws\.onclose=\(\)=>\{hubOk=false;hubRisk=false;hubWs=null;/);
-  assert.match(page, /if\(pushing&&hubRisk&&hubLive\(\)\)return since>=10000;/);
+  assert.match(page, /if\(pushing&&hubRisk&&hubLive\(\)\)return since>=\(exposed\?30000:60000\);/);
   assert.match(page, /hubRisk=m\.risk==='active'&&m\.rk===true&&m\.feed!=null&&m\.feed<5000;/);
-  assert.ok(page.includes("if(hubLive()&&Date.now()-lastWlPoll<(conversions.some(s=>!clientQuoteFresh(liveQuotesBySymbol.get(s)))?4000:30000))return;"), 'healthy hub keeps the slow fallback unless a required conversion expires');
+  assert.ok(page.includes("if(hubLive()&&Date.now()-lastWlPoll<(conversions.some(s=>!clientQuoteFresh(liveQuotesBySymbol.get(s)))?4000:120000))return;"), 'healthy hub keeps the slow fallback unless a required conversion expires');
 });
 
 test('Brain: red alert when the hub stops reporting (a quiet feed only counts while the market is open)', () => {

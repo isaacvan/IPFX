@@ -68,7 +68,7 @@ function ingest(list) {
     lastIngestAt = now;
     const q = { s: x.s, b: x.b, a: x.a, m: (x.b + x.a) / 2, sp: x.a - x.b, d: x.d, pt: x.pt, rt: x.rt, at: now };
     quotes.set(q.s, q); counters.quotesIn++;
-    ticks.add(q.s, q.rt, q.m);
+    if (!previous || previous.m !== q.m) ticks.add(q.s, q.rt, q.m);   // heartbeats re-confirm a price; only moves are ticks
     const frag = JSON.stringify({ s: q.s, b: q.b, a: q.a, m: q.m, sp: q.sp, d: q.d, pt: q.pt, rt: q.rt });
     for (const ws of subsBySymbol.get(q.s) ?? []) {
       if (!perClient.has(ws)) perClient.set(ws, []);
@@ -201,13 +201,24 @@ setInterval(() => {
 setInterval(() => { ticks.prune(); ticks.save(); }, 60_000).unref();
 for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { ticks.save(); process.exit(0); });
 
+// Price feed keeper (Big Build step 2): pg_cron starts the engine's price pump every 10s. If no price has arrived for 4s (the database
+// scheduler stalled), the hub starts the pump itself. While pg_cron works the hub never needs to, so runs are not doubled.
+let lastPumpKick = 0;
+const counterPump = { kicks: 0, kickErrors: 0 };
+setInterval(() => {
+  const now = Date.now();
+  if (now - lastIngestAt < 4000 || now - lastPumpKick < 9000) return;
+  lastPumpKick = now; counterPump.kicks++;
+  engine({ action: 'pump', duration_ms: 11000 }).catch((e) => { counterPump.kickErrors++; log('pump kick failed', String(e)); });
+}, 2000).unref();
+
 // heartbeat for the owner's Brain page
 const started = Date.now();
 setInterval(() => {
   const mem = process.memoryUsage();
   const detail = { ok: risk.healthy() && (!lastIngestAt || Date.now() - lastIngestAt < 60_000), clients: wss.clients.size,
     authed: [...wss.clients].filter((w) => w.uid).length, ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null,
-    quotes: quotes.size, ticks: ticks.size(), uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
+    quotes: quotes.size, ticks: ticks.size(), pumpKicks: counterPump.kicks, pumpKickErrors: counterPump.kickErrors, uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
   rpc('hub_heartbeat', { p_detail: detail }).catch((e) => log('heartbeat failed', String(e)));
 }, 30_000).unref();
 

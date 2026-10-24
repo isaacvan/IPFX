@@ -79,7 +79,7 @@ test('the candles endpoint is rate limited in memory, per IP', () => {
 });
 
 test('hub server: ticks recorded on every accepted price, saved each minute and on shutdown, public CORS endpoint', () => {
-  assert.match(server, /quotes\.set\(q\.s, q\); counters\.quotesIn\+\+;\n\s*ticks\.add\(q\.s, q\.rt, q\.m\);/);
+  assert.match(server, /quotes\.set\(q\.s, q\); counters\.quotesIn\+\+;\n\s*if \(!previous \|\| previous\.m !== q\.m\) ticks\.add\(q\.s, q\.rt, q\.m\);/);
   assert.match(server, /req\.url\.startsWith\('\/candles\?'\)/);
   assert.match(server, /'Access-Control-Allow-Origin': '\*'/);
   assert.match(server, /if \(!candleLimit\(ip\)\)/);
@@ -92,7 +92,7 @@ test('engine: every price change reaches the hub; Supabase keeps ticks only for 
   assert.match(engine, /for \(const q of qs\) hubPending\.set\(q\.symbol, q\);/);
   assert.doesNotMatch(engine, /if \(watched\.has\(q\.symbol\)\) hubPending\.set/);
   const a = engine.indexOf('const TICK_FX'), b = engine.indexOf('function rowsToWrite');
-  const js = engine.slice(a, b).replace(/: \{ symbol: string \}\[\]/g, '').replace(/: Set<string>/g, '');
+  const js = engine.slice(a, b).replace(/: Record<string, unknown>\[\]/g, '').replace(/: \{ symbol: string \}\[\]/g, '').replace(/: Set<string>/g, '').replace(/: Quote\[\]/g, '');
   const ctx = {}; vm.createContext(ctx); vm.runInContext(js + '\nglobalThis.f = ticksToStore;', ctx);
   const out = ctx.f([{ symbol: 'XAUUSD' }, { symbol: 'NSXUSD' }, { symbol: 'USDJPY' }, { symbol: 'ETHUSD' }], new Set(['XAUUSD']));
   assert.deepEqual(out.map((q) => q.symbol), ['XAUUSD', 'USDJPY']);

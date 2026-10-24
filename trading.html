@@ -6243,14 +6243,18 @@ let lastUserActivity=Date.now(), lastTicketPoll=0;
 function pollsPaused(){return document.hidden===true;}
 function ticketPollDue(){
   const since=Date.now()-lastTicketPoll;
-  if(typeof feedState!=='undefined'&&feedState==='closed')return since>=10000;
+  // Market closed: one check a minute while the hub is connected (it re-opens the moment the engine says so), else every 10s.
+  if(typeof feedState!=='undefined'&&feedState==='closed')return since>=(hubLive()?60000:10000);
   // Live pushes arriving: the poll is only a safety net and risk check. With no open trades or pending orders
   // there is nothing to risk-check, so every 15s; with positions, every 2.25s so drawdown/SL/TP stay fast.
   // If pushes pause for 3s (quiet market, lost connection) polling returns to full speed.
   const pushing=(rtQuoteChan||hubLive())&&Date.now()-lastPushedQuoteAt<3000;
   const exposed=((engineState&&engineState.open_trades)||[]).length>0||((engineState&&engineState.pending_orders)||[]).length>0;
+  // Big Build step 2: the hub streams every price (unchanged ones re-confirmed every 1.5s) and its watcher checks every open position
+  // tick by tick, so this poll only syncs market status: every 30s with positions, every 60s without. If the hub or its watcher
+  // stops (hubRisk turns false within 5s), the faster schedule below takes over automatically.
+  if(pushing&&hubRisk&&hubLive())return since>=(exposed?30000:60000);
   if(pushing&&!exposed)return since>=15000;
-  if(pushing&&hubRisk&&hubLive())return since>=10000;
   if(Date.now()-lastUserActivity>300000)return since>=3000;
   if(pushing)return since>=2250;
   return true;
@@ -6812,7 +6816,7 @@ async function pollWatchlist(){
   if((wlCollapsed&&!conversions.length)||wlPollBusy||typeof hasSession!=='function'||!hasSession()||document.hidden)return;
   // Idle for 5+ minutes: refresh the watchlist every 15s instead of every 4s.
   if(Date.now()-lastUserActivity>300000&&Date.now()-lastWlPoll<15000)return;
-  if(hubLive()&&Date.now()-lastWlPoll<(conversions.some(s=>!clientQuoteFresh(liveQuotesBySymbol.get(s)))?4000:30000))return;
+  if(hubLive()&&Date.now()-lastWlPoll<(conversions.some(s=>!clientQuoteFresh(liveQuotesBySymbol.get(s)))?4000:120000))return;
   lastWlPoll=Date.now();
   const list=document.getElementById('wlList');
   if((!list||!list.children.length)&&!conversions.length)return;

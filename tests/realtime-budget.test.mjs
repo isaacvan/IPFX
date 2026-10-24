@@ -8,7 +8,7 @@ test('quote pump pushes only symbols someone has open, at most twice a second', 
   const e = read('supabase/functions/trading-engine/index.ts');
   assert.match(e, /const PUSH_MIN_GAP_MS = 500;/);
   assert.match(e, /qs = qs\.filter\(\(q\) => rtWatched\.has\(q\.symbol\) && now - \(lastPushAt\.get\(q\.symbol\) \?\? 0\) >= PUSH_MIN_GAP_MS\);/);
-  assert.match(e, /await refreshWatched\(db\)\.catch\(\(\) => \{\}\);/);
+  assert.match(e, /\n\s*refreshWatched\(db\)\.catch\(\(\) => \{\}\);/, 'refreshed in the background: prices never wait on the database');
   assert.match(e, /if \(symbol\) noteWatched\(db, symbol, body\.rt !== false\);/);
   assert.match(read('supabase/migrations/20261004090000_quote_watch.sql'), /create table if not exists public\.quote_watch/);
 });

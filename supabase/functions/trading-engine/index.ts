@@ -501,6 +501,19 @@ const ROW_HEARTBEAT_MS = 1500;
 // still reads: symbols someone has open or holds (trade lows, Brain quote windows around trade open/close) and the currency pairs used
 // to convert non-USD P&L in the trade-lows job.
 const TICK_FX = new Set(["USDJPY", "GBPUSD", "USDCAD", "USDCHF"]);
+// Big Build step 2: the hub also gets the heartbeat rows (unchanged prices re-confirmed every 1.5s, exactly what live_quotes records), so
+// a quiet symbol stays fresh on traders' screens without the page asking the engine for a price every 0.75s.
+function heartbeatQuotes(rows: Record<string, unknown>[], changed: { symbol: string }[]): Quote[] {
+  const moved = new Set(changed.map((q) => q.symbol));
+  const out: Quote[] = [];
+  for (const r of rows) {
+    const symbol = String(r.symbol), bid = Number(r.bid), ask = Number(r.ask), receivedTs = Date.parse(String(r.received_at ?? ""));
+    if (moved.has(symbol) || !(bid > 0) || !(ask >= bid) || !Number.isFinite(receivedTs)) continue;
+    out.push({ symbol, bid, ask, mid: Number(r.mid), spread: Number(r.spread), providerTs: r.provider_ts ? Date.parse(String(r.provider_ts)) : null,
+      feedTs: r.feed_ts ? Date.parse(String(r.feed_ts)) : null, receivedTs, source: String(r.source ?? "") });
+  }
+  return out;
+}
 function ticksToStore(changed: { symbol: string }[], watchedNow: Set<string>): { symbol: string }[] {
   return changed.filter((q) => watchedNow.has(q.symbol) || TICK_FX.has(q.symbol));
 }
@@ -912,25 +925,34 @@ class CTraderFeed {
   }
 }
 
+// The price pump must start even when the database is slow (Big Build step 2): its start-up reads give up after 1.5s and fall back to
+// the last known settings in this isolate (or plain FXCM), so prices never wait on the database. Previously a choked database held
+// the pump in these reads past its 11s run, and no price reached anyone.
+let lastFeedCfg: { price_feed?: string | null; price_feed_connection_id?: string | null } | null = null;
+async function quickRead<T>(query: PromiseLike<{ data: T | null }>, ms = 1500): Promise<T | null> {
+  try {
+    return await Promise.race([Promise.resolve(query).then((r) => r.data ?? null), new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))]);
+  } catch (_) { return null; }
+}
 async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number; pushed: number }> {
   const until = Date.now() + durationMs;
   const runId = crypto.randomUUID();
   let feedMode: "fxcm" | "shadow" | "tradelocker" = "fxcm";
   let ctMode = false;
   let feedConn: string | null = null;
-  try {
-    const { data: cfg } = await db.from("platform_config").select("price_feed,price_feed_connection_id").eq("id", true).maybeSingle();
+  {
+    const fresh = await quickRead<{ price_feed?: string | null; price_feed_connection_id?: string | null }>(db.from("platform_config").select("price_feed,price_feed_connection_id").eq("id", true).maybeSingle());
+    if (fresh) lastFeedCfg = fresh;
+    const cfg = fresh ?? lastFeedCfg;               // database too slow: last known settings, else FXCM only
     if (cfg?.price_feed === "shadow" || cfg?.price_feed === "tradelocker") { feedMode = cfg.price_feed; feedConn = cfg.price_feed_connection_id ?? null; }
     if (cfg?.price_feed === "ctrader") ctMode = true;
-  } catch (_) { /* default: FXCM only */ }
+  }
   let ct: CTraderFeed | null = null;
   let ctReserved = new Set<string>();
   const ctStartedAt = Date.now();
   if (ctMode) {
-    try {
-      const { data: st } = await db.from("price_feed_state").select("ctrader_symbols").eq("id", true).maybeSingle();
-      ctReserved = new Set(Object.keys(st?.ctrader_symbols ?? {}));
-    } catch (_) { /* nothing reserved */ }
+    const st = await quickRead<{ ctrader_symbols?: Record<string, unknown> | null }>(db.from("price_feed_state").select("ctrader_symbols").eq("id", true).maybeSingle());
+    ctReserved = new Set(Object.keys(st?.ctrader_symbols ?? {}));
     CTraderFeed.start(db).then((f) => { ct = f; }).catch(async (e) => {
       ctReserved = new Set();
       await logFeedEvent(db, "outage", null, "ctrader feed start failed: " + String(e).slice(0, 150));
@@ -938,19 +960,17 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
   }
   let tl: TradeLockerFeed | null = null;
   let nextLeaseTry = 0;
-  let tlFailed = false;
+  let tlFailed = false, tlStarting = false;
   // While another run still holds the TradeLocker lease, don't overwrite its instruments with FXCM prices
   // (that would flip the source back and forth at every hand-over).
   let reserved = new Set<string>();
   if (feedMode === "tradelocker") {
-    try {
-      const { data: st } = await db.from("price_feed_state").select("tl_symbols").eq("id", true).maybeSingle();
-      reserved = new Set(st?.tl_symbols ?? []);
-    } catch (_) { /* nothing reserved */ }
+    const st = await quickRead<{ tl_symbols?: string[] | null }>(db.from("price_feed_state").select("tl_symbols").eq("id", true).maybeSingle());
+    reserved = new Set(st?.tl_symbols ?? []);
   }
   const prev = new Map<string, Quote>();
   try {
-    const { data: seed } = await db.from("live_quotes").select("*");
+    const seed = await quickRead<Record<string, any>[]>(db.from("live_quotes").select("*"));   // only feeds the bad-tick filter
     for (const row of seed ?? []) {
       if (!FXCM_SYMBOLS[row.symbol]) continue;
       prev.set(row.symbol, {
@@ -960,13 +980,16 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
     }
   } catch (_) { /* no reference yet: the first tick seeds it */ }
   let ticks = 0, pushed = 0;
-  const rowWrittenAt = new Map<string, number>();
+  const rowWrittenAt = new Map<string, number>(), hubBeatAt = new Map<string, number>();
+  let dbWriteBusy = false;
   while (Date.now() < until) {
     const t0 = Date.now();
     try {
-      if (feedMode !== "fxcm" && !tl && !tlFailed && Date.now() >= nextLeaseTry) {
+      if (feedMode !== "fxcm" && !tl && !tlFailed && !tlStarting && Date.now() >= nextLeaseTry) {
         nextLeaseTry = Date.now() + 1000;               // the previous run releases its lease as it ends
-        try { tl = await TradeLockerFeed.start(db, feedMode, feedConn, runId, until); } catch (_) { tlFailed = true; }
+        // Started in the background (its lease is a database write): FXCM prices keep flowing until it is ready.
+        tlStarting = true;
+        TradeLockerFeed.start(db, feedMode, feedConn, runId, until).then((f) => { tl = f; }).catch(() => { tlFailed = true; }).finally(() => { tlStarting = false; });
       }
       // cTrader mode ticks every 100ms; FXCM (fallback) is still read every 3rd tick.
       const fxDue = !ctMode || ticks % 3 === 0;
@@ -983,19 +1006,26 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
         out = { rows: fx.rows.filter((r) => !reserved.has(String(r.symbol))), changed: fx.changed.filter((c) => !reserved.has(c.symbol)) };
       }
       const { rows, changed } = out;
-      await refreshWatched(db).catch(() => {});
-      if (changed.length) pushToHub(changed);
-      if (rows.length) {
-        const toWrite = rowsToWrite(rows, changed, rowWrittenAt, Date.now());
+      // Prices never wait on the database (Big Build step 2): the watched list refreshes in the background, the hub and Realtime get
+      // every move at once, and the database writes run behind them. While one write batch is still in flight (a slow database), newer
+      // rows simply wait: every symbol is re-written within 1.5s by the heartbeat once the database answers again.
+      refreshWatched(db).catch(() => {});
+      const now = Date.now();
+      const hubBatch = changed.concat(heartbeatQuotes(rows.length ? rowsToWrite(rows, changed, hubBeatAt, now) : [], changed));
+      if (hubBatch.length) pushToHub(hubBatch);
+      if (changed.length) broadcastQuotes(changed).catch(() => {});
+      if (rows.length && !dbWriteBusy) {
+        const toWrite = rowsToWrite(rows, changed, rowWrittenAt, now);
         const tickRows = ticksToStore(changed, watched) as Quote[];
-        await Promise.all([
-          toWrite.length ? db.from("live_quotes").upsert(toWrite) : null,
-          broadcastQuotes(changed),
-          // every price change, for the 1s / 15s / 30s chart candles (kept 6h)
-          tickRows.length ? db.from("quote_ticks").insert(tickRows.map((q) => ({ symbol: q.symbol, ts: new Date(q.receivedTs).toISOString(), mid: q.mid, bid: q.bid, ask: q.ask }))) : null,
-        ]);
-        pushed += changed.length;
+        if (toWrite.length || tickRows.length) {
+          dbWriteBusy = true;
+          Promise.all([
+            toWrite.length ? db.from("live_quotes").upsert(toWrite) : null,
+            tickRows.length ? db.from("quote_ticks").insert(tickRows.map((q) => ({ symbol: q.symbol, ts: new Date(q.receivedTs).toISOString(), mid: q.mid, bid: q.bid, ask: q.ask }))) : null,
+          ]).catch(() => {}).finally(() => { dbWriteBusy = false; });
+        }
       }
+      pushed += changed.length;
     } catch (_) { /* one bad tick never stops the pump */ }
     ticks++;
     const wait = (ctMode && ct ? 100 : PUMP_INTERVAL_MS) - (Date.now() - t0);
@@ -3123,7 +3153,9 @@ const handleRequest = async (req: Request): Promise<Response> => {
   if (body.action === "pump") {
     const secret = req.headers.get("x-cron-secret");
     const expected = Deno.env.get("CRON_SECRET");
-    if (!expected || secret !== expected) return err("Not authorized", 401);
+    // Started every 10s by pg_cron; the IPFX hub also starts it (with its own secret) whenever prices stop arriving, so a stalled
+    // database scheduler can never stop the price feed.
+    if (!((expected && secret === expected) || hubSecretOk(req.headers.get("x-hub-secret")))) return err("Not authorized", 401);
     const pumpDb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const durationMs = Math.min(58_000, Math.max(5_000, Number(body.duration_ms) || 29_000));
     const job = runQuotePump(pumpDb, durationMs);

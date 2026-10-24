@@ -2,7 +2,7 @@
 import test from 'node:test'; import assert from 'node:assert/strict'; import fs from 'node:fs'; import vm from 'node:vm';
 const e = fs.readFileSync(new URL('../supabase/functions/trading-engine/index.ts', import.meta.url), 'utf8');
 const a = e.indexOf('const ROW_HEARTBEAT_MS'), b = e.indexOf('async function pumpFxcmOnce');
-const js = e.slice(a, b).replace(/: Record<string, unknown>\[\]/g, '').replace(/: \{ symbol: string \}\[\]/g, '').replace(/: Map<string, number>/g, '').replace(/: number/g, '').replace(/: Set<string>/g, '');
+const js = e.slice(a, b).replace(/: Record<string, unknown>\[\]/g, '').replace(/: \{ symbol: string \}\[\]/g, '').replace(/: Map<string, number>/g, '').replace(/: number/g, '').replace(/: Set<string>/g, '').replace(/: Quote\[\]/g, '');
 const ctx = {}; vm.createContext(ctx); vm.runInContext(js + '\nglobalThis.api = { rowsToWrite, ROW_HEARTBEAT_MS };', ctx);
 const { rowsToWrite, ROW_HEARTBEAT_MS } = ctx.api;
 const T0 = 1.79e12; // real clock values, like Date.now()
@@ -30,9 +30,9 @@ test('the heartbeat is far inside the engine freshness limits so prices never lo
 });
 
 test('the pump upserts only the filtered rows, keeps tick history and the Realtime/hub pushes unchanged', () => {
-  assert.match(e, /const toWrite = rowsToWrite\(rows, changed, rowWrittenAt, Date\.now\(\)\);/);
+  assert.match(e, /if \(rows\.length && !dbWriteBusy\) \{\n\s*const toWrite = rowsToWrite\(rows, changed, rowWrittenAt, now\);/);
   assert.match(e, /toWrite\.length \? db\.from\("live_quotes"\)\.upsert\(toWrite\) : null,/);
-  assert.match(e, /broadcastQuotes\(changed\),/);
+  assert.match(e, /if \(changed\.length\) broadcastQuotes\(changed\)\.catch\(\(\) => \{\}\);/);
   assert.match(e, /db\.from\("quote_ticks"\)\.insert\(tickRows\.map/);
-  assert.match(e, /if \(changed\.length\) pushToHub\(changed\);/);
+  assert.match(e, /if \(hubBatch\.length\) pushToHub\(hubBatch\);/);
 });
