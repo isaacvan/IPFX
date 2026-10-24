@@ -36,3 +36,13 @@ test('the pump upserts only the filtered rows, keeps tick history and the Realti
   assert.match(e, /db\.from\("quote_ticks"\)\.insert\(tickRows\.map/);
   assert.match(e, /if \(hubBatch\.length\) pushToHub\(hubBatch\);/);
 });
+
+test('the shared quote cache accepts a stored price for longer than the heartbeat gap, so quiet symbols never fall through to the upstream feed', () => {
+  const ttl = Number(/const CACHE_TTL_MS = (\d+);/.exec(e)[1]), shared = Number(/const SHARED_CACHE_TTL_MS = (\d+);/.exec(e)[1]);
+  assert.equal(ttl, 750, 'the in-process cache keeps its strict window');
+  assert.ok(shared > ROW_HEARTBEAT_MS, `shared ${shared}ms must exceed the ${ROW_HEARTBEAT_MS}ms heartbeat`);
+  assert.ok(shared <= 2000, 'but not so long that a stored price could be materially old');
+  assert.match(e, /ageMs >= 0 && ageMs < SHARED_CACHE_TTL_MS/);
+  assert.match(e, /now - receivedTs >= SHARED_CACHE_TTL_MS\) continue;/);
+  assert.match(e, /hitAge >= 0 && hitAge < CACHE_TTL_MS && quoteClockValid\(hit\)/);
+});

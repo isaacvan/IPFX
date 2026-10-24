@@ -54,7 +54,7 @@ const STATE_DIR = env.STATE_DIRECTORY || (process.platform === 'win32' ? join(tm
 const ticks = new TickStore({ path: join(STATE_DIR, 'ticks.json'), log });
 const restoredTicks = ticks.load();
 const candles = createCandles({ store: ticks, log });
-const candleLimit = rateLimiter({ perMinute: 120 });
+const candleLimit = rateLimiter({ perMinute: Number(env.CANDLE_RATE_PER_MIN) || 120 });   // per IP; the env override is only for load tests
 let lastIngestAt = 0;
 
 function ingest(list) {

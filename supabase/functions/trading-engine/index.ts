@@ -294,6 +294,10 @@ function cleanSymbol(raw: unknown): string | null {
 type Quote = { symbol: string; mid: number; bid: number; ask: number; spread: number; providerTs: number | null; receivedTs: number; source: string; feedTs?: number | null };
 const quoteCache = new Map<string, Quote>();
 const CACHE_TTL_MS = 750;
+// Rows in the shared live_quotes cache: the pump rewrites an unchanged symbol's row every ROW_HEARTBEAT_MS (1000ms) and a changed one at
+// once, so a stored price up to 1.3s old is still the current price. Without this a quiet symbol would miss the shared cache about
+// half the time and every order on it would go to the upstream feed. The in-process cache above keeps the strict 750ms.
+const SHARED_CACHE_TTL_MS = 1300;
 // Staleness is judged on the provider's own timestamp. Calibrated against the
 // FXCM public feed (2026-09-17, London session): FX, metals and indices ran
 // 2-4s behind at the median and under 10s at worst; crypto up to ~16s.
@@ -395,7 +399,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
     const { data: cached } = await db2.from("live_quotes").select("*").eq("symbol", symKey).maybeSingle();
     if (cached) {
       const ageMs = Date.now() - new Date(cached.received_at).getTime();
-      if (ageMs >= 0 && ageMs < CACHE_TTL_MS) {
+      if (ageMs >= 0 && ageMs < SHARED_CACHE_TTL_MS) {
         const q: Quote = {
           symbol: symKey, mid: Number(cached.mid), bid: Number(cached.bid), ask: Number(cached.ask),
           spread: Number(cached.spread),
@@ -471,7 +475,7 @@ async function warmQuotes(force = false): Promise<void> {
     const now = Date.now();
     for (const row of data ?? []) {
       const receivedTs = Date.parse(row.received_at);
-      if (!isFinite(receivedTs) || now - receivedTs < 0 || now - receivedTs >= CACHE_TTL_MS) continue;
+      if (!isFinite(receivedTs) || now - receivedTs < 0 || now - receivedTs >= SHARED_CACHE_TTL_MS) continue;
       const cur = quoteCache.get(row.symbol);
       if (cur && quoteClockValid(cur, now) && cur.receivedTs <= now && cur.receivedTs >= receivedTs) continue;
       const q: Quote = {
@@ -495,13 +499,13 @@ for (const [k, v] of Object.entries(FXCM_SYMBOLS)) (FXCM_REVERSE[v] ??= []).push
 // Disk I/O budget (2026-10-23): the pump used to rewrite EVERY symbol's row on EVERY tick (about 4 times a second) even when the
 // price had not moved, which kept the database disk saturated and made logins and prices time out. A row is now written when its
 // price changed, plus a heartbeat for the rest so freshness never lapses. The engine judges freshness on feed_ts (STALE_MS is 8s;
-// 20s crypto, 15s futures), so a 1.5s heartbeat leaves a wide margin. Readers see the same prices, at most 1.5s apart for quiet symbols.
-const ROW_HEARTBEAT_MS = 1500;
+// 20s crypto, 15s futures), so a 1s heartbeat leaves a wide margin. Readers see the same prices, at most 1s apart for quiet symbols.
+const ROW_HEARTBEAT_MS = 1000;
 // Big Build step 1 (2026-10-24): chart candles now come from the hub's own tick history, so quote_ticks keeps only what the database
 // still reads: symbols someone has open or holds (trade lows, Brain quote windows around trade open/close) and the currency pairs used
 // to convert non-USD P&L in the trade-lows job.
 const TICK_FX = new Set(["USDJPY", "GBPUSD", "USDCAD", "USDCHF"]);
-// Big Build step 2: the hub also gets the heartbeat rows (unchanged prices re-confirmed every 1.5s, exactly what live_quotes records), so
+// Big Build step 2: the hub also gets the heartbeat rows (unchanged prices re-confirmed every 1s, exactly what live_quotes records), so
 // a quiet symbol stays fresh on traders' screens without the page asking the engine for a price every 0.75s.
 function heartbeatQuotes(rows: Record<string, unknown>[], changed: { symbol: string }[]): Quote[] {
   const moved = new Set(changed.map((q) => q.symbol));
@@ -1008,7 +1012,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
       const { rows, changed } = out;
       // Prices never wait on the database (Big Build step 2): the watched list refreshes in the background, the hub and Realtime get
       // every move at once, and the database writes run behind them. While one write batch is still in flight (a slow database), newer
-      // rows simply wait: every symbol is re-written within 1.5s by the heartbeat once the database answers again.
+      // rows simply wait: every symbol is re-written within 1s by the heartbeat once the database answers again.
       refreshWatched(db).catch(() => {});
       const now = Date.now();
       const hubBatch = changed.concat(heartbeatQuotes(rows.length ? rowsToWrite(rows, changed, hubBeatAt, now) : [], changed));
