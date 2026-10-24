@@ -31,7 +31,7 @@ test('account updates are pushed: private per-user signal from database triggers
   assert.match(sql, /when \(old\.status is distinct from new\.status or old\.balance is distinct from new\.balance/, 'the risk sweep rewriting the row does not signal');
   const page = rf(new URL('../trading.html', import.meta.url), 'utf8');
   assert.match(page, /c\.channel\('acct:'\+uid,\{config:\{private:true\}\}\)/);
-  assert.match(page, /const every=acctPending\?0:acctChanOk\?30000:4000;/);
+  assert.match(page, /const every=acctPending\?0:\(acctChanOk\|\|hubPush\)\?30000:4000;/);
   assert.match(page, /if\(pushing&&!exposed\)return since>=15000;/);
   assert.match(page, /if\(pushing\)return since>=2250;/, 'traders with positions keep the fast risk check');
   assert.doesNotMatch(page, /engineCall\(\{action:'state'\}\);\},4000\)/, 'the fixed 4-second state poll is gone');

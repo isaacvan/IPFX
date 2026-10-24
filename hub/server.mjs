@@ -48,7 +48,7 @@ const quotes = new Map();                         // symbol -> {s,b,a,m,sp,d,pt,
 const subsBySymbol = new Map();                   // symbol -> Set<ws>
 const risk = new Risk({ quotes, rpc, engine, mode: RISK_MODE, log,
   journal: RISK_MODE === 'active' ? riskJournal(env.RISK_JOURNAL_PATH || (process.platform === 'win32' ? join(tmpdir(),'ipfx-hub-'+process.pid,'risk-queue.json') : '/var/lib/ipfx-hub/risk-queue.json')) : null });
-const counters = { ingests: 0, quotesIn: 0, framesOut: 0, dropsSlow: 0, authOk: 0, authFail: 0, rejectedQuotes: 0, candleRequests: 0, candleLimited: 0 };
+const counters = { ingests: 0, quotesIn: 0, framesOut: 0, dropsSlow: 0, authOk: 0, authFail: 0, rejectedQuotes: 0, candleRequests: 0, candleLimited: 0, acctPushes: 0 };
 // Chart candles (Big Build step 1): the last 6 hours of price changes live here instead of the Supabase quote_ticks table.
 const STATE_DIR = env.STATE_DIRECTORY || (process.platform === 'win32' ? join(tmpdir(), 'ipfx-hub-' + process.pid) : '/var/lib/ipfx-hub');
 const ticks = new TickStore({ path: join(STATE_DIR, 'ticks.json'), log });
@@ -135,11 +135,29 @@ const server = http.createServer(async (req, res) => {
       const body = JSON.parse(await readBody(req, 512 * 1024) || '{}');
       if (req.url === '/ingest') { ingest(Array.isArray(body.q) ? body.q : []); return send(res, 200, { ok: true }); }
       if (typeof body.account_id === 'string' && /^[0-9a-f-]{36}$/i.test(body.account_id)) risk.refreshAccount(body.account_id);
+      if (typeof body.user_id === 'string' && /^[0-9a-f-]{36}$/i.test(body.user_id)) pushAccount(body.user_id);
       return send(res, 200, { ok: true });
     }
     send(res, 404, { ok: false });
   } catch { send(res, 400, { ok: false }); }
 });
+
+// ---------- account pushes (Big Build step 3) ----------
+// The database tells the hub when an account changed (POST /event with account_id and user_id). The hub nudges only that trader's
+// open pages with one tiny message; the page then fetches its state once. Several changes within 100ms collapse into one nudge.
+const socketsByUid = new Map();                    // user id -> Set<ws>
+const acctPending = new Set();
+let acctTimer = null;
+function pushAccount(uid) {
+  if (!socketsByUid.has(uid)) return;
+  acctPending.add(uid);
+  if (acctTimer) return;
+  acctTimer = setTimeout(() => {
+    acctTimer = null;
+    for (const u of acctPending) for (const ws of socketsByUid.get(u) ?? []) if (ws.readyState === 1 && ws.bufferedAmount < 64 * 1024) { ws.send('{"t":"acct"}'); counters.acctPushes++; }
+    acctPending.clear();
+  }, 100);
+}
 
 // ---------- WebSocket ----------
 const perIp = new Map();
@@ -159,7 +177,9 @@ wss.on('connection', (ws, req) => {
       const uid = await verify(m.token);
       if (!uid) { counters.authFail++; ws.send('{"t":"auth","ok":false}'); return ws.close(4401, 'unauthorised'); }
       counters.authOk++; ws.uid = uid; clearTimeout(authTimer);
-      return ws.send(JSON.stringify({ t: 'auth', ok: true, risk: RISK_MODE, rk: risk.healthy() }));
+      if (!socketsByUid.has(uid)) socketsByUid.set(uid, new Set());
+      socketsByUid.get(uid).add(ws);
+      return ws.send(JSON.stringify({ t: 'auth', ok: true, risk: RISK_MODE, rk: risk.healthy(), acct: true }));
     }
     if (!ws.uid) return;
     if (m.t === 'sub' && Array.isArray(m.s)) {
@@ -177,6 +197,7 @@ wss.on('connection', (ws, req) => {
   });
   ws.on('close', () => {
     clearTimeout(authTimer); unsubscribeAll(ws);
+    if (ws.uid) { const set = socketsByUid.get(ws.uid); if (set) { set.delete(ws); if (!set.size) socketsByUid.delete(ws.uid); } }
     const n = (perIp.get(ip) ?? 1) - 1; if (n <= 0) perIp.delete(ip); else perIp.set(ip, n);
   });
   ws.on('error', () => {});
@@ -218,7 +239,7 @@ setInterval(() => {
   const mem = process.memoryUsage();
   const detail = { ok: risk.healthy() && (!lastIngestAt || Date.now() - lastIngestAt < 60_000), clients: wss.clients.size,
     authed: [...wss.clients].filter((w) => w.uid).length, ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null,
-    quotes: quotes.size, ticks: ticks.size(), pumpKicks: counterPump.kicks, pumpKickErrors: counterPump.kickErrors, uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
+    quotes: quotes.size, ticks: ticks.size(), acctPushes: counters.acctPushes, pumpKicks: counterPump.kicks, pumpKickErrors: counterPump.kickErrors, uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
   rpc('hub_heartbeat', { p_detail: detail }).catch((e) => log('heartbeat failed', String(e)));
 }, 30_000).unref();
 

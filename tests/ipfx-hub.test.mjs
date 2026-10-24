@@ -87,7 +87,7 @@ test('security: hub holds no service key; every hub call checks its own secret; 
 test('trading page: hub first, everything falls back when it drops; own checks relax only when the watcher is active', () => {
   const page = read('trading.html');
   assert.match(page, /const HUB_WS='wss:\/\/hub\.ipfxcapital\.com\/ws';/);
-  assert.match(page, /ws\.onclose=\(\)=>\{hubOk=false;hubRisk=false;hubWs=null;/);
+  assert.match(page, /ws\.onclose=\(\)=>\{hubOk=false;hubRisk=false;hubAcctPush=false;hubWs=null;/);
   assert.match(page, /if\(pushing&&hubRisk&&hubLive\(\)\)return since>=\(exposed\?30000:60000\);/);
   assert.match(page, /hubRisk=m\.risk==='active'&&m\.rk===true&&m\.feed!=null&&m\.feed<5000;/);
   assert.ok(page.includes("if(hubLive()&&Date.now()-lastWlPoll<(conversions.some(s=>!clientQuoteFresh(liveQuotesBySymbol.get(s)))?4000:120000))return;"), 'healthy hub keeps the slow fallback unless a required conversion expires');

@@ -6171,8 +6171,11 @@ function onAccountChanged(){
 }
 setInterval(()=>{
   if(!hasSession()||pollsPaused()||engineBusy)return;
-  if(!acctChan)ensureAccountStream();
-  const every=acctPending?0:acctChanOk?30000:4000;
+  // Big Build step 3: while the hub pushes account changes, the Realtime channel is not needed (fewer connections and messages);
+  // it is opened again the moment the hub cannot push, and the page keeps its 30s safety poll either way.
+  const hubPush=hubLive()&&hubAcctPush;
+  if(!acctChan&&!hubPush)ensureAccountStream();
+  const every=acctPending?0:(acctChanOk||hubPush)?30000:4000;
   if(Date.now()-lastStateAt>=every){acctPending=false;engineCall({action:'state'});}
 },1000);
 function updateOrdPrices(value){
@@ -6285,7 +6288,7 @@ document.addEventListener('visibilitychange',()=>{
 // watchlist poll stand down; if it drops, everything below carries on exactly as before. The hub also watches
 // open positions tick by tick: only when it reports that watcher active ('risk') do this page's own checks relax.
 const HUB_WS='wss://hub.ipfxcapital.com/ws';
-let hubWs=null,hubOk=false,hubRisk=false,hubLastMsg=0,hubBackoff=1000,hubConnecting=false,hubSubsKey='',hubRetryAt=0;
+let hubWs=null,hubOk=false,hubRisk=false,hubLastMsg=0,hubBackoff=1000,hubConnecting=false,hubSubsKey='',hubRetryAt=0,hubAcctPush=false;
 async function connectHub(){
   if(hubConnecting||hubWs||!hasSession()||pollsPaused()||Date.now()<hubRetryAt||typeof WebSocket==='undefined')return;
   hubConnecting=true;
@@ -6296,11 +6299,12 @@ async function connectHub(){
     ws.onmessage=(ev)=>{
       let m;try{m=JSON.parse(ev.data);}catch(_){return;}
       hubLastMsg=Date.now();
-      if(m.t==='auth'){hubOk=m.ok===true;hubRisk=hubOk&&m.risk==='active'&&m.rk===true;if(hubOk){hubBackoff=1000;hubSubsKey='';syncHubSubs();}}
+      if(m.t==='auth'){hubOk=m.ok===true;hubRisk=hubOk&&m.risk==='active'&&m.rk===true;hubAcctPush=hubOk&&m.acct===true;if(hubOk){hubBackoff=1000;hubSubsKey='';syncHubSubs();}}
+      else if(m.t==='acct'){onAccountChanged();}
       else if(m.t==='hb'){hubRisk=m.risk==='active'&&m.rk===true&&m.feed!=null&&m.feed<5000;}
       else if(m.t==='q'&&Array.isArray(m.q)){for(const p of m.q)onHubQuote(p);}
     };
-    ws.onclose=()=>{hubOk=false;hubRisk=false;hubWs=null;hubRetryAt=Date.now()+hubBackoff;hubBackoff=Math.min(60000,hubBackoff*2);};
+    ws.onclose=()=>{hubOk=false;hubRisk=false;hubAcctPush=false;hubWs=null;hubRetryAt=Date.now()+hubBackoff;hubBackoff=Math.min(60000,hubBackoff*2);};
     ws.onerror=()=>{};
   }catch(_){hubWs=null;hubRetryAt=Date.now()+hubBackoff;hubBackoff=Math.min(60000,hubBackoff*2);}
   finally{hubConnecting=false;}
