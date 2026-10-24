@@ -26,9 +26,10 @@ test('picker and watchlist data contain no crypto category or coins', () => {
   assert.ok(start >= 0);
   const end = html.indexOf('\n};', start) + 3;
   const data = vm.runInNewContext(html.slice(start, end) + '\nWL_DATA');
-  assert.ok(!('crypto' in data));
+  // Owner decision 2026-10-24: Bitcoin is listed for its price and chart only. It can never be ordered (see btc-view-only.test.mjs).
+  assert.equal(JSON.stringify(data.crypto.map(i => i.sym.split(':').pop())), '["BTCUSD"]');
   const symbols = Object.values(data).flat().map(i => i.sym.split(':').pop());
-  for (const coin of coins) assert.ok(!symbols.includes(coin));
+  for (const coin of coins) if (coin !== 'BTCUSD') assert.ok(!symbols.includes(coin), coin);
   assert.ok(symbols.includes('EURUSD') && symbols.includes('XAUUSD') && symbols.includes('ES'));
 });
 

@@ -2206,6 +2206,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
           <div class="wl-cat" data-cat="forex" onclick="setWlCat('forex',this)">Forex</div>
           <div class="wl-cat" data-cat="metals" onclick="setWlCat('metals',this)">Metals</div>
           <div class="wl-cat" data-cat="indices" onclick="setWlCat('indices',this)">Indices</div>
+          <div class="wl-cat" data-cat="crypto" onclick="setWlCat('crypto',this)">Crypto</div>
           <div class="wl-cat" data-cat="futures" onclick="setWlCat('futures',this)" style="display:none">Futures</div>
         </div>
         <div class="wl-cols"><span>Instrument</span><span>Bid</span><span>Ask</span></div>
@@ -4841,7 +4842,17 @@ function showVenueBanner(account){
     document.body.appendChild(b);
   }
 }
+// Instruments shown for their price and chart only. The engine and the database also refuse crypto orders; this just explains it first.
+const VIEW_ONLY_SYMBOLS=new Set(['BTCUSD']);
+function viewOnlyReason(sym){
+  const s=execSymbol(sym||activeSym);
+  return VIEW_ONLY_SYMBOLS.has(s)?'Bitcoin is view-only on IPFX Markets: you can watch its price and chart, but crypto cannot be traded.':null;
+}
 async function engineCall(body){
+  if(['open','place_pending'].includes(body.action)){
+    const why=typeof viewOnlyReason==='function'?viewOnlyReason(body.symbol):null;
+    if(why){engineMsg(why);return null;}
+  }
   if(['open','place_pending'].includes(body.action)&&blockInfinityTradeAttempt())return null;
   const selectedAtStart=selectedAccountMode, modeVersion=engineCall.modeVersion||0;
   const sequence=engineCall.sequence=(engineCall.sequence||0)+1;
@@ -5200,6 +5211,7 @@ function updateTriggerHint(){
 }
 
 async function placeOrder(side){
+  {const why=typeof viewOnlyReason==='function'?viewOnlyReason(activeSym):null;if(why){engineMsg(why);return;}}
   if(blockInfinityTradeAttempt())return;
   if(stageRulesBlockEntry())return;
   if(document.getElementById('ruleCriticalDialog').open){engineMsg('Review the urgent rule warning before entering another trade.');return;}
@@ -6229,11 +6241,13 @@ function feedFresh(){
 function applyFeedGate(){
   // Keep the buttons clickable so an attempted order explains the stale feed.
   // placeOrder() still rejects before sending anything to the engine.
-  const stale=!feedFresh();
+  const viewOnly=!!viewOnlyReason(activeSym);
+  const stale=!feedFresh()||viewOnly;
   document.querySelectorAll('.ord-buy,.ord-sell,.of-buy,.of-sell,.op-exec-buy,.op-exec-sell,.qt-buy,.qt-sell').forEach(b=>{
     b.style.opacity=stale?'0.4':'';
     b.style.pointerEvents='';
     b.setAttribute('aria-disabled',stale?'true':'false');
+    if(viewOnly)b.title=viewOnlyReason(activeSym);else if(b.title&&b.title.startsWith('Bitcoin is view-only'))b.removeAttribute('title');
   });
 }
 // Load shaping (300+ concurrent traders): hidden tabs don't poll, idle tabs and closed markets poll slowly.
@@ -6687,6 +6701,10 @@ const WL_DATA={
     {sym:'FOREXCOM:FRA40',name:'CAC 40',base:8120,d:1,sp:1.5},
     {sym:'FOREXCOM:JPN225',name:'Nikkei 225',base:39800,d:0,sp:8.0},
     {sym:'FOREXCOM:US2000',name:'Russell 2000',base:2040,d:1,sp:0.8},
+  ],
+  // View-only: prices and charts, no orders (see viewOnlyReason). base 0 = no placeholder price, shown as a dash until the live price arrives.
+  crypto:[
+    {sym:'CRYPTO:BTCUSD',name:'Bitcoin',base:0,d:2,sp:25},
   ],
   futures:[
     {sym:'CME:ES',name:'E-mini S&P 500',base:7712.5,d:2,sp:0.25},

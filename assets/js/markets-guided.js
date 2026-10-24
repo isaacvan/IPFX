@@ -65,6 +65,8 @@
       why: invalidInput ? 'Finish entering a valid stop price before submitting.' : invalidDistance ? 'Enter a valid positive stop distance before submitting.' : !q ? 'Waiting for a live price for this market' : !validSide ? `For ${side}, set a stop on the loss side of the entry price` : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too close to price for the broker' });
     const risk = lots && p ? lots * p : null;
     out.push({ ok: max != null && max >= 0.01, text: risk != null && lots >= 0.01 ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(2)} lots` : 'Risk', why: p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
+    const viewOnly = typeof viewOnlyReason === 'function' ? viewOnlyReason(activeSym) : null;
+    if (viewOnly) out.unshift({ ok: false, text: 'View-only instrument', why: viewOnly });   // listed first so it is the reason shown
     const fresh = typeof feedFresh !== 'function' || feedFresh();
     out.push({ ok: fresh, text: 'Prices live', why: 'Prices reconnecting… orders resume automatically' });
     const capMsg = typeof dailyCapMessage === 'function' ? dailyCapMessage() : null;
