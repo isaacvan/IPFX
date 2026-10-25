@@ -144,6 +144,15 @@
       </svg></div>`;
   }
 
+  // The boxes the trader sees on their Challenge tab: all must be ticked at once before they move up a stage.
+  function stageSection(r, label) {
+    if (!r || !(r.items || []).length) return '';
+    const tick = (ok) => `<div class="leadicon ${ok ? 'ic-green' : 'ic-gray'}"><svg viewBox="0 0 24 24">${ok ? '<path d="M6 12.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '<circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/>'}</svg></div>`;
+    const left = r.items.filter((i) => !i.done).length;
+    return `${head('Stage requirements' + (label ? ' · ' + esc(label) : ''), esc(r.title))}
+      <div class="group"><div class="item"><div class="body"><b>${r.ready ? 'Every box ticked: can move to the next stage' : left + ' box' + (left === 1 ? '' : 'es') + ' still to tick'}</b><span>All boxes must be ticked at the same time</span></div><div class="trail">${cap(r.ready ? 'Can move up' : 'Not yet', r.ready ? 'green' : 'orange')}</div></div>
+        ${r.items.map((i) => `<div class="item">${tick(i.done)}<div class="body"><b style="font-weight:600">${esc(i.text)}</b></div></div>`).join('')}</div>`;
+  }
   function readinessSection(r, label) {
     if (!r) return '';
     const pct = (v) => (v == null ? '—' : Math.round(v * 1000) / 10 + '%');
@@ -222,7 +231,7 @@
         <div class="item"><div class="body"><b>Investigation hold</b><span>${t.investigation_hold ? 'On: payouts and copying are held' : 'Off'}</span></div>
           <div class="trail"><button class="switch" role="switch" aria-checked="${!!t.investigation_hold}" aria-label="Investigation hold" data-act="hold"></button></div></div></div>
       ${error ? `<div class="banner red">${esc(error)}</div>` : !detail ? '<div class="empty">Loading the full trader record…</div>'
-        : equitySection(detail.trades) + profileSection(detail.combined_profile) + tradesSection(detail) + rejectsSection(detail) + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
+        : equitySection(detail.trades) + profileSection(detail.combined_profile) + tradesSection(detail) + rejectsSection(detail) + per.map((x) => stageSection(x.stage_requirements, per.length > 1 ? x.label : '')).join('') + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
           + (per.length > 1 ? head('Per-account breakdown', per.length + ' accounts') + per.map((x) => `<div class="row" style="margin:14px 4px 0"><b>${esc(x.label)}</b>${cap(x.status, x.status === 'active' ? 'green' : x.status === 'breached' ? 'red' : '')}</div>${x === primary ? '' : readinessSection(x.readiness)}${profileSection(x.profile, x.label)}`).join('') : '')
           + strategySection(detail) + identitySection(detail) + auditSection()}
     </aside>`;

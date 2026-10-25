@@ -303,6 +303,44 @@ function passageProbability(mu: number, sigma: number, targetUp: number, targetD
   return Math.max(0, Math.min(1, num / den));
 }
 
+// The same boxes the trader sees on their Challenge tab ("every box must be ticked at the same time"), so the team can tell who can
+// actually move up. Read-only: it only reads progress and the qualification / counted-profit functions the engine itself uses.
+// deno-lint-ignore no-explicit-any
+async function stageChecklist(db: any, a: Record<string, unknown>, openTrades: number): Promise<{ title: string; items: { done: boolean; text: string }[]; ready: boolean } | null> {
+  if (a.status !== "active" && a.status !== "passed") return null;
+  const num = (v: unknown) => Number(v ?? 0);
+  const usd = (v: number) => "$" + v.toFixed(2);
+  const [prog, qual, counted] = await Promise.all([
+    db.from("account_progress").select("*").eq("account_id", a.id).maybeSingle(),
+    db.rpc("qualification_progress_v2", { p_account: a.id }),
+    a.challenge_type === "infinity" ? db.rpc("fn_infinity_counted_profit", { p_account: a.id }) : Promise.resolve({ data: null }),
+  ]);
+  const P = prog.data ?? {}, start = num(a.starting_balance), bal = num(a.balance);
+  const items: { done: boolean; text: string }[] = [];
+  if (a.profit_target_pct != null && num(a.profit_target_pct) > 0) {
+    const target = Math.round(start * (1 + num(a.profit_target_pct) / 100) * 100) / 100;
+    items.push({ done: bal >= target, text: `Balance ${usd(bal)} of ${usd(target)} target` });
+  }
+  const C = counted.data as Record<string, unknown> | null;
+  if (C?.applies) items.push({ done: C.met === true, text: `${usd(Math.max(0, num(C.counted_usd)))} of ${usd(num(C.target_usd))} counted profit (max ${usd(num(C.cap_usd))} a day counts)` });
+  if (num(a.min_trading_days) > 0) items.push({ done: num(P.trading_days) >= num(a.min_trading_days), text: `${num(P.trading_days)}/${num(a.min_trading_days)} trading days` });
+  if (num(a.min_trades) > 0) items.push({ done: num(P.trades_closed) >= num(a.min_trades), text: `${num(P.trades_closed)}/${num(a.min_trades)} closed trades` });
+  if (a.min_profitable_days_pct != null) items.push({ done: num(P.profitable_days_pct) >= num(a.min_profitable_days_pct), text: `${num(P.profitable_days_pct)}% profitable days (need ${num(a.min_profitable_days_pct)}%)` });
+  const q = qual.data as Record<string, unknown> | null, rules = q?.rules as Record<string, unknown> | undefined;
+  if (q?.applies && rules) {
+    const best = q.best_day_share == null ? null : num(q.best_day_share), lim = num(rules.max_best_day_share);
+    items.push({ done: num(q.elapsed_days) >= num(rules.min_elapsed_days), text: `${num(q.elapsed_days).toFixed(1)}/${num(rules.min_elapsed_days)} elapsed observation days` });
+    items.push({ done: num(q.meaningful_days) >= num(rules.min_trading_days), text: `${num(q.meaningful_days)}/${num(rules.min_trading_days)} meaningful trading days` });
+    items.push({ done: num(q.exposure_sessions) >= num(rules.min_sessions), text: `${num(q.exposure_sessions)}/${num(rules.min_sessions)} exposure sessions` });
+    items.push({ done: best !== null && best <= lim, text: `Best positive day ${best === null ? "not yet measurable" : (best * 100).toFixed(1) + "%"} (maximum ${(lim * 100).toFixed(0)}%)` });
+  } else if (a.challenge_type === "infinity") {
+    items.push({ done: false, text: "Qualification evidence unavailable" });
+  }
+  items.push({ done: openTrades === 0, text: openTrades === 0 ? "Flat (no open trades)" : `${openTrades} open trade${openTrades === 1 ? "" : "s"}: the stage completes once flat` });
+  const stage = a.phase === "funded" ? "Funded" : a.stage ? `Stage ${a.stage}` : "";
+  return { title: `${String(a.challenge_type ?? "Challenge")}${stage ? " — " + stage : ""}`, items, ready: items.every((i) => i.done) };
+}
+
 function computeReadiness(allTrades: Trade[], acct: Record<string, unknown>) {
   const closed = [...allTrades]
     .filter((t) => t.status === "closed" && t.closed_at && t.pnl !== null)
@@ -1395,12 +1433,16 @@ Deno.serve(async (req) => {
 
     // one profile per account (a trader may have multiple challenge accounts
     // over time) plus a combined profile across everything.
-    const perAccount = accountsFor.map((a: Record<string, unknown>) => {
+    const stageReqs = await Promise.all(accountsFor.map((a: Record<string, unknown>) =>
+      stageChecklist(db, a, (allTrades ?? []).filter((t: Record<string, unknown>) => t.account_id === a.id && t.status === "open").length)
+        .catch(() => null)));
+    const perAccount = accountsFor.map((a: Record<string, unknown>, i: number) => {
       const ts = (allTrades ?? []).filter((t: Record<string, unknown>) => t.account_id === a.id);
       return {
         account_id: a.id, label: a.label, status: a.status, created_at: a.created_at,
         profile: buildStrategyProfile(ts), readiness: computeReadiness(ts, a),
         mid_challenge: midChallengeSignal(ts, a, null),
+        stage_requirements: stageReqs[i],
       };
     });
     const combinedProfile = buildStrategyProfile(allTrades ?? []);
