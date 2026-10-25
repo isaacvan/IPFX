@@ -2656,18 +2656,27 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
   // by "the order" for that row, so later events win in this map.
   const allTradeIds = [...open.map((t) => t.id), ...(closed ?? []).map((t: Tr) => t.id)];
   const orderIdByTrade: Record<string, string> = {};
-  if (allTradeIds.length) {
-    const { data: events } = await db.from("order_audit_events")
-      .select("id,trade_id,server_ts").in("trade_id", allTradeIds)
-      .order("server_ts", { ascending: true });
-    for (const e of events ?? []) {
-      if (e.trade_id) orderIdByTrade[e.trade_id] = String(e.id);
-    }
+  // These reads do not depend on each other and none of them writes, so they run together instead of one after another
+  // (the account refresh used to wait for each in turn, about 600ms; the slowest of them now sets the pace).
+  const isInfinityRun = acct.challenge_type === "infinity";
+  const [eventsRes, gate, promotion, freshRestart, slDeadline] = await Promise.all([
+    allTradeIds.length
+      ? db.from("order_audit_events").select("id,trade_id,server_ts").in("trade_id", allTradeIds).order("server_ts", { ascending: true })
+      : Promise.resolve({ data: [] as { id: string; trade_id: string | null }[] }),
+    passGate(db, acct),
+    promotionNotice(db, acct),
+    // Earlier-rules Stage 1 runs with a day above the daily cap: their own best-day numbers and the one-time restart.
+    (isInfinityRun && Number(acct.stage) === 1 && !isDemoAccount(acct))
+      ? db.rpc("fn_infinity_restart_offer", { p_account: acct.id }).then((r: { data: unknown; error: unknown }) => r.error ? null : r.data, () => null)
+      : Promise.resolve(null),
+    isInfinityRun ? slDeadlineSeconds(db) : Promise.resolve(null),
+  ]);
+  for (const e of eventsRes.data ?? []) {
+    if (e.trade_id) orderIdByTrade[e.trade_id] = String(e.id);
   }
   const withOrderId = (t: Tr) => ({ ...t, order_id: orderIdByTrade[t.id] ?? null });
 
   const start = Number(acct.starting_balance);
-  const gate = await passGate(db, acct);
 
   // The drawdown floor shown must match the mode actually enforced, or
   // the trader is watching the wrong number.
@@ -2685,11 +2694,8 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     server_time: new Date().toISOString(),
     infinity_lockout: monthly.data,
     service_controls: controls.error ? { unavailable: true, notices: [] } : controls.data,
-    promotion_notice: await promotionNotice(db, acct),
-    // Earlier-rules Stage 1 runs with a day above the daily cap: their own best-day numbers and the one-time restart.
-    fresh_restart: (acct.challenge_type === "infinity" && Number(acct.stage) === 1 && !isDemoAccount(acct))
-      ? await db.rpc("fn_infinity_restart_offer", { p_account: acct.id }).then((r: { data: unknown; error: unknown }) => r.error ? null : r.data, () => null)
-      : null,
+    promotion_notice: promotion,
+    fresh_restart: freshRestart,
     account: {
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       // deno-lint-ignore no-explicit-any
@@ -2707,7 +2713,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         max_dd_floor: ddFloor,
         drawdown_allowance_usd: round2(ddAmount),
         daily_loss_allowance_usd: round2(start * Number(acct.daily_loss_pct) / 100),
-        stop_loss_deadline_seconds: acct.challenge_type === "infinity" ? await slDeadlineSeconds(db) : null,
+        stop_loss_deadline_seconds: slDeadline,
         drawdown_mode: mode,
         trailing_peak: mode === "static" ? null : round2(peak),
         daily_floor: round2(Number(acct.day_start_equity) - start * Number(acct.daily_loss_pct) / 100),
@@ -3580,14 +3586,16 @@ if (body.action === "sweep") {
   }
 
   if (action === "state") {
-    const payload = await statePayload(db, acct as Acct, state.open, state.equity, state.floating);
-    let alerts: unknown[] = [];
-    try {
-      await evaluateAlerts(db, user.id);
-      const { data: al } = await db.from("price_alerts").select("*").eq("user_id", user.id)
-        .or("status.eq.active,and(status.eq.triggered,seen_at.is.null)").order("created_at", { ascending: false }).limit(100);
-      alerts = al ?? [];
-    } catch (_) { /* alerts are best-effort; never block state */ }
+    // The account payload and the price alerts do not depend on each other, so they are fetched together.
+    const alertsP = (async (): Promise<unknown[]> => {
+      try {
+        await evaluateAlerts(db, user.id);
+        const { data: al } = await db.from("price_alerts").select("*").eq("user_id", user.id)
+          .or("status.eq.active,and(status.eq.triggered,seen_at.is.null)").order("created_at", { ascending: false }).limit(100);
+        return al ?? [];
+      } catch (_) { return []; /* alerts are best-effort; never block state */ }
+    })();
+    const [payload, alerts] = await Promise.all([statePayload(db, acct as Acct, state.open, state.equity, state.floating), alertsP]);
     return new Response(JSON.stringify({
       ...payload,
       alerts,

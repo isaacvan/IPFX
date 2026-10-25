@@ -31,7 +31,8 @@ test('the state response carries a one-off promotion notice for accounts created
   assert.match(engine, /async function promotionNotice\(db: Db, acct: Acct\)/);
   assert.match(engine, /if \(!acct\.funded_from_account_id \|\| isDemoAccount\(acct\)\) return null;/);
   assert.match(engine, /> 14 \* 86_400_000\) return null;/);
-  assert.match(engine, /promotion_notice: await promotionNotice\(db, acct\),/);
+  assert.match(engine, /promotionNotice\(db, acct\),\n\s*\/\/ Earlier-rules Stage 1 runs/);
+  assert.match(engine, /promotion_notice: promotion,/);
   // the page shows it once per browser
   assert.match(trading, /function maybeShowPromotion\(n\)/);
   assert.match(trading, /localStorage\.getItem\('ipfx-promo-seen-'\+n\.account_id\)==='1'/);

@@ -30,7 +30,8 @@ test('the restart is owner-only, once, flat-only, archives the old run and start
   assert.match(engine, /if \(body\.action === "infinity_fresh_restart"\) \{/);
   assert.match(engine, /if \(body\.confirm !== true\) return err\("Please confirm the one-time restart\.", 400\);/);
   assert.match(engine, /db\.rpc\("fn_infinity_take_fresh_restart", \{ p_account: accountId, p_user: user\.id \}\)/);
-  assert.match(engine, /fresh_restart: \(acct\.challenge_type === "infinity" && Number\(acct\.stage\) === 1 && !isDemoAccount\(acct\)\)/);
+  assert.match(engine, /\(isInfinityRun && Number\(acct\.stage\) === 1 && !isDemoAccount\(acct\)\)\n\s*\? db\.rpc\("fn_infinity_restart_offer"/);
+  assert.match(engine, /fresh_restart: freshRestart,/);
 });
 
 test('IPFX Markets explains it simply, shows both choices, and says it is the only free restart', () => {

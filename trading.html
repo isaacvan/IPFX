@@ -8,9 +8,11 @@
     <meta name="description" content="Secure IPFX Capital account and operations page.">
     <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="canonical" href="https://ipfxcapital.com/trading.html">
-    <link rel="icon" href="/desktop/build/icon.png" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="/desktop/build/icon.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/desktop/build/icon.png">
+    <link rel="icon" href="/assets/images/ipfx-markets-32.png" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/ipfx-markets-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/ipfx-markets-16.png">
+    <link rel="preconnect" href="https://hub.ipfxcapital.com" crossorigin>
+    <link rel="preconnect" href="https://agulweemteoeagscmppy.supabase.co" crossorigin>
     <link rel="manifest" href="/site.webmanifest">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="IPFX Capital">
@@ -54,7 +56,6 @@ try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch
 <script src="/assets/js/ipfx-indicators-plus.js"></script>
 <script src="/assets/js/ipfx-chart.js?v=20261024-hubcandles"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="https://js.stripe.com/v3/"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -1673,7 +1674,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="tb-logo">
-    <img src="/desktop/build/icon.png" alt="IPFX">
+    <img src="/assets/images/ipfx-logo-96.png" alt="IPFX" width="20" height="20">
     <span>IPFX Markets</span>
   </div>
   <div class="tb-div"></div>
@@ -1730,7 +1731,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 
 <div class="desktop-auth" id="desktopAuth" role="dialog" aria-modal="true" aria-labelledby="desktopAuthTitle">
   <form class="desktop-auth-card" id="desktopAuthForm">
-    <div class="desktop-auth-brand"><img src="/desktop/build/icon.png" alt=""><span>IPFX Markets</span></div>
+    <div class="desktop-auth-brand"><img src="/assets/images/ipfx-logo-96.png" alt="" width="30" height="30"><span>IPFX Markets</span></div>
     <div class="desktop-auth-title" id="desktopAuthTitle">Connect your trading account</div>
     <div class="desktop-auth-copy">Sign in here once. Your session stays inside the encrypted IPFX Markets desktop profile.</div>
     <label class="desktop-auth-field">Email<input id="desktopAuthEmail" type="email" autocomplete="username" required></label>
@@ -5927,6 +5928,19 @@ async function setAccountMode(mode){
   document.getElementById('modeDemo')?.classList.toggle('active',mode==='demo');
   await engineCall({action:'state'});
 }
+// Stripe's script is large and only needed to pay, so it is fetched the first time checkout opens (and reused after that).
+function ensureStripe(){
+  if(typeof window.Stripe==='function')return Promise.resolve();
+  if(ensureStripe.p)return ensureStripe.p;
+  ensureStripe.p=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://js.stripe.com/v3/';s.async=true;
+    s.onload=()=>resolve();
+    s.onerror=()=>{ensureStripe.p=null;s.remove();reject(new Error('Secure checkout did not load. Please reconnect and try again.'));};
+    document.head.appendChild(s);
+  });
+  return ensureStripe.p;
+}
 let infStripe=null,infElements=null,infPaymentElement=null,infCheckout=null,infCheckoutBusy=false,infContinuePrice='';
 function currentInfinityLock(){return engineState&&engineState.infinity_lockout;}
 function infinityRestartDate(lock){
@@ -6048,6 +6062,7 @@ async function openChallengeContinue(){
   const msg=document.getElementById('infPayMsg'),btn=document.getElementById('infContinueBtn');
   msg.textContent='';btn.disabled=true;btn.textContent='Opening secure checkout…';infCheckoutBusy=true;
   try{
+    await ensureStripe();
     if(typeof window.Stripe!=='function')throw new Error('Secure checkout did not load. Please reconnect and try again.');
     const sku='challenge_continue',source_account_id=a.source_account_id;
     const quote=await paymentCall({action:'quote',sku,source_account_id});
