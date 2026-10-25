@@ -293,6 +293,11 @@ function cleanSymbol(raw: unknown): string | null {
 // Provider timestamps drive staleness so a cached-but-dead feed fails closed.
 type Quote = { symbol: string; mid: number; bid: number; ask: number; spread: number; providerTs: number | null; receivedTs: number; source: string; feedTs?: number | null };
 const quoteCache = new Map<string, Quote>();
+// When each cached quote was put in the Map (this isolate's clock). The in-process hit test uses this, not the quote's own receivedTs:
+// a row read from live_quotes can already be ~1s old (pump heartbeat) yet is still the current price, and judging it by its own age
+// sent every quiet symbol back to the database on each call.
+const quoteCacheAt = new Map<string, number>();
+function cacheQuote(symKey: string, q: Quote) { quoteCache.set(symKey, q); quoteCacheAt.set(symKey, Date.now()); }
 const CACHE_TTL_MS = 750;
 // Rows in the shared live_quotes cache: the pump rewrites an unchanged symbol's row every ROW_HEARTBEAT_MS (1000ms) and a changed one at
 // once, so a stored price up to 1.3s old is still the current price. Without this a quiet symbol would miss the shared cache about
@@ -385,7 +390,8 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
   // that happen to land on this exact warm isolate.
   const hit = quoteCache.get(symKey);
   const hitAge = hit ? Date.now() - hit.receivedTs : NaN;
-  if (hit && hitAge >= 0 && hitAge < CACHE_TTL_MS && quoteClockValid(hit)) return hit;
+  const heldFor = hit ? Date.now() - (quoteCacheAt.get(symKey) ?? hit.receivedTs) : NaN;
+  if (hit && hitAge >= 0 && hitAge < SHARED_CACHE_TTL_MS && heldFor >= 0 && heldFor < CACHE_TTL_MS && quoteClockValid(hit)) return hit;
   const inst = INSTRUMENTS[symKey];
   if (!inst) return null;
 
@@ -409,7 +415,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
           source: cached.source || (FXCM_SYMBOLS[symKey] ? "fxcm-basic" : "yahoo-demo"),
         };
         if (quoteClockValid(q)) {
-          quoteCache.set(symKey, q);
+          cacheQuote(symKey, q);
           return q;
         }
       }
@@ -446,7 +452,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
     const move = Math.abs(q.mid - prev.mid) / prev.mid;
     if (move > (BAD_TICK_MAX_MOVE[inst.cls] ?? 0.03)) return null;
   }
-  quoteCache.set(symKey, q);
+  cacheQuote(symKey, q);
   try {
     const db2 = getCacheClient();
     await db2.from("live_quotes").upsert({
@@ -484,7 +490,7 @@ async function warmQuotes(force = false): Promise<void> {
         feedTs: row.feed_ts ? Date.parse(row.feed_ts) : null, 
         source: row.source || (FXCM_SYMBOLS[row.symbol] ? "fxcm-basic" : "yahoo-demo"),
       };
-      if (quoteClockValid(q, now)) quoteCache.set(row.symbol, q);
+      if (quoteClockValid(q, now)) cacheQuote(row.symbol, q);
     }
   } catch (_) { /* optimisation only: fetchQuote still falls back per symbol */ }
 }

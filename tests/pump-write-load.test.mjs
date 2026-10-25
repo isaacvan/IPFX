@@ -44,5 +44,5 @@ test('the shared quote cache accepts a stored price for longer than the heartbea
   assert.ok(shared <= 2000, 'but not so long that a stored price could be materially old');
   assert.match(e, /ageMs >= 0 && ageMs < SHARED_CACHE_TTL_MS/);
   assert.match(e, /now - receivedTs >= SHARED_CACHE_TTL_MS\) continue;/);
-  assert.match(e, /hitAge >= 0 && hitAge < CACHE_TTL_MS && quoteClockValid\(hit\)/);
+  assert.match(e, /hitAge >= 0 && hitAge < SHARED_CACHE_TTL_MS && heldFor >= 0 && heldFor < CACHE_TTL_MS && quoteClockValid\(hit\)/);
 });

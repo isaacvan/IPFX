@@ -13,6 +13,7 @@ function fixture(){
   STALE_MS:8000,STALE_MS_CRYPTO:20000,STALE_MS_FUTURES:15000,SYMBOL_QUIET_MAX_MS:60000,BAD_TICK_WINDOW_MS:60000,BAD_TICK_MAX_MOVE:{forex:.03},
   fetchFxcmRaw:async()=>{upstream++;return{bid:149.99,ask:150.01,ts:100000,feedTs:100000};},lastKnownQuote:async()=>null,
   round6:n=>Math.round(n*1e6)/1e6,getCacheClient:()=>({from:()=>{const q={select(){return q;},eq(){return q;},maybeSingle:async()=>{reads++;return{data:rows[0]??null};},upsert:async()=>({}),then:resolve=>{reads++;return Promise.resolve(resolve({data:rows}));}};return q;}})});
+ vm.runInContext(stripTypeScriptTypes(part('const quoteCacheAt','const CACHE_TTL_MS')),c);
  vm.runInContext(stripTypeScriptTypes(part('function quoteStale(','// backward-compatible mid-price')),c);
  vm.runInContext(stripTypeScriptTypes(part('async function fetchQuote(','function round6(')),c);
  vm.runInContext(stripTypeScriptTypes(part('const WARM_EVERY_MS','// Quote pump:')),c);
@@ -37,6 +38,15 @@ test('fresh valid cache hits avoid upstream calls and older warm rows cannot ove
 });
 test('a genuine recent baseline still blocks an implausible jump through the existing bad-tick filter',async()=>{
  const f=fixture();f.cache.set('USDJPY',quote({mid:100,receivedTs:99000}));assert.equal(await f.c.fetchQuote('USDJPY'),null);assert.equal(f.stats().upstream,1);
+});
+test('a quote just read from the database is reused in-process for the hold time even though its row is a heartbeat old',async()=>{
+ const f=fixture();f.setRows([row(quote({receivedTs:99000,feedTs:99000,providerTs:99000}))]);
+ await f.c.fetchQuote('USDJPY');const afterFirst=f.stats().reads;assert.ok(afterFirst>0);
+ await f.c.fetchQuote('USDJPY');await f.c.fetchQuote('USDJPY');assert.equal(f.stats().reads,afterFirst,'later calls inside the hold time make no database read');
+});
+test('an in-process quote older than the shared window is never served, however recently it was stored',async()=>{
+ const f=fixture();f.cache.set('USDJPY',quote({receivedTs:98500}));vm.runInContext("quoteCacheAt.set('USDJPY',100000)",f.c);
+ await f.c.fetchQuote('USDJPY');assert.equal(f.stats().upstream,1);
 });
 test('a quiet symbol whose row is up to the heartbeat gap old is served from the shared cache, not the upstream feed',async()=>{
  const f=fixture();f.setRows([row(quote({receivedTs:99000,feedTs:99000,providerTs:99000}))]);   // 1.0s old: one heartbeat
