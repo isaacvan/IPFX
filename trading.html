@@ -70,9 +70,6 @@ try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch
   --font-mono:"SFMono-Regular",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
 }
 html,body{height:100%;overflow:hidden;}
-/* Service notice bar (weekend of 24-25 Oct 2026). Remove the .site-notice block in <body> and this rule when service resumes. */
-.site-notice{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:9px 16px;background:#1e3a8a;color:#e0e7ff;border-bottom:1px solid #3b5bdb;font-size:.84rem;line-height:1.4;text-align:center}
-.site-notice b{color:#fff;font-weight:700;letter-spacing:.01em}
 body{font-family:var(--font-ui);background:var(--bg);color:var(--fg);display:flex;flex-direction:column;font-synthesis:none;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
 
 /* ── TOPBAR ── */
@@ -1672,9 +1669,6 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 <script src="/assets/js/challenge-warnings.js?v=20261016-short"></script>
 </head>
 <body>
-
-<!-- SERVICE NOTICE: remove this block when service resumes (see .site-notice in the CSS) -->
-<div class="site-notice" id="siteNotice" role="status" aria-live="polite"><span><b>Service notice.</b> We are resolving some technical issues over the weekend. IPFX Markets will be back on Monday. Your accounts and progress are safe. Thank you for your patience.</span></div>
 
 <!-- TOPBAR -->
 <div class="topbar">
