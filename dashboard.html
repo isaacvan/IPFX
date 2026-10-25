@@ -2373,5 +2373,18 @@ function submitAffForm(e){
 <script defer src="/assets/js/site-foundation.js"></script>
 <script defer src="/assets/js/support-chat.js"></script>
 <script src="/assets/js/verification-upload.js?v=20261009-id-recovery"></script>
+<script>
+/* "Go to Markets" / "Open IPFX Markets": inside the IPFX Markets desktop app a new-tab link is refused (the app only ever shows one window),
+   so the button did nothing. In the app the link opens in the same window; in a normal browser it still opens a new tab. */
+document.addEventListener('click',function(e){
+  var a=e.target&&e.target.closest?e.target.closest('a[href="trading.html"]'):null;
+  if(!a||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey)return;
+  var inApp=/Electron|IPFX ?Markets/i.test(navigator.userAgent)||document.documentElement.classList.contains('desktop-app')||
+    (window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  if(!inApp)return;
+  e.preventDefault();
+  location.assign('trading.html?desktop=1');
+},true);
+</script>
 </body>
 </html>

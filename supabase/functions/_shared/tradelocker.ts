@@ -220,7 +220,10 @@ export async function orderFill(
   const config = await cachedConfig(accessToken, accNum);
   for (const wait of waitsMs) {
     await new Promise((resolve) => setTimeout(resolve, wait));
-    const data = await request(`/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum);
+    // A lookup that errors (a rate limit or a slow broker read) is one missed attempt, not the end of the search: the order is
+    // already placed, so the next attempt may well find it.
+    let data: unknown;
+    try { data = await request(`/trade/accounts/${accountId}/ordersHistory`, { method: "GET" }, accessToken, accNum); } catch (_) { continue; }
     const list = configuredRows(config, data, "ordersHistoryConfig", "ordersHistory")
       .filter((o) => String(o.status ?? "").toLowerCase() === "filled" && Number(o.filledQty) > 0 && Number(o.avgPrice) > 0);
     let hit = want.orderId ? list.find((o) => String(o.id ?? o.orderId ?? "") === String(want.orderId)) : undefined;

@@ -268,6 +268,9 @@ async function closeOwnedLeg(db: Db, leg: Record<string, unknown>, full: boolean
     const tradeId = String(leg.source_trade_id);
     const book = leg.book as "a" | "b";
     const pipelineStarted = Date.now();
+    // The broker's order history can trail a close by a few seconds. The trader's close waits at most the engine's 4s hedge window for
+    // this, then goes ahead on its own price while this keeps looking, so a longer search here never delays the trader.
+    const EXIT_RECEIPT_WAITS_MS = [120, 250, 450, 700, 1000, 1000, 1000, 1500, 1500];
     // The broker may have filled the opening order before its first history read.
     // Resolve that exact receipt on the requested exit, rather than waiting for
     // the 45-second reconciliation age and its next scheduled run. Never send
@@ -320,7 +323,7 @@ async function closeOwnedLeg(db: Db, leg: Record<string, unknown>, full: boolean
       const ids = responseIds(await closePositionQty(dest.token, dest.accNum, String(leg.broker_position_id), qty));
       const acknowledgedAt = Date.now();
       const ackAt=new Date().toISOString(),ackClock=globalThis.performance?.now()??Date.now();
-      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true, strictOrder: true }).catch(() => null);
+      const fill = await orderFill(dest.token, dest.accountId, dest.accNum, { orderId: ids.orderId, positionId: String(leg.broker_position_id), closing: true, strictOrder: true }, EXIT_RECEIPT_WAITS_MS).catch(() => null);
       console.info(JSON.stringify({ event: "book_exit_timing", operation_id: claim.id,
         admission_ms: started - pipelineStarted, broker_ack_ms: acknowledgedAt - started,
         receipt_lookup_ms: Date.now() - acknowledgedAt }));
