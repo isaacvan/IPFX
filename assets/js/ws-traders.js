@@ -231,7 +231,7 @@
         <div class="item"><div class="body"><b>Investigation hold</b><span>${t.investigation_hold ? 'On: payouts and copying are held' : 'Off'}</span></div>
           <div class="trail"><button class="switch" role="switch" aria-checked="${!!t.investigation_hold}" aria-label="Investigation hold" data-act="hold"></button></div></div></div>
       ${error ? `<div class="banner red">${esc(error)}</div>` : !detail ? '<div class="empty">Loading the full trader record…</div>'
-        : equitySection(detail.trades) + profileSection(detail.combined_profile) + tradesSection(detail) + rejectsSection(detail) + per.map((x) => stageSection(x.stage_requirements, per.length > 1 ? x.label : '')).join('') + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
+        : per.map((x) => stageSection(x.stage_requirements, per.length > 1 ? x.label : '')).join('') + equitySection(detail.trades) + profileSection(detail.combined_profile) + tradesSection(detail) + rejectsSection(detail) + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
           + (per.length > 1 ? head('Per-account breakdown', per.length + ' accounts') + per.map((x) => `<div class="row" style="margin:14px 4px 0"><b>${esc(x.label)}</b>${cap(x.status, x.status === 'active' ? 'green' : x.status === 'breached' ? 'red' : '')}</div>${x === primary ? '' : readinessSection(x.readiness)}${profileSection(x.profile, x.label)}`).join('') : '')
           + strategySection(detail) + identitySection(detail) + auditSection()}
     </aside>`;
