@@ -8,7 +8,7 @@ test('admin trader_detail returns stage_requirements per account, read-only and 
   assert.match(fn, /\.catch\(\(\) => null\)/);
   const body = fn.slice(fn.indexOf('async function stageChecklist('), fn.indexOf('function computeReadiness('));
   assert.doesNotMatch(body, /\.(insert|update|upsert|delete)\(/);
-  for (const k of ['elapsed observation days', 'meaningful trading days', 'exposure sessions', 'Best positive day', 'closed trades', 'trading days', 'counted profit']) assert.ok(body.includes(k), k);
+  for (const k of ["Profit they really must reach", 'elapsed observation days', 'meaningful trading days', 'exposure sessions', 'Best positive day', 'closed trades', 'trading days', 'counted profit']) assert.ok(body.includes(k), k);
 });
 test('the trader drawer shows the boxes and whether all are ticked', () => {
   assert.match(ui, /function stageSection\(/);

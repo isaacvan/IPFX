@@ -310,10 +310,11 @@ async function stageChecklist(db: any, a: Record<string, unknown>, openTrades: n
   if (a.status !== "active" && a.status !== "passed") return null;
   const num = (v: unknown) => Number(v ?? 0);
   const usd = (v: number) => "$" + v.toFixed(2);
-  const [prog, qual, counted] = await Promise.all([
+  const [prog, qual, counted, closedRows] = await Promise.all([
     db.from("account_progress").select("*").eq("account_id", a.id).maybeSingle(),
     db.rpc("qualification_progress_v2", { p_account: a.id }),
     a.challenge_type === "infinity" ? db.rpc("fn_infinity_counted_profit", { p_account: a.id }) : Promise.resolve({ data: null }),
+    a.challenge_type === "infinity" ? db.from("trades").select("pnl,closed_at").eq("account_id", a.id).eq("status", "closed").not("closed_at", "is", null).limit(10000) : Promise.resolve({ data: null }),
   ]);
   const P = prog.data ?? {}, start = num(a.starting_balance), bal = num(a.balance);
   const items: { done: boolean; text: string }[] = [];
@@ -327,6 +328,25 @@ async function stageChecklist(db: any, a: Record<string, unknown>, openTrades: n
   if (num(a.min_trades) > 0) items.push({ done: num(P.trades_closed) >= num(a.min_trades), text: `${num(P.trades_closed)}/${num(a.min_trades)} closed trades` });
   if (a.min_profitable_days_pct != null) items.push({ done: num(P.profitable_days_pct) >= num(a.min_profitable_days_pct), text: `${num(P.profitable_days_pct)}% profitable days (need ${num(a.min_profitable_days_pct)}%)` });
   const q = qual.data as Record<string, unknown> | null, rules = q?.rules as Record<string, unknown> | undefined;
+  // The profit target can rise: no single day may be more than max_best_day_share of all the winning days added together, so a big
+  // day forces the winning days to add up to best day / share. This is the profit they really have to reach.
+  let realTarget: number | null = null;
+  if (closedRows.data && rules) {
+    const byDay = new Map<string, number>();
+    for (const t of closedRows.data as { pnl: unknown; closed_at: string }[]) {
+      const d = String(t.closed_at).slice(0, 10);
+      byDay.set(d, (byDay.get(d) ?? 0) + num(t.pnl));
+    }
+    const days = [...byDay.values()], best = days.length ? Math.max(...days) : 0, pos = days.filter((d) => d > 0).reduce((x, y) => x + y, 0);
+    const share = num(rules.max_best_day_share) || 0.35, target = start * num(a.profit_target_pct) / 100;
+    if (best > 0) {
+      const need = Math.round(best / share * 100) / 100;
+      realTarget = Math.max(target, need);
+      items.unshift({ done: pos >= need, text: need > target + 0.005
+        ? `Profit they really must reach: ${usd(need)} in winning days (raised from the ${usd(target)} target because their best day was ${usd(best)}, which can be at most ${(share * 100).toFixed(0)}% of winning days). They have ${usd(pos)}, so ${usd(Math.max(0, need - pos))} to go`
+        : `Winning days add up to ${usd(pos)} (need ${usd(need)} so the best day ${usd(best)} stays within ${(share * 100).toFixed(0)}%)` });
+    }
+  }
   if (q?.applies && rules) {
     const best = q.best_day_share == null ? null : num(q.best_day_share), lim = num(rules.max_best_day_share);
     items.push({ done: num(q.elapsed_days) >= num(rules.min_elapsed_days), text: `${num(q.elapsed_days).toFixed(1)}/${num(rules.min_elapsed_days)} elapsed observation days` });
