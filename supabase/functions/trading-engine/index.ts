@@ -1538,7 +1538,7 @@ function pendingTriggered(o: Record<string, unknown>, q: Quote): boolean {
 // Returns null when the order may proceed, or a rejection reason.
 function ruleGate(
   acct: Acct, inst: Inst, volume: number, fill: number, sl: number | null,
-  conv: number, equityNow: number, usedMargin: number, openRisk: number | null = null,
+  conv: number, equityNow: number, usedMargin: number, openRisk: number | null = null, sameIdeaRisk: number | null = null,
 ): string | null {
   const startBal = Number(acct.starting_balance);
 
@@ -1560,6 +1560,8 @@ function ruleGate(
         return `Total open risk would be $${(openRisk + riskUsd).toFixed(2)}, above the limit ($${cap.toFixed(2)})`;
       }
     }
+    const same = sameIdeaLimitReason(sameIdeaRisk, riskUsd, maxRisk, "");
+    if (same) return same;
   }
   const needed = (inst.contract * volume * fill * conv) / LEVERAGE;
   if (usedMargin + needed > equityNow) {
@@ -1647,8 +1649,9 @@ async function processPendingOrders(
     if (conv === null) continue; // A temporary conversion outage must not consume the resting order.
     const usedMargin = await usedMarginUsd(working);
     const openRisk = v2 ? await openRiskUsd(working) : null;
-    if (usedMargin === null || (v2 && openRisk === null)) continue;
-    const gate = ruleGate(acct, inst, Number(o.volume), fill, sl, conv, equityNow, usedMargin, openRisk);
+    const sameRisk = v2 ? await sameIdeaRiskUsd(working, symbol, String(o.side)) : null;
+    if (usedMargin === null || (v2 && (openRisk === null || sameRisk === null))) continue;
+    const gate = ruleGate(acct, inst, Number(o.volume), fill, sl, conv, equityNow, usedMargin, openRisk, sameRisk);
     if (gate) { await reject(gate); continue; }
 
     // Claim the order BEFORE inserting the trade, and check that this
@@ -2881,6 +2884,17 @@ async function stopFill(db: Db, acct: Acct, symKey: string, px: number, takingAs
   return roundPrice(symKey, adverse(px, takingAsk, spec.slippageBps));
 }
 
+// One trade idea (same symbol, same direction) carries at most ONE trade's risk, however many tickets it is split into. Positions whose
+// stop has been moved to break-even or into profit carry no risk, so an honest trader can still scale in after de-risking.
+function sameIdeaLimitReason(existingRisk: number | null, newRisk: number, maxRisk: number, symbol: string): string | null {
+  if (existingRisk === null || existingRisk <= 0) return null;
+  if (existingRisk + newRisk <= maxRisk + 0.01) return null;
+  return `Same-trade limit: you already have $${existingRisk.toFixed(2)} at risk on this ${symbol ? symbol + " " : ""}trade idea, and this order would take it to $${(existingRisk + newRisk).toFixed(2)}, above the $${maxRisk.toFixed(2)} single-trade limit. Splitting one trade into several orders does not raise the limit. Move a stop to break-even, close part of it, or reduce this order's size.`;
+}
+async function sameIdeaRiskUsd(open: Tr[], symbol: string, side: string): Promise<number | null> {
+  return await openRiskUsd(open.filter((t) => t.symbol === symbol && t.side === side));
+}
+
 // Money at risk if every open stop is hit (positions without a stop, or with
 // a stop already in profit, contribute nothing).
 async function openRiskUsd(open: Tr[]): Promise<number | null> {
@@ -4076,6 +4090,10 @@ if (body.action === "sweep") {
         if (openRisk + riskUsd > cap + 0.01) {
           return reject(`Total open risk would be $${(openRisk + riskUsd).toFixed(2)}, above the current $${cap.toFixed(2)} aggregate limit. Close or tighten another position first.`, q);
         }
+        const sameRisk = await sameIdeaRiskUsd(state.open, symbol, side);
+        if (sameRisk === null) return reject("Could not verify this trade idea's open risk — wait for conversion prices to recover.", q);
+        const sameReason = sameIdeaLimitReason(sameRisk, riskUsd, perTrade, symbol);
+        if (sameReason) return reject(sameReason, q);
       }
 
       await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);

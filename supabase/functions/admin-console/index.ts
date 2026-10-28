@@ -303,6 +303,44 @@ function passageProbability(mu: number, sigma: number, targetUp: number, targetD
   return Math.max(0, Math.min(1, num / den));
 }
 
+// Did floating loss inside a trade ever reach the daily-loss or overall drawdown floor? Uses the worst price each trade is recorded to have
+// seen (ipfx_trade_lows, observed from our own ticks; trades without a recorded low are counted as not checked). It measures each trade on
+// its own: the closed balance when it opened plus that trade's worst floating loss, so other trades open at the same time are not added.
+// The overall floor follows the account's rule: peak closed balance minus the allowance (trailing), or the start minus the allowance (static).
+function drawdownCheck(a: Record<string, unknown>, trades: Record<string, unknown>[], lows: Map<string, { low: number; at: string | null }>) {
+  const num = (v: unknown) => Number(v ?? 0);
+  const start = num(a.starting_balance), ddAllow = start * num(a.max_drawdown_pct) / 100, dlAllow = start * num(a.daily_loss_pct) / 100;
+  if (!(start > 0) || !(ddAllow > 0)) return null;
+  const closed = trades.filter((t) => t.status === "closed" && t.closed_at).sort((x, y) => Date.parse(String(x.closed_at)) - Date.parse(String(y.closed_at)));
+  const balAt = (ms: number) => { let b = start, peak = start; for (const t of closed) { if (Date.parse(String(t.closed_at)) > ms) break; b += num(t.pnl); peak = Math.max(peak, b); } return { b, peak }; };
+  const trailing = String(a.drawdown_mode ?? "static") !== "static";
+  let checked = 0, notChecked = 0;
+  let worstDaily: { margin: number; trade: unknown; low: number } | null = null, worstOverall: { margin: number; trade: unknown; low: number } | null = null;
+  for (const t of trades) {
+    const l = lows.get(String(t.id));
+    if (!l || !Number.isFinite(l.low)) { notChecked++; continue; }
+    checked++;
+    const opened = Date.parse(String(t.opened_at)), vol = num(t.volume);
+    const loss = Math.min(0, l.low * vol);
+    const worst = balAt(opened).b + loss;
+    const lowAt = l.at ? Date.parse(l.at) : opened, d = new Date(lowAt);
+    const dayStartMs = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const dailyFloor = balAt(dayStartMs - 1).b - dlAllow;
+    const peak = trailing ? balAt(opened).peak : start;
+    const overallFloor = peak - ddAllow;
+    const md = worst - dailyFloor, mo = worst - overallFloor;
+    if (!worstDaily || md < worstDaily.margin) worstDaily = { margin: md, trade: t.id, low: loss };
+    if (!worstOverall || mo < worstOverall.margin) worstOverall = { margin: mo, trade: t.id, low: loss };
+  }
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  return {
+    trades_checked: checked, trades_not_checked: notChecked, mode: trailing ? "trailing closed balance" : "static",
+    daily_loss_allowance: r2(dlAllow), overall_drawdown_allowance: r2(ddAllow),
+    daily: worstDaily ? { hit: worstDaily.margin <= 0, closest_margin: r2(worstDaily.margin), floating_loss_in_that_trade: r2(worstDaily.low), trade_id: worstDaily.trade } : null,
+    overall: worstOverall ? { hit: worstOverall.margin <= 0, closest_margin: r2(worstOverall.margin), floating_loss_in_that_trade: r2(worstOverall.low), trade_id: worstOverall.trade } : null,
+  };
+}
+
 // The same boxes the trader sees on their Challenge tab ("every box must be ticked at the same time"), so the team can tell who can
 // actually move up. Read-only: it only reads progress and the qualification / counted-profit functions the engine itself uses.
 // deno-lint-ignore no-explicit-any
@@ -674,14 +712,14 @@ Deno.serve(async (req) => {
   const action = body.action;
   const challengesLaunched = Date.now() >= Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026, 00:00 UK
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
-  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve"]);
+  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve", "advance_stage"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
   // Money movement is owner-only; resuming trading after a halt is owner-only (any admin may HALT).
   const ownerMoneyActions = new Set(["payout_approve", "payout_mark_paid"]);
   if (ownerMoneyActions.has(String(action)) && !isOwner) return err("Owner approval required for payouts", 403);
   if (action === "set_platform_halt" && body.halted !== true && !isOwner) return err("Only the owner can resume trading", 403);
   const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log",
-    "payout_create", "payout_approve", "payout_mark_paid", "payout_void", "set_split", "set_investigation_hold", "grant_challenge", "reset_account", "close_account", "set_mirror"]);
+    "payout_create", "payout_approve", "payout_mark_paid", "payout_void", "set_split", "set_investigation_hold", "grant_challenge", "reset_account", "close_account", "set_mirror", "advance_stage"]);
   const needsMfa = sensitiveActions.has(String(action)) || (action === "set_platform_halt" && body.halted !== true);
   if (needsMfa && tokenAal(bearerToken) !== "aal2") {
     return err("Multi-factor authentication is required for this action.", 403);
@@ -997,6 +1035,19 @@ Deno.serve(async (req) => {
     if (status === "verified") await sendLifecycleEmail(db, "kyc_approved", target_user, {});
     if (status === "rejected") await sendLifecycleEmail(db, "kyc_rejected", target_user, { note: note ?? "The documents could not be read or did not match your profile." });
     return json({ ok: true });
+  }
+
+  // Owner-only manual promotion: the owner decides who moves up, whether or not every progression box is ticked.
+  if (action === "advance_stage") {
+    const account_id = String(body.account_id ?? "");
+    if (!account_id) return err("account_id required");
+    const { data: acc } = await db.from("trading_accounts").select("id,user_id,stage,challenge_type,status").eq("id", account_id).maybeSingle();
+    if (!acc) return err("Account not found", 404);
+    if (!(await logAdminStrict("advance_stage", { targetUser: acc.user_id, targetAccount: account_id, detail: { from_stage: acc.stage, owner_override: true } }))) return err("Could not record the audit entry, so nothing was changed", 500);
+    const { data, error } = await db.rpc("fn_owner_advance_infinity_stage", { p_account: account_id, p_expected_user: acc.user_id });
+    if (error) return err("Could not move this trader up: " + error.message.slice(0, 120), 409);
+    if (!data?.ok) return err("Not moved: " + String(data?.reason ?? "unknown").replace(/_/g, " ").toLowerCase() + (data?.reason === "OPEN_POSITIONS" ? ". Wait until they have no open trades." : ""), 409);
+    return json({ ok: true, next_stage: data.next_stage, already_created: !!data.already_created });
   }
 
   if (action === "set_investigation_hold") {
@@ -1453,6 +1504,14 @@ Deno.serve(async (req) => {
 
     // one profile per account (a trader may have multiple challenge accounts
     // over time) plus a combined profile across everything.
+    const lowsByTrade = new Map<string, { low: number; at: string | null }>();
+    try {
+      const ids = (allTrades ?? []).map((t: Record<string, unknown>) => String(t.id));
+      for (let i = 0; i < ids.length; i += 400) {
+        const { data: lr } = await db.from("ipfx_trade_lows").select("trade_id,low_per_lot_usd,low_at").in("trade_id", ids.slice(i, i + 400)).not("low_per_lot_usd", "is", null);
+        for (const r of lr ?? []) lowsByTrade.set(String(r.trade_id), { low: Number(r.low_per_lot_usd), at: r.low_at ? String(r.low_at) : null });
+      }
+    } catch (_) { /* the check just reports trades as not checked */ }
     const stageReqs = await Promise.all(accountsFor.map((a: Record<string, unknown>) =>
       stageChecklist(db, a, (allTrades ?? []).filter((t: Record<string, unknown>) => t.account_id === a.id && t.status === "open").length)
         .catch(() => null)));
@@ -1463,6 +1522,7 @@ Deno.serve(async (req) => {
         profile: buildStrategyProfile(ts), readiness: computeReadiness(ts, a),
         mid_challenge: midChallengeSignal(ts, a, null),
         stage_requirements: stageReqs[i],
+        drawdown_check: drawdownCheck(a, ts, lowsByTrade),
       };
     });
     const combinedProfile = buildStrategyProfile(allTrades ?? []);

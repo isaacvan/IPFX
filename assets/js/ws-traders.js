@@ -145,13 +145,26 @@
   }
 
   // The boxes the trader sees on their Challenge tab: all must be ticked at once before they move up a stage.
-  function stageSection(r, label) {
+  function stageSection(r, label, x) {
     if (!r || !(r.items || []).length) return '';
     const tick = (ok) => `<div class="leadicon ${ok ? 'ic-green' : 'ic-gray'}"><svg viewBox="0 0 24 24">${ok ? '<path d="M6 12.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '<circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/>'}</svg></div>`;
     const left = r.items.filter((i) => !i.done).length;
     return `${head('Stage requirements' + (label ? ' · ' + esc(label) : ''), esc(r.title))}
-      <div class="group"><div class="item"><div class="body"><b>${r.ready ? 'Every box ticked: can move to the next stage' : left + ' box' + (left === 1 ? '' : 'es') + ' still to tick'}</b><span>All boxes must be ticked at the same time</span></div><div class="trail">${cap(r.ready ? 'Can move up' : 'Not yet', r.ready ? 'green' : 'orange')}</div></div>
+      <div class="group"><div class="item"><div class="body"><b>${r.ready ? 'Every box ticked: can move to the next stage' : left + ' box' + (left === 1 ? '' : 'es') + ' still to tick'}</b><span>All boxes must be ticked at the same time</span></div><div class="trail">${cap(r.ready ? 'Can move up' : 'Not yet', r.ready ? 'green' : 'orange')}${x && x.status === 'active' && /Stage [123]$/.test(r.title || '') ? ` <button class="btn sm" type="button" data-act="advance" data-account="${esc(x.account_id)}" data-ready="${r.ready ? '1' : '0'}" data-title="${esc(r.title)}">Move to next stage</button>` : ''}</div></div>
         ${r.items.map((i) => `<div class="item">${tick(i.done)}<div class="body"><b style="font-weight:600">${esc(i.text)}</b></div></div>`).join('')}</div>`;
+  }
+  // Did floating loss inside any trade reach the daily-loss or overall drawdown floor? Each trade is measured on its own.
+  function drawdownSection(d, label) {
+    if (!d) return '';
+    const row = (name, allow, x) => {
+      if (!x) return `<div class="item"><div class="body"><b style="font-weight:600">${name}</b><span>No recorded worst price yet</span></div></div>`;
+      const hit = x.hit;
+      return `<div class="item"><div class="body"><b style="font-weight:600">${name} (allowance ${usd(allow)})</b><span>${hit ? 'Reached by ' + usd(Math.abs(x.closest_margin)) + ' beyond the floor' : 'Closest it came: ' + usd(x.closest_margin) + ' above the floor'}; the worst floating loss in that one trade was ${usd(Math.abs(x.floating_loss_in_that_trade))}</span></div><div class="trail">${cap(hit ? 'Yes, hit' : 'No', hit ? 'red' : 'green')}</div></div>`;
+    };
+    const total = d.trades_checked + d.trades_not_checked;
+    return `${head('Drawdown during trades' + (label ? ' · ' + esc(label) : ''), 'floating loss inside a trade')}
+      <div class="group">${row('Daily loss limit', d.daily_loss_allowance, d.daily)}${row('Overall drawdown (' + esc(d.mode) + ')', d.overall_drawdown_allowance, d.overall)}
+        <div class="item"><div class="body"><span>Checked ${esc(d.trades_checked)} of ${esc(total)} trades; the rest have no recorded worst price. Each trade is measured on its own (the closed balance when it opened plus its worst floating loss), so trades open at the same time are not added together.</span></div></div></div>`;
   }
   function readinessSection(r, label) {
     if (!r) return '';
@@ -231,7 +244,7 @@
         <div class="item"><div class="body"><b>Investigation hold</b><span>${t.investigation_hold ? 'On: payouts and copying are held' : 'Off'}</span></div>
           <div class="trail"><button class="switch" role="switch" aria-checked="${!!t.investigation_hold}" aria-label="Investigation hold" data-act="hold"></button></div></div></div>
       ${error ? `<div class="banner red">${esc(error)}</div>` : !detail ? '<div class="empty">Loading the full trader record…</div>'
-        : per.map((x) => stageSection(x.stage_requirements, per.length > 1 ? x.label : '')).join('') + equitySection(detail.trades) + profileSection(detail.combined_profile) + tradesSection(detail) + rejectsSection(detail) + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
+        : per.map((x) => stageSection(x.stage_requirements, per.length > 1 ? x.label : '', x) + drawdownSection(x.drawdown_check, per.length > 1 ? x.label : '')).join('') + equitySection(detail.trades) + profileSection(detail.combined_profile) + tradesSection(detail) + rejectsSection(detail) + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
           + (per.length > 1 ? head('Per-account breakdown', per.length + ' accounts') + per.map((x) => `<div class="row" style="margin:14px 4px 0"><b>${esc(x.label)}</b>${cap(x.status, x.status === 'active' ? 'green' : x.status === 'breached' ? 'red' : '')}</div>${x === primary ? '' : readinessSection(x.readiness)}${profileSection(x.profile, x.label)}`).join('') : '')
           + strategySection(detail) + identitySection(detail) + auditSection()}
     </aside>`;
@@ -248,6 +261,14 @@
     const t = open.t, s = selection(t); if (!s) return;
     try { await T.ladder('ongoing_copy_select', { id: s.connection_id, person_id: s.person_id, enabled: false, reason: 'Owner moved trader to B-book from Traders' }); T.toast(t.email + ' is in B-book.'); await load(); }
     catch (e) { T.toast(e.message, true); }
+  }
+  // Owner-only: moves this trader up a stage whether or not every box is ticked.
+  async function advance(btn) {
+    const accountId = btn.dataset.account, ready = btn.dataset.ready === '1';
+    const v = await T.sheet({ title: 'Move this trader to the next stage?', text: (ready ? 'Every box is ticked. ' : 'Not every box is ticked, so this skips the normal rules. ') + 'They must have no open trades. A new next-stage account is created and the current one is marked passed. This is recorded in the team audit log and cannot be undone here.',
+      fields: [], confirm: 'Move to next stage', danger: !ready,
+      onSubmit: () => T.admin('advance_stage', { account_id: accountId }) });
+    if (v) { T.toast('Moved to the next stage.'); close(); await load(); }
   }
   async function hold() {
     const t = open.t, on = !t.investigation_hold;
@@ -273,7 +294,7 @@
     if (e.target.closest('[data-close]')) { close(); return; }
     const r = e.target.closest('[data-open]'); if (r) { openTrader(r.dataset.open); return; }
     const b = e.target.closest('[data-act]'); if (!b || b.disabled || !open) return;
-    ({ toA, toB, hold, alltrades: () => { open.allTrades = true; renderDrawer(); } })[b.dataset.act]?.();
+    ({ toA, toB, hold, advance: () => advance(b), alltrades: () => { open.allTrades = true; renderDrawer(); } })[b.dataset.act]?.();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && open && !document.querySelector('.os-sheet')) close();

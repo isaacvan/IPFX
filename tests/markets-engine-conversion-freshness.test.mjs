@@ -73,7 +73,7 @@ test('pending orders wait unchanged while conversion, used margin or portfolio r
   const c=vm.createContext({Date,INSTRUMENTS:instruments,MAX_OPEN_POSITIONS:20,isTradableAccount:()=>true,
    fetchQuote:async()=>({bid:1.1,ask:1.1002,spread:.0002}),quoteStale:()=>false,marketOpen:()=>true,pendingTriggered:()=>true,
    symbolCheck:async()=>({ok:true,maxSpread:1,slippageBps:0}),rulesV2:()=>true,roundPrice:(_s,p)=>p,adverse:p=>p,
-   usdPerQuote:async()=>unavailable==='conversion'?null:1,usedMarginUsd:async()=>unavailable==='margin'?null:0,openRiskUsd:async()=>unavailable==='risk'?null:0,
+   usdPerQuote:async()=>unavailable==='conversion'?null:1,usedMarginUsd:async()=>unavailable==='margin'?null:0,openRiskUsd:async()=>unavailable==='risk'?null:0,sameIdeaRiskUsd:async()=>unavailable==='risk'?null:0,
    ruleGate:()=>{throw Error('Unknown portfolio data reached the fill gate');},logAudit:async()=>{},
    db:{from:()=>{let patch;const q={select(){return q;},eq(){return q;},order(){return q;},update(p){patch=p;return q;},then(resolve){if(patch){patches.push(patch);Object.assign(row,patch);}return resolve({data:[row]});}};return q;}}});
   const start=source.indexOf('async function processPendingOrders('),end=source.indexOf('\nasync function ',start+1);
@@ -85,7 +85,7 @@ test('market-entry portfolio checks cannot treat unknown margin or open risk as 
  const code='async function entry(){'+part('      const needed = (inst.contract * volume * q.mid * conv) / LEVERAGE;', '      await flagCrossAccountHedge(')+'return{allowed:true};}';
  for(const unavailable of['margin','risk']){
   const c=vm.createContext({inst:{contract:100000},volume:.01,q:{mid:1.1},conv:1,LEVERAGE:100,state:{open:[],equity:1000},
-   usedMarginUsd:async()=>unavailable==='margin'?null:0,openRiskUsd:async()=>unavailable==='risk'?null:0,
+   usedMarginUsd:async()=>unavailable==='margin'?null:0,openRiskUsd:async()=>unavailable==='risk'?null:0,sameIdeaRiskUsd:async()=>unavailable==='risk'?null:0,
    reject:async reason=>({allowed:false,reason}),rulesV2:()=>true,A:{max_risk_per_trade_pct:.5},sl:1.09,fill:1.1,startBal:1000,
    effectiveRiskLimit:()=>({effective:20}),MAX_TOTAL_RISK_MULTIPLE:4,round2:n=>Math.round(n*100)/100});
   vm.runInContext(stripTypeScriptTypes(code),c);assert.equal((await c.entry()).allowed,false,unavailable);
