@@ -7,12 +7,12 @@ Build and local integration complete. Deployment and activation are separate wor
 - Branch: `codex/infinity-v2`; worktree: `C:/Users/paula/New folder/ipfx-infinity-v2`.
 - Latest fetched base: `origin/main` at `f725465ae0d7a96726b5294ac3d1746a084a4c69`. Rebase reported up to date; final verification ran afterward.
 - Foundation commits: `19c256a`, `159a5b9`, `e60fc2a`, `3f712f0`, `f6f6345`, `49c0f29`, `bc135fe`.
-- Integration commit: `ad71889`; final report is a separate documentation commit.
+- Integration commits: `ad71889` and `bf923ed`; final verification totals are a separate documentation commit.
 - Diff: versioned database enforcement, engine execution/pricing, progression/payout adapters, switch/restart transactions, review tooling, desktop controls, public rules, staged emails, hub deadline support, and regression tests. Existing v1 financial records are not rewritten.
 
 ## Verification
 
-Final full-suite totals will be recorded here after the committed-code run completes.
+Final committed-code suite: **1,387 tests; 1,374 passed, 0 failed, 0 cancelled, 13 skipped**, 257.96 seconds. Optional skips are not counted as passes. All changed-source tests ran after rebasing; the last commit records verification only.
 
 Command: `node --test --test-concurrency=4 --test-timeout=180000 tests/*.test.mjs`. Environment: `DEMO_TEST_DEPS=C:/Users/paula/AppData/Local/Temp/ipfx-demo-validation`; TEMP/TMP use `C:/Users/paula/New folder/infinity-v2-test-tmp`. Hub loopback tests run outside the sandbox. Optional skips remain skips.
 
