@@ -78,3 +78,13 @@ test('opening risk is set once within 30 seconds and cannot be erased',{skip:!pr
   await assert.rejects(db.query("insert into trades values($1,now(),1,now(),null)",[id(3)]),/check constraint/);
  }finally{await db.close();}
 });
+test('launch migration saves an inactive template without queueing any email',{skip:!process.env.DEMO_TEST_DEPS},async()=>{
+ const db=await fixture();try{
+  await db.exec('create table email_templates(key text primary key,category text,subject text,preheader text,body_html text,body_text text,is_active boolean)');
+  const sql=fs.readFileSync(new URL('../supabase/migrations/20261029092000_infinity_v2_launch_template.sql',import.meta.url),'utf8');
+  await db.exec(sql);await db.exec(sql);
+  const rows=(await db.query('select * from email_templates')).rows;
+  assert.equal(rows.length,1);assert.equal(rows[0].key,'infinity_v2_launch');assert.equal(rows[0].is_active,false);
+  assert.ok(rows[0].body_html.includes('Infinity v2'));
+ }finally{await db.close();}
+});
