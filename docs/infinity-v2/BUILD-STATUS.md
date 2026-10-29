@@ -2,6 +2,18 @@
 
 INCOMPLETE. Build only. Do not deploy these migrations or enable Infinity v2.
 
+## Verification
+
+- Branch: `codex/infinity-v2`, isolated worktree `C:/Users/paula/New folder/ipfx-infinity-v2`.
+- Base: `origin/main` at `f725465`; fetched again after the final suite, unchanged.
+- Final committed-code suite: **1,359 tests; 1,346 passed, 0 failed, 13 skipped**, 162.7 seconds. Existing skips remain skips; they are not counted as passed.
+- Command: `node --test --test-concurrency=4 --test-timeout=180000 tests/*.test.mjs`, with `DEMO_TEST_DEPS=C:/Users/paula/AppData/Local/Temp/ipfx-demo-validation` and TEMP/TMP in the workspace. Run outside the sandbox for local hub loopback access. The hub's pinned `ws` dependency was installed with scripts disabled.
+- All 17 new focused tests pass, including real PGlite migration, consent, field preservation, risk immutability and inactive-template tests.
+- Existing `trading-engine/index.ts`, hub risk enforcement and payout routines have no diff against the base. Existing v1 regression tests pass. This is **not** proof that v1 remains unchanged after the remaining integration: full before/after golden financial replays are still a release blocker.
+- Windows source tests normalize CRLF for BTC view-only checks. The existing outbox source assertion includes the newly requested template. Filesystem tests use a writable workspace temporary directory.
+- Local browser preview, actual switch/restart endpoints, copy-versus-no-copy fills, complete creation-path replays and production checks have **not** been validated.
+- No deployments, production SQL, emails, pushes to main or financial record mutations were performed.
+
 ## Implemented in this branch
 
 - Saved v2 thresholds and per-account snapshots, configurable cutover, disabled default.
