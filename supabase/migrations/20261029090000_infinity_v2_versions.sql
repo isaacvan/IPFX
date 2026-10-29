@@ -67,7 +67,7 @@ begin
      if settings.infinity_v2_enabled then raise exception 'INFINITY_PARENT_REQUIRED';end if;
      new.rules_version:='infinity_v1';
    else
-     if parent.rules_version='infinity_v2' and (parent.challenge_type<>'infinity' or parent.user_id is distinct from new.user_id
+     if (settings.infinity_v2_enabled or parent.rules_version='infinity_v2') and (parent.challenge_type<>'infinity' or parent.user_id is distinct from new.user_id
        or new.stage<>parent.stage+1) then raise exception 'INFINITY_PARENT_REQUIRED';end if;
      new.rules_version:=parent.rules_version;
    end if;

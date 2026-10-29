@@ -28,6 +28,7 @@ test('database backfill, default off, time gate, parent inheritance, restarts an
   assert.equal((await add(5,2,id(1))).rows[0].rules_version,'infinity_v1');
   assert.equal((await add(6,2,id(4))).rows[0].rules_version,'infinity_v2');
   assert.equal((await add(7,1,id(1))).rows[0].rules_version,'infinity_v2');
+  await assert.rejects(db.query("insert into trading_accounts(id,user_id,challenge_type,stage,funded_from_account_id,balance) values($1,$2,'infinity',2,$3,5000)",[id(70),id(98),id(1)]),/PARENT_REQUIRED/);
   await assert.rejects(db.query("update trading_accounts set rules_version='infinity_v1' where id=$1",[id(4)]),/IMMUTABLE/);
   await assert.rejects(db.query("update trading_accounts set rules_version='infinity_v2' where id=$1",[id(1)]),/IMMUTABLE/);
   await db.exec('update infinity_v2_settings set infinity_v2_enabled=false where singleton');
