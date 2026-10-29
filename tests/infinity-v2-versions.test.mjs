@@ -71,5 +71,6 @@ test('opening risk is set once within 30 seconds and cannot be erased',{skip:!pr
   await assert.rejects(db.query('update trades set initial_risk_usd=2 where id=$1',[id(1)]),/IMMUTABLE/);
   await assert.rejects(db.query('update trades set initial_sl=null,initial_sl_at=null,initial_risk_usd=null where id=$1',[id(1)]),/IMMUTABLE/);
   await assert.rejects(db.query("insert into trades values($1,now(),1,now()+interval '31 seconds',5)",[id(2)]),/TOO_LATE/);
+  await assert.rejects(db.query("insert into trades values($1,now(),1,now(),null)",[id(3)]),/check constraint/);
  }finally{await db.close();}
 });

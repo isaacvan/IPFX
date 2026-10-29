@@ -95,7 +95,7 @@ for each row execute function public.infinity_v2_append_only();
 alter table public.trades add column initial_sl numeric, add column initial_sl_at timestamptz, add column initial_risk_usd numeric;
 alter table public.trades add constraint infinity_initial_risk_tuple check (
   (initial_sl is null and initial_sl_at is null and initial_risk_usd is null)
-  or (initial_sl is not null and initial_sl_at is not null and initial_risk_usd>0)
+  or (initial_sl is not null and initial_sl_at is not null and initial_risk_usd is not null and initial_risk_usd>0)
 );
 create function public.infinity_v2_initial_risk_guard() returns trigger language plpgsql set search_path='' as $$
 begin
