@@ -10,7 +10,7 @@ const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? "80");
 const PER_RUN = Number(Deno.env.get("EMAIL_PER_RUN") ?? "10");
 const TEMPLATES = ["infinity_v2_launch", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
 // Emails that only make sense while the trader has an active Infinity account.
-const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
+const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });

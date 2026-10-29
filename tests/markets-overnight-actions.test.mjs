@@ -96,6 +96,7 @@ test('close-all confirmation for one account cannot close a newly selected accou
 
 test('fill feedback stays tied to the submitted symbol and lots while the trader edits the ticket',async()=>{
  const messages=[],d=deferred(),c=vm.createContext({activeSym:'EURUSD',ordLots:.02,engineBusy:false,slOn:false,tpOn:false,orderType:'market',
+  engineState:{account:{rules_version:'infinity_v1'}},
   document:{getElementById:()=>({open:false}),querySelector:()=>null},crypto:{randomUUID:()=> 'fixture'},
   blockInfinityTradeAttempt:()=>false,stageRulesBlockEntry:()=>false,dailyCapMessage:()=>null,feedFresh:()=>true,
   execSymbol:s=>s,fmtPx:(p,s)=>s+':'+p,engineMsg:m=>messages.push(m),engineCall:()=>d.promise});
@@ -107,6 +108,7 @@ test('fill feedback stays tied to the submitted symbol and lots while the trader
 test('a pending acknowledgement cannot erase a newly edited different-market ticket',async()=>{
  const d=deferred(),messages=[],nodes={ruleCriticalDialog:{open:false},triggerPrice:{value:'1.11'},pendOco:{value:'old-order'}};
  const c=vm.createContext({activeSym:'EURUSD',ordLots:.02,engineBusy:false,slOn:false,tpOn:false,orderType:'limit',
+  engineState:{account:{rules_version:'infinity_v1'}},
   document:{getElementById:id=>nodes[id],querySelector:()=>null},pendingExpiryIso:()=>null,
   blockInfinityTradeAttempt:()=>false,stageRulesBlockEntry:()=>false,dailyCapMessage:()=>null,feedFresh:()=>true,
   execSymbol:s=>s,fmtPx:(p,s)=>s+':'+p,engineMsg:m=>messages.push(m),engineCall:body=>body.action==='state'?null:d.promise});

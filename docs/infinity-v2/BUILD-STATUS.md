@@ -1,71 +1,89 @@
-# Infinity v2 build status — 29 October 2026
+# Infinity v2 build report — 29 October 2026
 
-INCOMPLETE. Build only. Do not deploy these migrations or enable Infinity v2.
+Build and local integration complete. Deployment and activation are separate work. No production SQL, deployments, email sends, pushes to main, or real trader mutations were performed.
+
+## Branch and changes
+
+- Branch: `codex/infinity-v2`; worktree: `C:/Users/paula/New folder/ipfx-infinity-v2`.
+- Latest fetched base: `origin/main` at `f725465ae0d7a96726b5294ac3d1746a084a4c69`. Rebase reported up to date; final verification ran afterward.
+- Foundation commits: `19c256a`, `159a5b9`, `e60fc2a`, `3f712f0`, `f6f6345`, `49c0f29`, `bc135fe`.
+- Integration commit: `ad71889`; final report is a separate documentation commit.
+- Diff: versioned database enforcement, engine execution/pricing, progression/payout adapters, switch/restart transactions, review tooling, desktop controls, public rules, staged emails, hub deadline support, and regression tests. Existing v1 financial records are not rewritten.
 
 ## Verification
 
-- Branch: `codex/infinity-v2`, isolated worktree `C:/Users/paula/New folder/ipfx-infinity-v2`.
-- Base: `origin/main` at `f725465`; fetched again after the final suite, unchanged.
-- Final committed-code suite: **1,359 tests; 1,346 passed, 0 failed, 13 skipped**, 162.7 seconds. Existing skips remain skips; they are not counted as passed.
-- Command: `node --test --test-concurrency=4 --test-timeout=180000 tests/*.test.mjs`, with `DEMO_TEST_DEPS=C:/Users/paula/AppData/Local/Temp/ipfx-demo-validation` and TEMP/TMP in the workspace. Run outside the sandbox for local hub loopback access. The hub's pinned `ws` dependency was installed with scripts disabled.
-- All 17 new focused tests pass, including real PGlite migration, consent, field preservation, risk immutability and inactive-template tests.
-- Existing `trading-engine/index.ts`, hub risk enforcement and payout routines have no diff against the base. Existing v1 regression tests pass. This is **not** proof that v1 remains unchanged after the remaining integration: full before/after golden financial replays are still a release blocker.
-- Windows source tests normalize CRLF for BTC view-only checks. The existing outbox source assertion includes the newly requested template. Filesystem tests use a writable workspace temporary directory.
-- Local browser preview, actual switch/restart endpoints, copy-versus-no-copy fills, complete creation-path replays and production checks have **not** been validated.
-- No deployments, production SQL, emails, pushes to main or financial record mutations were performed.
+Final full-suite totals will be recorded here after the committed-code run completes.
 
-## Implemented in this branch
+Command: `node --test --test-concurrency=4 --test-timeout=180000 tests/*.test.mjs`. Environment: `DEMO_TEST_DEPS=C:/Users/paula/AppData/Local/Temp/ipfx-demo-validation`; TEMP/TMP use `C:/Users/paula/New folder/infinity-v2-test-tmp`. Hub loopback tests run outside the sandbox. Optional skips remain skips.
 
-- Saved v2 thresholds and per-account snapshots, configurable cutover, disabled default.
-- Existing Infinity accounts backfilled v1; stage children inherit; Stage 1 restarts are new runs.
-- Guarded one-way version changes, append-only switch audit, immutable initial-stop fields.
-- Service-only transactional switch routine: ownership, flatness, consent, idempotency and rate limit.
-- Pure grouping/scoring and trading-validation kernels with behavioral tests.
-- Supplied restart UI copied without redesign; only its script tag added to trading.html.
-- Launch template staged inactive; allowlisted in the outbox; no queue rows or sends.
+- Deno `check --no-config` passed for trading-engine, admin-console and email-outbox. Changed UI and hub JavaScript syntax checks passed.
+- Local Chrome checks passed: actual trading page, consent gating, both Stage 2 score requirements, confirmation, close, dark/light layouts without horizontal overflow, and zero account mutations in preview.
+- A second browser flow exercised actual engine switch/restart action code against synthetic PGlite accounts and real SQL transactions: one switch, one restart, one active v2 account. External/production requests were blocked. The public rules page rendered saved thresholds.
+- PGlite checks cover immutable versions/risk, atomic admissions, grouping/partials, progression/recovery, midnight baseline, no profit cap, pricing fallback, canonical Stage 4 breach/strike audit, review clearances, monthly/free restarts, consent, financial preservation, and stale requests after switching/archiving.
+- The actual shared provisioner used by claims, owner grants, resets and approval was replayed with the flag off, before cutover and live. Actual monthly/free-restart and stage-advance functions were replayed too.
+- Source-close tests exercise the actual v2 close branch and execution wrapper, comparing copied and uncopied simulated outcomes.
 
-The settings row has an additional `integration_ready=false` gate. This is deliberate: enabling a partly implemented ruleset would misrepresent the terms traders accepted.
+Limits: local tests do not validate live venue credentials, production schema drift, real broker execution, production throughput or profitability. PGlite queues requests in one engine, so this is not a multi-session PostgreSQL load test. Browser authentication and lock-RPC transport are mocked; SQL ownership/consent/state rules are exercised locally.
 
-## Integration still required (release blockers)
+## v1 evidence
 
-1. Engine: load saved account version/config; route open, pending activation, modify, trailing, partial close, full close and enforcement to v2 validators. Implement atomic account risk reservations, including counted-group opening-risk budgets. Helpers alone do not provide atomicity.
-2. Capture initial risk once from the first actual stop, including entry-time stops and stops set in the first 30 seconds. Bind partial-close slices to their original position, allocate opening risk once, and prevent slices from duplicating observations.
-3. Qualification: normalize original positions and partial slices, load only version-eligible ancestor observations, and cache grouping/score progress outside the eight-second API budget. Integrate all three stages and all missing-child recovery paths. Keep ancestor switch cutoffs, not just the current account cutoff.
-4. Version every creation path in integration tests. The insert trigger is tested in isolation; actual monthly, offer, admin, claim and recovery functions have not yet been replayed with it. Check BEFORE-trigger ordering against qualification attachment and legacy issuance.
-5. Switch: acquire the same order lock as open/modify/activation, add authenticated engine action and dashboard flow, test concurrent opens versus switching, enforce eligibility and preserve every financial/loss/strike field in full-schema tests. The SQL routine is not currently exposed by the engine.
-6. Restart: implement transactional `restart_infinity`, archiving, KYC/jurisdiction/age, monthly attempts and breach lockout, consent, exactly-once account creation, rate limit and engine status. Preserve existing claim fallback. No restart endpoint was added in this foundation.
-7. Daily loss: change the v2 midnight baseline to closed balance throughout engine and database/hub guards. Exempt v2 from all daily profit cap paths. Record symbol stop-out pauses and enforce them on all new-entry paths. Add Stage 4 window enforcement.
-8. Pricing: apply reference spreads/markup, commission and gold lot precision; decouple simulated fills from broker copies for v2; keep broker reconciliation and copy ledger intact. Helpers are not wired into order fills.
-9. Payout SQL: use the five-minute exclusion for v2; preserve v1 amounts, liabilities and records. Gate pass/payout on relevant existing identity/ring/herd evidence with documented review/clear workflow. Do not treat stacking alone as conclusive coordinated cheating.
-10. UI: source the supplied dialog's hard-coded table/terms ID from the saved version, include both Stage 2 score conditions, add version/switch/progress/ticket indicators, and test preview dark/light plus close/back/cancel. No browser validation has been performed yet.
-11. Publish the owner's final terms (test fixtures are placeholders), verify commission and venue-supported gold quantity increments. Validate launch-email template variable names and recipient rendering before enabling any queue.
-12. Full-schema PGlite tests and fixed v1 financial replays; broker-copy pricing equivalence tests; all boundary tests and local browser tests listed in the supplied spec. The focused foundation tests are not substitutes.
+Version branches preserve v1 execution/pricing, daily caps, the 60-second exclusion, stage rules and payouts. Wrappers clone legacy bodies and retain canonical function OIDs. Migrations capture prior definitions and abort on known source drift. Existing accounts become v1; child stages inherit even with new starts disabled.
 
-## Decisions/interpretations
+Fixed before/after replays compare legacy cap/count/hold adapters and a real Stage 3 payout: $1,150 eligible gross, $700 capped share, unchanged split/status/event. The payout replay includes a 120-second winner eligible for v1 and an excluded 30-second winner. Existing regression tests cover v1 engine, progression, cap and payout behavior. The local fixture uses an explicit legacy qualification-result stub because its original function body is absent from this repository; that verifies wrapper routing, not a replay of the unavailable deployed body. Check the captured deployed definition during release rehearsal.
 
-- Score uses sample standard deviation (`n-1`), with the configured 0.5 floor. The spec does not distinguish sample from population SD; confirm before launch.
-- Best-day share uses total eligible **net** profit as specified for v2, rather than v1's sum of positive days.
-- Group 15-minute boundary is inclusive. Overlap is tracked using the maximum close time of every member; symbols, accounts and directions have separate streams.
-- Both positions and pending orders must be absent for switching and stage readiness.
-- An account's snapshots are fixed for the stage. Changing published thresholds requires another version, not rewriting accepted rules.
-- Turning the new-start flag off cannot undo switches or change existing v2 runs back to v1. A full operational rollback must still serve those accounts under their accepted rules.
+The v1 progress panel is retained, with the requested badge and gated switch control. While v2 starts are live, legacy order writes also lock the account row to serialize with explicit switches/restarts. This protects concurrency without changing financial rules; the disabled fast path is retained.
 
-## Migration order
+## Rules and implementation decisions
 
-1. `20261029090000_infinity_v2_versions.sql`
-2. `20261029091000_infinity_v2_switch.sql`
-3. `20261029092000_infinity_v2_launch_template.sql`
+- New accounts receive an immutable version; stage children inherit. Flag off is the default; cutover is configurable. Switches are one-way, flat-only, consented, audited, repeat-safe and order-locked.
+- Switches preserve balance, floors, daily state, strikes, held profit and stage. Only scored observations restart. Previously earned eligible profit retains its original hold treatment; new trades use 300 seconds. Combined scores include verifiable post-v2 lineage observations, without inventing opening risk for old v1 trades.
+- Grouping is independent per account/symbol/side; the 15-minute boundary is inclusive. Partial slices share one root observation/risk denominator. Score uses sample SD (`n-1`), a 0.5 floor and ±5R scoring cap. Best-day share uses total eligible net profit.
+- A missed-stop closure keeps losses and incurs the canonical strike. Without opening risk it cannot supply a scored observation; one strike does not permanently disqualify later trading. Three strikes end the run through the audited breach path.
+- Stage 4 uses actual net P&L over any 40 valid completed groups, counting partials once. The canonical breach allowlist/event constraint accept the new v2-only performance reason.
+- Progress reads use cron-cached results; stale/dirty results show scoring pending and cannot authorize passing. Authoritative pass/payout transactions recheck qualification and review holds.
+- Linked identities, both ring participants and identical/herd evidence hold advancement/payout. Review requires owner MFA, an audit intent and an append-only evidence clearance with a reason. New evidence reopens the hold; heartbeat refreshes alone do not. Trading stays available.
+- Restarts archive the old account with an explicit closed status/reason, retaining payouts/liabilities/history. First starts and restarts share the monthly allowance, including retired accounts. Eligibility, breach lockout and one-account protections remain.
+- The supplied restart dialog keeps its styling and ended-run fallback. Preview is always read-only. Live numbers/terms come from saved rules; the generated preview uses the same row.
 
-Settings: `infinity_v2_settings.infinity_v2_enabled`, `cutover_at`, `terms_version`, `integration_ready`. Per-symbol pricing: `infinity_v2_pricing_profiles.spread_markup`, `commission_round_turn_per_lot`, `min_lot`. Commission is NULL until confirmed. Gold's proposed 0.001 is configuration only, not a claim of broker or engine support.
+These fixes are v2-only: no stop widening/removal, counted-group and aggregate risk checks, eight-spread minimum stops, ten-minute symbol pauses, closed-balance midnight baseline, no daily cap, fractional gold sizing, and simulated fills independent of copying. Extending them to v1 remains an owner decision.
 
-## 31 October go-live checklist (blocked until integration completes)
+## Migrations, in order
 
-- Complete every release blocker above; rebase onto current origin/main and rerun the complete suite.
-- Confirm accepted rules and terms, commissions, spreads, gold precision, v2-only bug-fix treatment for v1.
-- Rehearse all migrations, switch and restart on local fixtures; verify financial invariants and v1 golden results.
-- Verify owner test account flows; preview every launch-email substitution without queueing or sending.
-- Enable at or after 1 November 2026 00:00 UTC; verify one new run, one restart and one inherited v1 stage.
-- Verify v1 screens and fills unchanged; verify switched account retains balance/floors/strikes and counters start at switch time.
-- Load launch template only; sending remains a separate explicit action.
-- Disable new-start flag if needed; retain support and enforcement for already accepted v2 runs.
-- If release blockers remain on 31 October, follow the supplied rules document: postpone launch rather than advertise unenforced rules.
+1. `20261029090000_infinity_v2_versions.sql` — disabled settings, immutable account versions and opening risk.
+2. `20261029091000_infinity_v2_switch.sql` — switch transaction/consent audit.
+3. `20261029092000_infinity_v2_launch_template.sql` — inactive launch template, no queue.
+4. `20261029100000_infinity_v2_runtime.sql` — atomic risk/grouping/pricing and progress cron/cache.
+5. `20261029101000_infinity_v2_adapters.sql` — versioned loss/cap/progression/payout adapters.
+6. `20261029102000_infinity_v2_restart.sql` — archive status, eligibility, monthly attempts and restart.
+7. `20261029103000_infinity_v2_pending_and_partials.sql` — pending enforcement/fractional partials.
+8. `20261029104000_infinity_v2_authority.sql` — matching marks, cached reads and canonical strikes.
+9. `20261029104500_infinity_v2_performance_breach.sql` — canonical performance breach reason.
+10. `20261029105000_infinity_v2_review.sql` — evidence clearance/owner advancement gate.
+11. `20261029105500_infinity_v2_stage_recovery.sql` — qualified missing-child recovery.
+12. `20261029106000_infinity_v2_release.sql` — activation prerequisites/versioned lifecycle emails.
+13. `20261029107000_infinity_v2_hub_deadline.sql` — per-account hub stop deadline.
+
+Release the matching engine, admin-console, email-outbox, hub and frontend together. Resolve source-drift exceptions against deployed definitions; do not bypass them.
+
+## Settings and owner decisions
+
+- `infinity_v2_settings.infinity_v2_enabled` remains **false**; `cutover_at` defaults to `2026-11-01T00:00:00Z`.
+- `integration_ready` becomes true in the final integration migration; that alone does not enable starts.
+- `terms_version` must reference the owner's published Terms row in `platform_legal_documents`, with a URL. Test documents are placeholders, not final legal terms.
+- `infinity_v2_pricing_profiles.spread_markup` defaults to 1.15; confirm per symbol.
+- `commission_round_turn_per_lot` stays NULL until confirmed. Activation refuses missing values for enabled symbols; use explicit zero only intentionally.
+- `min_lot` defaults to 0.01 and XAUUSD to 0.001. Local engine/database/partial/margin paths support it. Confirm live copy-venue quantity increments before releasing gold.
+- Threshold/version rows and accepted account snapshots are immutable. Later threshold changes need a new accepted version design. Review sample-SD and mixed-version lineage interpretations before final Terms.
+
+The launch template stays inactive; no email was queued or sent. Two v2 lifecycle templates prevent new-run emails from describing v1 rules after release; v1 selection stays unchanged. Launch sending requires explicit HTTPS rules/terms/unsubscribe substitutions and separate sending authorization.
+
+## 31 October go-live checklist
+
+1. Confirm final Terms, commissions, markups, gold quantity and interpretations above. Keep v2 disabled until resolved.
+2. Fetch current main, resolve parallel changes and rerun all tests/browser checks. Rehearse on a production-schema test copy, including deployed qualification definitions, ACLs and cron permissions.
+3. Under separate release authorization, apply migrations in order and deploy matching functions/frontend/hub. Confirm the flag stays off and launch email inactive, without queueing mail.
+4. Set published Terms/pricing. At or after **1 November 2026 00:00 UTC**, enable the flag; leave existing v1 runs unchanged.
+5. On designated owner test accounts, verify one new start/restart is v2, retries create one account, allowance drops, and a v1 child remains v1. Test a flat consented switch and confirm carried financial state/fresh score observations.
+6. Check v1 screen/fill/payout preview; v2 stop/pause/hold displays, gold partials, fresh progress, advancement/review holds and canonical breach audit. Observe latency and copied/uncopied simulation on test accounts.
+7. Preview launch/lifecycle variables without sending. Sending is a separate explicit action.
+8. Rollback: turn `infinity_v2_enabled` off to stop new starts/restarts/switches. **It cannot undo accepted switches or revert existing v2 runs.** Continue serving/enforcing their accepted rules; do not reverse migrations or delete financial/audit history.
