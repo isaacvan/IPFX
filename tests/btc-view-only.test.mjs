@@ -1,6 +1,6 @@
 // Bitcoin is on the watchlist (price + chart) but can never be ordered: page guards on top of the engine and database rules.
 import test from 'node:test'; import assert from 'node:assert/strict'; import fs from 'node:fs'; import vm from 'node:vm';
-const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const page = read('trading.html'), guided = read('assets/js/markets-guided.js'), engine = read('supabase/functions/trading-engine/index.ts');
 const migration = read('supabase/migrations/20261008223000_disable_ipfx_crypto.sql');
 

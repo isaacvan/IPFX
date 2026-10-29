@@ -8,7 +8,7 @@ import { emailShell, render } from "../_shared/lifecycle-email.ts";
 
 const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? "80");
 const PER_RUN = Number(Deno.env.get("EMAIL_PER_RUN") ?? "10");
-const TEMPLATES = ["infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
+const TEMPLATES = ["infinity_v2_launch", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
 // Emails that only make sense while the trader has an active Infinity account.
 const NEEDS_ACTIVE = ["infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
 
