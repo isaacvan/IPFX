@@ -8,7 +8,8 @@ async function fixture(){
  const {PGlite}=await import(pathToFileURL(process.env.DEMO_TEST_DEPS+'/node_modules/@electric-sql/pglite/dist/index.js').href);
  const db=new PGlite();
  await db.exec(`create role anon;create role authenticated;create role service_role;
- create table trading_accounts(id uuid primary key,user_id uuid,challenge_type text,stage int,funded_from_account_id uuid,balance numeric,status text default 'active',phase text default 'evaluation');
+ create table trading_accounts(id uuid primary key,user_id uuid,challenge_type text,stage int,funded_from_account_id uuid,balance numeric,status text default 'active',phase text default 'evaluation',
+ trailing_peak numeric default 1060,day_start_equity numeric default 1010,sl_strikes int default 2,total_paid_out numeric default 7);
  create table trades(id uuid primary key,opened_at timestamptz);
  insert into trading_accounts(id,user_id,challenge_type,stage,funded_from_account_id,balance) values('${id(1)}','${id(99)}','infinity',1,null,1000);`);
  await db.exec(migration); return db;
@@ -54,11 +55,13 @@ test('switch requires published consent and flatness; retry is stable and preser
   await db.query("insert into pending_orders values($1,'pending')",[id(1)]);
   await assert.rejects(call(),/CANCEL_PENDING/);
   await db.query("update pending_orders set status='cancelled' where account_id=$1",[id(1)]);
+  const before=(await db.query('select * from trading_accounts where id=$1',[id(1)])).rows[0];
   const a=(await call()).rows[0].j,b=(await call()).rows[0].j;
   assert.deepEqual(a,b);
   await assert.rejects(call('different-request'),/ALREADY_SWITCHED/);
   const account=(await db.query('select * from trading_accounts where id=$1',[id(1)])).rows[0];
   assert.equal(Number(account.balance),1000);assert.equal(account.rules_version,'infinity_v2');
+  for(const key of Object.keys(before).filter(k=>!['rules_version','rules_effective_at','infinity_rules_snapshot'].includes(k))) assert.deepEqual(account[key],before[key],key+' must carry over unchanged');
   assert.equal((await db.query('select * from platform_legal_acceptances')).rows.length,1);
   assert.equal((await db.query('select * from infinity_v2_switches')).rows.length,1);
   await assert.rejects(db.exec('delete from infinity_v2_switches where true'),/APPEND_ONLY/);
