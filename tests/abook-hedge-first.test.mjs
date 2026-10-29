@@ -178,7 +178,7 @@ test('engine fills copied trades hedge-first on market opens, pending fills and 
   const engine = read('supabase/functions/trading-engine/index.ts');
   assert.match(engine, /import \{ closeClaimAction, worseFill \} from "\.\.\/_shared\/stp-fill\.ts"/);
   // A-book live (book-executor) and per-account copy targets share the same hedge-first path.
-  assert.match(engine, /if \(abBook === "a" \|\| await hedgeOpenArmed\(db, A\)\) \{/);
+  assert.match(engine, /if \(A\.rules_version !== "infinity_v2" && \(abBook === "a" \|\| await hedgeOpenArmed\(db, A\)\)\) \{/);
   assert.match(engine, /: await hedgeNow\(db, A, srcTrade, "open", riskUsd\);/);
   // A slow broker is waited on with a timer, never aborted, so an in-flight order is always recorded.
   assert.match(engine, /const call = fireMirror\(db, acct, t, event, riskUsd, \{ sync: true, armed: true \}\);\s*\n\s*mirrorLater\(call\);/);
@@ -188,7 +188,7 @@ test('engine fills copied trades hedge-first on market opens, pending fills and 
   assert.match(engine, /if \(hedge\.state !== "filled"\) mirrorLater\(fireMirror\(db, acct, t, "close"\)\);/);
   assert.match(engine, /function roundAdverse\(/);
   // Pending (limit/stop) fills on a copied account are re-priced to no better than the broker.
-  assert.match(engine, /if \(abBook === "a" \|\| await hedgeOpenArmed\(db, acct\)\) \{\s*\n\s*\/\/ Copied account: the hedge fills first/);
+  assert.match(engine, /if \(acct\.rules_version !== "infinity_v2" && \(abBook === "a" \|\| await hedgeOpenArmed\(db, acct\)\)\) \{\s*\n\s*\/\/ Copied account: the hedge fills first/);
   // B-book accounts keep the instant path.
   assert.match(engine, /\} else \{\s*\n\s*mirrorLater\(fireMirror\(db, acct, inserted as Tr, "open", sourceRiskUsd\)\);/);
 });

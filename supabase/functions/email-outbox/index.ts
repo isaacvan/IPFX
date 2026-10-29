@@ -8,9 +8,9 @@ import { emailShell, render } from "../_shared/lifecycle-email.ts";
 
 const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? "80");
 const PER_RUN = Number(Deno.env.get("EMAIL_PER_RUN") ?? "10");
-const TEMPLATES = ["infinity_v2_launch", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
+const TEMPLATES = ["infinity_v2_launch", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
 // Emails that only make sense while the trader has an active Infinity account.
-const NEEDS_ACTIVE = ["infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
+const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
   const live = Deno.env.get("EMAIL_OUTBOX_LIVE") === "1";
   // Owner tests first, then time-sensitive notices (breach / restart), then the approval backlog; oldest first within each.
   // deno-lint-ignore no-explicit-any
-  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_account_reinstated" ? 2 : 0);
+  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_monthly_restart_v2" || r.template_key === "infinity_account_reinstated" ? 2 : 0);
   // deno-lint-ignore no-explicit-any
   const list = (rows ?? []).filter((r: any) => live || r.payload?.test === true)
     // deno-lint-ignore no-explicit-any
@@ -78,8 +78,18 @@ Deno.serve(async (req) => {
       }
       const name = String(au!.user!.user_metadata?.full_name || to.split("@")[0]);
       const vars: Record<string, unknown> = { customer_name: name, ...(row.payload?.vars ?? {}) };
+      if (row.template_key === "infinity_v2_launch") {
+        vars.first_name = name.trim().split(/\s+/)[0];
+        const valid = ["rules_page_url", "terms_url", "unsubscribe_link"].every(k => {
+          try { return new URL(String(vars[k] ?? "")).protocol === "https:"; } catch { return false; }
+        });
+        if (!valid) {
+          await db.from("email_events").update({status:"skipped",error_message:"Launch rules, terms and recipient unsubscribe HTTPS links are required"}).eq("id",row.id);
+          skipped++;continue;
+        }
+      }
       const subject = render(tmpl.subject, vars);
-      const html = emailShell(subject, tmpl.preheader, render(tmpl.body_html, vars, true));
+      const html = row.template_key === "infinity_v2_launch" ? render(tmpl.body_html,vars,true) : emailShell(subject, tmpl.preheader, render(tmpl.body_html, vars, true));
       const text = render(tmpl.body_text, vars);
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",

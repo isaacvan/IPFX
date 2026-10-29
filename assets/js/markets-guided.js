@@ -18,6 +18,8 @@
   let lastSet = null;          // the lot size this script last put in the box (anything else in the box is the trader's choice)
 
   const acct = () => (typeof engineState !== 'undefined' && engineState && engineState.account) || null;
+  const minLot = () => typeof window!=='undefined' && window.ipfxInfinityV2 ? window.ipfxInfinityV2.minLot() : 0.01;
+  const lotDigits = () => minLot()<0.01?3:2;
   const lim = () => (acct() && acct().limits) || {};
   const isFut = () => typeof futSym === 'function' && !!futSym(activeSym);
   const on = () => { const a = acct(); return !!(a && lim().require_stop_loss && !a.is_demo && a.status === 'active' && !isFut()); };
@@ -29,7 +31,7 @@
   const pipSize = () => (/JPY$/.test(short()) ? 0.01 : category() === 'forex' ? 0.0001 : category() === 'crypto' ? 1 : category() === 'metals' ? 0.1 : 1);
   const unit = () => (category() === 'forex' ? 'pips' : 'points');
   const digits = () => { const q = quote(); return q && Number.isInteger(q.digits) ? q.digits : (/JPY$/.test(short()) ? 3 : category() === 'forex' ? 5 : 2); };
-  const minDist = () => mid() * 0.0002;
+  const minDist = () => acct()?.rules_version==='infinity_v2' ? (quote()?.spread||0)*Number(acct().infinity_v2?.rules?.stop_spread_multiple||8) : mid() * 0.0002;
   const defaultDist = () => {
     const suggested = mid() * (category() === 'crypto' ? 0.008 : category() === 'metals' || category() === 'indices' ? 0.0025 : 0.002);
     const cost = perLot(1), available = budget();
@@ -37,7 +39,8 @@
     // At least 0.01 lots must fit. Gold's old 0.25% suggestion could risk $10+ on a $5 Stage 1 account,
     // leaving both buttons blocked before the trader had even touched the ticket.
     const precision = 10 ** digits();
-    return Math.min(suggested, Math.floor(available / (cost * 0.01) * precision + 1e-9) / precision);
+    const fitted=Math.min(suggested, Math.floor(available / (cost * minLot()) * precision + 1e-9) / precision);
+    return acct()?.rules_version==='infinity_v2'?Math.max(minDist(),fitted):fitted;
   };
   const dist = () => (stopPips != null && stopPips > 0 ? stopPips * pipSize() : defaultDist());
   const perLot = (d) => { const conv = clientUsdPerQuote(symMeta(activeSym).quoteCurrency); return conv == null || !(d > 0) ? null : d * contractSizeFor(activeSym) * conv; };
@@ -45,9 +48,9 @@
   const budget = () => { const c = cap(); if (c == null) return null; return (riskChoice === 'max' ? c : Math.min(c, riskChoice)) * BUFFER; };
   const usd = (v) => '$' + (+v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   // The ticket suggests the largest size the risk limit allows, but the trader can always type a smaller one (never a larger one).
-  const syncUser = () => { if (lastSet != null && Math.abs(ordLots - lastSet) > 1e-9) userLots = Math.round(ordLots * 100) / 100; };
-  const useLots = (max) => (max == null || max < 0.01 ? null : userLots != null ? Math.max(0.01, Math.min(userLots, max)) : max);
-  const lotsFor = (d) => { const p = perLot(d), b = budget(); return p && b ? Math.floor((b / p) * 100 + 1e-9) / 100 : null; };
+  const syncUser = () => { if (lastSet != null && Math.abs(ordLots - lastSet) > 1e-9) userLots = acct()?.rules_version==='infinity_v2'?Math.round(ordLots/minLot())*minLot():Math.round(ordLots * 100) / 100; };
+  const useLots = (max) => (max == null || max < minLot() ? null : userLots != null ? Math.max(minLot(), Math.min(userLots, max)) : max);
+  const lotsFor = (d) => { const p = perLot(d), b = budget(); return p && b ? (acct()?.rules_version==='infinity_v2'?Math.floor((b/p)/minLot()+1e-9)*minLot():Math.floor((b / p) * 100 + 1e-9) / 100) : null; };
   const stopFor = (side) => { const q = quote(); const entry = side === 'buy' ? (q ? q.ask : mid()) : (q ? q.bid : mid()); const s = side === 'buy' ? entry - dist() : entry + dist(); return +s.toFixed(digits()); };
 
   // ---- checks shown above Buy/Sell ----
@@ -64,11 +67,12 @@
     out.push({ ok: !invalidInput && !invalidDistance && !!q && validSide && d > 0 && d >= minDist(), text: d > 0 ? `Stop ${(d / pipSize()).toFixed(1)} ${unit()} away` : 'Set a stop distance',
       why: invalidInput ? 'Finish entering a valid stop price before submitting.' : invalidDistance ? 'Enter a valid positive stop distance before submitting.' : !q ? 'Waiting for a live price for this market' : !validSide ? `For ${side}, set a stop on the loss side of the entry price` : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too close to price for the broker' });
     const risk = lots && p ? lots * p : null;
-    out.push({ ok: max != null && max >= 0.01, text: risk != null && lots >= 0.01 ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(2)} lots` : 'Risk', why: p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
+    out.push({ ok: max != null && max >= minLot(), text: risk != null && lots >= minLot() ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(lotDigits())} lots` : 'Risk', why: p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
     const viewOnly = typeof viewOnlyReason === 'function' ? viewOnlyReason(activeSym) : null;
     if (viewOnly) out.unshift({ ok: false, text: 'View-only instrument', why: viewOnly });   // listed first so it is the reason shown
     const fresh = typeof feedFresh !== 'function' || feedFresh();
     out.push({ ok: fresh, text: 'Prices live', why: 'Prices reconnecting… orders resume automatically' });
+    if(acct()?.rules_version==='infinity_v2' && window.ipfxInfinityV2){const left=window.ipfxInfinityV2.pause();out.push({ok:left===0,text:'Stop-out pause',why:left+' seconds remaining'});}
     const capMsg = typeof dailyCapMessage === 'function' ? dailyCapMessage() : null;
     out.push({ ok: !capMsg && a && a.status === 'active', text: 'Trading open', why: capMsg || 'Account is not active' });
     return out;
@@ -163,7 +167,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     const sizingDist = manualStopPrice ? manualSide ? Math.abs((manualSide === 'buy' ? q.ask : q.bid) - typed) : null : d;
     const max = sizingDist == null ? null : lotsFor(sizingDist), lots = useLots(max), editing = document.activeElement === $('ord-lots');
     if (lots != null && !editing) { if (Math.abs(lots - ordLots) > 1e-9) setLots(lots, null); lastSet = ordLots; }
-    $('gtLotNote').innerHTML = lots == null ? (manualStopPrice ? 'Set the exact stop outside the market to size this order.' : '') : `Size ${lots.toFixed(2)} lots · up to ${max.toFixed(2)} at this stop and risk${manualSide ? ` for ${manualSide.toUpperCase()}` : ''}${userLots != null ? '<button type="button" data-gt="autolots">Use max</button>' : ''}`;
+    $('gtLotNote').innerHTML = lots == null ? (manualStopPrice ? 'Set the exact stop outside the market to size this order.' : '') : `Size ${lots.toFixed(lotDigits())} lots · up to ${max.toFixed(lotDigits())} at this stop and risk${manualSide ? ` for ${manualSide.toUpperCase()}` : ''}${userLots != null ? '<button type="button" data-gt="autolots">Use max</button>' : ''}`;
     const cs = checks(), buyBad = checks('buy').find((x) => !x.ok), sellBad = checks('sell').find((x) => !x.ok);
     const bad = buyBad || sellBad;
     // Buy/Sell sits right under this card: when every check passes, one reassuring line beats four, so the trader
@@ -187,7 +191,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
       const stop = manualStopPrice ? typed : stopFor(side);
       syncUser();
       const max = lotsFor(Math.abs((side === 'buy' ? quote()?.ask ?? mid() : quote()?.bid ?? mid()) - stop)), lots = useLots(max);
-      if (!(lots >= 0.01)) { engineMsg('Stop too wide for your risk limit at the minimum size: move the stop closer.'); return; }
+      if (!(lots >= minLot())) { engineMsg('Stop too wide for your risk limit at the minimum size: move the stop closer.'); return; }
       if (!slOn) toggleSLTP('sl');
       slField.value = String(stop);
       setLots(lots, null); lastSet = ordLots;

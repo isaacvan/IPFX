@@ -200,8 +200,8 @@ const MIN_HOLD_SECONDS = 60;
 // Every rule and cost introduced with the September 2026 Terms update applies
 // to accounts opened on or after this moment (Terms 14-day notice clause).
 const RULES_V2_EFFECTIVE_MS = Date.parse("2026-10-01T00:00:00Z");
-const rulesV2 = (acct: { created_at?: string | null }) =>
-  Date.parse(String(acct.created_at ?? "")) >= RULES_V2_EFFECTIVE_MS;
+const rulesV2 = (acct: { created_at?: string | null; rules_version?: string }) =>
+  acct.rules_version === "infinity_v2" || Date.parse(String(acct.created_at ?? "")) >= RULES_V2_EFFECTIVE_MS;
 // Execution model (Terms 7.10): market orders and trader-initiated closes fill
 // after a short randomised delay at the less favourable of the arrival and
 // execution prices, plus per-instrument slippage; commission is charged per
@@ -1031,7 +1031,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
         else if (ctReserved.size && Date.now() - ctStartedAt < 4000) {
           out = { rows: fx.rows.filter((r) => !ctReserved.has(String(r.symbol))), changed: fx.changed.filter((c) => !ctReserved.has(c.symbol)) };
         }
-      } else if (tl) out = await tl.tick(fx.rows, fx.changed);
+      } else if (tl) out = await (tl as TradeLockerFeed).tick(fx.rows, fx.changed);
       else if (feedMode === "tradelocker" && !tlFailed && reserved.size) {
         out = { rows: fx.rows.filter((r) => !reserved.has(String(r.symbol))), changed: fx.changed.filter((c) => !reserved.has(c.symbol)) };
       }
@@ -1061,7 +1061,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
     const wait = (ctMode && ct ? 100 : PUMP_INTERVAL_MS) - (Date.now() - t0);
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   }
-  if (tl) await tl.finish().catch(() => {});
+  if (tl) await (tl as TradeLockerFeed).finish().catch(() => {});
   if (ct) (ct as CTraderFeed).stream.close();
   return { ticks, pushed };
 }
@@ -1139,6 +1139,7 @@ function emailLater(p: Promise<unknown>) {
 const BREACH_TEXT: Record<string, string> = {
   max_drawdown: "the maximum drawdown limit was reached",
   daily_loss: "the daily loss limit was reached",
+  performance_rule: "the Stage 4 loss limit over consecutive counted trades was reached",
   stop_loss_rule: "three trades were left without a stop loss in this Infinity run (3 stop-loss warnings)",
 };
 // Infinity stop-loss rule: 3 warnings in one run end it (restart from Stage 1).
@@ -1328,6 +1329,7 @@ async function slDeadlineSeconds(db: Db): Promise<number | null> {
 type Acct = {
   id: string; user_id: string; label: string;
   venue?: string; venue_equity?: number | null;
+  rules_version?: string; rules_effective_at?: string; infinity_rules_snapshot?: Record<string, any>;
   starting_balance: number; balance: number;
   profit_target_pct: number; max_drawdown_pct: number; daily_loss_pct: number;
   day_start_equity: number; day_start_date: string;
@@ -1564,7 +1566,7 @@ function ruleGate(
 
   const dailyCap = dailyProfitCapReason(acct, equityNow);
   if (dailyCap) return dailyCap;
-  if (acct.require_stop_loss && sl === null) {
+  if (acct.rules_version !== "infinity_v2" && acct.require_stop_loss && sl === null) {
     return "This challenge requires a stop-loss on every order";
   }
   if (acct.max_risk_per_trade_pct != null && sl !== null) {
@@ -1626,7 +1628,7 @@ async function processPendingOrders(
     const symbol = String(o.symbol);
     const inst = INSTRUMENTS[symbol];
     if (!inst) continue;
-    const q = await fetchQuote(symbol);
+    const q = await (acct.rules_version === "infinity_v2" ? accountQuote(db, acct, symbol) : fetchQuote(symbol));
     if (q === null || quoteStale(q)) continue;      // never fill on a bad quote
     if (!marketOpen(symbol)) continue;
     if (!pendingTriggered(o, q)) continue;
@@ -1643,7 +1645,7 @@ async function processPendingOrders(
     };
 
     if (working.length >= MAX_OPEN_POSITIONS) { await reject(`Max ${MAX_OPEN_POSITIONS} open positions`); continue; }
-    const spec = await symbolCheck(db, symbol);
+    const spec = await (acct.rules_version === "infinity_v2" ? accountSpec(db, acct, symbol) : symbolCheck(db, symbol));
     if (!spec.ok) { await reject(spec.reason || "Symbol disabled"); continue; }
     if (q.spread > (spec.maxSpread ?? inst.maxSpread)) { await reject("Spread too wide at trigger"); continue; }
 
@@ -1652,9 +1654,14 @@ async function processPendingOrders(
     const v2 = rulesV2(acct);
     // A triggered stop order executes as a market order and can slip; a limit
     // order fills at its price or better.
-    const fill = v2 && o.order_type === "stop"
+    let fill = v2 && o.order_type === "stop"
       ? roundPrice(symbol, adverse(arrivalPx, takingAsk, spec.slippageBps))
       : arrivalPx;
+    if (acct.rules_version === "infinity_v2") {
+      const execution = await executeForAccount(db,acct,symbol,takingAsk,q,spec.slippageBps,true);
+      if(!execution)continue;
+      fill = o.order_type === "limit" ? (takingAsk ? Math.min(execution.price,Number(o.trigger_price)) : Math.max(execution.price,Number(o.trigger_price))) : execution.price;
+    }
     const sl = o.sl === null || o.sl === undefined ? null : Number(o.sl);
     const tp = o.tp === null || o.tp === undefined ? null : Number(o.tp);
     // Levels must still make sense against the actual fill, not the trigger.
@@ -1691,6 +1698,7 @@ async function processPendingOrders(
     const { data: inserted, error } = await db.from("trades").insert({
       account_id: acct.id, user_id: acct.user_id, symbol, side: o.side,
       volume: Number(o.volume), open_price: fill, sl, tp,
+      ...(acct.rules_version === "infinity_v2" ? { execution_rules_version: "infinity_v2", infinity_pending_id:o.id } : {}),
       ...(v2 ? {
         decision_price: arrivalPx,
         execution_shortfall: await shortfallUsd(symbol, takingAsk, arrivalPx, fill, Number(o.volume)),
@@ -1723,9 +1731,14 @@ async function processPendingOrders(
       requested_price: Number(o.trigger_price), fill_price: fill, quote: q,
     });
     const sourceRiskUsd = sl === null ? null : Math.abs(fill - sl) * inst.contract * Number(o.volume) * conv;
+    if(acct.rules_version === "infinity_v2") {
+      mirrorLater(copyInfinityV2Open(db,acct,inserted as Tr,sourceRiskUsd,inst.contract*conv));
+      shadowLater(db,acct,{event:"shadow_open",source_trade_id:inserted.id,price_scale_per_lot:inst.contract*conv});
+      working.push(inserted as Tr);continue;
+    }
     const ownerCopy=await ongoingCopyRoute(db,acct);
     const abBook = ownerCopy==='off'?null:ownerCopy==='a'?'a':await scopedCopyTestRoute(db,acct,symbol) ?? (inBrainScope(acct) ? await abRoute(db, acct.user_id) : null);
-    if (abBook === "a" || await hedgeOpenArmed(db, acct)) {
+    if (acct.rules_version !== "infinity_v2" && (abBook === "a" || await hedgeOpenArmed(db, acct))) {
       // Copied account: the hedge fills first; the trader's entry is no better than the broker's.
       const hedge = abBook === "a"
         ? await bookNow({ event: "open", book: "a", source_trade_id: inserted.id, risk_usd: sourceRiskUsd, price_scale_per_lot: inst.contract * conv })
@@ -1746,6 +1759,7 @@ async function processPendingOrders(
       }
     } else {
       mirrorLater(fireMirror(db, acct, inserted as Tr, "open", sourceRiskUsd));
+      if (acct.rules_version === "infinity_v2" && abBook === "a") bookLater({ event: "open", book: "a", source_trade_id: inserted.id, risk_usd: sourceRiskUsd, price_scale_per_lot: inst.contract * conv });
       if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: sourceRiskUsd, price_scale_per_lot: inst.contract * conv });
     }
     shadowLater(db, acct, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
@@ -1943,6 +1957,13 @@ async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResu
 // before an evaluation account is allowed to pass. Returns the unmet
 // items so the trader can be shown exactly what is left.
 async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: string[]; progress: Progress; qualification: Record<string, unknown> | null; eligibleBalance: number; counted: Record<string, unknown> | null }> {
+  if (acct.rules_version === "infinity_v2") {
+    const { data: score, error } = await db.rpc("infinity_v2_read_progress", { p_account: acct.id });
+    if (error || !score) throw new Error("V2_PROGRESS_UNAVAILABLE");
+    return { ok: score.eligible === true, unmet: score.unmet ?? [], progress: { trading_days: 0, trades_closed: score.n, profitable_days: 0, profitable_days_pct: null },
+      qualification: score, eligibleBalance: Number(acct.starting_balance) + Number(score.counted_profit),
+      counted: { applies: true, counted_usd: score.counted_profit, target_usd: score.target, met: Number(score.counted_profit) >= Number(score.target) } };
+  }
   const p = await fetchProgress(db, acct.id);
   const unmet: string[] = [];
   const needDays = Number(acct.min_trading_days ?? 0);
@@ -1985,7 +2006,7 @@ async function passGate(db: Db, acct: Acct): Promise<{ ok: boolean; unmet: strin
 }
 
 function dailyProfitCapReason(acct: Acct, equity: number): string | null {
-  if (acct.daily_profit_cap_pct == null) return null;
+  if (acct.rules_version === "infinity_v2" || acct.daily_profit_cap_pct == null) return null;
   const cap = round2(Number(acct.starting_balance) * Number(acct.daily_profit_cap_pct) / 100);
   const gain = round2(equity - Number(acct.day_start_equity));
   if (!acct.daily_profit_cap_blocked && gain < cap) return null;
@@ -2031,12 +2052,15 @@ async function closeTrade(
   const legs = await bookLegs(db, t.id);
   // Price preparation only reads quotes. Run it alongside the owned broker close,
   // after the durable full-close fence, so quote warming cannot delay dispatch.
-  const pricing = prepareExit?.(legs.a).then(value => ({ value, failed: false }), () => ({ value: null, failed: true }));
+  const pricing = prepareExit?.(acct.rules_version === "infinity_v2" ? false : legs.a).then(value => ({ value, failed: false }), () => ({ value: null, failed: true }));
   const dispatchStarted = Date.now();
   let hedge: HedgeClose;
-  if (legs.a) {
+  if (acct.rules_version === "infinity_v2") {
+    // Broker dispatch after source settlement uses the existing durable copy ledger.
+    hedge = { state: "none" };
+  } else if (legs.a) {
     const r = await bookNow({ event: "close", source_trade_id: t.id });
-    if (r?.duplicate_a === true) return notDone("copy_close_already_in_flight"); // another request is closing this hedge right now
+    if (r?.duplicate_a === true && acct.rules_version !== "infinity_v2") return notDone("copy_close_already_in_flight"); // another request is closing this hedge right now
     const px = Number(r?.fill_price);
     hedge = px > 0 ? { state: "filled", price: px } : { state: "unhedged" };
   } else {
@@ -2053,7 +2077,7 @@ async function closeTrade(
   }
   if (legs.a || legs.b) console.info(JSON.stringify({ event: "copy_close_pipeline", trade_id: t.id,
     admission_ms: dispatchStarted - closeStarted, hedge_and_pricing_ms: Date.now() - dispatchStarted }));
-  if (hedge.state === "filled") {
+  if (hedge.state === "filled" && acct.rules_version !== "infinity_v2") {
     const takingAsk = t.side === "sell"; // closing a sell buys at the ask
     const worse = worseFill(takingAsk, exit, hedge.price) ?? exit;
     if (worse !== exit && exec) {
@@ -2065,7 +2089,7 @@ async function closeTrade(
   const gross = await tradePnl(t, exit);
   if (gross === null) return notDone("no_pnl_conversion");
   const v2 = rulesV2(acct);
-  const commission = v2 ? round2((await symbolCheck(db, t.symbol)).commissionPerLot * Number(t.volume)) : 0;
+  const commission = v2 ? round2((await (acct.rules_version === "infinity_v2" ? accountSpec(db, acct, t.symbol) : symbolCheck(db, t.symbol))).commissionPerLot * Number(t.volume)) : 0;
   const rawPnl = gross - commission;
   // Infinity stop-loss rule: a trade closed for having no stop loss keeps its loss, never its profit.
   const strip = reason === "no_stop_loss" && acct.challenge_type === "infinity" && rawPnl > 0;
@@ -2301,7 +2325,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   if (!venueMode && acct.status === "breached" && open.length && await claimOrderLock(db, acct.id)) {
     try {
       for (const t of open) {
-        let q = await fetchQuote(t.symbol);
+        let q = await (acct.rules_version === "infinity_v2" ? accountQuote(db, acct, t.symbol) : fetchQuote(t.symbol));
         if (q === null) q = await lastKnownQuote(t.symbol);
         if (q !== null) {
           const exit = t.side === "buy" ? q.bid : q.ask;
@@ -2323,7 +2347,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     let strikeOut = false;
     for (const t of open) {
       if (strikeOut) { still.push(t); continue; }
-      const q = await fetchQuote(t.symbol);
+      const q = await (acct.rules_version === "infinity_v2" ? accountQuote(db, acct, t.symbol) : fetchQuote(t.symbol));
       if (q === null || quoteStale(q)) { still.push(t); continue; }
       const ex = t.side === "buy" ? q.bid : q.ask; // the price that would actually fill a close
       // Trailing stop: pull the stop toward the market by trail_distance. It only ever TIGHTENS
@@ -2344,7 +2368,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       let done = false;
       // Infinity only: a trade still without a stop loss after the deadline is closed, its profit removed
       // (closeTrade) and it counts as a stop-loss warning.
-      const slDeadline = sl === null && acct.challenge_type === "infinity" ? await slDeadlineSeconds(db) : null;
+      const slDeadline = sl === null && acct.challenge_type === "infinity" ? (acct.rules_version === "infinity_v2" ? Number(acct.infinity_rules_snapshot?.stop_deadline_seconds) : await slDeadlineSeconds(db)) : null;
       // deno-lint-ignore no-explicit-any
       const openedAtMs = Date.parse(String((t as any).opened_at ?? ""));
       if (slDeadline != null && Number.isFinite(openedAtMs) && Date.now() - openedAtMs > slDeadline * 1000) {
@@ -2355,7 +2379,8 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
         // deno-lint-ignore no-explicit-any
         if (strikeError || !Number.isFinite(Number(strikes)) || strikes == null) throw new Error("STOP_WARNING_VERIFICATION_FAILED");
         (acct as any).sl_strikes = Number(strikes);
-        if (Number(strikes) >= SL_STRIKES_MAX && acct.status === "active") strikeOut = true;
+        if(acct.rules_version === "infinity_v2") { if(Number(strikes) >= Number(acct.infinity_rules_snapshot?.sl_strikes_max) && acct.status === "active") strikeOut=true; }
+        else if (Number(strikes) >= SL_STRIKES_MAX && acct.status === "active") strikeOut = true;
         continue;
       }
       if (t.side === "buy") {
@@ -2377,10 +2402,10 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   if (!venueMode && isTradableAccount(acct) && open.length && futuresSessionEnforced(acct) && !futuresSessionOpen()) {
     const remaining: Tr[] = [];
     for (const t of open) {
-      const q = await fetchQuote(t.symbol);
+      const q = await (acct.rules_version === "infinity_v2" ? accountQuote(db, acct, t.symbol) : fetchQuote(t.symbol));
       if (q === null || quoteStale(q)) { remaining.push(t); continue; }
       const takingAsk = t.side === "sell";
-      const spec = await symbolCheck(db, t.symbol);
+      const spec = await (acct.rules_version === "infinity_v2" ? accountSpec(db, acct, t.symbol) : symbolCheck(db, t.symbol));
       const exit = roundPrice(t.symbol, adverse(takingAsk ? q.ask : q.bid, takingAsk, spec.slippageBps));
       const closed = await closeTrade(db, acct, t, exit, "session_close", q);
       if (!closed) remaining.push(t);
@@ -2401,7 +2426,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
   let floating = 0;
   let unpriced = quoteRiskUnavailable ? 1 : 0;
   for (const t of (venueMode ? [] : open)) {
-    let q = await fetchQuote(t.symbol);
+    let q = await (acct.rules_version === "infinity_v2" ? accountQuote(db, acct, t.symbol) : fetchQuote(t.symbol));
     if (q === null || quoteStale(q)) {
       // Never value a position at zero because its price is missing or old:
       // that hid its loss from the drawdown checks. Mark it at the last price
@@ -2447,7 +2472,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       acct.day_start_date = todayUtc;
       // Terms 7.2 (rules v2): the day starts from the higher of balance and
       // equity, so a floating loss carried over midnight still counts.
-      acct.day_start_equity = rulesV2(acct) ? round2(Math.max(Number(acct.balance), equity)) : equity;
+      acct.day_start_equity = acct.rules_version === "infinity_v2" ? Number(acct.balance) : rulesV2(acct) ? round2(Math.max(Number(acct.balance), equity)) : equity;
       await db.from("equity_snapshots").insert({
         account_id: acct.id, user_id: acct.user_id, balance: acct.balance, equity,
       });
@@ -2521,7 +2546,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       if (claim.data === true) {
         if (venueMode) await flattenVenue(db, acct).catch((e) => console.error("[venue] flatten failed", acct.id, String(e).slice(0, 120)));
         else for (const t of open) {
-          let q = await fetchQuote(t.symbol);
+          let q = await (acct.rules_version === "infinity_v2" ? accountQuote(db, acct, t.symbol) : fetchQuote(t.symbol));
           if (q === null) q = await lastKnownQuote(t.symbol);
           if (q !== null) {
             const exit = t.side === "buy" ? q.bid : q.ask;
@@ -2587,7 +2612,7 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
     if ((acct.daily_profit_cap_blocked || gainNow >= capUsd) && await claimOrderLock(db, acct.id)) {
       try {
         for (const t of open) {
-          let q = await fetchQuote(t.symbol);
+          let q = await (acct.rules_version === "infinity_v2" ? accountQuote(db, acct, t.symbol) : fetchQuote(t.symbol));
           if (q === null) q = await lastKnownQuote(t.symbol);
           if (q !== null) await closeTrade(db, acct, t, t.side === "buy" ? q.bid : q.ask, "daily_profit_cap", q);
         }
@@ -2688,7 +2713,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
   // These reads do not depend on each other and none of them writes, so they run together instead of one after another
   // (the account refresh used to wait for each in turn, about 600ms; the slowest of them now sets the pace).
   const isInfinityRun = acct.challenge_type === "infinity";
-  const [eventsRes, gate, promotion, freshRestart, slDeadline] = await Promise.all([
+  const [eventsRes, gate, promotion, freshRestart, slDeadline, v2Profiles] = await Promise.all([
     allTradeIds.length
       ? db.from("order_audit_events").select("id,trade_id,server_ts").in("trade_id", allTradeIds).order("server_ts", { ascending: true })
       : Promise.resolve({ data: [] as { id: string; trade_id: string | null }[] }),
@@ -2698,7 +2723,8 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
     (isInfinityRun && Number(acct.stage) === 1 && !isDemoAccount(acct))
       ? db.rpc("fn_infinity_restart_offer", { p_account: acct.id }).then((r: { data: unknown; error: unknown }) => r.error ? null : r.data, () => null)
       : Promise.resolve(null),
-    isInfinityRun ? slDeadlineSeconds(db) : Promise.resolve(null),
+    isInfinityRun ? (acct.rules_version === "infinity_v2" ? Promise.resolve(Number(acct.infinity_rules_snapshot?.stop_deadline_seconds)) : slDeadlineSeconds(db)) : Promise.resolve(null),
+    acct.rules_version === "infinity_v2" ? db.from("infinity_v2_pricing_profiles").select("symbol,min_lot") : Promise.resolve({data: undefined}),
   ]);
   for (const e of eventsRes.data ?? []) {
     if (e.trade_id) orderIdByTrade[e.trade_id] = String(e.id);
@@ -2729,9 +2755,13 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
       id: acct.id, label: acct.label, status: acct.status, breach_reason: acct.breach_reason,
       // deno-lint-ignore no-explicit-any
       sl_strikes: Number((acct as any).sl_strikes ?? 0), sl_strikes_max: SL_STRIKES_MAX,
+      ...(acct.rules_version === "infinity_v2" ? {sl_strikes_max:Number(acct.infinity_rules_snapshot?.sl_strikes_max)} : {}),
       is_demo: isDemoAccount(acct),
       venue: acct.venue ?? "ipfx",
       starting_balance: start, balance: Number(acct.balance), equity, floating,
+      rules_version: acct.rules_version ?? null,
+      infinity_v2: acct.rules_version === "infinity_v2" ? gate.qualification : null,
+      v2_pricing_profiles: v2Profiles.data,
       day_start_equity: Number(acct.day_start_equity),
       challenge_type: acct.challenge_type ?? "traditional",
       stage: Number(acct.stage ?? 1),
@@ -2761,7 +2791,7 @@ async function statePayload(db: Db, acct: Acct, open: Tr[], equity: number, floa
         require_stop_loss: !!acct.require_stop_loss,
         // Infinity Challenge: profit from winning trades held under this many seconds is not payout-eligible
         // (enforced in the payout functions; the platform warns before an early close).
-        payout_min_hold_seconds: (acct.challenge_type ?? "") === "infinity" ? 60 : null,
+        payout_min_hold_seconds: acct.rules_version === "infinity_v2" ? Number(acct.infinity_rules_snapshot?.min_hold_seconds) : (acct.challenge_type ?? "") === "infinity" ? 60 : null,
       },
       // Everything still standing between this account and a pass.
       progress: {
@@ -2825,6 +2855,49 @@ function cleanRpcError(raw: string): string {
   if (code === "too_soon") return "Too soon since your last payout — " + raw.split(":")[1]?.trim();
   if (code === "below_minimum") return raw.split(":")[1]?.trim() ?? "Amount is below the minimum withdrawal.";
   return RPC_ERROR_MESSAGES[code] ?? raw;
+}
+
+function cleanV2Error(message: string): string {
+  const labels: Record<string,string> = { V2_NOT_LIVE: "Infinity v2 is not live yet.", TERMS_NOT_ACCEPTED: "Accept the current Infinity v2 terms first.",
+    CLOSE_OPEN_POSITIONS_FIRST: "Close your open positions first.", CANCEL_PENDING_ORDERS_FIRST: "Cancel your pending orders first.", BREACH_LOCKOUT_ACTIVE: "Your breach lockout is still active. Restart on the next eligible month.",
+    STOP_CANNOT_WIDEN: "A stop can only be tightened, never widened.", STOP_TOO_CLOSE: "Your stop must be at least eight current spreads away.",
+    STOP_OUT_PAUSE: "This instrument is paused for ten minutes after a stop-out.", COUNTED_TRADE_RISK_LIMIT: "These entries share one counted-trade risk limit. Reduce size.", TOTAL_OPEN_RISK_LIMIT: "Your total open risk limit would be exceeded.", INTEGRITY_REVIEW_REQUIRED: "Your account needs a review before advancement or payout." };
+  return labels[message.split(":")[0]] ?? message;
+}
+const v2FallbackLogged = new Map<string, number>();
+async function copyInfinityV2Open(db: Db, acct: Acct, trade: Tr, risk: number | null, scale: number) {
+  const ownerCopy=await ongoingCopyRoute(db,acct);
+  const book=ownerCopy==='off'?null:ownerCopy==='a'?'a':await scopedCopyTestRoute(db,acct,trade.symbol) ?? (inBrainScope(acct)?await abRoute(db,acct.user_id):null);
+  if(book==='a')bookLater({event:"open",book:"a",source_trade_id:trade.id,risk_usd:risk,price_scale_per_lot:scale});
+  else {
+    mirrorLater(fireMirror(db,acct,trade,"open",risk));
+    if(book==='b')bookLater({event:"open",book:"b",source_trade_id:trade.id,risk_usd:risk,price_scale_per_lot:scale});
+  }
+}
+async function accountQuote(db: Db, acct: Acct, symbol: string): Promise<Quote | null> {
+  const q = await fetchQuote(symbol);
+  if (!q || acct.rules_version !== "infinity_v2") return q;
+  const { data: p, error } = await db.rpc("infinity_v2_price", { p_symbol: symbol });
+  if (error || !p) return null;
+  if (p.fallback && Date.now()-(v2FallbackLogged.get(symbol) ?? 0)>60000) { v2FallbackLogged.set(symbol,Date.now()); mirrorLater(logFeedEvent(db, "outage", symbol, "Infinity v2 reference unavailable; current IPFX spread")); }
+  const width = Number(p.spread);
+  return { ...q, bid: q.mid-width/2, ask: q.mid+width/2, spread: width };
+}
+async function accountSpec(db: Db, acct: Acct, symbol: string): Promise<SymbolCheck> {
+  const spec = await symbolCheck(db, symbol);
+  if (acct.rules_version !== "infinity_v2") return spec;
+  const { data: profile } = await db.from("infinity_v2_pricing_profiles").select("commission_round_turn_per_lot").eq("symbol", symbol).maybeSingle();
+  return { ...spec, commissionPerLot: profile?.commission_round_turn_per_lot == null ? spec.commissionPerLot : Number(profile.commission_round_turn_per_lot) };
+}
+async function executeForAccount(db: Db, acct: Acct, symbol: string, takingAsk: boolean, arrival: Quote, bps: number, failClosed: boolean, skipDelay = false): Promise<Execution | null> {
+  if (acct.rules_version !== "infinity_v2") return executeAtMarket(symbol,takingAsk,arrival,bps,failClosed,skipDelay);
+  const started=Date.now(), decision=takingAsk?arrival.ask:arrival.bid;
+  if (!skipDelay) await new Promise(resolve=>setTimeout(resolve,EXEC_DELAY_MIN_MS+Math.floor(Math.random()*(EXEC_DELAY_MAX_MS-EXEC_DELAY_MIN_MS+1))));
+  await warmQuotes(true);
+  let later=await accountQuote(db,acct,symbol);
+  if(!later || quoteStale(later)) { if(failClosed)return null; later=arrival; }
+  const px=takingAsk?Math.max(decision,later.ask):Math.min(decision,later.bid);
+  return {price:roundPrice(symbol,adverse(px,takingAsk,bps)),decision,latencyMs:Date.now()-started,quote:later};
 }
 
 // ---------- symbol tradeability (symbol_specs: enabled + max spread) ----------
@@ -3030,6 +3103,7 @@ async function logFeedEvent(db: Db, event: "stale" | "outage" | "reconnect" | "s
 // deno-lint-ignore no-explicit-any
 const authCache = new Map<string, { user: any; until: number }>();
 const AUTH_CACHE_MS = 30_000;
+let publicInfinityRulesCache: { at: number; data: unknown } | null = null;
 
 const handleRequest = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -3048,6 +3122,14 @@ const handleRequest = async (req: Request): Promise<Response> => {
   // authenticated by a shared secret header, never a user JWT.
   // Read-only diagnostics for the TradeLocker price feed (cron secret). mode "config": renew the token and read
   // the account's rate limits + instrument mapping. mode "quotes": time real quote requests, paced by "pace_ms".
+  if (body.action === "infinity_rules") {
+    if(publicInfinityRulesCache && Date.now()-publicInfinityRulesCache.at<30000)return new Response(JSON.stringify(publicInfinityRulesCache.data),{headers:{...CORS,"Content-Type":"application/json"}});
+    const rulesDb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const {data,error}=await rulesDb.rpc("infinity_v2_status");
+    if(error||!data)return err("Rules temporarily unavailable",503);
+    publicInfinityRulesCache={at:Date.now(),data};
+    return new Response(JSON.stringify(data),{headers:{...CORS,"Content-Type":"application/json","Cache-Control":"public, max-age=30"}});
+  }
   if (body.action === "feed_probe") {
     const secret = req.headers.get("x-cron-secret");
     const expected = Deno.env.get("CRON_SECRET");
@@ -3403,9 +3485,30 @@ if (body.action === "sweep") {
       await releaseOrderLock(db, user.id);
     }
   }
+  if (body.action === "restart_infinity" || body.action === "switch_infinity_v2") {
+    if (await rateLimited(String(body.action), 5, 1)) return err("Too many requests. Try again in a minute.", 429);
+    if (body.rules_version !== "infinity_v2" || body.accept_terms !== true) return err("Accept the Infinity v2 terms first.", 400);
+    const accountId = String(body.account_id ?? "");
+    if (!(await claimOrderLock(db, body.action === "restart_infinity" ? user.id : accountId))) return err("An order is still processing. Try again.", 429);
+    try {
+      const args = body.action === "restart_infinity" ? { p_user: user.id, p_terms: String(body.terms_version ?? ""), p_accept: true, p_confirm_age: body.confirm_age === true }
+       : { p_account: accountId, p_user: user.id, p_request: String(body.request_id ?? ""), p_terms: String(body.terms_version ?? ""), p_accept: true };
+      const { data, error } = await db.rpc(body.action === "restart_infinity" ? "fn_restart_infinity_v2" : "fn_switch_infinity_v2", args);
+      if (error) return err(cleanV2Error(error.message), 409);
+      return new Response(JSON.stringify(data), { headers: { ...CORS, "Content-Type": "application/json" } });
+    } finally { await releaseOrderLock(db, body.action === "restart_infinity" ? user.id : accountId); }
+  }
   if (body.action === "infinity_status") {
     const st = await infinityStatus(db, user);
     const { preset: _p, ...pub } = st;
+    const { data: v2Status } = await db.rpc("infinity_v2_status");
+    Object.assign(pub, v2Status ?? { v2_enabled: false });
+    if(v2Status?.v2_enabled){
+      const monthStart=new Date(Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),1)).toISOString();
+      const {count,error}=await db.from("trading_accounts").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("preset_id","infinity_s1").gte("created_at",monthStart);
+      if(error)return err("Restart allowance temporarily unavailable.",503);
+      pub.attempts_used=count??0;pub.attempts_left=Math.max(0,pub.attempts_cap-(count??0));
+    }
     return new Response(JSON.stringify({ ok: true, infinity: pub }), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
   if (body.action === "claim_infinity") {
@@ -3491,7 +3594,10 @@ if (body.action === "sweep") {
       return new Response(JSON.stringify({ ok: true, symbol, status: "closed", digits: inst.digits, risk_status }),
         { headers: { ...CORS, "Content-Type": "application/json" } });
     }
-    const q = await fetchQuote(symbol);
+    const ticketAccount = typeof body.v2_account_id === "string" ? await db.from("trading_accounts").select("*").eq("id",body.v2_account_id).eq("user_id",user.id).maybeSingle() : {data:null};
+    const qa = ticketAccount.data as Acct | null;
+    const q = qa?.rules_version === "infinity_v2" ? await accountQuote(db,qa,symbol) : await fetchQuote(symbol);
+    const paused = qa?.rules_version === "infinity_v2" ? await db.from("infinity_v2_pauses").select("until_at").eq("account_id",qa.id).eq("symbol",symbol).maybeSingle() : {data:null};
     if (q === null) {
       await logFeedEvent(db, "outage", symbol, "fetchQuote returned null");
       return new Response(JSON.stringify({ ok: true, symbol, status: "no_feed", digits: inst.digits, risk_status }),
@@ -3502,6 +3608,8 @@ if (body.action === "sweep") {
     return new Response(JSON.stringify({
       ok: true, symbol, status: stale ? "stale" : (q.source === "fxcm-basic" || q.source === "tradelocker" || q.source === "ctrader" ? "live" : "demo"),
       mid: q.mid, bid: q.bid, ask: q.ask, spread: q.spread,
+      min_stop_distance: qa?.rules_version === "infinity_v2" ? q.spread*Number(qa.infinity_rules_snapshot?.stop_spread_multiple) : null,
+      pause_until: paused.data?.until_at ?? null,
       quote_ts: q.providerTs, received_ts: q.receivedTs,
       digits: inst.digits, source: q.source, risk_status,
     }), { headers: { ...CORS, "Content-Type": "application/json" } });
@@ -3794,8 +3902,8 @@ if (body.action === "sweep") {
       if (!side) return err("Side must be buy or sell");
       const orderType = body.order_type === "limit" || body.order_type === "stop" ? body.order_type : null;
       if (!orderType) return err("Order type must be limit or stop");
-      const volume = Math.round(Number(body.volume) * 100) / 100;
-      const volumeProblem = volumeError(symbol, volume);
+      const volume = (acct as Acct).rules_version === "infinity_v2" ? Math.round(Number(body.volume) * 1000) / 1000 : Math.round(Number(body.volume) * 100) / 100;
+      const volumeProblem = (acct as Acct).rules_version === "infinity_v2" ? (!Number.isFinite(volume) || volume <= 0 || volume > 100 ? "Invalid volume" : null) : volumeError(symbol, volume);
       if (volumeProblem) return err(volumeProblem);
       const trigger = Number(body.trigger_price);
       if (!isFinite(trigger) || trigger <= 0) return err("Enter a valid trigger price");
@@ -3808,7 +3916,7 @@ if (body.action === "sweep") {
       // Reject a trigger that is already through the market — that is a
       // market order wearing a costume, and filling it at a stale trigger
       // would hand the trader a price that never existed.
-      const q = await fetchQuote(symbol);
+      const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, symbol) : fetchQuote(symbol));
       if (q === null) return err("No live price for " + symbol, 503);
       if (!quoteStale(q)) {
         const px = side === "buy" ? q.ask : q.bid;
@@ -3827,7 +3935,7 @@ if (body.action === "sweep") {
         return err("Stop loss must be on the loss side of the trigger price");
       if (tp !== null && ((side === "buy" && tp <= trigger) || (side === "sell" && tp >= trigger)))
         return err("Take profit must be on the profit side of the trigger price");
-      if ((acct as Acct).require_stop_loss && sl === null)
+      if ((acct as Acct).rules_version !== "infinity_v2" && (acct as Acct).require_stop_loss && sl === null)
         return err("This challenge requires a stop-loss on every order.");
 
       let expiresAt: string | null = null;
@@ -3921,7 +4029,7 @@ if (body.action === "sweep") {
     const { count } = await db.from("price_alerts").select("id", { count: "exact", head: true })
       .eq("user_id", user.id).eq("status", "active");
     if ((count ?? 0) >= 50) return err("You can have at most 50 active alerts");
-    const q = await fetchQuote(symbol);
+    const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, symbol) : fetchQuote(symbol));
     if (q !== null && !quoteStale(q)) {
       const m = (q.bid + q.ask) / 2;
       if (condition === "above" ? m >= price : m <= price) return err(`Price is already ${condition} ${price}`);
@@ -4028,8 +4136,8 @@ if (body.action === "sweep") {
       if (gate) return err(gate, 409);
       const side = body.side === "buy" || body.side === "sell" ? body.side : null;
       if (!side) return err("Side must be buy or sell");
-      const volume = Math.round(Number(body.volume) * 100) / 100;
-      const volumeProblem = volumeError(symbol, volume);
+      const volume = (acct as Acct).rules_version === "infinity_v2" ? Math.round(Number(body.volume) * 1000) / 1000 : Math.round(Number(body.volume) * 100) / 100;
+      const volumeProblem = (acct as Acct).rules_version === "infinity_v2" ? (!Number.isFinite(volume) || volume <= 0 || volume > 100 ? "Invalid volume" : null) : volumeError(symbol, volume);
       if (volumeProblem) return err(volumeProblem);
       if (state.open.length >= MAX_OPEN_POSITIONS) return err("Max " + MAX_OPEN_POSITIONS + " open positions");
 
@@ -4046,11 +4154,11 @@ if (body.action === "sweep") {
       if (futuresSessionEnforced(acct as Acct) && !futuresSessionOpen()) {
         return reject("The futures session is closed — positions must be flat by 16:00 CT and cannot be held over the weekend.");
       }
-      const spec = await symbolCheck(db, symbol);
+      const spec = await ((acct as Acct).rules_version === "infinity_v2" ? accountSpec(db, acct as Acct, symbol) : symbolCheck(db, symbol));
       if (!spec.ok) return reject(spec.reason || "Symbol disabled");
 
       const inst = INSTRUMENTS[symbol];
-      const q = await fetchQuote(symbol);
+      const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, symbol) : fetchQuote(symbol));
       if (q === null) { await logFeedEvent(db, "outage", symbol, "open rejected: no quote"); return reject("No live price for " + symbol + " — order rejected"); }
       if (quoteStale(q)) { await logFeedEvent(db, "stale", symbol, "open rejected: stale quote"); return reject("Price feed is stale — order rejected"); }
       const maxSpread = spec.maxSpread ?? inst.maxSpread;
@@ -4079,7 +4187,7 @@ if (body.action === "sweep") {
       if (dailyCap) return reject(dailyCap, q);
 
       // A risk cap is unverifiable without a stop, so the two travel together.
-      if (A.require_stop_loss && sl === null) {
+      if (A.rules_version !== "infinity_v2" && A.require_stop_loss && sl === null) {
         return reject("This challenge requires a stop-loss on every order.", q);
       }
 
@@ -4119,9 +4227,9 @@ if (body.action === "sweep") {
       await flagCrossAccountHedge(db, user.id, symbol, side, clientIp);
 
       // Copied (A-book) account: hedge first, then fill the trader no better than the broker.
-      const ownerCopy=await ongoingCopyRoute(db,A);
+      const ownerCopy=A.rules_version === "infinity_v2" ? "off" : await ongoingCopyRoute(db,A);
       const abBook = ownerCopy==='off'?null:ownerCopy==='a'?'a':await scopedCopyTestRoute(db,A,symbol) ?? (inBrainScope(A) ? await abRoute(db, user.id) : null);
-      if (abBook === "a" || await hedgeOpenArmed(db, A)) {
+      if (A.rules_version !== "infinity_v2" && (abBook === "a" || await hedgeOpenArmed(db, A))) {
         const takingAsk = side === "buy";
         const started = Date.now();
         const minDelay = v2 ? EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1)) : 0;
@@ -4142,7 +4250,7 @@ if (body.action === "sweep") {
         const rest = minDelay - (Date.now() - started);
         if (rest > 0) await new Promise((resolve) => setTimeout(resolve, rest));
         let later: Quote | null = null;
-        if (v2) { await warmQuotes(true); later = await fetchQuote(symbol); if (later && quoteStale(later)) later = null; }
+        if (v2) { await warmQuotes(true); later = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, symbol) : fetchQuote(symbol)); if (later && quoteStale(later)) later = null; }
         const brokerFill = Number(hedge?.fill_price) > 0 ? Number(hedge!.fill_price) : null;
         let px = worseFill(takingAsk, fill, later ? (takingAsk ? later.ask : later.bid) : null, brokerFill) ?? fill;
         if (v2) px = adverse(px, takingAsk, spec.slippageBps);
@@ -4164,7 +4272,7 @@ if (body.action === "sweep") {
       let openPrice = fill;
       let execInfo: Record<string, unknown> = {};
       if (v2) {
-        const ex = await executeAtMarket(symbol, side === "buy", q, spec.slippageBps, true);
+        const ex = await ((acct as Acct).rules_version === "infinity_v2" ? executeForAccount(db, acct as Acct, symbol, side === "buy", q, spec.slippageBps, true) : executeAtMarket(symbol, side === "buy", q, spec.slippageBps, true));
         if (ex === null) return reject("Price feed dropped during execution — order not filled", q);
         if (sl !== null && ((side === "buy" && sl >= ex.price) || (side === "sell" && sl <= ex.price))) {
           return reject("Price moved through your stop-loss during execution — order not filled", ex.quote);
@@ -4191,14 +4299,16 @@ if (body.action === "sweep") {
 
       const { data: inserted, error } = await db.from("trades").insert({
         account_id: (acct as Acct).id, user_id: user.id, symbol, side, volume,
-        open_price: openPrice, sl, tp, ...execInfo, ...(clientOrderId ? { client_order_id: clientOrderId } : {}),
+        open_price: openPrice, sl, tp, ...execInfo, ...(A.rules_version === "infinity_v2" ? { execution_rules_version: "infinity_v2" } : {}), ...(clientOrderId ? { client_order_id: clientOrderId } : {}),
       }).select("id").single();
       if (error && error.code === "23505" && clientOrderId) return await duplicateState();
-      if (error) return reject("Order failed", q);
+      if (error) return reject(cleanV2Error(error.message), q);
 
       // The source trade is committed. Start audit and copy dispatch together.
       const mirrorRiskUsd = sl === null ? null : Math.abs(openPrice - sl) * inst.contract * volume * conv;
-      mirrorLater(fireMirror(db, acct as Acct, { id: inserted.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: openPrice, close_price: null, sl, tp, status: "open", pnl: null } as Tr, "open", mirrorRiskUsd));
+      if(A.rules_version === "infinity_v2") mirrorLater(copyInfinityV2Open(db,A,{id:inserted.id,account_id:A.id,user_id:user.id,symbol,side,volume,open_price:openPrice,close_price:null,sl,tp,status:"open",pnl:null,opened_at:new Date().toISOString()},mirrorRiskUsd,inst.contract*conv));
+      else mirrorLater(fireMirror(db, acct as Acct, { id: inserted.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: openPrice, close_price: null, sl, tp, status: "open", pnl: null } as Tr, "open", mirrorRiskUsd));
+      if (A.rules_version === "infinity_v2" && abBook === "a") bookLater({ event: "open", book: "a", source_trade_id: inserted.id, risk_usd: mirrorRiskUsd, price_scale_per_lot: inst.contract * conv });
       // B-book live trader: reverse right after the trader's fill.
       if (abBook === "b") bookLater({ event: "open", book: "b", source_trade_id: inserted.id, risk_usd: mirrorRiskUsd, price_scale_per_lot: inst.contract * conv });
       shadowLater(db, A, { event: "shadow_open", source_trade_id: inserted.id, price_scale_per_lot: inst.contract * conv });
@@ -4218,19 +4328,19 @@ if (body.action === "sweep") {
     const id = typeof body.trade_id === "string" ? body.trade_id : null;
     const target = state.open.find((t) => t.id === id);
     if (!target) return err("Position not found or already closed", 404);
-    const q = await fetchQuote(target.symbol);
+    const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, target.symbol) : fetchQuote(target.symbol));
     if (q === null) return err("No live price — try again", 503);
     if (quoteStale(q)) { await logFeedEvent(db, "stale", target.symbol, "close rejected: stale quote"); return err("Price feed is stale — try again", 503); }
     let exit = target.side === "buy" ? q.bid : q.ask;
     const prepareExit = rulesV2(acct as Acct) ? async (hasBookHedge: boolean) => {
       const [spec, { data: hedged }] = await Promise.all([
-        symbolCheck(db, target.symbol),
+        ((acct as Acct).rules_version === "infinity_v2" ? accountSpec(db, acct as Acct, target.symbol) : symbolCheck(db,target.symbol)),
         db.from("mirror_orders").select("id").eq("source_trade_id", target.id).eq("event", "open")
           .in("status", ["filled", "accepted_pending_position"]).not("idempotency_key", "is", null).limit(1).maybeSingle(),
       ]);
       const takingAsk = target.side === "sell";
       // Both managed A-book and per-account mirrors already have a real execution delay.
-      const ex = await executeAtMarket(target.symbol, takingAsk, q, spec.slippageBps, false, hasBookHedge || !!hedged);
+      const ex = await ((acct as Acct).rules_version === "infinity_v2" ? executeForAccount(db, acct as Acct, target.symbol, takingAsk, q, spec.slippageBps, false, (acct as Acct).rules_version === "infinity_v2" ? false : hasBookHedge || !!hedged) : executeAtMarket(target.symbol, takingAsk, q, spec.slippageBps, false, (acct as Acct).rules_version === "infinity_v2" ? false : hasBookHedge || !!hedged));
       return ex ? { price: ex.price, shortfallUsd: await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, Number(target.volume)) } : null;
     } : undefined;
     const done = await closeTrade(db, acct as Acct, target, exit, "manual", q, clientIp, undefined, prepareExit);
@@ -4248,7 +4358,7 @@ if (body.action === "sweep") {
     const v2c = rulesV2(acct as Acct);
     const arrivals = new Map<string, Quote>();
     for (const t of state.open) {
-      const q = await fetchQuote(t.symbol);
+      const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, t.symbol) : fetchQuote(t.symbol));
       if (q !== null && !quoteStale(q)) arrivals.set(t.id, q);
     }
     // Uncopied trades retain one shared simulated delay. Managed A-book exits
@@ -4259,14 +4369,14 @@ if (body.action === "sweep") {
       if (!q) continue;
       let exit = t.side === "buy" ? q.bid : q.ask;
       const prepareExit = v2c ? async (hasBookHedge: boolean) => {
-        if (!hasBookHedge) {
+        if (!hasBookHedge || (acct as Acct).rules_version === "infinity_v2") {
           batchDelay ??= new Promise<void>((resolve) => setTimeout(resolve,
             EXEC_DELAY_MIN_MS + Math.floor(Math.random() * (EXEC_DELAY_MAX_MS - EXEC_DELAY_MIN_MS + 1))));
           await batchDelay;
         }
-        const spec = await symbolCheck(db, t.symbol);
+        const spec = await ((acct as Acct).rules_version === "infinity_v2" ? accountSpec(db, acct as Acct, t.symbol) : symbolCheck(db,t.symbol));
         const takingAsk = t.side === "sell";
-        const ex = await executeAtMarket(t.symbol, takingAsk, q, spec.slippageBps, false, true);
+        const ex = await ((acct as Acct).rules_version === "infinity_v2" ? executeForAccount(db, acct as Acct, t.symbol, takingAsk, q, spec.slippageBps, false, true) : executeAtMarket(t.symbol, takingAsk, q, spec.slippageBps, false, true));
         return ex ? { price: ex.price, shortfallUsd: await shortfallUsd(t.symbol, takingAsk, ex.decision, ex.price, Number(t.volume)) } : null;
       } : undefined;
       await closeTrade(db, acct as Acct, t, exit, "manual", q, clientIp, undefined, prepareExit);
@@ -4279,7 +4389,7 @@ if (body.action === "sweep") {
     const id = typeof body.trade_id === "string" ? body.trade_id : null;
     const target = state.open.find((t) => t.id === id);
     if (!target) return err("Position not found or already closed", 404);
-    const q = await fetchQuote(target.symbol);
+    const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, target.symbol) : fetchQuote(target.symbol));
     if (q === null) return err("No live price — try again", 503);
     if (quoteStale(q)) return err("Price feed is stale — try again", 503);
 
@@ -4303,10 +4413,10 @@ if (body.action === "sweep") {
       const conv2 = await usdPerQuote(inst2.quote);
       if (conv2 === null) return err("Could not check this stop against your risk limit — try again", 503);
       {
-        const riskUsd = Math.abs(Number(target.open_price) - nsl) * inst2.contract * Number(target.volume) * conv2;
+        const riskUsd = (A2.rules_version === "infinity_v2" ? Math.max(0,target.side === "buy" ? Number(target.open_price)-nsl : nsl-Number(target.open_price)) : Math.abs(Number(target.open_price) - nsl)) * inst2.contract * Number(target.volume) * conv2;
         const limit = effectiveRiskLimit(A2, state.equity);
         const maxRisk = limit?.effective ?? round2(Number(A2.starting_balance) * Number(A2.max_risk_per_trade_pct) / 100);
-        if (riskUsd > maxRisk + 0.01) {
+        if (A2.rules_version !== "infinity_v2" && riskUsd > maxRisk + 0.01) {
           return err(`That stop implies $${riskUsd.toFixed(2)} of risk, above your current $${maxRisk.toFixed(2)} limit (base cap ${A2.max_risk_per_trade_pct}%).`);
         }
       }
@@ -4314,7 +4424,7 @@ if (body.action === "sweep") {
 
     const { error: mErr } = await db.from("trades").update({ sl: nsl, tp: ntp })
       .eq("id", target.id).eq("status", "open");
-    if (mErr) return err("Could not modify position", 500);
+    if (mErr) return err(cleanV2Error(mErr.message), 409);
     await logAudit(db, {
       trade_id: target.id, user_id: user.id, account_id: (acct as Acct).id, event: "modify",
       symbol: target.symbol, side: target.side, requested_volume: Number(target.volume),
@@ -4330,7 +4440,7 @@ if (body.action === "sweep") {
     let dist: number | null = null;
     if (!(raw === null || raw === undefined || raw === "" || Number(raw) === 0)) {
       dist = Number(raw);
-      const q = await fetchQuote(target.symbol);
+      const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, target.symbol) : fetchQuote(target.symbol));
       if (q === null || quoteStale(q)) return err("Price feed is stale — try again", 503);
       const ex = target.side === "buy" ? q.bid : q.ask;
       if (!isFinite(dist) || dist <= 0 || dist > ex * 0.2) return err("Trailing distance must be positive and under 20% of price");
@@ -4361,23 +4471,23 @@ if (body.action === "sweep") {
     const id = typeof body.trade_id === "string" ? body.trade_id : null;
     const target = state.open.find((t) => t.id === id);
     if (!target) return err("Position not found or already closed", 404);
-    const vol = Math.round(Number(body.volume) * 100) / 100;
+    const vol = (acct as Acct).rules_version === "infinity_v2" ? Math.round(Number(body.volume) * 1000) / 1000 : Math.round(Number(body.volume) * 100) / 100;
     const full = Number(target.volume);
-    if (!isFinite(vol) || vol < 0.01) return err("Volume must be at least 0.01 lots");
+    if (!isFinite(vol) || vol < ((acct as Acct).rules_version === "infinity_v2" ? 0.001 : 0.01)) return err("Volume must be at least 0.01 lots");
     if (INSTRUMENTS[target.symbol]?.cls === "future" && !Number.isInteger(vol)) return err("Futures positions close in whole contracts");
     if (vol >= full) return err("To close the whole position use Close, not partial close");
-    if (round2(full - vol) < 0.01) return err("Remaining position would be below the 0.01 lot minimum");
+    if ((acct as Acct).rules_version === "infinity_v2" ? Math.round((full - vol)*1000)/1000 < 0.001 : round2(full - vol) < 0.01) return err("Remaining position would be below the 0.01 lot minimum");
 
-    const q = await fetchQuote(target.symbol);
+    const q = await ((acct as Acct).rules_version === "infinity_v2" ? accountQuote(db, acct as Acct, target.symbol) : fetchQuote(target.symbol));
     if (q === null) return err("No live price — try again", 503);
     if (quoteStale(q)) return err("Price feed is stale — try again", 503);
     let exit = target.side === "buy" ? q.bid : q.ask;
     const v2p = rulesV2(acct as Acct);
-    const specP = v2p ? await symbolCheck(db, target.symbol) : null;
+    const specP = v2p ? await ((acct as Acct).rules_version === "infinity_v2" ? accountSpec(db, acct as Acct, target.symbol) : symbolCheck(db,target.symbol)) : null;
     let sliceShortfall = 0;
     if (specP) {
       const takingAsk = target.side === "sell";
-      const ex = await executeAtMarket(target.symbol, takingAsk, q, specP.slippageBps, false);
+      const ex = await ((acct as Acct).rules_version === "infinity_v2" ? executeForAccount(db, acct as Acct, target.symbol, takingAsk, q, specP.slippageBps, false) : executeAtMarket(target.symbol, takingAsk, q, specP.slippageBps, false));
       if (ex) {
         exit = ex.price;
         sliceShortfall = await shortfallUsd(target.symbol, takingAsk, ex.decision, ex.price, vol);

@@ -151,6 +151,7 @@
     const left = r.items.filter((i) => !i.done).length;
     return `${head('Stage requirements' + (label ? ' · ' + esc(label) : ''), esc(r.title))}
       <div class="group"><div class="item"><div class="body"><b>${r.ready ? 'Every box ticked: can move to the next stage' : left + ' box' + (left === 1 ? '' : 'es') + ' still to tick'}</b><span>All boxes must be ticked at the same time</span></div><div class="trail">${cap(r.ready ? 'Can move up' : 'Not yet', r.ready ? 'green' : 'orange')}${x && x.status === 'active' && /Stage [123]$/.test(r.title || '') ? ` <button class="btn sm" type="button" data-act="advance" data-account="${esc(x.account_id)}" data-ready="${r.ready ? '1' : '0'}" data-title="${esc(r.title)}">Move to next stage</button>` : ''}</div></div>
+        ${r.v2 && r.review_required && x ? `<div class="item"><button class="btn sm" data-act="v2review" data-account="${esc(x.account_id)}">Record integrity review</button></div>` : ''}
         ${r.items.map((i) => `<div class="item">${tick(i.done)}<div class="body"><b style="font-weight:600">${esc(i.text)}</b></div></div>`).join('')}</div>`;
   }
   // Did floating loss inside any trade reach the daily-loss or overall drawdown floor? Each trade is measured on its own.
@@ -270,6 +271,11 @@
       onSubmit: () => T.admin('advance_stage', { account_id: accountId }) });
     if (v) { T.toast('Moved to the next stage.'); close(); await load(); }
   }
+  async function reviewV2(b) {
+    const account_id=b.dataset.account;
+    const result=await T.sheet({title:'Record Infinity v2 integrity review',text:'Review the linked-account, ring and herd evidence first. This clears only the current evidence for this account. New evidence requires another review. Remove investigation holds separately.',fields:[{id:'reason',label:'Evidence reviewed and decision'}],confirm:'Record review',onSubmit:x=>T.admin('infinity_v2_review',{account_id,reason:x.reason})});
+    if(result){T.toast(result.still_held?'Review recorded; an investigation hold remains.':'Review recorded.');await openTrader(account_id);}
+  }
   async function hold() {
     const t = open.t, on = !t.investigation_hold;
     const v = await T.sheet({ title: on ? 'Place an investigation hold?' : 'Remove the investigation hold?', text: on ? 'Holds payouts and copying for this account until you remove it.' : 'Payouts and copying return to normal checks.',
@@ -294,7 +300,7 @@
     if (e.target.closest('[data-close]')) { close(); return; }
     const r = e.target.closest('[data-open]'); if (r) { openTrader(r.dataset.open); return; }
     const b = e.target.closest('[data-act]'); if (!b || b.disabled || !open) return;
-    ({ toA, toB, hold, advance: () => advance(b), alltrades: () => { open.allTrades = true; renderDrawer(); } })[b.dataset.act]?.();
+    ({ toA, toB, hold, v2review: () => reviewV2(b), advance: () => advance(b), alltrades: () => { open.allTrades = true; renderDrawer(); } })[b.dataset.act]?.();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && open && !document.querySelector('.os-sheet')) close();

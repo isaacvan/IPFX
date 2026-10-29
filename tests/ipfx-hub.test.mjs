@@ -29,6 +29,25 @@ function make(mode = 'active') {
   return { r, calls, tick };
 }
 
+test('v2 stop deadline is enforced with the legacy deadline disabled; v1 retains its setting', () => {
+  const { r } = make();
+  r.trades.get('t1').sl = null;
+  r.trades.get('t1').opened_at = new Date(Date.now() - 31_000).toISOString();
+  r.timeChecks();
+  assert.equal(r.queue.size, 0, 'v1 has no deadline when its global setting is null');
+  Object.assign(r.accounts.get(ACC), { rules_version: 'infinity_v2', v2_stop_deadline_seconds: 30 });
+  r.timeChecks();
+  assert.equal(r.queue.get(ACC), 'no_stop_loss');
+  r.queue.clear(); r.cooldown.clear();
+  r.trades.get('t1').opened_at = new Date(Date.now() - 29_000).toISOString();
+  r.timeChecks();
+  assert.equal(r.queue.size, 0, 'the v2 deadline does not fire early');
+  r.accounts.get(ACC).rules_version = 'infinity_v1';
+  r.slDeadline = 20;
+  r.timeChecks();
+  assert.equal(r.queue.get(ACC), 'no_stop_loss', 'v1 still follows its existing global setting');
+});
+
 test('stop loss, take profit and pending orders trigger a check of that account only', async () => {
   const { r, calls, tick } = make();
   tick('EURUSD', 1.1000, 1.1001);

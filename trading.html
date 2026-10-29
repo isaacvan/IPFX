@@ -3062,6 +3062,7 @@ async function takeFreshRestart(accountId){
   if(j&&j.ok){engineMsg('Your fresh Stage 1 account is ready. Good luck.');try{await engineCall({action:'state'});}catch(_){}}
 }
 function renderChallenge(){
+  if(typeof window!=='undefined'&&window.ipfxInfinityV2 && window.ipfxInfinityV2.render())return;
   renderStageChecklist();
   renderDailyCapNotice();
   renderRuleReminders();
@@ -4127,7 +4128,7 @@ async function loadOrderHistory(){
         <td class="postbl-side ${cls==='pos'?'buy':cls==='neg'?'sell':''}">${EVENT_LABEL[e.event]||e.event}</td>
         <td>${(e.symbol||'—').replace(/^[^:]+:/,'')}</td>
         <td>${e.side?e.side.toUpperCase():'—'}</td>
-        <td>${e.requested_volume!=null?(+e.requested_volume).toFixed(2):'—'}</td>
+        <td>${e.requested_volume!=null?(+e.requested_volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2):'—'}</td>
         <td>${e.requested_price!=null?fmtPx(e.requested_price):'—'}</td>
         <td>${e.fill_price!=null?fmtPx(e.fill_price):'—'}</td>
         <td>${e.spread!=null?(+e.spread).toFixed(5):'—'}</td>
@@ -4741,7 +4742,7 @@ function announceAutoClosedTrades(state){
         :t.close_reason==='tp'?'Take profit hit'
         :t.close_reason==='breach'?'Account breach — position flattened'
         :'Position closed';
-      engineMsg(`${label} — ${t.side==='buy'?'Sell':'Buy'} ${(+t.volume).toFixed(2)} ${sym} @ ${fmtPx(t.close_price)} (${money(pnl)})`,pnl>=0);
+      engineMsg(`${label} — ${t.side==='buy'?'Sell':'Buy'} ${(+t.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)} ${sym} @ ${fmtPx(t.close_price)} (${money(pnl)})`,pnl>=0);
     }
   }
   prevOpenTradeIds=openNow;
@@ -4896,6 +4897,7 @@ async function engineCall(body){
     if(Array.isArray(j.alerts))handleAlerts(j.alerts);
     const prevType=engineState&&engineState.account&&engineState.account.challenge_type;
     engineState=j;lastStateAt=Date.now();
+    if(typeof window!=='undefined')window.dispatchEvent(new Event('ipfx-state'));
     if(prevType!==(j.account&&j.account.challenge_type)&&typeof renderWatchlist==='function'){
       renderWatchlist();
       const isFut=j.account&&j.account.challenge_type==='futures';
@@ -5039,7 +5041,7 @@ async function loadStatement(){
   document.getElementById('stTableBody').innerHTML=rows.length?rows.map(r=>`<tr>
       <td>${utcStamp(r.closed_at)}</td><td>${esc(execSymbol(r.symbol))}</td>
       <td><span class="postbl-side ${esc(r.side)}">${esc(String(r.side).toUpperCase())}</span></td>
-      <td>${(+r.volume).toFixed(2)}</td><td>${fmtPx(r.open_price)}</td><td>${fmtPx(r.close_price)}</td>
+      <td>${(+r.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)}</td><td>${fmtPx(r.open_price)}</td><td>${fmtPx(r.close_price)}</td>
       <td>${esc(r.close_reason||'manual')}</td><td style="color:${+r.pnl>=0?'#22c55e':'#ef4444'}">${m(+r.pnl||0)}</td></tr>`).join('')
     :'<tr><td colspan="8"><div class="postbl-empty">No closed trades in this period</div></td></tr>';
   document.getElementById('stCsv').disabled=false;document.getElementById('stPrint').disabled=false;
@@ -5075,7 +5077,7 @@ function printStatement(){
     <div class="sum"><div><span>Opening balance</span>${m(S.opening_balance)}</div><div><span>Net P&amp;L</span>${m(S.net_pnl)}</div><div><span>Payouts</span>${m(S.payouts)}</div><div><span>Closing balance</span>${m(S.closing_balance)}</div>
     <div><span>Trades</span>${S.trades}</div><div><span>Win rate</span>${S.win_rate_pct==null?'—':S.win_rate_pct+'%'}</div><div><span>Gross profit</span>${m(S.gross_profit)}</div><div><span>Gross loss</span>${m(S.gross_loss)}</div></div>
     <table><thead><tr><th>Closed (UTC)</th><th>Instrument</th><th>Side</th><th>Lots</th><th>Open</th><th>Close</th><th>Reason</th><th>P&amp;L</th></tr></thead><tbody>
-    ${lastStatement.trades.map(r=>`<tr><td>${esc(String(r.closed_at).replace('T',' ').slice(0,19))}</td><td>${esc(r.symbol)}</td><td>${esc(r.side)}</td><td>${(+r.volume).toFixed(2)}</td><td>${esc(r.open_price)}</td><td>${esc(r.close_price)}</td><td>${esc(r.close_reason||'manual')}</td><td class="${+r.pnl>=0?'pos':'neg'}">${m(+r.pnl||0)}</td></tr>`).join('')||'<tr><td colspan="8">No closed trades in this period</td></tr>'}
+    ${lastStatement.trades.map(r=>`<tr><td>${esc(String(r.closed_at).replace('T',' ').slice(0,19))}</td><td>${esc(r.symbol)}</td><td>${esc(r.side)}</td><td>${(+r.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)}</td><td>${esc(r.open_price)}</td><td>${esc(r.close_price)}</td><td>${esc(r.close_reason||'manual')}</td><td class="${+r.pnl>=0?'pos':'neg'}">${m(+r.pnl||0)}</td></tr>`).join('')||'<tr><td colspan="8">No closed trades in this period</td></tr>'}
     </tbody></table><p class="meta" style="margin-top:16px">Simulated trading account. Figures are in USD and exclude open positions.</p></body></html>`);
   w.document.close();
 }
@@ -5125,6 +5127,7 @@ document.addEventListener('keydown',e=>{
   placeOrder(k==='b'?'buy':'sell');
 });
 
+function v2LotStep(symbol){return window.ipfxInfinityV2?window.ipfxInfinityV2.minLot(symbol):0.01;}
 function adjLots(d){
   if(futSym(activeSym)){
     ordLots=Math.min(FUT_SPECS[futSym(activeSym)][1],Math.max(1,Math.round(ordLots)+(d>0?1:-1)));
@@ -5133,9 +5136,9 @@ function adjLots(d){
     if(typeof updateRiskPreview==='function')updateRiskPreview();
     return;
   }
-  const step=ordLots<0.1?0.01:ordLots<1?0.1:1;
-  ordLots=Math.round(Math.max(0.01,ordLots+(d>0?step:-step))*100)/100;
-  document.getElementById('ord-lots').value=ordLots.toFixed(2);
+  const step=ordLots<0.1?v2LotStep():ordLots<1?0.1:1;
+  ordLots=Math.round(Math.max(v2LotStep(),ordLots+(d>0?step:-step))/v2LotStep())*v2LotStep();
+  document.getElementById('ord-lots').value=ordLots.toFixed(v2LotStep()<0.01?3:2);
   document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>p.classList.remove('active'));
   updatePnlPreview();
   if(typeof updateRiskPreview==='function')updateRiskPreview();
@@ -5143,7 +5146,7 @@ function adjLots(d){
 function setLots(n,btn){
   if(futSym(activeSym)){n=Math.min(FUT_SPECS[futSym(activeSym)][1],Math.max(1,Math.round(n)));ordLots=n;document.getElementById('ord-lots').value=String(n);updatePnlPreview();if(typeof updateRiskPreview==='function')updateRiskPreview();return;}
   ordLots=n;
-  document.getElementById('ord-lots').value=(+n).toFixed(2);
+  document.getElementById('ord-lots').value=(+n).toFixed(v2LotStep()<0.01?3:2);
   document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>p.classList.remove('active'));
   if(btn)btn.classList.add('active');
   updatePnlPreview();
@@ -5166,14 +5169,14 @@ function lotsInputCommit(el){
     if(typeof updateRiskPreview==='function')updateRiskPreview();
     return;
   }
-  const MIN_LOT=0.01, MAX_LOT=100, STEP=0.01;
+  const MIN_LOT=v2LotStep(), MAX_LOT=100, STEP=MIN_LOT;
   let n=parseFloat(el.value);
   if(!isFinite(n)||n<=0)n=MIN_LOT;
   n=Math.min(MAX_LOT,Math.max(MIN_LOT,n));
   n=Math.round(n/STEP)*STEP;
-  n=Math.round(n*100)/100;
+  n=Math.round(n/STEP)*STEP;
   ordLots=n;
-  el.value=n.toFixed(2);
+  el.value=n.toFixed(STEP<0.01?3:2);
   document.querySelectorAll('.of-preset,.ord-preset,.op-preset').forEach(p=>{
     p.classList.toggle('active',Math.abs(parseFloat(p.textContent)-n)<0.001);
   });
@@ -5239,7 +5242,7 @@ async function placeOrder(side){
     const r=await engineCall(p);
     engineBusy=false;
     if(r){
-      engineMsg(`${side.toUpperCase()} ${p.order_type} ${p.volume.toFixed(2)} ${execSymbol(p.symbol)} resting at ${fmtPx(trig,p.symbol)}`,true);
+      engineMsg(`${side.toUpperCase()} ${p.order_type} ${p.volume.toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)} ${execSymbol(p.symbol)} resting at ${fmtPx(trig,p.symbol)}`,true);
       if(execSymbol(activeSym)===execSymbol(p.symbol)&&orderType===p.order_type){
         const triggerField=document.getElementById('triggerPrice');if(parseFloat(triggerField.value)===trig)triggerField.value='';
         const ocoSel=document.getElementById('pendOco');if(ocoSel&&ocoSel.value===(p.oco_with||''))ocoSel.value='';
@@ -5257,7 +5260,7 @@ async function placeOrder(side){
   engineBusy=false;
   if(res){
     const filled=(res.open_trades||[]).filter(function(t){return t.side===side&&execSymbol(t.symbol)===execSymbol(payload.symbol);}).sort(function(a,b){return new Date(b.opened_at)-new Date(a.opened_at);})[0];
-    engineMsg(side.toUpperCase()+' '+payload.volume.toFixed(2)+' '+execSymbol(payload.symbol)+' filled'+(filled?' @ '+fmtPx(filled.open_price,payload.symbol):''),true);
+    engineMsg(side.toUpperCase()+' '+payload.volume.toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)+' '+execSymbol(payload.symbol)+' filled'+(filled?' @ '+fmtPx(filled.open_price,payload.symbol):''),true);
     const flash=document.querySelector('.op-exec-'+side+',.ord-'+(side==='buy'?'buy':'sell'));
     if(flash){flash.style.transform='scale(0.95)';setTimeout(()=>{flash.style.transform='';},120);}
   }
@@ -5283,7 +5286,7 @@ function renderPending(){
   box.innerHTML=p.map(o=>`
     <div class="pend-row">
       <span class="pend-type">${esc(String(o.side).toUpperCase())} ${esc(o.order_type)}${o.oco_group?' · OCO':''}</span>
-      <span>${esc(o.symbol)} ${(+o.volume).toFixed(2)}</span>
+      <span>${esc(o.symbol)} ${(+o.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)}</span>
       <span style="color:#606060">@ ${fmtPx(o.trigger_price)}</span>
       <span class="pend-x" title="Cancel" onclick="cancelPending('${o.id}')">✕</span>
     </div>`).join('');
@@ -5323,7 +5326,7 @@ function renderPendingTable(){
       <td>${esc(o.symbol)}</td>
       <td>${esc((o.order_type||'').toUpperCase())}${o.oco_group?' <span class="trail-tag" title="One-cancels-other group">OCO</span>':''}</td>
       <td><span class="postbl-side ${o.side}">${esc((o.side||'').toUpperCase())}</span></td>
-      <td>${(+o.volume).toFixed(2)}</td>
+      <td>${(+o.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)}</td>
       <td>${fmtPx(o.trigger_price)}</td>
       <td>${o.sl!=null?fmtPx(o.sl):'—'}</td>
       <td>${o.tp!=null?fmtPx(o.tp):'—'}</td>
@@ -5366,6 +5369,8 @@ function quickCloseConfirm(trades){
     'Trades must be held for at least 1 minute to be eligible for payouts on the Infinity Challenge. '
     +(n>1?n+' of these positions have':'This position has')+' been open for less than a minute, so any profit from '
     +(n>1?'them':'it')+' will not count toward your payout. Losses still count.';
+  document.getElementById('mhTitle').textContent=min===60?'Trades must be longer than 1 minute':'Hold '+(min/60)+' minutes for profit to count';
+  if(min!==60)document.getElementById('mhText').textContent='Winning trades held under '+(min/60)+' minutes do not count toward targets or payouts. Losses always count. You can still close now.';
   return new Promise(resolve=>{
     const count=document.getElementById('mhCount');
     const tick=()=>{
@@ -5437,7 +5442,7 @@ function openModifyDialog(id){
   const t=omFindTrade(id); if(!t)return;
   omStart(id,'modify');
   document.getElementById('omTitle').textContent='Modify position';
-  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
   document.getElementById('omF1Label').textContent='Stop loss';
   document.getElementById('omF2Label').textContent='Take profit';
   document.getElementById('omF1').value=t.sl==null?'':t.sl;
@@ -5452,13 +5457,13 @@ function openModifyDialog(id){
 function openPartialDialog(id){
   const t=omFindTrade(id); if(!t)return;
   omStart(id,'partial');
-  const vol=+t.volume,future=typeof futSym==='function'&&!!futSym(t.symbol);
+  const vol=+t.volume,future=typeof futSym==='function'&&!!futSym(t.symbol),step=engineState?.account?.rules_version==='infinity_v2'?v2LotStep(t.symbol):0.01,precision=step<0.01?3:2;
   document.getElementById('omTitle').textContent='Partial close';
-  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${vol.toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${vol.toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
   document.getElementById('omF1Label').textContent=future?'Contracts to close':'Lots to close';
-  document.getElementById('omF1').value=future?String(Math.max(1,Math.floor(vol/2))):(Math.max(0.01,Math.floor(vol/2*100)/100)).toFixed(2);
+  document.getElementById('omF1').value=future?String(Math.max(1,Math.floor(vol/2))):(Math.max(step,Math.floor(vol/2/step)*step)).toFixed(precision);
   document.getElementById('omF2Wrap').style.display='none';
-  document.getElementById('omHint').textContent=future?`Position is ${vol} contracts. Close whole contracts and leave at least one open.`:`Position is ${vol.toFixed(2)} lots. Both the closed slice and the remainder must be at least 0.01.`;
+  document.getElementById('omHint').textContent=future?`Position is ${vol} contracts. Close whole contracts and leave at least one open.`:`Position is ${vol.toFixed(precision)} lots. Both the closed slice and the remainder must be at least ${step}.`;
   document.getElementById('omGo').textContent='Close part';
   omError(null);
   document.getElementById('omDlg').classList.add('open');
@@ -5468,7 +5473,7 @@ function openTrailDialog(id){
   const t=omFindTrade(id); if(!t)return;
   omStart(id,'trail');
   document.getElementById('omTitle').textContent='Trailing stop';
-  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
+  document.getElementById('omSub').textContent=`${t.side.toUpperCase()} ${(+t.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)} ${t.symbol} @ ${fmtPx(t.open_price,t.symbol)}`;
   document.getElementById('omF1Label').textContent='Trail distance (price units)';
   document.getElementById('omF1').value=t.trail_distance==null?'':t.trail_distance;
   document.getElementById('omF2Wrap').style.display='none';
@@ -5496,9 +5501,9 @@ async function omSubmit(){
     if(d!==null&&(!isFinite(d)||d<=0)){omError('Enter a positive distance, or leave it blank to switch trailing off.');return;}
     payload={action:'set_trailing',trade_id:omTradeId,distance:d};
   }else if(mode==='partial'){
-    const vol=Number(v1),future=typeof futSym==='function'&&!!futSym(t.symbol),minimum=future?1:0.01;
+    const vol=Number(v1),future=typeof futSym==='function'&&!!futSym(t.symbol),minimum=future?1:engineState?.account?.rules_version==='infinity_v2'?v2LotStep(t.symbol):0.01;
     if(!isFinite(vol)||vol<minimum){omError(future?'Enter at least one whole contract.':'Enter at least 0.01 lots.');return;}
-    if(future?!Number.isInteger(vol):Math.abs(vol*100-Math.round(vol*100))>1e-8){omError(future?'Use whole contracts.':'Use 0.01 lot increments.');return;}
+    if(future?!Number.isInteger(vol):Math.abs(vol/minimum-Math.round(vol/minimum))>1e-8){omError(future?'Use whole contracts.':'Use 0.01 lot increments.');return;}
     if(vol>=+t.volume){omError('That is the whole position — use Close instead.');return;}
     if(+(+t.volume-vol).toFixed(2)<minimum){omError(future?'Leave at least one whole contract open.':'The remainder would be under 0.01 lots.');return;}
     payload={action:'partial_close',trade_id:omTradeId,volume:vol};
@@ -5679,7 +5684,7 @@ function renderChartPositions(){
     const color=pnl>=0?'#10b981':'#ef4444';
     const top=Math.min(78,38+i*7);
     const side=String(p.side||'').toUpperCase();
-    const label=side+' '+(+p.volume).toFixed(2)+' '+esc(execSymbol(p.symbol));
+    const label=side+' '+(+p.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)+' '+esc(execSymbol(p.symbol));
     return '<div class="chart-pos-line" style="top:'+top+'%;--pos-color:'+color+'">'
       +'<div class="chart-pos-chip"><span class="chart-pos-side">'+side+'</span>'
       +'<span class="chart-pos-meta">'+label+' @ '+fmtPx(p.open_price)+'</span>'
@@ -5725,7 +5730,7 @@ function renderPositions(){
       list.innerHTML=o.map(p=>{
         return `<div class="ord-pos">
           <span class="ord-pos-dir ${p.side}">${p.side.toUpperCase()}</span>
-          <span class="ord-pos-info">${(+p.volume).toFixed(2)}L ${p.symbol} @ ${fmtPx(p.open_price)}</span>
+          <span class="ord-pos-info">${(+p.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)}L ${p.symbol} @ ${fmtPx(p.open_price)}</span>
           <span class="ord-pos-pnl" id="ordpnl-${p.id}">—</span>
           <span class="ord-pos-close" onclick="closeTradeById('${p.id}')">✕</span>
         </div>`;
@@ -5780,7 +5785,7 @@ function renderPosTable(o){
     return `<tr>
       <td>${p.symbol}</td>
       <td><span class="postbl-side ${p.side}">${p.side.toUpperCase()}</span></td>
-      <td>${(+p.volume).toFixed(2)}</td>
+      <td>${(+p.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)}</td>
       <td>${fmtPx(p.open_price)} → ${fmtPx(p.mark!=null?p.mark:p.open_price)}</td>
       <td>${p.sl!=null?fmtPx(p.sl):'—'}${p.trail_distance!=null?'<span class="trail-tag" title="Trailing stop: '+esc(p.trail_distance)+' behind price">TRAIL</span>':''}</td>
       <td>${p.tp!=null?fmtPx(p.tp):'—'}</td>
@@ -5860,7 +5865,7 @@ function renderClosedTable(){
       <td>${utcStamp(t.opened_at)}</td>
       <td>Market</td>
       <td><span class="postbl-side ${t.side}">${t.side.toUpperCase()}</span></td>
-      <td>${(+t.volume).toFixed(2)}</td>
+      <td>${(+t.volume).toFixed(engineState?.account?.rules_version==='infinity_v2'?3:2)}</td>
       <td>${fmtPx(t.open_price)}</td>
       <td>${t.sl!=null?fmtPx(t.sl):'—'}</td>
       <td>${t.tp!=null?fmtPx(t.tp):'—'}</td>
@@ -6331,6 +6336,7 @@ function syncHubSubs(){
   hubSubsKey=key;hubWs.send(JSON.stringify({t:'sub',s:syms}));
 }
 function onHubQuote(p){
+  if(typeof window!=='undefined'&&window.ipfxInfinityV2)p=window.ipfxInfinityV2.price(p);
   if(!p||!validClientQuote({bid:p.b,ask:p.a}))return;
   if(p.s===execSymbol(activeSym))onPushedQuote({s:p.s,b:p.b,a:p.a,m:isFinite(p.m)?p.m:(p.b+p.a)/2,sp:p.sp,d:p.d,rt:p.rt});
   if(!cacheLiveQuote({symbol:p.s,mid:p.m,bid:p.b,ask:p.a,spread:p.sp,digits:p.d,status:'live',rt:p.rt}))return;
@@ -6387,9 +6393,10 @@ async function pollTicketPrice(){
   try{
     const tok=await Promise.race([freshToken(),new Promise(r=>setTimeout(()=>r(null),2500))]);
     if(!tok||polledSym!==activeSym)return;
-      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:polledSym,enforce_risk:true,rt:!hubLive()}),signal:AbortSignal.timeout(2500)});
+      const r=await fetch(ENGINE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'price',symbol:polledSym,enforce_risk:true,rt:!hubLive(),...(engineState?.account?.rules_version==='infinity_v2'?{v2_account_id:engineState.account.id}:{})}),signal:AbortSignal.timeout(2500)});
       const j=await r.json().catch(()=>null);
       if(polledSym!==activeSym)return;
+      if(typeof window!=='undefined'&&window.ipfxInfinityV2)window.ipfxInfinityV2.quote(j);
       if(j?.symbol&&execSymbol(j.symbol)!==execSymbol(polledSym))return;
       if(j&&j.risk_status&&j.risk_status.status==='breached'&&!engineBusy){
         engineCall({action:'state'});
@@ -7431,7 +7438,8 @@ setChartEngine(chartEngine);
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
 <script src="/assets/js/markets-guided.js?v=20261020b"></script>
-<script src="/assets/js/infinity-restart.js?v=20261029a"></script>
+<script src="/assets/js/infinity-restart.js?v=20261029b"></script>
+<script src="/assets/js/infinity-v2-ui.js?v=20261029a"></script>
 
 <dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
   <h2 id="stageRulesTitle" tabindex="-1">Your rules: things to know</h2>

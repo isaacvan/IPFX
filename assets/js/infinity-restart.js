@@ -4,8 +4,8 @@
 (function () {
   'use strict';
   const PREVIEW = (() => { try { return new URLSearchParams(location.search).has('v2preview') || localStorage.getItem('ipfx-v2-preview') === '1'; } catch (_) { return false; } })();
-  const RULES_URL = 'https://ipfxcapital.com/infinity.html#v2-rules';
-  const TERMS_VERSION = 'infinity_v2_2026-11';
+  const RULES_URL = 'https://ipfxcapital.com/infinity-v2.html';
+  // The server supplies the exact published terms version.
   let status = null, statusAt = 0, busy = false, step = 1;
 
   const css = `
@@ -86,6 +86,7 @@ body.light .rs-link{color:#1d4ed8}`;
     return { ok: r.ok && j.ok !== false, status: r.status, j };
   }
   async function loadStatus(force) {
+    if (PREVIEW) { if(!status) { const rules=await fetch('/assets/js/infinity-v2-preview.json').then(r=>r.json());status={v2_enabled:false,v2_rules:rules,v2_terms_version:'preview-only',attempts_left:1,attempts_cap:1,is_restart:true,has_active:true}; }return status; }
     if (!signedIn()) return null;
     if (!force && status && Date.now() - statusAt < 300000) return status;
     try { const r = await call({ action: 'infinity_status' }); if (r.ok && r.j.infinity) { status = r.j.infinity; statusAt = Date.now(); } } catch (_) {}
@@ -95,8 +96,8 @@ body.light .rs-link{color:#1d4ed8}`;
   function renderButton() {
     const b = document.getElementById('tbRestart'); if (!b) return;
     const challenge = typeof selectedAccountMode === 'undefined' || selectedAccountMode === 'challenge';
-    const hasInfinity = !!(status && (status.is_restart || status.has_active)) || !!(engineState && engineState.account && engineState.account.challenge_type === 'infinity');
-    b.hidden = !(signedIn() && (isLive() || PREVIEW) && challenge && hasInfinity);
+    const hasInfinity = !!(status && (status.is_restart || status.has_active)) || !!(typeof engineState !== 'undefined' && engineState && engineState.account && engineState.account.challenge_type === 'infinity');
+    b.hidden = !((signedIn() || PREVIEW) && (isLive() || PREVIEW) && challenge && (hasInfinity || PREVIEW));
     const left = status ? Number(status.attempts_left || 0) : (PREVIEW ? 1 : 0);
     b.querySelector('.cnt').textContent = String(left);
     b.classList.toggle('none', left < 1);
@@ -113,7 +114,8 @@ body.light .rs-link{color:#1d4ed8}`;
     const left = status ? Number(status.attempts_left || 0) : (PREVIEW ? 1 : 0), cap = status ? Number(status.attempts_cap || 1) : 1;
     const open = openTrades();
     const reason = status && status.reason && !/active challenge/i.test(status.reason) ? status.reason : null;
-    const can = left > 0 && open === 0 && !reason;
+    const pending = typeof engineState !== 'undefined' ? (engineState?.pending_orders?.length || 0) : 0;
+    const can = left > 0 && open === 0 && pending === 0 && !reason;
     return `${header('Restart Infinity Challenge', 'Start again from Stage 1 with a clean account.')}${stepsBar()}
       <div class="rs-bd">
         <div class="rs-chip ${left > 0 ? '' : 'none'}">${left > 0 ? `${left} of ${cap} restart${cap === 1 ? '' : 's'} left this month` : `No restarts left this month · next on ${nextMonthLabel()}`}</div>
@@ -131,25 +133,27 @@ body.light .rs-link{color:#1d4ed8}`;
   }
 
   function viewRules() {
+    const r=status?.v2_rules, ss=r?.stages;
+    if(!ss)return header('Infinity v2 rules unavailable','Close this dialog and try again.')+'<button class="rs-btn" data-rs="close">Close</button>';
+    const cells=fn=>[1,2,3,4].map(i=>'<td>'+fn(ss[String(i)],i)+'</td>').join('');
+    const table='<tr><td>Account</td>'+cells(s=>'$'+Number(s.starting_balance).toLocaleString('en-US'))+'</tr>'+
+      '<tr><td>Profit target</td>'+cells(s=>s.target_pct?s.target_pct+'%':'—')+'</tr>'+
+      '<tr><td>Counted trades</td>'+cells(s=>s.min_counted_trades||'—')+'</tr>'+
+      '<tr><td>Consistency score</td>'+cells(s=>[s.stage_score==null?'':s.stage_score+' this stage',s.combined_score==null?'':s.combined_score+' combined'].filter(Boolean).join('; ')||'—')+'</tr>'+
+      '<tr><td>Daily loss / max DD</td>'+cells(s=>s.daily_loss_pct+'% / '+s.max_drawdown_pct+'%')+'</tr>';
     return `${header('Infinity v2 challenge rules', 'Your new run will use these requirements.')}${stepsBar()}
       <div class="rs-bd">
         <table class="rs-tbl" aria-label="Infinity v2 stage requirements">
           <thead><tr><th></th><th>Stage 1</th><th>Stage 2</th><th>Stage 3</th><th>Stage 4</th></tr></thead>
-          <tbody>
-            <tr><td>Account</td><td>$1,000</td><td>$5,000</td><td>$10,000</td><td>$25,000</td></tr>
-            <tr><td>Profit target</td><td>4%</td><td>7%</td><td>8%</td><td>—</td></tr>
-            <tr><td>Counted trades</td><td>20</td><td>40</td><td>50</td><td>—</td></tr>
-            <tr><td>Consistency score</td><td>0.75</td><td>1.25</td><td>2.0</td><td>—</td></tr>
-            <tr><td>Daily loss / max DD</td><td>2.5% / 5%</td><td>2% / 4%</td><td>2% / 4%</td><td>2% / 4%</td></tr>
-          </tbody>
+          <tbody>${table}</tbody>
         </table>
         <div class="rs-sub">Key rules</div>
         <ul class="rs-rules">
           <li>No minimum trading days. Pass on your results.</li>
-          <li>Stop loss on every trade, at least 8× the spread. Tighten it or move to break-even, never further away.</li>
-          <li>Hold at least 5 minutes for profit to count. Losses always count.</li>
-          <li>After a stop-out, that instrument pauses for 10 minutes.</li>
-          <li>Trades on the same instrument and direction within 15 minutes count as one trade.</li>
+          <li>Stop loss on every trade, at least ${r.stop_spread_multiple}× the spread. Tighten it or move to break-even, never further away.</li>
+          <li>Hold at least ${r.min_hold_seconds/60} minutes for profit to count. Losses always count.</li>
+          <li>After a stop-out, that instrument pauses for ${r.stop_pause_seconds/60} minutes.</li>
+          <li>Trades on the same instrument and direction within ${r.group_gap_minutes} minutes count as one trade.</li>
           <li>No daily profit cap, and daily loss is measured from your closed balance.</li>
         </ul>
         <p style="margin:10px 0 0"><a class="rs-link" href="${RULES_URL}" target="_blank" rel="noopener noreferrer">Read the full rules and FAQ</a></p>
@@ -188,10 +192,10 @@ body.light .rs-link{color:#1d4ed8}`;
     if (busy) return;
     const d = document.getElementById('rsDialog'); const go = d.querySelector('#rsGo'); const err = d.querySelector('#rsErr');
     if (!d.querySelector('#rsAgree')?.checked) return;
-    if (PREVIEW && !isLive()) { step = 4; render(); return; }            // preview never touches an account
+    if (PREVIEW) { step = 4; render(); return; }            // preview never touches an account
     busy = true; go.disabled = true; go.textContent = 'Restarting…'; err.textContent = '';
     try {
-      let r = await call({ action: 'restart_infinity', rules_version: 'infinity_v2', accept_terms: true, terms_version: TERMS_VERSION, confirm_age: true });
+      let r = await call({ action: 'restart_infinity', rules_version: 'infinity_v2', accept_terms: true, terms_version: status?.v2_terms_version, confirm_age: true });
       if (!r.ok && r.status === 400 && /unknown action/i.test(String(r.j.error || ''))) {
         // Server without the new action yet: only a run that has already ended can use the existing restart.
         if (status && status.has_active) throw new Error('Restarting an active run is not available yet. Please try again shortly.');

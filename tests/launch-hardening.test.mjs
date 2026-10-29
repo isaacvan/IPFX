@@ -123,7 +123,7 @@ test('Infinity: winning trades held under 1 minute are excluded from payouts, wi
   assert.match(m, /s3_profit := s3_profit - public\.fn_infinity_quick_trade_profit/);
   assert.match(m, /raise exception 'payout_pending'/);
   assert.match(m, /raise exception 'period_already_paid'/);
-  assert.match(engine, /payout_min_hold_seconds: \(acct\.challenge_type \?\? ""\) === "infinity" \? 60 : null/);
+  assert.ok(engine.includes('payout_min_hold_seconds: acct.rules_version === "infinity_v2" ? Number(acct.infinity_rules_snapshot?.min_hold_seconds) : (acct.challenge_type ?? "") === "infinity" ? 60 : null'));
   assert.match(platform, /Trades must be longer than 1 minute/);
   assert.match(platform, /if\(before&&!\(await quickCloseConfirm\(\[before\]\)\)\)return false;/);
   assert.match(platform, /if\(!\(await quickCloseConfirm\(\(engineState&&engineState\.open_trades\)\|\|\[\]\)\)\)return;/);

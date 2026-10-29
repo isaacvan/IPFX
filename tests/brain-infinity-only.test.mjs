@@ -34,5 +34,6 @@ test('ordinary and scoped routing stay Infinity-only, with selected gold scope b
   assert.ok(engine.includes('await scopedCopyTestRoute(db,A,symbol) ?? (inBrainScope(A) ? await abRoute(db, user.id) : null)'));
   assert.ok(engine.includes("if(!inBrainScope(acct)||acct.status!=='active'||symbol!=='XAUUSD')return null"));
   assert.match(engine,/db.rpc\('copy_test_route',\{p_user:acct.user_id,p_source:acct.id,p_symbol:symbol\}\)/);
-  assert.equal((engine.match(/await abRoute\(/g) || []).length, 2);
+  assert.equal((engine.match(/await abRoute\(/g) || []).length, 3);
+  assert.match(engine,/inBrainScope\(acct\)\?await abRoute\(db,acct.user_id\):null/);
 });

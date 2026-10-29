@@ -39,7 +39,7 @@ test('ladder accounts: owner-enabled only, per-account limits, split signal grou
   assert.match(x, /const fillA = aFills\.length \? \(traderLong \? Math\.min\(\.\.\.aFills\) : Math\.max\(\.\.\.aFills\)\) : null;/);
   const e = read('supabase/functions/trading-engine/index.ts');
   assert.match(e, /return \{ a: \[\.\.\.books\]\.some\(\(x\) => x === "a" \|\| \/\^l\[0-9\]\+\$\/\.test\(x\)\), b: books\.has\("b"\) \};/);
-  assert.match(e, /if \(r\?\.duplicate_a === true\) return notDone\(\"copy_close_already_in_flight\"\);/);
+  assert.match(e, /if \(r\?\.duplicate_a === true && acct\.rules_version !== "infinity_v2"\) return notDone\(\"copy_close_already_in_flight\"\);/);
 });
 
 test('owner control: MFA owner only, passwords never stored, every change audited, nothing trades or pays', () => {

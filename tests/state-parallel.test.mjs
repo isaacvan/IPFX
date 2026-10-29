@@ -4,7 +4,7 @@ const e = fs.readFileSync(new URL('../supabase/functions/trading-engine/index.ts
 const body = e.slice(e.indexOf('async function statePayload'), e.indexOf('const err = (msg: string, code = 400)'));
 
 test('statePayload fetches its independent reads in one Promise.all and awaits nothing else on the way', () => {
-  assert.match(body, /const \[eventsRes, gate, promotion, freshRestart, slDeadline\] = await Promise\.all\(\[/);
+  assert.match(body, /const \[eventsRes, gate, promotion, freshRestart, slDeadline, v2Profiles\] = await Promise\.all\(\[/);
   const after = body.slice(body.indexOf('const start = Number(acct.starting_balance)'));
   assert.doesNotMatch(after, /await /, 'no sequential database call is left after the parallel block');
   assert.match(body, /stop_loss_deadline_seconds: slDeadline,/);

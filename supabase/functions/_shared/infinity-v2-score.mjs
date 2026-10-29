@@ -22,13 +22,13 @@ export function groupCountedTrades(trades, rules, since = null) {
     // Keep the maximum close of the entire group; an early-closing later leg
     // must not hide an older overlapping position. Interleaved symbols are independent.
     if (!g || !(opened < g.lastClose || opened - g.lastEntry <= gap)) {
-      g = { key, ids: [], lastEntry: opened, lastClose: closed, pnl: 0, eligiblePnl: 0, risk: 0, validRisk: true, closed: true };
+      g = { key, ids: [], lastEntry: opened, lastClose: closed, pnl: 0, eligiblePnl: 0, risk: 0, validRisk: true, unexpectedRisk: false, closed: true };
       groups.push(g); streams.set(key, g);
     }
     g.ids.push(t.id); g.lastEntry = opened; g.lastClose = Math.max(g.lastClose, closed);
     g.closed &&= closed !== Infinity;
     const risk = Number(t.initial_risk_usd);
-    if (t.initial_risk_usd == null || !Number.isFinite(risk) || risk <= 0) g.validRisk = false;
+    if (t.initial_risk_usd == null || !Number.isFinite(risk) || risk <= 0) { g.validRisk = false; if(t.close_reason!=='no_stop_loss')g.unexpectedRisk=true; }
     else g.risk += risk;
     if (closed !== Infinity) {
       const pnl = number(t.pnl);
@@ -54,9 +54,10 @@ export function evaluateStage({ account, trades, lineageTrades = [], rules, sinc
   const combined = consistencyScore([...groupCountedTrades(lineageTrades,rules),...groups],rules);
   const days = new Map();
   for (const t of trades) {
-    if (t.status !== 'closed' || (since && time(t.opened_at)<time(since))) continue;
+    if (t.status !== 'closed') continue;
     const p = number(t.pnl), held=time(t.closed_at)-time(t.opened_at);
-    const eligible = p>0 && held<number(rules.min_hold_seconds)*1000 ? 0 : p;
+    const eligibilityHold=since && time(t.opened_at)<time(since)?60:number(rules.min_hold_seconds);
+    const eligible = p>0 && held<eligibilityHold*1000 ? 0 : p;
     const day = new Date(time(t.closed_at)).toISOString().slice(0,10);
     days.set(day,(days.get(day)||0)+eligible);
   }
@@ -66,7 +67,7 @@ export function evaluateStage({ account, trades, lineageTrades = [], rules, sinc
   const target=number(account.starting_balance)*number(rules.target_pct)/100;
   const unmet=[];
   if (trades.some(t=>t.status==='open') || pendingCount>0) unmet.push('NOT_FLAT');
-  if (groups.some(g=>!g.validRisk)) unmet.push('OPENING_RISK_UNAVAILABLE');
+  if (groups.some(g=>g.unexpectedRisk)) unmet.push('OPENING_RISK_UNAVAILABLE');
   if (profit+1e-8<target) unmet.push('PROFIT_TARGET');
   if (number(account.balance)+1e-8<number(account.starting_balance)+target) unmet.push('BALANCE_TARGET');
   if (stats.n<number(rules.min_counted_trades)) unmet.push('COUNTED_TRADES');
@@ -76,7 +77,7 @@ export function evaluateStage({ account, trades, lineageTrades = [], rules, sinc
   if (integrityHold) unmet.push('INTEGRITY_REVIEW');
   let performanceBreach=false;
   if (rules.performance_window!=null) {
-    const closed=groups.filter(g=>g.closed).sort((a,b)=>a.lastClose-b.lastClose);
+    const closed=groups.filter(g=>g.closed && g.validRisk).sort((a,b)=>a.lastClose-b.lastClose);
     const window=number(rules.performance_window), loss=number(account.starting_balance)*number(rules.performance_loss_pct)/100;
     for(let i=window;i<=closed.length;i++) if(closed.slice(i-window,i).reduce((s,g)=>s+g.pnl,0)<=-loss+1e-8) performanceBreach=true;
   }

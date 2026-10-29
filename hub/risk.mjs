@@ -159,10 +159,10 @@ export class Risk {
 
   timeChecks() {
     const now = Date.now();
-    if (this.slDeadline != null) {
-      for (const t of this.trades.values()) {
-        if (t.sl == null && this.accounts.get(t.account_id)?.challenge_type === 'infinity' && now - Date.parse(t.opened_at) > this.slDeadline * 1000) this.flag(t.account_id, 'no_stop_loss');
-      }
+    for (const t of this.trades.values()) {
+      const a=this.accounts.get(t.account_id);
+      const deadline=a?.rules_version==='infinity_v2'?a.v2_stop_deadline_seconds:this.slDeadline;
+      if (deadline != null && t.sl == null && this.accounts.get(t.account_id)?.challenge_type === 'infinity' && now - Date.parse(t.opened_at) > deadline * 1000) this.flag(t.account_id, 'no_stop_loss');
     }
     for (const o of this.pending.values()) if (o.expires_at && Date.parse(o.expires_at) < now) this.flag(o.account_id, 'order_expiry');
     for (const [id, until] of this.cooldown) if (until < now - 60_000) this.cooldown.delete(id);

@@ -4,8 +4,8 @@ const fn = fs.readFileSync(new URL('../supabase/functions/admin-console/index.ts
 const ui = fs.readFileSync(new URL('../assets/js/ws-traders.js', import.meta.url), 'utf8');
 const sql = fs.readFileSync(new URL('../supabase/migrations/20261028120000_owner_advance_infinity_stage.sql', import.meta.url), 'utf8');
 test('advance_stage is owner-only, needs MFA, writes the audit row first and calls the service-role function', () => {
-  assert.match(fn, /"gap_resolve", "advance_stage"\]\);/);
-  assert.match(fn, /"close_account", "set_mirror", "advance_stage"\]\);/);
+  assert.match(fn, /"gap_resolve", "advance_stage", "infinity_v2_review"\]\);/);
+  assert.match(fn, /"close_account", "set_mirror", "advance_stage", "infinity_v2_review"\]\);/);
   const a = fn.slice(fn.indexOf('if (action === "advance_stage")'), fn.indexOf('if (action === "set_investigation_hold")'));
   assert.ok(a.indexOf('logAdminStrict("advance_stage"') > 0 && a.indexOf('logAdminStrict') < a.indexOf('fn_owner_advance_infinity_stage'));
   assert.match(sql, /revoke all on function public\.fn_owner_advance_infinity_stage\(uuid, uuid\) from public, anon, authenticated;/);

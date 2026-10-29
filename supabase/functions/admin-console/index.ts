@@ -344,8 +344,20 @@ function drawdownCheck(a: Record<string, unknown>, trades: Record<string, unknow
 // The same boxes the trader sees on their Challenge tab ("every box must be ticked at the same time"), so the team can tell who can
 // actually move up. Read-only: it only reads progress and the qualification / counted-profit functions the engine itself uses.
 // deno-lint-ignore no-explicit-any
-async function stageChecklist(db: any, a: Record<string, unknown>, openTrades: number): Promise<{ title: string; items: { done: boolean; text: string }[]; ready: boolean } | null> {
+async function stageChecklist(db: any, a: Record<string, unknown>, openTrades: number): Promise<{ title: string; items: { done: boolean; text: string }[]; ready: boolean; v2?: boolean; review_required?: boolean } | null> {
   if (a.status !== "active" && a.status !== "passed") return null;
+  if(a.rules_version === "infinity_v2") {
+    const {data:p,error}=await db.rpc("infinity_v2_progress",{p_account:a.id});if(error||!p)throw new Error("V2_SCORE_UNAVAILABLE");
+    const r=p.rules,items:{done:boolean;text:string}[]=[];
+    if(r.target_pct)items.push({done:Number(p.counted_profit)>=Number(p.target),text:`Counted profit $${Number(p.counted_profit).toFixed(2)} of $${Number(p.target).toFixed(2)}`});
+    if(r.min_counted_trades)items.push({done:p.n>=r.min_counted_trades,text:`${p.n}/${r.min_counted_trades} counted trades`});
+    if(r.stage_score!=null)items.push({done:p.score>=r.stage_score,text:`Stage score ${Number(p.score).toFixed(3)} / ${r.stage_score}`});
+    if(r.combined_score!=null)items.push({done:p.combined_score>=r.combined_score,text:`Combined score ${Number(p.combined_score).toFixed(3)} / ${r.combined_score}`});
+    if(r.best_day_share!=null)items.push({done:p.best_day_share!=null&&p.best_day_share<=r.best_day_share,text:`Best day ${p.best_day_share==null?'unavailable':(p.best_day_share*100).toFixed(1)+'%'} / maximum ${(r.best_day_share*100).toFixed(0)}%`});
+    items.push({done:!p.unmet.includes("NOT_FLAT"),text:"No open positions or pending orders"});
+    items.push({done:!p.integrity_hold,text:"Integrity review clear"});
+    return {title:`Infinity v2 — Stage ${a.stage}`,items,ready:p.eligible===true,v2:true,review_required:p.integrity_hold===true};
+  }
   const num = (v: unknown) => Number(v ?? 0);
   const usd = (v: number) => "$" + v.toFixed(2);
   const [prog, qual, counted, closedRows] = await Promise.all([
@@ -712,14 +724,14 @@ Deno.serve(async (req) => {
   const action = body.action;
   const challengesLaunched = Date.now() >= Date.parse("2026-10-08T23:00:00Z"); // 9 Oct 2026, 00:00 UK
   if (action === "team_access_check") return json({ ok: true, team_access: isOwner });
-  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve", "advance_stage"]);
+  const ownerOnlyActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "application_queue", "application_decide", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "chatbot_overview", "kb_save", "kb_delete", "config_save", "gap_resolve", "advance_stage", "infinity_v2_review"]);
   if (ownerOnlyActions.has(String(action)) && !isOwner) return err("Owner access only", 403);
   // Money movement is owner-only; resuming trading after a halt is owner-only (any admin may HALT).
   const ownerMoneyActions = new Set(["payout_approve", "payout_mark_paid"]);
   if (ownerMoneyActions.has(String(action)) && !isOwner) return err("Owner approval required for payouts", 403);
   if (action === "set_platform_halt" && body.halted !== true && !isOwner) return err("Only the owner can resume trading", 403);
   const sensitiveActions = new Set(["risk_analytics", "risk_policy_update", "trader_detail", "kyc_queue", "kyc_document_url", "kyc_identity_reveal", "application_queue", "application_decide", "set_kyc_status", "user_search", "audit_log",
-    "payout_create", "payout_approve", "payout_mark_paid", "payout_void", "set_split", "set_investigation_hold", "grant_challenge", "reset_account", "close_account", "set_mirror", "advance_stage"]);
+    "payout_create", "payout_approve", "payout_mark_paid", "payout_void", "set_split", "set_investigation_hold", "grant_challenge", "reset_account", "close_account", "set_mirror", "advance_stage", "infinity_v2_review"]);
   const needsMfa = sensitiveActions.has(String(action)) || (action === "set_platform_halt" && body.halted !== true);
   if (needsMfa && tokenAal(bearerToken) !== "aal2") {
     return err("Multi-factor authentication is required for this action.", 403);
@@ -1050,6 +1062,13 @@ Deno.serve(async (req) => {
     return json({ ok: true, next_stage: data.next_stage, already_created: !!data.already_created });
   }
 
+  if (action === "infinity_v2_review") {
+    const account_id=String(body.account_id??""), reason=String(body.reason??"").trim();
+    if(reason.length<10)return err("Describe the evidence you reviewed (at least 10 characters).",400);
+    if(!(await logAdminStrict("infinity_v2_review",{targetAccount:account_id,detail:{reason}})))return err("Could not record the audit entry.",500);
+    const {data,error}=await db.rpc("infinity_v2_record_review",{p_account:account_id,p_actor:user.id,p_reason:reason});
+    if(error)return err(error.message,409);return json(data);
+  }
   if (action === "set_investigation_hold") {
     const account_id = String(body.account_id ?? "");
     const hold = body.hold === true;
@@ -1930,7 +1949,10 @@ Deno.serve(async (req) => {
       }).eq("id", applicationId);
       // Tell the trader straight away that they are approved and can trade. Never blocks or fails the decision; until an
       // email provider is configured the message is recorded in email_events as "queued".
-      await sendLifecycleEmail(db, "infinity_approved", current.user_id, {
+      if(account.rules_version === "infinity_v2") await sendLifecycleEmail(db,"infinity_approved_v2",current.user_id,{
+        trading_url:"https://ipfxcapital.com/trading.html",dashboard_url:"https://ipfxcapital.com/dashboard.html"
+      });
+      else await sendLifecycleEmail(db, "infinity_approved", current.user_id, {
         trading_url: "https://ipfxcapital.com/trading.html", dashboard_url: "https://ipfxcapital.com/dashboard.html",
       });
     }

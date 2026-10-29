@@ -8,7 +8,7 @@ const eng = read('supabase/functions/trading-engine/index.ts');
 const sql = read('supabase/migrations/20261005140000_infinity_sl_strikes.sql');
 
 test('the 30-second rule applies to Infinity accounts only, and is switched on', () => {
-  assert.match(eng, /const slDeadline = sl === null && acct\.challenge_type === "infinity" \? await slDeadlineSeconds\(db\) : null;/);
+  assert.match(eng, /acct\.rules_version === "infinity_v2" \? Number\(acct\.infinity_rules_snapshot\?\.stop_deadline_seconds\) : await slDeadlineSeconds\(db\)/);
   assert.match(sql, /update public\.ab_settings set sl_deadline_seconds = 30/);
   assert.match(read('hub/risk.mjs'), /this\.accounts\.get\(t\.account_id\)\?\.challenge_type === 'infinity'/);
 });

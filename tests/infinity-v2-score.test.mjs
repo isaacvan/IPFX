@@ -61,3 +61,14 @@ test('Stage 2 requires both stage and cumulative scores, and Stage 3 requires 50
  const s3=evaluateStage({...input,account:{starting_balance:10000,balance:10800},lineageTrades:[],rules:{...rules,target_pct:8,min_counted_trades:50,stage_score:null,combined_score:2}});
  assert.ok(s3.unmet.includes('COUNTED_TRADES'));
 });
+test('every consistency threshold rejects just below and accepts just above',()=>{
+ for(const [n,stage,combined] of [[20,.75,null],[40,1.25,null],[40,null,1.65],[50,null,2]]){
+  const threshold=stage??combined;
+  for(const delta of [-1e-6,1e-6]){
+   const mean=(threshold+delta)*.5/Math.sqrt(n);
+   const trades=Array.from({length:n},(_,i)=>trade(String(i),i*1440,i*1440+5,mean*5));
+   const r=evaluateStage({account:{starting_balance:1000,balance:1040},trades,rules:{...rules,min_counted_trades:n,stage_score:stage,combined_score:combined}});
+   assert.equal(r.unmet.includes(stage==null?'COMBINED_SCORE':'STAGE_SCORE'),delta<0);
+  }
+ }
+});
