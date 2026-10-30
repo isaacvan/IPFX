@@ -91,7 +91,8 @@ if (pending.length) {
   const blocks = [];
   for (const f of pending) for (const m of fs.readFileSync(path.join(ROOT, 'supabase/migrations', f), 'utf8').matchAll(/do \$(\w*)\$[\s\S]*?end \$\1\$\s*;/gi))
     if (/pg_get_functiondef/.test(m[0])) blocks.push([f, m[0]]);
-  const sigs = [...new Set(blocks.flatMap(([, b]) => [...b.matchAll(/pg_get_functiondef\('public\.([^']*)'::regprocedure\)/g)].map((x) => x[1])))];
+  // every 'public.name(args)' a guarded block reads (some blocks loop over a list of signatures)
+  const sigs = [...new Set(blocks.flatMap(([, b]) => [...b.matchAll(/'public\.(\w+\([^')]*\))'/g)].map((x) => x[1])))];
   const defs = sigs.length ? sql(`select pg_get_functiondef(p.oid) def from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.oid::regprocedure::text in (${sigs.map((s) => `'${s}'`).join(',')})`) : [];
   if (defs.length !== sigs.length) fail(`live database is missing ${sigs.length - defs.length} function(s) the migrations patch`);
   const db = new PGlite();
