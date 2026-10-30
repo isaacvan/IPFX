@@ -7,6 +7,7 @@ import { WebSocketServer } from 'ws';
 import { Risk } from './risk.mjs';
 import { riskJournal } from './risk-journal.mjs';
 import { TickStore, createCandles, rateLimiter } from './candles.mjs';
+import { fxcmRates, relayStats } from './fxcm-relay.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -117,7 +118,7 @@ const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'appli
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') {
-      return send(res, 200, { ok: true, clients: wss.clients.size, quotes: quotes.size, ticks: ticks.size(), ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: risk.summary(), admission: { accepted: counters.authOk, rejected: counters.authFail } });
+      return send(res, 200, { ok: true, clients: wss.clients.size, quotes: quotes.size, ticks: ticks.size(), ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: risk.summary(), admission: { accepted: counters.authOk, rejected: counters.authFail }, fxcmRelay: relayStats });
     }
     // Public chart history for IPFX Markets (same answer format as the chart-candles Edge Function, which stays as the fallback).
     if (req.method === 'GET' && req.url.startsWith('/candles?')) {
@@ -129,6 +130,12 @@ const server = http.createServer(async (req, res) => {
       const out = await candles(u.searchParams.get('symbol'), u.searchParams.get('tf'));
       res.writeHead(out.status, { ...cors, 'Cache-Control': out.cache ? `public, max-age=${out.cache}` : 'no-store' });
       return res.end(JSON.stringify(out.body));
+    }
+    // FXCM relay for the engine while rates.fxcm.com serves an expired certificate (fxcm-relay.mjs). Secret only.
+    if (req.method === 'GET' && req.url === '/fxcm-rates') {
+      if (!secretOk(req.headers['x-hub-secret'])) return send(res, 401, { ok: false });
+      try { const xml = await fxcmRates(); res.writeHead(200, { 'Content-Type': 'application/xml', 'Cache-Control': 'no-store' }); return res.end(xml); }
+      catch (e) { return send(res, 502, { ok: false, error: String(e.message || e).slice(0, 120) }); }
     }
     if (req.method === 'POST' && (req.url === '/ingest' || req.url === '/event')) {
       if (!secretOk(req.headers['x-hub-secret'])) return send(res, 401, { ok: false });

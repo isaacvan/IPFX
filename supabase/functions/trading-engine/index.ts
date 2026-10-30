@@ -337,15 +337,37 @@ function fxcmFeedHeartbeat(xml: string, receivedTs: number): number | null {
   return newest;
 }
 
+// FXCM's rates.fxcm.com certificate expired on 30 Oct 2026 05:54 UTC and Deno refuses it, which stopped every FXCM price. Reads now
+// try FXCM directly first; if that fails, the same XML comes through the IPFX hub (/fxcm-rates), which accepts FXCM's genuine certificate
+// past its end date only (trusted issuer and the rates.fxcm.com name are still checked). Once FXCM renews, the direct read wins again.
+let fxcmDirectDownUntil = 0;
+async function fetchFxcmXml(timeoutMs: number): Promise<string | null> {
+  if (Date.now() >= fxcmDirectDownUntil) {
+    try {
+      const r = await fetch("https://rates.fxcm.com/RatesXML?ts=" + Date.now(), {
+        headers: { "Accept": "application/xml", "Cache-Control": "no-cache", "User-Agent": "IPFXEngine/2.0" },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (r.ok) return await r.text();
+      await r.body?.cancel();
+    } catch (_) { /* fall back to the hub relay below */ }
+    fxcmDirectDownUntil = Date.now() + 60_000;               // retry the direct read once a minute
+  }
+  const url = Deno.env.get("HUB_INGEST_URL"), secret = Deno.env.get("HUB_SECRET");
+  if (!url || !secret) return null;
+  try {
+    const r = await fetch(new URL("/fxcm-rates", url).toString(), { headers: { "x-hub-secret": secret }, signal: AbortSignal.timeout(timeoutMs) });
+    if (!r.ok) { await r.body?.cancel(); return null; }
+    return await r.text();
+  } catch (_) { return null; }
+}
+
 async function fetchFxcmRaw(symKey: string): Promise<{ bid: number; ask: number; ts: number | null; feedTs: number | null } | null> {
   const providerSymbol = FXCM_SYMBOLS[symKey];
   if (!providerSymbol) return null;
   try {
-    const r = await fetch("https://rates.fxcm.com/RatesXML?ts=" + Date.now(), {
-      headers: { "Accept": "application/xml", "Cache-Control": "no-cache", "User-Agent": "IPFXEngine/2.0" },
-    });
-    if (!r.ok) return null;
-    const xml = await r.text();
+    const xml = await fetchFxcmXml(3000);
+    if (!xml) return null;
     const block = new RegExp('<Rate\\s+Symbol="' + providerSymbol + '">([\\s\\S]*?)<\\/Rate>').exec(xml)?.[1];
     if (!block) return null;
     const read = (tag: string) => {
@@ -537,12 +559,8 @@ function rowsToWrite(rows: Record<string, unknown>[], changed: { symbol: string 
   });
 }
 async function pumpFxcmOnce(prev: Map<string, Quote>): Promise<{ rows: Record<string, unknown>[]; changed: Quote[] }> {
-  const r = await fetch("https://rates.fxcm.com/RatesXML?ts=" + Date.now(), {
-    headers: { "Accept": "application/xml", "Cache-Control": "no-cache", "User-Agent": "IPFXEngine/2.0" },
-    signal: AbortSignal.timeout(2000),
-  });
-  if (!r.ok) return { rows: [], changed: [] };
-  const xml = await r.text();
+  const xml = await fetchFxcmXml(2000);
+  if (!xml) return { rows: [], changed: [] };
   const receivedTs = Date.now();
   const feedTs = fxcmFeedHeartbeat(xml, receivedTs);
   const rows: Record<string, unknown>[] = [];
@@ -1003,7 +1021,9 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
       }
       // cTrader mode ticks every 100ms; FXCM (fallback) is still read every 3rd tick.
       const fxDue = !ctMode || ticks % 3 === 0;
-      const fx = fxDue ? await pumpFxcmOnce(prev) : { rows: [] as Record<string, unknown>[], changed: [] as Quote[] };
+      // An FXCM failure must never throw away the TradeLocker / cTrader prices of the same tick (30 Oct 2026 outage).
+      const fx = fxDue ? await pumpFxcmOnce(prev).catch(() => ({ rows: [] as Record<string, unknown>[], changed: [] as Quote[] }))
+        : { rows: [] as Record<string, unknown>[], changed: [] as Quote[] };
       let out = fx;
       if (ctMode) {
         const ctNow = ct as CTraderFeed | null;
