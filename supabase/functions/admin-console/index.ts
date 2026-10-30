@@ -356,6 +356,7 @@ async function stageChecklist(db: any, a: Record<string, unknown>, openTrades: n
     if(r.best_day_share!=null)items.push({done:p.best_day_share!=null&&p.best_day_share<=r.best_day_share,text:`Best day ${p.best_day_share==null?'unavailable':(p.best_day_share*100).toFixed(1)+'%'} / maximum ${(r.best_day_share*100).toFixed(0)}%`});
     items.push({done:!p.unmet.includes("NOT_FLAT"),text:"No open positions or pending orders"});
     items.push({done:!p.integrity_hold,text:"Integrity review clear"});
+    if(Number(a.stage)===2)items.push({done:!p.identity_required,text:"Identity verified (needed for Stage 3)"});
     return {title:`Infinity v2 — Stage ${a.stage}`,items,ready:p.eligible===true,v2:true,review_required:p.integrity_hold===true};
   }
   const num = (v: unknown) => Number(v ?? 0);

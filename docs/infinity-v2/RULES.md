@@ -24,7 +24,7 @@
 | Account | $1,000 | $5,000 | $10,000 | $25,000 |
 | Profit target | 4% | 7% | 8% | none |
 | Minimum counted trades | 20 | 40 new | 50 new | none |
-| Consistency score to pass | **0.75** | **1.25** in Stage 2, and **1.65** over Stages 1–2 | **2.0** over Stages 1–3 | none |
+| Consistency score to pass | **1.0** | **1.65** in Stage 2, and **2.0** over Stages 1–2 | **2.0** over Stages 1–3 | none |
 | Best day | ≤ 35% of total profit | ≤ 35% | ≤ 30% | payout filters as today |
 | Max risk per counted trade | 0.5% | 0.35% | 0.35% | 0.25% |
 | Total open risk | 3 × the per-trade limit | 3 × | 3 × | 3 × |

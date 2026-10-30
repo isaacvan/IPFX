@@ -30,7 +30,7 @@ From **1 November** the Infinity Challenge moves to **Infinity v2**. It's built 
 | Account | $1,000 | $5,000 | $10,000 | $25,000 |
 | Profit target | 4% | 7% | 8% | none |
 | Counted trades | 20 | 40 | 50 | — |
-| Consistency score | 0.75 | 1.25 | 2.0 | — |
+| Consistency score | 1.0 | 1.65 | 2.0 | — |
 | Daily loss / max drawdown | 2.5% / 5% | 2% / 4% | 2% / 4% | 2% / 4% |
 
 Payouts are the same as today: Stage 3 completion and Stage 4 every 14 days, at an 85% split.

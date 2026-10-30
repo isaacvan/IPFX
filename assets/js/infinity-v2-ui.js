@@ -45,6 +45,7 @@
   if(r.best_day_share!=null)lines.push([p.best_day_share!=null&&p.best_day_share<=r.best_day_share,'Best-day share '+(p.best_day_share==null?'—':fmt(p.best_day_share*100,1)+'%')+' / maximum '+fmt(r.best_day_share*100,0)+'%']);
   lines.push([!engineState.open_trades?.length&&!engineState.pending_orders?.length,'Flat: no open positions or pending orders']);
   if(p.integrity_hold)lines.push([false,'Account review required before advancement or payout']);
+  if(p.identity_required)lines.push([false,'Verify your identity to move to Stage 3. Your account keeps trading meanwhile.']);
   $('ch-reqs').innerHTML=lines.map(([ok,text])=>'<div class="ch-req"><div class="ch-req-ic '+(ok?'done':'')+'">'+(ok?'✓':'○')+'</div><div class="ch-req-txt">'+esc(text)+'</div></div>').join('');
   $('ch-note').textContent='Same-instrument, same-direction entries overlap or join within '+r.group_gap_minutes+' minutes as one counted trade. Score uses opening-stop risk, capped at ±'+r.score_r_cap+'R. Winning trades held under '+r.min_hold_seconds/60+' minutes do not count toward targets or payouts; losses always count.';
   return true;

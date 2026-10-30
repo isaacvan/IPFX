@@ -132,13 +132,47 @@ test('Stage 4 ends the run at exactly minus 500 over any 40 consecutive groups',
  const result=(await db.query('select * from trading_accounts where id=$1',[a.id])).rows[0];assert.equal(result.status,'breached');assert.equal(result.breach_reason,'performance_rule');
  }finally{await db.close();}
 });
-test('switch carries previously earned eligible profit while resetting score observations',opts,async()=>{
+test('switch: v1 profit stays on the balance but the v2 target starts from the switch balance',opts,async()=>{
  const {db,account}=await v2db();try{const a=await account({version:'infinity_v1'});
  await db.query("insert into trades(account_id,user_id,symbol,side,volume,open_price,sl,status,opened_at,closed_at,pnl) values($1,$2,'EURUSD','buy',.01,1.1,1.099,'closed',clock_timestamp()-interval '1 day',clock_timestamp()-interval '1 day'+interval '2 minutes',40)",[a.id,uid]);
  await db.query('update trading_accounts set balance=1040 where id=$1',[a.id]);
  await db.query("select fn_switch_infinity_v2($1,$2,'switch-123','test-v2',true)",[a.id,uid]);
- const p=(await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p;assert.equal(p.n,0);assert.equal(Number(p.counted_profit),40);
+ const p=(await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p;assert.equal(p.n,0);
+ assert.equal(Number(p.counted_profit),0,'v1 profit does not count toward the v2 target');assert.equal(Number(p.target_baseline),1040);
+ assert.ok(p.unmet.includes('PROFIT_TARGET'));
  assert.equal(Number((await db.query('select fn_infinity_quick_trade_profit($1) q',[a.id])).rows[0].q),0,'pre-switch two-minute profit keeps its v1 treatment');
+ await db.query('update trading_accounts set balance=1079 where id=$1',[a.id]);
+ assert.ok((await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p.unmet.includes('PROFIT_TARGET'),'needs 4% above the switch balance, not above the start');
+ }finally{await db.close();}
+});
+test('switch made while down: target is measured from the starting balance, never lower',opts,async()=>{
+ const {db,account}=await v2db();try{const a=await account({version:'infinity_v1'});
+ await db.query("insert into trades(account_id,user_id,symbol,side,volume,open_price,sl,status,opened_at,closed_at,pnl) values($1,$2,'EURUSD','buy',.01,1.1,1.099,'closed',clock_timestamp()-interval '1 day',clock_timestamp()-interval '1 day'+interval '2 minutes',-20)",[a.id,uid]);
+ await db.query('update trading_accounts set balance=980 where id=$1',[a.id]);
+ await db.query("select fn_switch_infinity_v2($1,$2,'switch-456','test-v2',true)",[a.id,uid]);
+ assert.equal(Number((await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p.target_baseline),1000);
+ }finally{await db.close();}
+});
+test('best day: a counted trade closed either side of midnight UTC counts on the day it opened',opts,async()=>{
+ const {db,account}=await v2db();try{const a=await account();
+ const midnight=Math.ceil((Date.now()+3600000)/86400000)*86400000;
+ const t1=await open(db,a,{volume:.02,at:new Date(midnight-600000).toISOString()});
+ const t2=await open(db,a,{volume:.02,at:new Date(midnight-300000).toISOString()});
+ await close(db,t1,10,'manual',301);await close(db,t2,10,'manual',301);
+ const g=(await db.query('select count(distinct infinity_group_id) n from trades where account_id=$1',[a.id])).rows[0].n;assert.equal(Number(g),1,'one counted trade');
+ const days=(await db.query("select count(distinct (closed_at at time zone 'UTC')::date) n from trades where account_id=$1",[a.id])).rows[0].n;assert.equal(Number(days),2,'closes fall on two UTC days');
+ const p=(await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p;assert.equal(Number(p.counted_profit),20);assert.equal(Number(p.best_day_share),1);
+ }finally{await db.close();}
+});
+test('Stage 2 pass waits for a verified identity (setting on by default); trading is not blocked',opts,async()=>{
+ const {db,account}=await v2db();try{const s1=await account();const a=await account({stage:2,parent:s1.id});
+ assert.ok(!(await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p.unmet.includes('IDENTITY_VERIFICATION'),'verified fixture user');
+ await db.query("update trader_kyc set status='pending' where user_id=$1",[uid]);
+ const p=(await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p;assert.ok(p.unmet.includes('IDENTITY_VERIFICATION'));assert.equal(p.identity_required,true);
+ const t=await open(db,a,{volume:.01});assert.ok(t.id,'trading continues while identity is pending');
+ await db.exec('update infinity_v2_settings set stage3_requires_kyc=false where singleton');
+ assert.ok(!(await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p.unmet.includes('IDENTITY_VERIFICATION'));
+ const s1p=(await db.query('select infinity_v2_progress($1) p',[s1.id])).rows[0].p;assert.ok(!s1p.unmet.includes('IDENTITY_VERIFICATION'),'Stage 1 never needs it');
  }finally{await db.close();}
 });
 test('uncleared opposite-side ring evidence holds both traders’ payouts',opts,async()=>{

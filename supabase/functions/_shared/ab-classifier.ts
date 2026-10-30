@@ -9,6 +9,9 @@
 //   * an anytime-valid mixture e-value (safe to check after every fill without inflating false positives),
 //   * an exponentially weighted recent mean as the early-warning signal.
 // A live state never changes size here; sizing is the allocator's job (Day 3).
+// Policy v5 (30 Oct 2026 red team): the Stage 2 profit rule is replaced by a run-wide consistency-score gate, identity must be
+// verified before any copy state, and a kill switch stops copying when the copies themselves keep losing (_shared/copy-gate.ts).
+import { copyKill } from "./copy-gate.ts";
 
 export type BookState = "BB_DEMO" | "BB_LIVE" | "AB_DEMO" | "AB_LIVE" | "SUSPENDED";
 
@@ -37,6 +40,12 @@ export type Policy = {
   stage2AutoMinCopyR: number;   // their copy results (after costs) must average at least this (-Infinity = off)
   maxCopyGapR: number;          // feed-lag fingerprint: IPFX result minus copy result, averaged; above this = never promote (Infinity = off)
   herdBlocksAuto: boolean;      // members of a co-trading cluster (one signal source) need full evidence, not the 2.75% rule
+  gateRunScore: number;         // v5: run-wide consistency score that replaces the 2.75% rule (-Infinity = off: legacy rule)
+  gateRunMinCounted: number;    // v5: counted trades in the current run needed for the gate
+  gateRequireKyc: boolean;      // v5: identity verified before any A-book state
+  killCopyScore: number;        // v5: stop copying at this copy score or lower ... (-Infinity = off)
+  killMinCopied: number;        // ... once this many copied trades exist in the current state
+  killDrawdownR: number;        // v5: stop copying after this copy drawdown in R (Infinity = off)
 };
 
 export const POLICY_V1: Policy = {
@@ -45,6 +54,7 @@ export const POLICY_V1: Policy = {
   liveFlipMinTrades: 10, abFailTrades: 80, ewmaAlpha: 0.1, abDemoteEwma: -0.05,
   stage2AutoPct: 2.75, stage2AutoTarget: "AB_DEMO", stage2AutoMinTrades: 0, stage2AutoMinCopyR: -Infinity, maxCopyGapR: Infinity,
   herdBlocksAuto: false,
+  gateRunScore: -Infinity, gateRunMinCounted: 0, gateRequireKyc: false, killCopyScore: -Infinity, killMinCopied: 0, killDrawdownR: Infinity,
 };
 
 // People in a co-trading cluster of at least minSize (pairs joined transitively, union-find).
@@ -131,6 +141,8 @@ export type ClassifierInput = {
   suspend?: string | null;                 // integrity reason, if any
   stage2ProfitPct?: number | null;         // best open Infinity Stage 2 progress, if any
   herd?: boolean;                          // in a cluster of 3+ people who keep opening the same trades together
+  runGate?: { score: number; counted: number; startedAt: number } | null; // current Infinity run (v5 gate)
+  kycVerified?: boolean;                   // identity verified (v5)
 };
 export type Decision = { to: BookState; reason: string; evidence: Record<string, unknown> } | null;
 
@@ -156,16 +168,31 @@ export function decide(input: ClassifierInput, p: Policy = POLICY_V1): Decision 
   const cg = copyGap(all);
   const lagFree = !(cg.trades >= 15 && cg.gap > p.maxCopyGapR);
   const hftOk = same.shareUnder60s <= p.maxShareUnder60s && same.medianHold >= p.minMedianHoldSeconds && lagFree;
+  const kycOk = !p.gateRequireKyc || input.kycVerified === true;
+  const gateOn = Number.isFinite(p.gateRunScore);
+  // Kill switch (v5): copies that keep losing stop at once, test or live. Re-entry needs a new run or the owner.
+  if ((state === "AB_DEMO" || state === "AB_LIVE") && (Number.isFinite(p.killCopyScore) || Number.isFinite(p.killDrawdownR))) {
+    const k = copyKill(since.map((x) => x.sameR), p);
+    if (k.stop) return { to: "BB_DEMO", reason: k.reason, evidence: { copyScore: +k.score.toFixed(3), drawdownR: +k.drawdownR.toFixed(2), copied: since.length } };
+  }
 
   switch (state) {
     case "BB_DEMO": {
-      if (dwellOk && strong(same, p, p.eValuePromote) && hftOk)
+      if (dwellOk && strong(same, p, p.eValuePromote) && hftOk && kycOk)
         return { to: "AB_DEMO", reason: "trader profitable on their own after costs: test copying them directly", evidence: { same: summary(same) } };
       // The 2.75% rule looks at IPFX profit. A profit that cannot be copied (feed-lag trading, or one of two
       // opposite accounts of the same person) must not trigger it, so from policy v3 the person's replayed copy
       // results must also be non-negative over a minimum number of trades.
       const copyableOk = same.trades >= p.stage2AutoMinTrades && same.mean >= p.stage2AutoMinCopyR;
-      if (input.stage2ProfitPct != null && input.stage2ProfitPct >= p.stage2AutoPct && hftOk && copyableOk && !(p.herdBlocksAuto && input.herd))
+      if (gateOn) {
+        // v5: the run-wide score replaces the Stage 2 profit rule. A run that started before the last exit from an A-book state
+        // cannot re-promote the trader (a kill switch is final until a new run).
+        const g = input.runGate;
+        const freshRun = g != null && (input.lastAbExitAt == null || g.startedAt > input.lastAbExitAt);
+        if (g && freshRun && g.counted >= p.gateRunMinCounted && g.score >= p.gateRunScore && hftOk && copyableOk && kycOk && !(p.herdBlocksAuto && input.herd))
+          return { to: p.stage2AutoTarget, reason: `run-wide consistency score ${g.score.toFixed(2)} over ${g.counted} counted trades (gate ${p.gateRunScore} over ${p.gateRunMinCounted})`,
+            evidence: { runScore: +g.score.toFixed(3), runCounted: g.counted, same: summary(same) } };
+      } else if (input.stage2ProfitPct != null && input.stage2ProfitPct >= p.stage2AutoPct && hftOk && copyableOk && !(p.herdBlocksAuto && input.herd))
         return { to: p.stage2AutoTarget, reason: `Infinity Stage 2 profit ${input.stage2ProfitPct.toFixed(2)}% >= ${p.stage2AutoPct}% (automatic rule)`, evidence: { same: summary(same) } };
       const coolOk = input.lastAbExitAt == null || now - input.lastAbExitAt >= p.coolOffDays * DAY;
       if (dwellOk && coolOk && strong(rev, p, p.eValueLive) && hftOk)
@@ -177,7 +204,7 @@ export function decide(input: ClassifierInput, p: Policy = POLICY_V1): Decision 
       // "Keep losing" = evidence that reversing them is now below break-even, not one bad day.
       const revLosing = revSince.trades >= p.liveFlipMinTrades &&
         (eValueBelow(since.map((x) => x.reverseR), 0) >= p.eValuePromote || (revSince.trades >= p.minTrades && revSince.mean < 0));
-      if (revLosing && recentSame.mean > 0)
+      if (revLosing && recentSame.mean > 0 && kycOk)
         return { to: "AB_DEMO", reason: "reverse trades losing because the trader is now profitable", evidence: { reverse: summary(revSince), recentSame: summary(recentSame) } };
       if (rev.dayLower < 0 && rev.mean <= p.minEdgeR)
         return { to: "BB_DEMO", reason: "evidence for reversing this trader has faded", evidence: { reverse: summary(rev) } };
@@ -185,7 +212,7 @@ export function decide(input: ClassifierInput, p: Policy = POLICY_V1): Decision 
     }
     case "AB_DEMO": {
       // Only trades after entering the test count: a lucky past cannot pass it.
-      if (dwellOk && strong(sameSince, p, p.eValueLive) && hftOk)
+      if (dwellOk && strong(sameSince, p, p.eValueLive) && hftOk && kycOk)
         return { to: "AB_LIVE", reason: "copying this trader was profitable after costs during the A-book test", evidence: { prospective: summary(sameSince) } };
       if (sameSince.trades >= p.abFailTrades && sameSince.mean <= 0)
         return { to: "BB_DEMO", reason: "failed the A-book test: copying did not make money", evidence: { prospective: summary(sameSince) } };

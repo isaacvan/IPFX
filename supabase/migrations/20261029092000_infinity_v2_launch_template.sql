@@ -34,7 +34,7 @@ $launch$<!doctype html>
       <tr><td style="padding:8px;border:1px solid #e3e6ea;text-align:left;">Account</td><td style="padding:8px;border:1px solid #e3e6ea;">$1,000</td><td style="padding:8px;border:1px solid #e3e6ea;">$5,000</td><td style="padding:8px;border:1px solid #e3e6ea;">$10,000</td><td style="padding:8px;border:1px solid #e3e6ea;">$25,000</td></tr>
       <tr><td style="padding:8px;border:1px solid #e3e6ea;text-align:left;">Profit target</td><td style="padding:8px;border:1px solid #e3e6ea;">4%</td><td style="padding:8px;border:1px solid #e3e6ea;">7%</td><td style="padding:8px;border:1px solid #e3e6ea;">8%</td><td style="padding:8px;border:1px solid #e3e6ea;">—</td></tr>
       <tr><td style="padding:8px;border:1px solid #e3e6ea;text-align:left;">Counted trades</td><td style="padding:8px;border:1px solid #e3e6ea;">20</td><td style="padding:8px;border:1px solid #e3e6ea;">40</td><td style="padding:8px;border:1px solid #e3e6ea;">50</td><td style="padding:8px;border:1px solid #e3e6ea;">—</td></tr>
-      <tr><td style="padding:8px;border:1px solid #e3e6ea;text-align:left;">Consistency score</td><td style="padding:8px;border:1px solid #e3e6ea;">0.75</td><td style="padding:8px;border:1px solid #e3e6ea;">1.25</td><td style="padding:8px;border:1px solid #e3e6ea;">2.0</td><td style="padding:8px;border:1px solid #e3e6ea;">—</td></tr>
+      <tr><td style="padding:8px;border:1px solid #e3e6ea;text-align:left;">Consistency score</td><td style="padding:8px;border:1px solid #e3e6ea;">1.0</td><td style="padding:8px;border:1px solid #e3e6ea;">1.65</td><td style="padding:8px;border:1px solid #e3e6ea;">2.0</td><td style="padding:8px;border:1px solid #e3e6ea;">—</td></tr>
       <tr><td style="padding:8px;border:1px solid #e3e6ea;text-align:left;">Daily loss / max drawdown</td><td style="padding:8px;border:1px solid #e3e6ea;">2.5% / 5%</td><td style="padding:8px;border:1px solid #e3e6ea;">2% / 4%</td><td style="padding:8px;border:1px solid #e3e6ea;">2% / 4%</td><td style="padding:8px;border:1px solid #e3e6ea;">2% / 4%</td></tr>
     </table>
     <p style="font-size:13px;color:#5b6570;margin:8px 0 0;">Payouts are the same as today: Stage 3 completion and Stage 4 every 14 days, at an 85% split.</p></td></tr>
@@ -90,7 +90,7 @@ From **1 November** the Infinity Challenge moves to **Infinity v2**. It's built 
 | Account | $1,000 | $5,000 | $10,000 | $25,000 |
 | Profit target | 4% | 7% | 8% | none |
 | Counted trades | 20 | 40 | 50 | — |
-| Consistency score | 0.75 | 1.25 | 2.0 | — |
+| Consistency score | 1.0 | 1.65 | 2.0 | — |
 | Daily loss / max drawdown | 2.5% / 5% | 2% / 4% | 2% / 4% | 2% / 4% |
 
 Payouts are the same as today: Stage 3 completion and Stage 4 every 14 days, at an 85% split.

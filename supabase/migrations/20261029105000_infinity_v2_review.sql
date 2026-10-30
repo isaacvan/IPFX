@@ -41,9 +41,10 @@ do $owner$
 declare src text;
 begin
  select pg_get_functiondef('public.fn_owner_advance_infinity_stage(uuid,uuid)'::regprocedure) into src;
- if position(E'\nbegin\n' in src)=0 then raise exception 'OWNER_ADVANCE_SOURCE_DRIFT';end if;
+ -- The live body may use CRLF line endings (deployed from Windows): accept either.
+ if src !~ E'\r?\nbegin\r?\n' then raise exception 'OWNER_ADVANCE_SOURCE_DRIFT';end if;
  insert into public.infinity_v2_legacy_definitions values('public.fn_owner_advance_infinity_stage(uuid,uuid)',src);
- src:=replace(src,E'\nbegin\n',E'\nbegin\n if exists(select 1 from public.trading_accounts where id=p_account and rules_version=''infinity_v2'') then return public.fn_advance_infinity_stage(p_account,p_expected_user);end if;\n');
+ src:=regexp_replace(src,E'(\r?\nbegin\r?\n)',E'\\1 if exists(select 1 from public.trading_accounts where id=p_account and rules_version=''infinity_v2'') then return public.fn_advance_infinity_stage(p_account,p_expected_user);end if;\n');
  execute src;
 end $owner$;
 commit;

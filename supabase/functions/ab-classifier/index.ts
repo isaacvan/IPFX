@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decide, herdClusters, POLICY_V1, type BookState, type LedgerPoint, type Policy } from "../_shared/ab-classifier.ts";
 import { personMetrics, type LedgerRow } from "../_shared/brain.ts";
 import { bLiveReview } from "../_shared/b-live-review.ts";
+import { runGate, type GateTrade } from "../_shared/copy-gate.ts";
 type IntegritySignal = { person_id: string; investigation_hold: boolean | null; critical_flag: boolean | null; stage2_profit_pct: number | null };
 
 function constantTimeEqual(a: string, b: string): boolean {
@@ -63,6 +64,9 @@ async function run(db: any): Promise<Response> {
   const { data: pairs, error: herdErr } = await db.rpc("ab_herd_pairs");
   if (herdErr) return json({ error: "herd signals unavailable: " + herdErr.message }, 503);
   const herd = herdClusters((pairs ?? []) as Array<{ person_a: string; person_b: string }>, 3);
+  // Policy v5 copy gate: each person's current-run score and identity status. Must load, or the run stops (no silent promotions).
+  let gate: Map<string, { score: number; counted: number; startedAt: number }>, kyc: Set<string>;
+  try { ({ gate, kyc } = await gateInputs(db, policy)); } catch (e) { return json({ error: "copy gate inputs unavailable: " + String((e as Error)?.message ?? e) }, 503); }
 
   const now = Date.now();
   const finalState = new Map<string, BookState>();
@@ -80,6 +84,7 @@ async function run(db: any): Promise<Response> {
       points: points.get(p.person_id) ?? [], suspend,
       stage2ProfitPct: s?.stage2_profit_pct == null ? null : Number(s.stage2_profit_pct),
       herd: herd.has(p.person_id),
+      runGate: gate.get(p.person_id) ?? null, kycVerified: kyc.has(p.person_id),
     }, policy);
     if (!decision) continue;
     const { data: applied, error } = await db.rpc("ab_apply_transition", {
@@ -95,6 +100,53 @@ async function run(db: any): Promise<Response> {
   try { metrics = await writeMetrics(db, profiles ?? [], finalState, points, sig, herd, policy); }
   catch (e) { metricsError = String((e as Error)?.message ?? e); }
   return json({ ok: true, policy: policy.version, people: profiles?.length ?? 0, withEvidence: points.size, herd: herd.size, moved, conflicts, moves, metrics, metricsError, ms: Date.now() - started });
+}
+
+// Inputs for the v5 copy gate. Skipped (empty) while the active policy does not use the gate or the identity rule.
+// deno-lint-ignore no-explicit-any
+async function gateInputs(db: any, policy: Policy) {
+  const gate = new Map<string, { score: number; counted: number; startedAt: number }>(), kyc = new Set<string>();
+  if (!Number.isFinite(policy.gateRunScore) && !policy.gateRequireKyc) return { gate, kyc };
+  const { data: runs, error } = await db.rpc("ab_copy_gate_inputs");
+  if (error) throw new Error(error.message);
+  const owner = new Map<string, string>(), started = new Map<string, number>();
+  for (const r of runs ?? []) {
+    if (r.kyc_verified) kyc.add(r.person_id);
+    started.set(r.person_id, Date.parse(r.run_started_at));
+    for (const a of r.run_accounts ?? []) owner.set(a, r.person_id);
+  }
+  if (!Number.isFinite(policy.gateRunScore)) return { gate, kyc };
+  const ids = [...owner.keys()], rows = new Map<string, GateTrade[]>(), ledgerRisk = new Map<string, number>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    for (let from = 0; ; from += 1000) {
+      const { data, error: e } = await db.from("trades").select("id,parent_trade_id,account_id,symbol,side,opened_at,closed_at,pnl,initial_risk_usd,status")
+        .in("account_id", chunk).order("id", { ascending: true }).range(from, from + 999);
+      if (e) throw new Error("trades: " + e.message);
+      for (const t of data ?? []) {
+        const person = owner.get(t.account_id)!;
+        const list = rows.get(person) ?? [];
+        list.push({ id: t.id, parentId: t.parent_trade_id, accountId: t.account_id, symbol: t.symbol, side: t.side, openedAt: Date.parse(t.opened_at),
+          closedAt: t.status === "closed" && t.closed_at ? Date.parse(t.closed_at) : null, pnlUsd: Number(t.pnl ?? 0),
+          riskUsd: t.initial_risk_usd == null ? null : Number(t.initial_risk_usd) });
+        rows.set(person, list);
+      }
+      if (!data || data.length < 1000) break;
+    }
+    // v1 trades have no stored opening risk: use the ledger's stop-loss risk for the same trade.
+    for (let from = 0; ; from += 1000) {
+      const { data, error: e } = await db.from("ab_trade_ledger").select("trade_id,risk_usd").in("account_id", chunk).eq("risk_basis", "STOP_LOSS")
+        .order("trade_id", { ascending: true }).range(from, from + 999);
+      if (e) throw new Error("ledger risk: " + e.message);
+      for (const r of data ?? []) if (Number(r.risk_usd) > 0) ledgerRisk.set(r.trade_id, Number(r.risk_usd));
+      if (!data || data.length < 1000) break;
+    }
+  }
+  for (const [person, list] of rows) {
+    for (const t of list) if (t.riskUsd == null && !t.parentId) t.riskUsd = ledgerRisk.get(t.id) ?? null;
+    gate.set(person, { ...runGate(list), startedAt: started.get(person) ?? 0 });
+  }
+  return { gate, kyc };
 }
 
 // Brain control room metrics: every person's performance, evidence and tags (see _shared/brain.ts).
