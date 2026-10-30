@@ -76,8 +76,11 @@ log('hub: live = origin/main');
 const applied = new Set(sql('select version from supabase_migrations.schema_migrations').map((r) => r.version));
 const pending = MIGRATIONS.filter((f) => !applied.has(f.slice(0, 14)));
 const local = new Set(fs.readdirSync(path.join(ROOT, 'supabase/migrations')).map((f) => f.slice(0, 14)));
-const unknownLocal = [...local].filter((v) => /^\d{14}$/.test(v) && !applied.has(v) && !MIGRATIONS.some((f) => f.startsWith(v)));
-if (unknownLocal.length) fail('unexpected unapplied migrations outside this release: ' + unknownLocal.join(', '));
+// Older files were often applied by hand without a history row, so only files NEWER than the latest recorded version matter.
+const latest = [...applied].sort().pop();
+const unknownLocal = [...local].filter((v) => /^\d{14}$/.test(v) && v > latest && !applied.has(v) && !MIGRATIONS.some((f) => f.startsWith(v)));
+if (unknownLocal.length) fail('unexpected unapplied migrations newer than ' + latest + ' outside this release: ' + unknownLocal.join(', '));
+if (MIGRATIONS.some((f) => f.slice(0, 14) <= latest && !applied.has(f.slice(0, 14)))) fail('a release migration is older than the latest recorded migration ' + latest);
 if (APPLY && pending.length === 0) log('all release migrations already applied');
 log(`migrations pending: ${pending.length} of ${MIGRATIONS.length}`);
 
