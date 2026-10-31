@@ -36,7 +36,9 @@ run('npx', ['--no-install', 'supabase', 'link', '--project-ref', REF, '-p', '""'
 let qn = 0;   // every statement goes through a file: no shell quoting of SQL
 const sql = (q) => { const f = path.join(WORK, `q${++qn}.sql`); fs.writeFileSync(f, q); const t = run('npx', ['--no-install', 'supabase', 'db', 'query', '--linked', '-f', f, '-o', 'json'], { cwd: LINK });
   const j = JSON.parse(t.slice(t.indexOf('{'))); if (j._tag === 'Error') throw new Error(JSON.stringify(j.error)); return j.rows; };
-const sqlFile = (file) => { const t = run('npx', ['--no-install', 'supabase', 'db', 'query', '--linked', '-f', file, '-o', 'json'], { cwd: LINK });
+// The CLI runs through a shell on Windows, so the file must sit on a path without spaces (the repo is in "New folder").
+const sqlFile = (file) => { const copy = path.join(WORK, path.basename(file)); fs.copyFileSync(file, copy);
+  const t = run('npx', ['--no-install', 'supabase', 'db', 'query', '--linked', '-f', copy, '-o', 'json'], { cwd: LINK });
   const j = JSON.parse(t.slice(t.indexOf('{'))); if (j._tag === 'Error') throw new Error(JSON.stringify(j.error)); };
 
 // ---------- 1. preflight ----------
