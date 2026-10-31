@@ -13,7 +13,7 @@ try{
  const b=page.locator('#tbRestart');await b.waitFor({state:'visible'});await b.click();
  await page.getByRole('button',{name:'Continue',exact:true}).click();
  await page.getByRole('button',{name:'Agree and restart',exact:true}).waitFor();assert.equal(await page.locator('#rsGo').isDisabled(),true);
- assert.ok((await page.locator('#rsDialog').innerText()).includes('1.65 combined'));
+ {const t=await page.locator('#rsDialog').innerText();assert.ok(t.includes('1 this stage'),'Stage 1 score 1.0');assert.ok(t.includes('1.65 this stage'),'Stage 2 score 1.65');assert.ok(t.includes('2 combined'),'combined 2.0');assert.ok(!t.includes('0.75')&&!t.includes('1.25'),'old thresholds gone');}
  await page.locator('#rsAgree').check();assert.equal(await page.locator('#rsGo').isEnabled(),true);
  await page.locator('#rsGo').click();await page.getByText("Preview complete",{exact:true}).waitFor();
  assert.ok((await page.locator('#rsDialog').innerText()).includes('Preview only'));
@@ -59,7 +59,7 @@ try{
   await page.getByText("You're restarted",{exact:true}).waitFor();
   assert.equal((await fixture.db.query('select count(*) n from infinity_v2_switches')).rows[0].n,1);assert.equal((await fixture.db.query('select count(*) n from infinity_v2_restarts')).rows[0].n,1);
   assert.equal((await fixture.db.query("select count(*) n from trading_accounts where status='active' and rules_version='infinity_v2'")).rows[0].n,1);
-  await page.goto(url+'/infinity-v2.html',{waitUntil:'domcontentloaded'});await page.locator('#content').waitFor({state:'visible'});assert.ok((await page.locator('#stages').innerText()).includes('1.65 combined'));
+  await page.goto(url+'/infinity-v2.html',{waitUntil:'domcontentloaded'});await page.locator('#content').waitFor({state:'visible'});{const t=await page.locator('#stages').innerText();assert.ok(t.includes('1.65')&&t.includes('2 combined'),'public rules page shows 1.65 and 2.0');assert.ok(!t.includes('0.75')&&!t.includes('1.25'),'old thresholds gone');}
   console.log('PASS: local test-account switch and restart through actual engine action code and real PGlite transactions; exactly one acceptance of each operation and one active v2 account; no production access');
  }finally{await fixture.db.close();}
  }
