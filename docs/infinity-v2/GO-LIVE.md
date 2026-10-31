@@ -56,7 +56,7 @@ Don't reverse the migrations: with the flag off, v1 behaves exactly as today.
 The database refuses to enable v2 until both of these are set:
 
 1. **Published v2 Terms:** a row in `platform_legal_documents` with `kind='terms'` and a `document_url`.
-2. **Commission per lot for every enabled symbol.** Matching E8 is recommended.
+2. **Commission per lot for every enabled symbol.** **Done 31 Oct:** every profile is 1.75 times E8's spread plus $7.50 a lot. That makes each IPFX trade about 0.07R dearer than its E8 copy, so a trader who passes on IPFX does better when copied. Simulated: the unprofitable share of Stage 3 traders falls from about 8% to about 2%. Re-check the real gap from E8 shadow data after the first v2 week.
 
    ```sql
    update public.infinity_v2_pricing_profiles set commission_round_turn_per_lot = <X> where commission_round_turn_per_lot is null;
