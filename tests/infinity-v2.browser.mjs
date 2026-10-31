@@ -25,6 +25,26 @@ try{
   await page.locator('#rsDialog [data-rs="close"]').click();
  }
  assert.equal(mutations,0,'preview must never issue an account mutation');
+
+ // Overall consistency score: always shown in the challenge panel, and announced after each counted trade.
+ {const rules={stage_score:1,combined_score:null,min_counted_trades:20,target_pct:4,best_day_share:.35,group_gap_minutes:15,score_r_cap:5,min_hold_seconds:300};
+  const state=(n,score,pending=false)=>({ok:true,account:{id:'acct-preview',rules_version:'infinity_v2',challenge_type:'infinity',stage:1,status:'active',is_demo:false,
+   infinity_v2:{applies:true,eligible:false,unmet:[],n,score,combined_score:score,run_n:n,run_score:score,counted_profit:0,target:40,best_day_share:null,rules,scoring_pending:pending}},open_trades:[],pending_orders:[]});
+  const push=async st=>page.evaluate(st=>{engineState=st;window.dispatchEvent(new Event('ipfx-state'));window.ipfxInfinityV2.render();},st);
+  await push(state(5,0.62));
+  assert.match(await page.locator('#iv2Overall').innerText(),/Overall consistency score\s*0\.62[\s\S]*5 counted trades this run · Stage 1 needs 1.0/);
+  assert.equal(await page.locator('#iv2ScoreToast').count(),0,'no notice before a new counted trade');
+  await push(state(5,0.62,true));assert.equal(await page.locator('#iv2ScoreToast').count(),0,'no notice while scoring is pending');
+  await push(state(6,1.08));
+  await page.locator('#iv2ScoreToast.show').waitFor();
+  const toast=await page.locator('#iv2ScoreToast').innerText();
+  assert.match(toast,/Counted trade complete/i);assert.match(toast,/1\.08/);assert.match(toast,/▲ \+0\.46/);assert.match(toast,/6 counted trades · Stage 1 needs 1.0/);
+  assert.match(await page.locator('#iv2Overall .iv2-ov-v').getAttribute('class'),/\bok\b/,'meets the Stage 1 requirement: shown in green');
+  await page.screenshot({path:path.resolve('../infinity-v2-test-tmp/overall-score.png')});
+  await push(state(7,0.95));assert.match(await page.locator('#iv2ScoreToast').innerText(),/▼ -0\.13/,'a drop is shown too');
+  await page.evaluate(()=>{engineState={ok:true,account:{id:'v1',rules_version:'infinity_v1',challenge_type:'infinity',stage:1,status:'active'},open_trades:[],pending_orders:[]};window.dispatchEvent(new Event('ipfx-state'));window.ipfxInfinityV2.render();});
+  assert.equal(await page.locator('#iv2Overall').isHidden(),true,'not shown on v1 accounts');
+  console.log('PASS: overall consistency score shown in the panel and announced after each counted trade (up and down), hidden while pending and on v1');}
  console.log('PASS: actual trading.html preview; consent, Stage 2 combined threshold, confirmation, close, dark/light, no horizontal overflow and zero POST requests');
  if(process.env.DEMO_TEST_DEPS){
  const fixture=await v2db();try{

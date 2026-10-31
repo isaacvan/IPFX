@@ -97,6 +97,7 @@ export async function v2db({adapters=true,restart=true}={}){
  await db.exec(definition('20261005120000_ipfx_hub','hub_snapshot'));
  await db.exec(sqlFile('20261029107000_infinity_v2_hub_deadline'));
  await db.exec(sqlFile('20261030120000_infinity_v2_red_team'));
+ await db.exec(sqlFile('20261031020000_infinity_v2_run_score'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_restart_offer'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_take_fresh_restart'));
  await db.exec('update infinity_v2_pricing_profiles set commission_round_turn_per_lot=6 where commission_round_turn_per_lot is null');

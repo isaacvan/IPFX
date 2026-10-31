@@ -290,3 +290,20 @@ test('market and pending admissions share an atomic five-order burst allowance',
  assert.equal((await db.query('select count(*) n from trades')).rows[0].n,2);
  }finally{await db.close();}
 });
+
+test('overall consistency score: run-wide score and counted trades are returned after every scored trade, across stages',opts,async()=>{
+ const {db,account}=await v2db();try{const s1=await account();
+ const pnl=[3,-1,2,4,-2,3,1];
+ for(let i=0;i<pnl.length;i++){const t=await open(db,s1,{at:new Date(Date.now()+1000+i*6*3600000).toISOString()});await close(db,t,pnl[i]);
+  const p=(await db.query('select infinity_v2_progress($1) p',[s1.id])).rows[0].p;
+  assert.equal(p.run_n,i+1,'one more counted trade after each close');
+  assert.ok(Math.abs(Number(p.run_score)-Number(p.combined_score))<1e-9,'run score uses the combined-score formula');}
+ const rs=pnl.map(x=>x/1),m=rs.reduce((a,b)=>a+b)/rs.length,sd=Math.sqrt(rs.reduce((a,b)=>a+(b-m)**2,0)/(rs.length-1));
+ const p1=(await db.query('select infinity_v2_progress($1) p',[s1.id])).rows[0].p;
+ assert.ok(Math.abs(Number(p1.run_score)-m/(Math.max(sd,.5)/Math.sqrt(rs.length)))<1e-6,'mean / (max(sd,0.5)/sqrt n) on $1 risk trades');
+ const s2=await account({stage:2,parent:s1.id});
+ const t=await open(db,s2,{at:new Date(Date.now()+1000+60*6*3600000).toISOString()});await close(db,t,5);
+ const p2=(await db.query('select infinity_v2_progress($1) p',[s2.id])).rows[0].p;
+ assert.equal(p2.n,1,'stage count is Stage 2 only');assert.equal(p2.run_n,pnl.length+1,'overall count includes Stage 1');
+ }finally{await db.close();}
+});
