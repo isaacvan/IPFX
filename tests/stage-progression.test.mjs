@@ -48,12 +48,11 @@ test('the progress panel explains sessions in plain words and tells a flat-able 
 });
 
 test('Infinity page, Terms and chatbot all explain an exposure session with the same example', () => {
-  assert.match(infinity, /<span>What is an exposure session\?<\/span>/);
-  assert.match(infinity, /That is still <strong>one<\/strong> session\. At 11:45 you open another trade: you have been flat for 75 minutes, so that is a <strong>second<\/strong> session\./);
-  assert.match(infinity, /A session is one burst of trading: trades that are open at the same time, or that you open within 60 minutes of closing everything, count as one session/);
-  assert.match(infinity, /one burst of trading counts once/);
-  assert.match(infinity, /60 exposure sessions \(separate bursts of trading, explained in the FAQ below\)/);
-  assert.match(infinity, /40 exposure sessions \(separate bursts of trading, explained in the FAQ below\)/);
+  // Infinity v2 (from 1 Nov 2026) replaced sessions with counted trades on the Infinity page; the v1 session rules stay in the Terms.
+  assert.match(infinity, /<span>What is a counted trade and the consistency score\?<\/span>/);
+  assert.match(infinity, /you buy EURUSD at 09:00, add a second ticket at 09:10 and close both at 09:40: that is <strong>one<\/strong> counted trade/);
+  assert.match(infinity, /within <strong>15 minutes<\/strong> of the last entry/);
+  assert.doesNotMatch(infinity, /exposure session/i, 'the Infinity page no longer asks for exposure sessions');
   assert.match(terms, /In plain terms, a session is one burst of trading\. Example: you buy at 09:00/);
   assert.match(terms, /60 independent exposure sessions \(as defined in clause 4\.6\.1\) are required/);
   assert.match(sql, /'exposure-sessions', 'infinity', 'What is an exposure session\?'/);

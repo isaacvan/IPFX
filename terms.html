@@ -95,8 +95,8 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     <div class="hero-meta">
       <span>IPFX Capital</span>
       <span>Governed by English Law</span>
-      <span>Last updated: 16 October 2026</span>
-      <span>Version 2.2</span>
+      <span>Last updated: 31 October 2026</span>
+      <span>Version 2.3</span>
     </div>
   </div>
 
@@ -230,6 +230,7 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
 
     <div class="highlight-box">
       <p><strong>By activating an Infinity Challenge account, the Participant confirms they have read, understood, and accepted every rule set out in clauses 4.6.0 through 4.6.6 in full.</strong></p>
+      <p><strong>Rules versions.</strong> Clauses 4.6.0 to 4.6.6 are the <strong>Infinity v1</strong> rules. They continue to govern every Infinity run started before 1 November 2026 00:00 UTC, including later stages of that run, until the run fails or is restarted. Every Infinity run started or restarted at or after that time, and every run a Participant chooses to switch, is governed by the <strong>Infinity v2</strong> rules in clause 4.6A. Each account records its rules version, which never changes except by the switch in clause 4.6A.1.</p>
     </div>
 
     <h3>4.6.0 Automatic Promotion and Key Definitions</h3>
@@ -312,6 +313,67 @@ footer-note{display:block;margin-top:4rem;padding-top:2rem;border-top:1px solid 
     </div>
 
     <h3>4.6.6 Stop-loss warnings and failed-account lockout</h3><p>Keep a valid stop-loss on every Infinity position. If a position remains without one after 30 seconds, it is closed automatically. Positive profit from that trade is removed; losses remain. The trade is excluded from Challenge progress. Each distinct offending trade records one automatic strike. Three strikes in the same run end the run. Strikes reset on a new approved run, but the next-month lockout in clause 4.6.5 still applies. A separate team warning is a notice and does not create a second strike for the same event.</p><p>Touching or falling below either loss floor can fail the account on the first usable persisted equity observation. Equity includes unrealised positions using executable bid/ask prices. Intraday trailing drawdown follows the observed equity peak; daily calculations use UTC and the applicable account’s saved rule version. A price recovery does not undo a breach. Protective closes continue, and order attempts show the failure and next eligibility date. Technical failures, missing prices or execution delay do not guarantee an exact exit at a stop or loss floor.</p>
+
+    <h3>4.6A Infinity v2 — Detailed Programme Rules (runs started or restarted from 1 November 2026)</h3>
+    <p>Clause 4.6A applies to Infinity v2 accounts. Where it does not say otherwise, the other clauses of these Terms, including the stop-loss strikes in clause 4.6.6, payouts, identity checks and prohibited practices, apply unchanged.</p>
+
+    <h3>4.6A.1 Which rules apply, and switching</h3>
+    <ul>
+      <li><strong>New runs and restarts:</strong> every Infinity run started, restarted (monthly restart, free restart or the Restart button) or approved at or after 1 November 2026 00:00 UTC is an Infinity v2 run. Before restarting, you must accept these rules.</li>
+      <li><strong>Existing runs:</strong> a run started earlier stays on Infinity v1 until it fails or is restarted.</li>
+      <li><strong>Optional switch:</strong> a Participant with an Infinity v1 account may switch it to Infinity v2 when it has no open positions or pending orders. Switching is one-way and is recorded with your acceptance. Balance, loss floors, strikes and any held Stage 2 profit carry over. From the switch, the v2 counted trades, consistency score and best-day share count only trades opened after the switch, and the profit target is measured from the higher of the stage starting balance and the closed balance at the moment of switching.</li>
+    </ul>
+
+    <h3>4.6A.2 Key definitions</h3>
+    <ul>
+      <li><strong>Counted trade:</strong> one trade, or several trades on the same account, instrument and direction opened while one of them is still open or within 15 minutes of the last entry. Adding to a position is one counted trade, not several, and all its trades share one risk limit.</li>
+      <li><strong>Opening risk:</strong> the loss at the stop-loss set when a trade is opened or within 30 seconds, recorded when the trade opens and never changed.</li>
+      <li><strong>R:</strong> a counted trade&rsquo;s combined profit or loss divided by its combined opening risk. For the consistency score only, each R is limited to between &minus;5 and +5. Your balance always shows the full amount.</li>
+      <li><strong>Consistency score:</strong> the average R divided by (the sample standard deviation of R, treated as at least 0.5, divided by the square root of the number of counted trades), over the counted trades stated in clause 4.6A.3. It is shown on your dashboard.</li>
+      <li><strong>Counted profit:</strong> closed profit, excluding profit from any trade closed less than 5 minutes after it opened. Losses always count.</li>
+      <li><strong>Best day:</strong> the largest counted profit attributed to one UTC calendar day, where each counted trade&rsquo;s profit, including partial closes, belongs to the day that counted trade opened.</li>
+    </ul>
+
+    <h3>4.6A.3 Stages</h3>
+    <table class="def-table">
+      <tr><th></th><th>Stage 1</th><th>Stage 2</th><th>Stage 3</th><th>Stage 4</th></tr>
+      <tr><td>Simulated capital</td><td>US$1,000</td><td>US$5,000</td><td>US$10,000</td><td>US$25,000</td></tr>
+      <tr><td>Profit target (counted profit)</td><td>4%</td><td>7%</td><td>8%</td><td>none</td></tr>
+      <tr><td>Minimum counted trades in the stage</td><td>20</td><td>40</td><td>50</td><td>none</td></tr>
+      <tr><td>Consistency score</td><td>&ge; 1.0 on Stage 1</td><td>&ge; 1.65 on Stage 2 and &ge; 2.0 over Stages 1&ndash;2</td><td>&ge; 2.0 over Stages 1&ndash;3</td><td>none</td></tr>
+      <tr><td>Best day</td><td>&le; 35% of counted profit</td><td>&le; 35%</td><td>&le; 30%</td><td>payout filters</td></tr>
+      <tr><td>Maximum risk per counted trade</td><td>0.5%</td><td>0.35%</td><td>0.35%</td><td>0.25%</td></tr>
+      <tr><td>Total open risk</td><td colspan="4">at most 3 times the per-trade limit</td></tr>
+      <tr><td>Daily loss limit</td><td>2.5%</td><td>2%</td><td>2%</td><td>2%</td></tr>
+      <tr><td>Maximum drawdown (trailing on closed balance)</td><td>5%</td><td>4%</td><td>4%</td><td>4%</td></tr>
+    </table>
+    <ul>
+      <li><strong>Passing a stage:</strong> all requirements must be met at the same time with no open positions or pending orders. There are no minimum trading days, sessions or waiting periods. The next stage opens automatically.</li>
+      <li><strong>Identity before Stage 3:</strong> moving from Stage 2 to Stage 3 requires completed identity verification. Until it is complete the pass is held; the account keeps trading normally.</li>
+      <li><strong>Review holds:</strong> linked or shared identities, coordinated or opposite-side trading between accounts and repeated identical trades between different people hold a stage pass or payout for review, as set out in clauses 8.2 and 8.7. Trading continues during a review.</li>
+      <li><strong>Stage 4 performance rule:</strong> a Stage 4 account ends if its net result over any 40 consecutive counted trades is a loss of 2% of the Stage 4 capital (US$500) or more.</li>
+    </ul>
+
+    <h3>4.6A.4 Trading rules</h3>
+    <ol>
+      <li><strong>Stop-loss on every trade</strong>, set when the trade opens or within 30 seconds, at least <strong>8 times the instrument&rsquo;s current spread</strong> from the entry price. The order ticket shows the minimum and refuses a closer stop.</li>
+      <li><strong>Stops may only be tightened</strong>, moved to break-even or moved into profit. They cannot be widened or removed.</li>
+      <li><strong>Pause after a stop-out:</strong> when a stop-loss is hit, new orders on that instrument are paused on that account for 10 minutes.</li>
+      <li><strong>Daily loss</strong> is measured from the closed balance at 00:00 UTC. Open profit carried overnight does not raise that level.</li>
+      <li><strong>No daily profit cap:</strong> positions are never closed, and accounts are never paused, for making money.</li>
+      <li><strong>Overnight and weekend holding</strong> is allowed. Prices can gap, and a gap can fill beyond a stop.</li>
+      <li><strong>Limits:</strong> at most 20 open positions and 20 pending orders, and 5 new orders per 10 seconds.</li>
+    </ol>
+
+    <h3>4.6A.5 Pricing and execution</h3>
+    <p>Every Infinity v2 Participant receives the same pricing and execution. Spreads are set from our reference prices plus a published markup for each instrument, and a commission per lot (round turn) is charged, currently US$7.50. Current spreads, commissions and minimum stop distances are shown in the order ticket. We may change pricing for new trades with reasonable notice on the platform; open trades keep the pricing they opened with. Market orders are filled at the market price after a short execution delay, and stops fill at the market price when triggered, including any gap. Your simulated fills never depend on whether the Company copies or hedges any trade (clause 11.3).</p>
+
+    <h3>4.6A.6 Payouts and restarts</h3>
+    <ul>
+      <li><strong>Payouts</strong> are as set out in clause 4.6, except that profit from trades closed in under 5 minutes is excluded from counted profit.</li>
+      <li><strong>Restarts:</strong> one Stage 1 attempt each calendar month, as set out in clause 4.6.5. A restart starts a new Infinity v2 Stage 1 from zero and ends the current run. Records, payouts already due and history are kept.</li>
+    </ul>
+
 <h3>4.7 Traditional Challenge — Detailed Programme Rules</h3>
     <p>The Traditional Challenge is a paid three-phase evaluation programme. The applicable fee and account size are selected at purchase. All rules below are exact, mandatory, and non-negotiable. By activating a Traditional Challenge account, the Participant confirms they have read, understood, and accepted every rule set out in clauses 4.7.1 through 4.7.5 in full.</p>
 

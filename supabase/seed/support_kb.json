@@ -119,7 +119,7 @@
     "walk me through",
     "overview"
    ],
-   "answer": "1. **Create an account** and verify your email.\n2. **Choose a programme** and submit an application (identity details and documents).\n3. **Our team reviews it** — {{c:review_time}}. Nothing is charged and no account is created until you're approved.\n4. **Trade on IPFX Markets.** The Infinity Challenge is free; Traditional and Futures are paid after approval.\n5. **Meet the rules** (profit target, drawdown and daily loss limits, minimum days).\n6. **Get funded** and request payouts — you keep {{p:trad_25k_p1.split_pct}} of the profit.\n\nEvaluation accounts use virtual capital. Ask me for detail on any step.",
+   "answer": "1. **Create an account** and verify your email.\n2. **Choose a programme** and submit an application (identity details and documents).\n3. **Our team reviews it** — {{c:review_time}}. Nothing is charged and no account is created until you're approved.\n4. **Trade on IPFX Markets.** The Infinity Challenge is free; Traditional and Futures are paid after approval.\n5. **Meet the rules** (profit target, drawdown and daily loss limits, minimum days).\n6. **Get funded** and request payouts — you keep {{p:trad_25k_p1.split_pct}} of the profit.\n\nEvaluation accounts use virtual capital. Ask me for detail on any step.\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": [
     "How do I start?",
     "What do I need to apply?",
@@ -627,7 +627,7 @@
     "stage 1 rules",
     "evaluation stage"
    ],
-   "answer": "**Stage 1 — {{p:infinity_s1.balance}} account (free):**\n- Profit target {{p:infinity_s1.target_pct}} ({{p:infinity_s1.target_amt}})\n- Max daily loss {{p:infinity_s1.daily_pct}} ({{p:infinity_s1.daily_amt}}); max drawdown {{p:infinity_s1.dd_pct}} ({{p:infinity_s1.dd_amt}}), {{p:infinity_s1.dd_mode}}\n- Minimum {{p:infinity_s1.min_days}} trading days and {{p:infinity_s1.min_trades}} trades\n- Max risk per trade {{p:infinity_s1.risk_pct}} ({{p:infinity_s1.risk_amt}}), stop-loss required\n- Daily profit cap {{p:infinity_s1.cap_pct}} — profit above the cap on one day doesn't count\n- Up to {{p:infinity_s1.attempts}} attempts per calendar month",
+   "answer": "**Stage 1 — {{p:infinity_s1.balance}} account (free):**\n- Profit target {{p:infinity_s1.target_pct}} ({{p:infinity_s1.target_amt}})\n- Max daily loss {{p:infinity_s1.daily_pct}} ({{p:infinity_s1.daily_amt}}); max drawdown {{p:infinity_s1.dd_pct}} ({{p:infinity_s1.dd_amt}}), {{p:infinity_s1.dd_mode}}\n- Minimum {{p:infinity_s1.min_days}} trading days and {{p:infinity_s1.min_trades}} trades\n- Max risk per trade {{p:infinity_s1.risk_pct}} ({{p:infinity_s1.risk_amt}}), stop-loss required\n- Daily profit cap {{p:infinity_s1.cap_pct}} — profit above the cap on one day doesn't count\n- Up to {{p:infinity_s1.attempts}} attempts per calendar month\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": [
     "Why is there a daily profit cap?",
     "What happens if I fail?"
@@ -647,7 +647,7 @@
     "funded simulation",
     "stage 2 rules"
    ],
-    "answer": "**Stage 2 — {{p:infinity_s2.balance}} simulated account:**\n- Profit target {{p:infinity_s2.target_pct}} ({{p:infinity_s2.target_amt}}); provisional {{p:infinity_s2.split_pct}} profit share\n- Max daily loss {{p:infinity_s2.daily_pct}}; max drawdown {{p:infinity_s2.dd_pct}} ({{p:infinity_s2.dd_mode}})\n- Minimum {{p:infinity_s2.min_days}} trading days and {{p:infinity_s2.min_trades}} independent exposure sessions\n- At least {{p:infinity_s2.prof_days_pct}} of trading days must be profitable\n- Max risk per trade {{p:infinity_s2.risk_pct}}, stop-loss required\n- Best day no more than 35% of positive profit\n\nStage 2 earnings are held. They become eligible for review only after the 5% Stage 3 milestone and its observation requirements are satisfied.",
+    "answer": "**Stage 2 — {{p:infinity_s2.balance}} simulated account:**\n- Profit target {{p:infinity_s2.target_pct}} ({{p:infinity_s2.target_amt}}); provisional {{p:infinity_s2.split_pct}} profit share\n- Max daily loss {{p:infinity_s2.daily_pct}}; max drawdown {{p:infinity_s2.dd_pct}} ({{p:infinity_s2.dd_mode}})\n- Minimum {{p:infinity_s2.min_days}} trading days and {{p:infinity_s2.min_trades}} independent exposure sessions\n- At least {{p:infinity_s2.prof_days_pct}} of trading days must be profitable\n- Max risk per trade {{p:infinity_s2.risk_pct}}, stop-loss required\n- Best day no more than 35% of positive profit\n\nStage 2 earnings are held. They become eligible for review only after the 5% Stage 3 milestone and its observation requirements are satisfied.\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": [
     "How do Infinity payouts work?"
    ]
@@ -666,7 +666,7 @@
     "stage 3 rules",
     "qualify"
    ],
-    "answer": "**Stage 3 — {{p:infinity_s3.balance}} qualification account:**\n- Profit target {{p:infinity_s3.target_pct}} ({{p:infinity_s3.target_amt}})\n- Max daily loss {{p:infinity_s3.daily_pct}}; max drawdown {{p:infinity_s3.dd_pct}} ({{p:infinity_s3.dd_mode}})\n- Minimum {{p:infinity_s3.min_days}} trading days and {{p:infinity_s3.min_trades}} independent exposure sessions\n- Max risk per trade {{p:infinity_s3.risk_pct}}, stop-loss required\n- Best day no more than 30% of positive profit\n\nAt 5% closed profit, after all observation rules are met, held Stage 2 earnings become eligible for payout review. Completing the full target triggers the Stage 4 review.",
+    "answer": "**Stage 3 — {{p:infinity_s3.balance}} qualification account:**\n- Profit target {{p:infinity_s3.target_pct}} ({{p:infinity_s3.target_amt}})\n- Max daily loss {{p:infinity_s3.daily_pct}}; max drawdown {{p:infinity_s3.dd_pct}} ({{p:infinity_s3.dd_mode}})\n- Minimum {{p:infinity_s3.min_days}} trading days and {{p:infinity_s3.min_trades}} independent exposure sessions\n- Max risk per trade {{p:infinity_s3.risk_pct}}, stop-loss required\n- Best day no more than 30% of positive profit\n\nAt 5% closed profit, after all observation rules are met, held Stage 2 earnings become eligible for payout review. Completing the full target triggers the Stage 4 review.\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": [
     "What is the quant review?",
     "How do Infinity payouts work?"
@@ -760,7 +760,7 @@
     "profit limit per day",
     "capped profit"
    ],
-   "answer": "Stage 1 counts at most **{{p:infinity_s1.cap_pct}} profit per day** ({{p:infinity_s1.target_amt}} target overall). It exists so a single lucky trade or day can't pass the stage — the result has to be repeatable across days. Profit above the cap on a day doesn't count towards the target. Losses always count in full.",
+   "answer": "Stage 1 counts at most **{{p:infinity_s1.cap_pct}} profit per day** ({{p:infinity_s1.target_amt}} target overall). It exists so a single lucky trade or day can't pass the stage — the result has to be repeatable across days. Profit above the cap on a day doesn't count towards the target. Losses always count in full.\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": []
   },
   {
@@ -1054,7 +1054,7 @@
     "8%",
     "closed trades"
    ],
-   "answer": "{{cmp:target}}\n\nProfit counts on **closed trades only** — floating profit doesn't count. Reaching the target isn't enough on its own: you must also meet the minimum trading days and trades (and, in Infinity Stage 2, the profitable-days requirement).",
+   "answer": "{{cmp:target}}\n\nProfit counts on **closed trades only** — floating profit doesn't count. Reaching the target isn't enough on its own: you must also meet the minimum trading days and trades (and, in Infinity Stage 2, the profitable-days requirement).\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": [
     "What are the minimum trading days?"
    ]
@@ -1076,7 +1076,7 @@
     "holding time",
     "profitable day"
    ],
-   "answer": "**Minimum trading days:**\n{{cmp:min_days}}\n\n**Minimum trades:**\n{{cmp:min_trades}}\n\nA trading day is a calendar day on which at least one trade was opened **and** closed. For accounts opened on or after {{c:rules_v2_date}}, a trade only counts if it was held at least **60 seconds**, partial closes don't create extra counted trades, and a day counts as profitable only if it closes at least 0.25% of the starting balance in profit.",
+   "answer": "**Minimum trading days:**\n{{cmp:min_days}}\n\n**Minimum trades:**\n{{cmp:min_trades}}\n\nA trading day is a calendar day on which at least one trade was opened **and** closed. For accounts opened on or after {{c:rules_v2_date}}, a trade only counts if it was held at least **60 seconds**, partial closes don't create extra counted trades, and a day counts as profitable only if it closes at least 0.25% of the starting balance in profit.\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": []
   },
   {
@@ -1094,7 +1094,7 @@
     "25% rule",
     "single trade profit"
    ],
-   "answer": "- **To pass the evaluation:** Traditional and Futures have **no consistency rule**. Infinity Stage 1 has a daily profit cap and Stage 2 requires a share of profitable days.\n- **To be paid:** payouts have consistency checks — no single trade may be more than **25%** of the period's profit; for accounts opened on or after {{c:rules_v2_date}}, the period must also include at least **4 trading days** and no single day may exceed **40%** of the profit.",
+   "answer": "- **To pass the evaluation:** Traditional and Futures have **no consistency rule**. Infinity Stage 1 has a daily profit cap and Stage 2 requires a share of profitable days.\n- **To be paid:** payouts have consistency checks — no single trade may be more than **25%** of the period's profit; for accounts opened on or after {{c:rules_v2_date}}, the period must also include at least **4 trading days** and no single day may exceed **40%** of the profit.\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": [
     "How do payouts work?"
    ]
@@ -2044,7 +2044,7 @@
     "no time limit",
     "30 day challenge"
    ],
-   "answer": "- **Traditional and Futures:** there's **no time limit** to pass a phase. You must still meet the minimum trading days and trades, and every rule applies at all times.\n- **Infinity:** none of the published rules includes a deadline; the limit that applies is the number of Stage 1 attempts per calendar month ({{p:infinity_s1.attempts}}).\n- **PAC:** the evaluation window (standard, extended or unlimited) is agreed with you.",
+   "answer": "- **Traditional and Futures:** there's **no time limit** to pass a phase. You must still meet the minimum trading days and trades, and every rule applies at all times.\n- **Infinity:** none of the published rules includes a deadline; the limit that applies is the number of Stage 1 attempts per calendar month ({{p:infinity_s1.attempts}}).\n- **PAC:** the evaluation window (standard, extended or unlimited) is agreed with you.\n\n**Infinity v2 (from 1 November 2026):** new and restarted runs have no minimum days or sessions and no daily profit cap. You pass on counted trades and a consistency score instead. Ask \"What are the Infinity v2 rules?\" for the details. The text above describes Infinity v1, which still applies to runs started before 1 November 2026.",
    "follow_ups": [
     "What are the minimum trading days?",
     "What are the profit targets?"
@@ -2122,6 +2122,91 @@
    "follow_ups": [
     "How do I start?",
     "Is the Infinity Challenge free?"
+   ]
+  },
+  {
+   "id": "infinity-v2-rules",
+   "topic": "infinity",
+   "title": "What are the Infinity v2 rules?",
+   "keywords": [
+    "infinity v2",
+    "v2",
+    "new rules",
+    "new infinity rules",
+    "november rules",
+    "infinity rules",
+    "what changed",
+    "consistency score",
+    "counted trades",
+    "no minimum days"
+   ],
+   "answer": "**Infinity v2** applies to every run started or restarted from **1 November 2026**.\n\n| | Stage 1 | Stage 2 | Stage 3 | Stage 4 |\n|---|---|---|---|---|\n| Account | $1,000 | $5,000 | $10,000 | $25,000 |\n| Profit target | 4% | 7% | 8% | none |\n| Counted trades | 20 | 40 | 50 | none |\n| Consistency score | 1.0 | 1.65 this stage and 2.0 overall | 2.0 overall | none |\n| Best day | 35% | 35% | 30% | payout filters |\n| Daily loss / max drawdown | 2.5% / 5% | 2% / 4% | 2% / 4% | 2% / 4% |\n\n- **No minimum days or sessions** and **no daily profit cap**.\n- **Stop loss** on every trade, at least **8 times the spread**; tighten it or move it to break-even, never further away.\n- **Hold at least 5 minutes** for profit to count. Losses always count.\n- **After a stop-out** the instrument pauses for **10 minutes**.\n- **Daily loss** is measured from your closed balance at 00:00 UTC.\n- **Verified identity** is needed to move from Stage 2 to Stage 3.\n- Payouts are unchanged: 85% of combined Stage 2 and Stage 3 profit, $500 minimum, $700 maximum.",
+   "follow_ups": [
+    "What is a counted trade?",
+    "Which rules apply to my run?"
+   ]
+  },
+  {
+   "id": "infinity-v2-counted-trades",
+   "topic": "infinity",
+   "title": "What is a counted trade and the consistency score?",
+   "keywords": [
+    "counted trade",
+    "counted trades",
+    "consistency score",
+    "overall score",
+    "score",
+    "what is r",
+    "r result",
+    "how is the score calculated",
+    "split tickets"
+   ],
+   "answer": "A **counted trade** is one trade, or several trades on the same instrument and direction opened while one of them is still open or within **15 minutes** of the last entry. They share one risk limit and count once.\n\nEach counted trade gets a result in **R**: its profit or loss divided by the risk to your opening stop (capped at plus or minus 5R for the score only).\n\nYour **consistency score** is your average R divided by (the spread of your R results, treated as at least 0.5, divided by the square root of the number of counted trades). Steady positive trading raises it; one lucky trade cannot push it far.\n\nIPFX Markets shows your **overall score** (every counted trade in this run) at all times and tells you the new score after each counted trade.",
+   "follow_ups": [
+    "What are the Infinity v2 rules?",
+    "Which rules apply to my run?"
+   ]
+  },
+  {
+   "id": "infinity-v2-which-rules",
+   "topic": "infinity",
+   "title": "Which rules apply to my run, v1 or v2?",
+   "keywords": [
+    "which rules",
+    "v1",
+    "infinity v1",
+    "my rules",
+    "started before november",
+    "old rules",
+    "switch to v2",
+    "switch",
+    "keep my rules"
+   ],
+   "answer": "Your run keeps the rules it started with.\n\n- **Started before 1 November 2026:** Infinity v1, unchanged, until it ends (a breach) or you restart.\n- **Started or restarted from 1 November 2026:** Infinity v2.\n- **Switching:** you can switch a v1 run to v2 from IPFX Markets when you have no open positions or pending orders. It is **one-way**. Your balance, loss limits and any held Stage 2 profit carry over; the v2 counted trades and score start from the switch, and your target is measured from your balance at the switch.\n\nThe badge next to the CHALLENGE/DEMO toggle on IPFX Markets shows which version your account is on.",
+   "follow_ups": [
+    "How do I restart?",
+    "What are the Infinity v2 rules?"
+   ]
+  },
+  {
+   "id": "infinity-v2-restart",
+   "topic": "infinity",
+   "title": "How do I restart my Infinity challenge?",
+   "keywords": [
+    "restart",
+    "restart challenge",
+    "reset",
+    "start again",
+    "new attempt",
+    "one restart",
+    "monthly restart",
+    "restart this month",
+    "start from zero"
+   ],
+   "answer": "Every trader has **one free Stage 1 restart each calendar month**, and it resets on the 1st.\n\n1. On IPFX Markets, click **Restart Challenge** next to the CHALLENGE/DEMO toggle (it shows how many restarts you have left).\n2. Close any open positions and cancel pending orders first.\n3. Read the **Infinity v2** requirements, tick the agreement box and click **Agree and restart**.\n\nYou start again from zero with a new $1,000 Stage 1 account on Infinity v2. Your current run ends and its progress does not carry over; your records and any payouts already due are kept.",
+   "follow_ups": [
+    "What are the Infinity v2 rules?",
+    "Which rules apply to my run?"
    ]
   }
  ]

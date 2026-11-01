@@ -1841,21 +1841,21 @@
                             <div class="step-badge">1</div>
                             <div class="step-capital">$1,000</div>
                             <h3>Prove It</h3>
-                            <p>4% target. Min 10 days and 30 independent exposure sessions. Max 0.50% risk/trade. 1.40% daily profit cap.</p>
+                            <p>4% target with at least 20 counted trades and a consistency score of 1.0. No minimum days or sessions. Max 0.50% risk per counted trade. No daily profit cap.</p>
                         </div>
 
                         <div class="step-card reveal">
                             <div class="step-badge">2</div>
                             <div class="step-capital">$5,000</div>
                             <h3>Get Funded</h3>
-                            <p>7% target. 15 trading days and 60 exposure sessions. At least 40% of trading days profitable. Best day capped at 35% of positive profit.</p>
+                            <p>7% target with 40 counted trades, a stage score of 1.65 and an overall score of 2.0. Best day capped at 35% of your profit. Verify your identity to move up.</p>
                         </div>
 
                         <div class="step-card reveal">
                             <div class="step-badge">3</div>
                             <div class="step-capital">$10,000</div>
                             <h3>Qualify &amp; Get Paid</h3>
-                            <p>8% target. Stage 2 earnings remain visible but held. After full Stage 3 completion, eligible Stage 2 and Stage 3 earnings combine for a payout request, subject to the $500 minimum, the $700 maximum Stage 3 payout and published checks.</p>
+                            <p>8% target with 50 counted trades and an overall score of 2.0. Stage 2 earnings remain visible but held. After full Stage 3 completion, eligible Stage 2 and Stage 3 earnings combine for a payout request, subject to the $500 minimum, the $700 maximum Stage 3 payout and published checks.</p>
                         </div>
 
                         <div class="step-card reveal">
@@ -1880,6 +1880,19 @@
                     <h2 class="section-title">Full Transparency: The 4-Stage Pathway</h2>
                     <p class="section-subtitle">Published rules measure performance and risk over time; a stage pass alone cannot prove future profitability.</p>
 
+                    <div class="reveal" id="infinityV2Notice" style="border:1px solid rgba(37,99,235,.45);background:rgba(37,99,235,.08);border-radius:14px;padding:1.25rem 1.4rem;margin:0 0 2rem;">
+                        <p style="margin:0 0 .6rem;font-weight:700;color:var(--fg,#fff);">Infinity v2: the rules below apply to every run started or restarted from 1 November 2026.</p>
+                        <p style="margin:0 0 .9rem;color:var(--muted,#a0a0a0);">Runs started before then keep their existing (v1) rules until they end or restart. <strong>Every trader gets one free restart each calendar month, including this month:</strong> use <em>Restart Challenge</em> on IPFX Markets to start a fresh Infinity v2 run from Stage 1, or keep your current run. You can also switch a v1 run to v2 from IPFX Markets when you have no open positions; switching is one-way. Full rules: <a href="/terms.html" style="color:#60a5fa;">Terms clause 4.6A</a> and the <a href="/infinity-v2.html" style="color:#60a5fa;">Infinity v2 rules page</a>.</p>
+                        <ul style="margin:0;padding-left:1.2rem;color:var(--muted,#a0a0a0);line-height:1.7;">
+                            <li><strong>Counted trades:</strong> trades on the same instrument and direction opened while one is open or within 15 minutes count as one trade, sharing one risk limit.</li>
+                            <li><strong>Consistency score:</strong> how clearly your wins outweigh your losses across your counted trades, shown live and after every trade on IPFX Markets.</li>
+                            <li><strong>Stop loss on every trade,</strong> at least 8× the current spread. Tighten it or move it to break-even, never further away.</li>
+                            <li><strong>Hold at least 5 minutes</strong> for profit to count. Losses always count.</li>
+                            <li><strong>After a stop-out,</strong> that instrument pauses for 10 minutes.</li>
+                            <li><strong>No daily profit cap</strong> and no minimum trading days. Daily loss is measured from your closed balance at 00:00 UTC.</li>
+                        </ul>
+                    </div>
+
                     <!-- Stage 1 -->
                 <div class="phase-card reveal">
                     <div class="phase-header">
@@ -1891,7 +1904,7 @@
                     </div>
 
                     <p class="phase-description">
-                        Start completely free. Reach 4% while respecting every published rule. The stage requires at least 14 elapsed calendar days, 10 meaningful trading days and 30 exposure sessions. A session is one burst of trading: trades that are open at the same time, or that you open within 60 minutes of closing everything, count as one session, so splitting one idea into many tickets adds nothing extra (see the FAQ below for an example).
+                        Start completely free. Reach 4% with at least <strong>20 counted trades</strong> and a <strong>consistency score of 1.0</strong> or more, with no single day over 35% of your profit. There are no minimum days or sessions: you pass as soon as your results show it. Trades on the same instrument and direction within 15 minutes count as one counted trade, so splitting one idea into many tickets adds nothing (see the FAQ below).
                     </p>
 
                     <div class="phase-details-grid">
@@ -1908,20 +1921,20 @@
                             <span data-preset="infinity_s1" data-field="dd">$50 (5%)</span>
                         </div>
                         <div class="detail-item">
-                            <span>Min Trading Days</span>
-                            <span data-preset="infinity_s1" data-field="min_days" data-suffix=" Days">10 Days</span>
+                            <span>Counted Trades</span>
+                            <span>20 minimum</span>
                         </div>
                         <div class="detail-item">
-                            <span>Exposure Sessions<small style="display:block;margin-top:4px;font-weight:400;font-size:.68rem;letter-spacing:0;text-transform:none;opacity:.75">one burst of trading counts once</small></span>
-                            <span data-preset="infinity_s1" data-field="min_trades" data-suffix=" Sessions">30 Sessions</span>
+                            <span>Consistency Score</span>
+                            <span>1.0 or more</span>
                         </div>
                         <div class="detail-item">
-                            <span>Max Risk / Trade</span>
+                            <span>Max Risk / Counted Trade</span>
                             <span data-preset="infinity_s1" data-field="risk">0.5% ($5)</span>
                         </div>
                         <div class="detail-item">
                             <span>Daily Profit Cap</span>
-                            <span>1.4% ($14)</span>
+                            <span>None</span>
                         </div>
                         <div class="detail-item">
                             <span>Max Attempts</span>
@@ -1945,7 +1958,7 @@
                     </div>
 
                     <p class="phase-description">
-                        Trade a $5,000 simulated account with a provisional 85% profit share. Reach 7% while completing at least 21 elapsed calendar days, 15 meaningful trading days and 60 exposure sessions (separate bursts of trading, explained in the FAQ below). At least 40% of trading days must be profitable (a profitable day means more than $2.50 net closed profit); the best day may not exceed 35% of total positive profit. Runs started before 11 October 2026 keep their 6% Stage 2 target. Your held earnings are shown on the payout page after you pass Stage 2, but cannot be withdrawn until full Stage 3 completion and the $500 minimum.
+                        Trade a $5,000 simulated account with a provisional 85% profit share. Reach 7% with at least <strong>40 new counted trades</strong>, a <strong>Stage 2 consistency score of 1.65</strong> and an <strong>overall score of 2.0</strong> across Stages 1–2, with no single day over 35% of your profit. Moving up to Stage 3 requires a verified identity; your account keeps trading while it is checked. Your Stage 2 share is shown as held and can be withdrawn only after Stage 3 is complete.
                     </p>
 
                     <div class="phase-details-grid">
@@ -1966,12 +1979,12 @@
                             <span data-preset="infinity_s2" data-field="dd">$200 (4%)</span>
                         </div>
                         <div class="detail-item">
-                            <span>Min Trading Days</span>
-                            <span data-preset="infinity_s2" data-field="min_days" data-suffix=" Days">15 Days</span>
+                            <span>Counted Trades</span>
+                            <span>40 minimum</span>
                         </div>
                         <div class="detail-item">
-                            <span>Observation Period</span>
-                            <span>21 elapsed days</span>
+                            <span>Consistency Score</span>
+                            <span>1.65 this stage · 2.0 overall</span>
                         </div>
                         <div class="detail-item">
                             <span>Max Risk / Trade</span>
@@ -1999,7 +2012,7 @@
                     </div>
 
                     <p class="phase-description">
-                        Complete the <strong>8% ($800) target</strong>, at least 14 elapsed days, 10 meaningful trading days, 40 exposure sessions (separate bursts of trading, explained in the FAQ below) and the 30% best-day rule. The Stage 2 share remains visible but held throughout Stage 3. Only after the full stage is passed do eligible Stage 2 and Stage 3 shares combine for a payout request of at least <strong>$500</strong>, subject to identity and published payout checks. The Stage 3 payout is 85% of that combined eligible profit, up to a maximum of <strong>$700</strong>. Reaching the full 8% target and passing every published check unlocks your payout request. Stage 4 allocation is reviewed separately.
+                        Complete the <strong>8% ($800) target</strong> with at least <strong>50 new counted trades</strong>, an <strong>overall consistency score of 2.0</strong> across Stages 1–3 and the 30% best-day rule. The Stage 2 share remains visible but held throughout Stage 3. Only after the full stage is passed do eligible Stage 2 and Stage 3 shares combine for a payout request of at least <strong>$500</strong>, subject to identity and published payout checks. The Stage 3 payout is 85% of that combined eligible profit, up to a maximum of <strong>$700</strong>. Reaching the full 8% target and passing every published check unlocks your payout request. Stage 4 allocation is reviewed separately.
                     </p>
 
                     <div class="phase-details-grid">
@@ -2024,12 +2037,12 @@
                             <span data-preset="infinity_s3" data-field="risk">0.35% ($35)</span>
                         </div>
                         <div class="detail-item">
-                            <span>Min Trading Days</span>
-                            <span data-preset="infinity_s3" data-field="min_days" data-suffix=" Days">10 Days</span>
+                            <span>Counted Trades</span>
+                            <span>50 minimum</span>
                         </div>
                         <div class="detail-item">
-                            <span>Quant Review</span>
-                            <span>All trades assessed</span>
+                            <span>Consistency Score</span>
+                            <span>2.0 overall (Stages 1–3)</span>
                         </div>
                         <div class="detail-item">
                             <span>Review Timeline</span>
@@ -2169,6 +2182,16 @@
                 <div class="faq-container">
                     <div class="faq-item">
                         <div class="faq-question">
+                            <span>I started before 1 November 2026. Which rules apply to me?</span>
+                            <span class="faq-icon">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Your current run keeps its existing (v1) rules, unchanged, until it ends or you restart. Every run started or restarted from 1 November 2026 uses Infinity v2. You can switch your current run to v2 at any time from IPFX Markets when you have no open positions; your balance and loss limits carry over, the v2 counted trades and score start from the switch, and your target is measured from your balance at the switch. Switching is one-way.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
                             <span>Is it really 100% free to start?</span>
                             <span class="faq-icon">+</span>
                         </div>
@@ -2179,13 +2202,13 @@
 
                     <div class="faq-item">
                         <div class="faq-question">
-                            <span>What is an exposure session?</span>
+                            <span>What is a counted trade and the consistency score?</span>
                             <span class="faq-icon">+</span>
                         </div>
                         <div class="faq-answer">
-                            <p>An exposure session is one burst of trading. Your trades count as the <strong>same</strong> session if they are open at the same time, or if you open one within <strong>60 minutes</strong> of closing everything. A <strong>new</strong> session starts when you open a trade after being flat for more than 60 minutes.</p>
-                            <p><strong>Example:</strong> you buy EURUSD at 09:00, add a second ticket at 09:10 and close both at 09:40. At 10:20 you open a GBPUSD trade and close it at 10:30. That is still <strong>one</strong> session. At 11:45 you open another trade: you have been flat for 75 minutes, so that is a <strong>second</strong> session.</p>
-                            <p>It exists so nobody can reach the minimum by splitting one idea into lots of small tickets. Stage 1 needs 30 sessions, Stage 2 needs 60 and Stage 3 needs 40, alongside the minimum trading days. Trades closed for having no stop-loss do not count. You can follow your count in the Challenge progress panel on IPFX Markets.</p>
+                            <p>A <strong>counted trade</strong> is one trade, or several trades on the same instrument and direction opened while one of them is still open or within <strong>15 minutes</strong> of the last entry. They share one risk limit and count once.</p>
+                            <p><strong>Example:</strong> you buy EURUSD at 09:00, add a second ticket at 09:10 and close both at 09:40: that is <strong>one</strong> counted trade. A GBPUSD trade at 09:20 is a separate counted trade (different instrument).</p>
+                            <p>Each counted trade gets a result in <strong>R</strong>: its profit or loss divided by the risk to your opening stop. Your <strong>consistency score</strong> is your average R divided by (the spread of your R results, treated as at least 0.5, divided by the square root of the number of counted trades). Steady positive trading raises it; one lucky trade cannot push it far. IPFX Markets shows your overall score at all times and tells you the new score after each counted trade.</p>
                         </div>
                     </div>
 
@@ -2211,11 +2234,11 @@
 
                     <div class="faq-item">
                         <div class="faq-question">
-                            <span>Why is there a daily profit cap in Stage 1?</span>
+                            <span>Why a consistency score instead of minimum days?</span>
                             <span class="faq-icon">+</span>
                         </div>
                         <div class="faq-answer">
-                            <p>The 1.40% daily profit cap ($14) and 35% best-day limit prevent one lucky session from being treated as a repeatable edge. Stage 1 also requires at least 10 trading days and 30 independent sessions, so performance must be distributed over time.</p>
+                            <p>Minimum days and sessions measured time, not skill. The consistency score measures whether your wins steadily outweigh your losses, so a strong trader can pass as soon as the results show it, while one lucky day cannot. There is no daily profit cap: winners are never closed for you. The best-day rule (35%, or 30% in Stage 3) still stops one day from carrying the whole result.</p>
                         </div>
                     </div>
 

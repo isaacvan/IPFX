@@ -46,6 +46,27 @@ try{
   assert.equal(await page.locator('#iv2Overall').isHidden(),true,'not shown on v1 accounts');
   console.log('PASS: overall consistency score shown in the panel and announced after each counted trade (up and down), hidden while pending and on v1');}
  console.log('PASS: actual trading.html preview; consent, Stage 2 combined threshold, confirmation, close, dark/light, no horizontal overflow and zero POST requests');
+ // Monthly restart notice: a signed-in v1 trader with a restart left sees it; Keep my run hides it for the month; Restart opens the dialog.
+ {const p2=await browser.newPage({viewport:{width:1440,height:1000}});
+  await p2.route('**/*',route=>{const req=route.request();
+   if(/functions\/v1\/trading-engine/.test(req.url()))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,infinity:{v2_enabled:true,attempts_left:1,attempts_cap:1,has_active:true,is_restart:false,v2_terms_version:'test'}})});
+   return req.url().startsWith(url)?route.continue():route.abort();});
+  await p2.goto(url+'/trading.html',{waitUntil:'domcontentloaded'});await p2.locator('#rsNote').waitFor({state:'attached'});
+  const sim=async(version)=>p2.evaluate(async version=>{hasSession=()=>true;freshToken=async()=>'test-token';selectedAccountMode='challenge';
+   engineState={ok:true,account:{id:'a1',challenge_type:'infinity',rules_version:version,status:'active',is_demo:false,stage:1},open_trades:[],pending_orders:[]};
+   await window.ipfxRestart.refresh();window.ipfxRestart.note();},version);
+  await sim('infinity_v1');
+  assert.equal(await p2.locator('#rsNote').isVisible(),true,'v1 trader with a restart left sees the notice');
+  const month=new Date().toLocaleDateString('en-GB',{month:'long',timeZone:'UTC'});
+  assert.match(await p2.locator('#rsNote').innerText(),new RegExp('Your '+month+' restart is ready[\\s\\S]*1 restart this month[\\s\\S]*Keep my run[\\s\\S]*Restart on v2'));
+  await p2.screenshot({path:path.resolve('../infinity-v2-test-tmp/restart-notice.png')});
+  await p2.getByRole('button',{name:'Restart on v2'}).click();assert.equal(await p2.locator('#rsDialog').evaluate(d=>d.open),true,'opens the restart dialog');
+  await p2.locator('#rsDialog .rs-x').click();
+  await sim('infinity_v1');await p2.getByRole('button',{name:'Keep my run'}).click();
+  await sim('infinity_v1');assert.equal(await p2.locator('#rsNote').isHidden(),true,'Keep my run hides it for this month');
+  await p2.evaluate(()=>localStorage.clear());await sim('infinity_v2');assert.equal(await p2.locator('#rsNote').isHidden(),true,'not shown on a v2 run');
+  await p2.close();
+  console.log('PASS: monthly restart notice shown to v1 traders with a restart left; opens the dialog; Keep my run hides it; never on v2 runs');}
  if(process.env.DEMO_TEST_DEPS){
  const fixture=await v2db();try{
   await fixture.account({version:'infinity_v1',created:new Date(Date.now()-40*86400000).toISOString()});

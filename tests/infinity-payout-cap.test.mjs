@@ -40,16 +40,16 @@ test('chatbot answers state 8% via the preset placeholder and the $700 cap', () 
 
 test('public pages show Stage 2 = 7%, Stage 3 = 8% and the $700 maximum, with no stale Infinity numbers', () => {
   const inf = read('infinity.html'), idx = read('index.html'), terms = read('terms.html'), dash = read('dashboard.html');
-  assert.match(inf, /<p>7% target\. 15 trading days and 60 exposure sessions\./);
-  assert.match(inf, /<p>8% target\. Stage 2 earnings remain visible but held\./);
-  assert.match(inf, /Reach 7% while completing at least 21 elapsed calendar days/);
+  assert.match(inf, /<p>7% target with 40 counted trades, a stage score of 1\.65 and an overall score of 2\.0\./);
+  assert.match(inf, /<p>8% target with 50 counted trades and an overall score of 2\.0\. Stage 2 earnings remain visible but held\./);
+  assert.match(inf, /Reach 7% with at least <strong>40 new counted trades<\/strong>/);
   assert.match(inf, /data-field="target">\$350 \(7%\)<\/span>/);
   assert.match(inf, /Complete the <strong>8% \(\$800\) target<\/strong>/);
   assert.match(inf, /data-field="target_rev">8% \(\$800\)<\/span>/);
   assert.match(inf, /maximum of <strong>\$700<\/strong>/);
   assert.match(inf, /full 8% Stage 3 target[^<]*up to a maximum of \$700/);
-  assert.match(idx, /stage-subtitle">7% target\. Min 15 trading days/);
-  assert.match(idx, /stage-subtitle">8% target\. Stage 2 earnings stay visible but held\.[^<]*maximum of \$700/);
+  assert.match(idx, /stage-subtitle">7% target\. At least 40 counted trades/);
+  assert.match(idx, /stage-subtitle">8% target with 50 counted trades and an overall score of 2\.0\. Stage 2 earnings stay visible but held\.[^<]*maximum of \$700/);
   assert.match(terms, /Profit Target:<\/strong> 7% net profit \(\$350\) on closed trades for Infinity runs whose Stage 1 account was opened on or after 11 October 2026[^<]*keep the 6% \(\$300\) target/);
   assert.match(terms, /Full Profit Target:<\/strong> 8% net profit \(\$800\)/);
   assert.match(terms, /up to a maximum of US\$700/);
@@ -117,8 +117,9 @@ test('Stage 2 rule set B is the same in the migration, Terms, pages and chatbot'
   const terms = read('terms.html');
   assert.match(terms, /must exceed 0\.05% of the starting balance \(\$2\.50 in Stage 2\)/);
   assert.match(terms, /best trading day may not exceed 35% of total positive daily profit\.<\/li>\n\s*<li><strong>Maximum Risk per Trade:<\/strong> 0\.35% of starting balance \(\$17\.50\)/);
-  assert.match(read('infinity.html'), /a profitable day means more than \$2\.50 net closed profit\); the best day may not exceed 35%/);
+  assert.match(read('infinity.html'), /Reach 7% with at least <strong>40 new counted trades<\/strong>[\s\S]{0,220}with no single day over 35% of your profit/);
   assert.match(read('start-challenge.html'), /<td>Best-day share of positive profit \(max\)<\/td><td>35%<\/td><td>35%<\/td>/);
+  assert.match(read('start-challenge.html'), /<td>Consistency score<\/td><td>1\.0<\/td><td>1\.65 this stage and 2\.0 overall<\/td><td>2\.0 overall<\/td>/);
   assert.match(read('supabase/seed/support_kb.json'), /Best day no more than 35% of positive profit/);
   for (const f of ['infinity.html', 'index.html', 'start-challenge.html']) assert.doesNotMatch(read(f), /\$12\.50 net closed profit|above 25% of total profit|25% of positive profit/, f);
 });

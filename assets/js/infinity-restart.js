@@ -69,7 +69,13 @@ body.light .rs-chip{background:rgba(37,99,235,.1);color:#1d4ed8}
 body.light .rs-chip.none{background:rgba(245,158,11,.12);color:#92400e}
 body.light .rs-dot,body.light .rs-ic{color:#2563eb}
 body.light .rs-warn{color:#92400e}
-body.light .rs-link{color:#1d4ed8}`;
+body.light .rs-link{color:#1d4ed8}
+.rs-note{position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:9000;width:min(560px,94vw);display:flex;align-items:center;gap:12px;padding:11px 12px 11px 14px;border:1px solid rgba(37,99,235,.55);border-radius:12px;background:#131316;color:var(--fg);box-shadow:0 18px 50px rgba(0,0,0,.55);font-family:var(--font-ui)}
+.rs-note[hidden]{display:none}
+.rs-note .rs-ic{width:30px;height:30px}
+.rs-note-tx{flex:1;min-width:0}.rs-note-tx b{display:block;font-size:13px;font-weight:800;letter-spacing:-.01em}.rs-note-tx span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted);line-height:1.4}
+.rs-note .rs-btn{height:30px;padding:0 12px;white-space:nowrap}
+body.light .rs-note{background:#fff;box-shadow:0 14px 40px rgba(15,23,42,.18)}`;
   const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>';
 
   function el(tag, attrs, html) { const e = document.createElement(tag); Object.assign(e, attrs || {}); if (html != null) e.innerHTML = html; return e; }
@@ -102,6 +108,23 @@ body.light .rs-link{color:#1d4ed8}`;
     b.querySelector('.cnt').textContent = String(left);
     b.classList.toggle('none', left < 1);
     b.title = left > 0 ? `${left} restart${left === 1 ? '' : 's'} left this month` : `No restarts left this month. Next on ${nextMonthLabel()}`;
+  }
+
+  // Monthly restart notice: every trader has one Stage 1 restart a month. On a v1 run with a restart left, say so plainly
+  // and offer it (the restart itself still goes through the two-step dialog). 'Keep my run' hides it until next month.
+  function noteKey() { const n = new Date(); return 'ipfx-restart-note-' + n.getUTCFullYear() + '-' + (n.getUTCMonth() + 1); }
+  function noteDismissed() { try { return localStorage.getItem(noteKey()) === '1'; } catch (_) { return false; } }
+  function monthLabel() { return new Date().toLocaleDateString('en-GB', { month: 'long', timeZone: 'UTC' }); }
+  function renderNote() {
+    const n = document.getElementById('rsNote'); if (!n) return;
+    const acct = typeof engineState !== 'undefined' && engineState ? engineState.account : null;
+    const challenge = typeof selectedAccountMode === 'undefined' || selectedAccountMode === 'challenge';
+    const left = status ? Number(status.attempts_left || 0) : 0;
+    const v1Run = !!(acct && acct.challenge_type === 'infinity' && acct.rules_version !== 'infinity_v2' && !acct.is_demo);
+    const dlg = document.getElementById('rsDialog');
+    const show = !PREVIEW && signedIn() && isLive() && challenge && v1Run && left > 0 && !noteDismissed() && !(dlg && dlg.open);
+    if (show) n.querySelector('b').textContent = 'Your ' + monthLabel() + ' restart is ready';
+    n.hidden = !show;
   }
 
   function stepsBar() { return `<div class="rs-steps" aria-hidden="true"><i class="${step >= 1 ? 'on' : ''}"></i><i class="${step >= 2 ? 'on' : ''}"></i></div>`; }
@@ -231,10 +254,21 @@ body.light .rs-link{color:#1d4ed8}`;
       else if (k === 'go') restart();
     });
     document.body.appendChild(dlg);
+    const note = el('div', { id: 'rsNote', className: 'rs-note', hidden: true },
+      `<div class="rs-ic">${ICON}</div><div class="rs-note-tx"><b>Your restart is ready</b>` +
+      `<span>You have 1 restart this month: start a fresh Infinity v2 run from Stage 1, or keep your current run.</span></div>` +
+      `<button type="button" class="rs-btn" data-note="keep">Keep my run</button><button type="button" class="rs-btn pri" data-note="restart">Restart on v2</button>`);
+    note.setAttribute('role', 'status');
+    note.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-note]'); if (!b) return;
+      if (b.dataset.note === 'keep') { try { localStorage.setItem(noteKey(), '1'); } catch (_) {} note.hidden = true; }
+      else { note.hidden = true; open(); }
+    });
+    document.body.appendChild(note);
     loadStatus(true).then(renderButton);
-    setInterval(renderButton, 2000);
+    setInterval(() => { renderButton(); renderNote(); }, 2000);
     setInterval(() => loadStatus(false).then(renderButton), 60000);
   }
-  window.ipfxRestart = { open, refresh: () => loadStatus(true).then(renderButton) };
+  window.ipfxRestart = { open, refresh: () => loadStatus(true).then(renderButton), note: renderNote };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
 })();
