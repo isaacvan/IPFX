@@ -54,6 +54,24 @@ test('reference markup is applied and missing quotes use current IPFX spread',op
  p=(await db.query("select infinity_v2_price('EURUSD') p")).rows[0].p;assert.equal(p.fallback,false);assert.ok(Math.abs(Number(p.spread)-.000046)<1e-12);
  }finally{await db.close();}
 });
+test('reference window: an E8 spread 30 s old still carries the 1.75x buffer; older ones fall back; the window is a setting',opts,async()=>{
+ const {db}=await v2db();try{
+ await db.exec("insert into e8_monitor_profiles values(3,true)");
+ const put=(sec)=>db.exec(`delete from e8_reference_quotes; insert into e8_reference_quotes values(1,3,'EURUSD',1.09998,1.10002,clock_timestamp()-interval '${sec} seconds',clock_timestamp()-interval '${sec} seconds')`);
+ const price=async()=>(await db.query("select infinity_v2_price('EURUSD') p")).rows[0].p;
+ let p;
+ await put(2);p=await price();assert.equal(p.fallback,false);assert.ok(Math.abs(Number(p.spread)-.000046)<1e-12,'1.75 x the 0.00004 E8 spread plus rounding');
+ await put(30);p=await price();assert.equal(p.fallback,false,'30 s old: the feed samples every 10-30 s, so this must still count');assert.ok(Math.abs(Number(p.spread)-.000046)<1e-12);
+ assert.ok(p.reference_age_ms>=29000&&p.reference_age_ms<35000,'reports the reference age');
+ await put(120);p=await price();assert.equal(p.fallback,true,'older than the window: trading continues at the IPFX spread');assert.equal(p.reference_age_ms,null);
+ await db.exec('update infinity_v2_settings set reference_max_age_ms=5000 where singleton');
+ await put(30);p=await price();assert.equal(p.fallback,true,'tighter window set: a 30 s quote no longer counts');
+ await db.exec('update infinity_v2_settings set reference_max_age_ms=300000 where singleton');
+ await put(120);p=await price();assert.equal(p.fallback,false,'wider window set: a 2-minute-old quote counts');
+ await assert.rejects(db.exec('update infinity_v2_settings set reference_max_age_ms=500 where singleton'),/check/i,'window bounded 1 s to 10 min');
+ await put(2);await db.exec("update e8_monitor_profiles set enabled=false");assert.equal((await price()).fallback,true,'a disabled monitor profile is never a reference');
+ }finally{await db.close();}
+});
 test('partial slices retain one observation and one opening-risk denominator, including fractional gold lots',opts,async()=>{
  const {db,account}=await v2db();try{const a=await account();const t=await open(db,a,{symbol:'XAUUSD',price:2000,sl:1998,volume:.003});
  const r=(await db.query('select fn_commit_ipfx_partial($1,$2,$3,.003,2000,.001,2001,.10,true,0,0,gen_random_uuid()) j',[t.id,a.id,uid])).rows[0].j;
