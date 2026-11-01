@@ -27,11 +27,24 @@ try{
  assert.equal(mutations,0,'preview must never issue an account mutation');
 
  // Overall consistency score: always shown in the challenge panel, and announced after each counted trade.
- {const rules={stage_score:1,combined_score:null,min_counted_trades:20,target_pct:4,best_day_share:.35,group_gap_minutes:15,score_r_cap:5,min_hold_seconds:300};
-  const state=(n,score,pending=false)=>({ok:true,account:{id:'acct-preview',rules_version:'infinity_v2',challenge_type:'infinity',stage:1,status:'active',is_demo:false,
+ {const rules={stage_score:1,combined_score:null,min_counted_trades:20,target_pct:4,best_day_share:.35,group_gap_minutes:15,score_r_cap:5,min_hold_seconds:300,
+   risk_pct:.5,starting_balance:1000,daily_loss_pct:2.5,max_drawdown_pct:5,stop_spread_multiple:8,stop_pause_seconds:600,stop_deadline_seconds:30,sl_strikes_max:3,total_risk_multiple:3};
+  const state=(n,score,pending=false)=>({ok:true,account:{id:'acct-preview',rules_version:'infinity_v2',challenge_type:'infinity',stage:1,status:'active',is_demo:false,starting_balance:1000,equity:1012.5,
+   limits:{daily_floor:988,daily_loss_allowance_usd:25,max_dd_floor:962.5,drawdown_allowance_usd:50},
    infinity_v2:{applies:true,eligible:false,unmet:[],n,score,combined_score:score,run_n:n,run_score:score,counted_profit:0,target:40,best_day_share:null,rules,scoring_pending:pending}},open_trades:[],pending_orders:[]});
   const push=async st=>page.evaluate(st=>{engineState=st;window.dispatchEvent(new Event('ipfx-state'));window.ipfxInfinityV2.render();},st);
+  // The existing read-and-tick step must show the v2 rules (never the v1 session / 1-minute wording), then let the trader continue.
+  await push(state(5,0.62));await page.locator('#stageRulesDialog[open]').waitFor();
+  {const t=await page.locator('#stageRulesDialog').innerText();
+   for(const re of [/Stage 1 rules: 6 things to know/,/To pass: make \$40\.00 profit with at least 20 counted trades, a consistency score of 1\.0 and no day over 35% of your profit, then close every trade\. No minimum days/,
+    /counted trade is one trade, or several on the same instrument and direction within 15 minutes/,/stop-loss within 30s, at least 8× the spread away/,/held 5 minutes or more; losses always count\. After a stop-out, that instrument pauses for 10 minutes/,
+    /lose \$25\.00 in one day.*or drop \$50\.00 below your highest closed balance/s])assert.match(t,re,String(re));
+   assert.doesNotMatch(t,/under 1 minute|exposure|sessions|trading days/i);}
+  await page.screenshot({path:path.resolve('../infinity-v2-test-tmp/v2-rules-dialog.png')});
+  for(const box of await page.locator('#stageRulesReadList input').all())await box.check();
+  await page.locator('#stageRulesContinue').click();assert.equal(await page.locator('#stageRulesDialog').evaluate(d=>d.open),false);
   await push(state(5,0.62));
+  {const bars=await page.locator('#ch-bars').innerText();assert.match(bars,/Daily loss room[\s\S]*\$24\.50 left[\s\S]*Resets 00:00 UTC/);assert.match(bars,/Drawdown room[\s\S]*\$50\.00 left[\s\S]*Trails your closed balance/);}
   assert.match(await page.locator('#iv2Overall').innerText(),/Overall consistency score\s*0\.62[\s\S]*5 counted trades this run · Stage 1 needs 1.0/);
   assert.equal(await page.locator('#iv2ScoreToast').count(),0,'no notice before a new counted trade');
   await push(state(5,0.62,true));assert.equal(await page.locator('#iv2ScoreToast').count(),0,'no notice while scoring is pending');
@@ -42,6 +55,14 @@ try{
   assert.match(await page.locator('#iv2Overall .iv2-ov-v').getAttribute('class'),/\bok\b/,'meets the Stage 1 requirement: shown in green');
   await page.screenshot({path:path.resolve('../infinity-v2-test-tmp/overall-score.png')});
   await push(state(7,0.95));assert.match(await page.locator('#iv2ScoreToast').innerText(),/▼ -0\.13/,'a drop is shown too');
+  // How Infinity v2 works: opens from the panel link, short, and every number is the account's own rule
+  await page.locator('#iv2ScoreToast button').click();await page.locator('.btab',{hasText:'Challenge'}).click();await page.getByRole('button',{name:/How Infinity v2 works/}).click();
+  await page.locator('#iv2GuideDialog').waitFor({state:'visible'});
+  {const g=await page.locator('#iv2GuideDialog').innerText();
+   for(const re of [/Stage 1/,/Profit target 4% \(\$40\)/,/At least 20 counted trades/,/Consistency score 1\.0 this stage/,/No single day over 35%/,/within 15 minutes/,/\+2R/,/-1R/,/stop loss within 30 seconds/,/at least 8× the spread/,/never widen or remove/,/3 missing stops end the run/,/Risk at most 0\.5% \(\$5\) per counted trade/,/3× that/,/held 5 minutes/,/pauses for 10 minutes/,/Daily loss 2\.5% \(\$25\)/,/Max drawdown 5% \(\$50\)/,/No daily profit cap/])assert.match(g,re,String(re));
+   assert.ok(g.split(/\s+/).length<330,'guide stays short: '+g.split(/\s+/).length+' words');}
+  await page.screenshot({path:path.resolve('../infinity-v2-test-tmp/guide.png')});
+  await page.locator('#iv2GuideDialog .rs-x').click();assert.equal(await page.locator('#iv2GuideDialog').evaluate(d=>d.open),false);
   await page.evaluate(()=>{engineState={ok:true,account:{id:'v1',rules_version:'infinity_v1',challenge_type:'infinity',stage:1,status:'active'},open_trades:[],pending_orders:[]};window.dispatchEvent(new Event('ipfx-state'));window.ipfxInfinityV2.render();});
   assert.equal(await page.locator('#iv2Overall').isHidden(),true,'not shown on v1 accounts');
   console.log('PASS: overall consistency score shown in the panel and announced after each counted trade (up and down), hidden while pending and on v1');}
@@ -96,6 +117,9 @@ try{
   await page.evaluate(()=>window.ipfxInfinityV2.refresh());await page.locator('#iv2Switch').waitFor({state:'visible'});await page.locator('#iv2Switch').click();
   await page.locator('#iv2SwitchDialog [data-terms]').check();await page.locator('#iv2SwitchDialog [data-accept]').click();await page.waitForFunction(()=>engineState.account.rules_version==='infinity_v2');
   await page.evaluate(()=>window.ipfxInfinityV2.render());assert.ok((await page.locator('#ch-title').innerText()).includes('Infinity v2'));
+  // right after switching, the trader reads and ticks the v2 rules before trading
+  await page.locator('#stageRulesDialog[open]').waitFor();assert.match(await page.locator('#stageRulesDialog').innerText(),/counted trades[\s\S]*8× the spread[\s\S]*5 minutes/);
+  for(const box of await page.locator('#stageRulesReadList input').all())await box.check();await page.locator('#stageRulesContinue').click();
   await page.evaluate(()=>window.ipfxRestart.refresh());await page.locator('#tbRestart').click();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.locator('#rsAgree').check();await page.locator('#rsGo').click();
   await page.getByText("You're restarted",{exact:true}).waitFor();
   assert.equal((await fixture.db.query('select count(*) n from infinity_v2_switches')).rows[0].n,1);assert.equal((await fixture.db.query('select count(*) n from infinity_v2_restarts')).rows[0].n,1);

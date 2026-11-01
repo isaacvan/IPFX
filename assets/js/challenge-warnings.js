@@ -82,6 +82,32 @@
   function checklist(state){
     const a=state&&state.account;
     if(!a||a.is_demo||a.challenge_type!=='infinity'||Number(a.stage)>3)return null;
+    // Infinity v2 accounts: their own rows and their own six short "read before trading" lines, all from the account's saved rules.
+    if(a.rules_version==='infinity_v2'){
+      const Q2=a.infinity_v2||(a.progress&&a.progress.qualification)||{},R2=Q2.rules||{},L2=a.limits||{};
+      const start2=number(a.starting_balance),pc=v=>Number(v)+'%',min=v=>Number(v)/60,f1=v=>Number.isInteger(Number(v))?Number(v).toFixed(1):String(Number(v));
+      const rows2=[],read2=[],add2=(id,text,done)=>{rows2.push({id,text,done:done===true});};
+      const target2=number(Q2.target),profit2=number(Q2.counted_profit),n2=number(Q2.n);
+      if(target2>0)add2('target',`Counted profit: ${money(profit2)} / ${money(target2)} target`,profit2>=target2);
+      if(number(R2.min_counted_trades)>0)add2('trades',`Counted trades this stage: ${Number.isFinite(n2)?n2:'awaiting verification'} / ${R2.min_counted_trades}`,n2>=number(R2.min_counted_trades));
+      if(R2.stage_score!=null)add2('score',`Stage consistency score: ${Number.isFinite(number(Q2.score))?number(Q2.score).toFixed(2):'awaiting verification'} / ${f1(R2.stage_score)}`,number(Q2.score)>=number(R2.stage_score));
+      if(R2.combined_score!=null)add2('overall',`Overall consistency score: ${Number.isFinite(number(Q2.combined_score))?number(Q2.combined_score).toFixed(2):'awaiting verification'} / ${f1(R2.combined_score)}`,number(Q2.combined_score)>=number(R2.combined_score));
+      if(R2.best_day_share!=null){const best=number(Q2.best_day_share);add2('consistency',`Best-day share: ${Number.isFinite(best)?(best*100).toFixed(1)+'%':'not yet measurable'} / ${(R2.best_day_share*100).toFixed(0)}% maximum`,Number.isFinite(best)&&best<=number(R2.best_day_share));}
+      add2('flat',`Open positions: ${(state.open_trades||[]).length} — close all before promotion`,(state.open_trades||[]).length===0&&!(state.pending_orders||[]).length);
+      add2('standing',`Account in good standing; stop-loss strikes ${a.sl_strikes??0}/${a.sl_strikes_max??3}`,a.status==='active'&&number(a.sl_strikes??0)<number(a.sl_strikes_max??3));
+      if(Q2.identity_required===true)add2('identity','Verify your identity to move up to Stage 3 (you keep trading meanwhile)',false);
+      add2('server',Q2.eligible===true?'Server progression checks verified':'Server progression checks still pending',Q2.eligible===true);
+      const sc=[R2.stage_score!=null?`a consistency score of ${f1(R2.stage_score)}`:null,R2.combined_score!=null?`an overall score of ${f1(R2.combined_score)}`:null].filter(Boolean).join(' and ');
+      if(target2>0)read2.push(`To pass: make ${money(target2)} profit with at least ${R2.min_counted_trades} counted trades${sc?', '+sc:''}${R2.best_day_share!=null?' and no day over '+pc(R2.best_day_share*100)+' of your profit':''}, then close every trade. No minimum days.`);
+      read2.push(`A counted trade is one trade, or several on the same instrument and direction within ${R2.group_gap_minutes||15} minutes. They count once and share one risk limit.`);
+      const base2=number(L2.base_risk_per_trade_usd)>0?number(L2.base_risk_per_trade_usd):start2*number(R2.risk_pct)/100;
+      read2.push(`Every trade needs a stop-loss within ${R2.stop_deadline_seconds||30}s, at least ${R2.stop_spread_multiple||8}× the spread away. Tighten it, never widen or remove it. Risk up to ${money(base2)} per counted trade and ${money(base2*number(R2.total_risk_multiple||3))} across open trades. ${R2.sl_strikes_max||a.sl_strikes_max||3} missing stops end the run.`);
+      read2.push(`Profit counts only on trades held ${min(R2.min_hold_seconds||300)} minutes or more; losses always count. After a stop-out, that instrument pauses for ${min(R2.stop_pause_seconds||600)} minutes.`);
+      const dl2=number(L2.daily_loss_allowance_usd)>0?number(L2.daily_loss_allowance_usd):start2*number(R2.daily_loss_pct)/100,dd2=number(L2.drawdown_allowance_usd)>0?number(L2.drawdown_allowance_usd):start2*number(R2.max_drawdown_pct)/100;
+      read2.push(`The run ends if you lose ${money(dl2)} in one day (from your closed balance at 00:00 UTC) or drop ${money(dd2)} below your highest closed balance. Open trades count. You can restart next month.`);
+      read2.push('Trade your own account with your own decisions: no sharing, copying or hedging with others.');
+      return {stage:Number(a.stage),rows:rows2,read:read2,key:'stage-read-iv2:'+a.id+':'+JSON.stringify(read2),available:Q2.applies===true&&!!Q2.rules,ready:Q2.applies===true&&Q2.eligible===true&&rows2.every(r=>r.done)};
+    }
     const L=a.limits||{},P=a.progress||{},Q=P.qualification||{},R=Q.rules||{};
     const rows=[],read=[],need=[];
     const add=(id,text,done)=>{rows.push({id,text,done:done===true});};

@@ -79,3 +79,23 @@ test('monthly restart notice: only v1 traders with a restart left, dismissible, 
   assert.match(js, /else \{ note\.hidden = true; open\(\); \}/, 'restart goes through the two-step agree dialog, never directly');
   assert.match(read('trading.html'), /infinity-restart\.js\?v=20261101a/);
 });
+
+test('sign-up / pre-register form records the current published Terms and Privacy versions and links the live pages', () => {
+  const signup = read('signup.html');
+  assert.match(signup, /terms_version: '2026-10-31-2\.3'/);
+  assert.match(signup, /privacy_version: '2026-10-09-1\.3'/);
+  assert.doesNotMatch(signup, /terms_version: '1\.1'/);
+  assert.match(signup, /agree to the <a href="\/terms\.html"[^>]*>Terms &amp; Conditions<\/a> and <a href="\/privacy\.html"/);
+  assert.equal(read('terms.html'), v23, 'the page the form links to is Terms 2.3');
+});
+
+test('IPFX Markets v2 view: how-it-works guide, limit meters, first-time prompt, all driven by the account rules', () => {
+  const ui = read('assets/js/infinity-v2-ui.js');
+  assert.match(ui, /How Infinity v2 works/);
+  assert.match(ui, /function guideHtml\(a\)/); assert.match(ui, /function metersHtml\(a\)/); assert.doesNotMatch(ui, /guideFirstTime/, 'no second popup: the read-and-tick step is the first-time moment');
+  for (const k of ['stop_deadline_seconds', 'stop_spread_multiple', 'sl_strikes_max', 'total_risk_multiple', 'min_hold_seconds', 'stop_pause_seconds', 'group_gap_minutes', 'daily_loss_pct', 'max_drawdown_pct', 'risk_pct', 'target_pct', 'min_counted_trades', 'best_day_share'])
+    assert.ok(ui.includes(k), 'guide reads ' + k + ' from the saved rules');
+    assert.match(ui, /#iv2Overall\[hidden\]\{display:none\}/, 'the score chip really hides on v1 and demo accounts');
+  assert.match(read('trading.html'), /infinity-v2-ui\.js\?v=20261101c/);
+  const w=read('assets/js/challenge-warnings.js');assert.match(w,/rules_version==='infinity_v2'/);assert.match(w,/stage-read-iv2:/);assert.match(read('trading.html'), /challenge-warnings\.js\?v=20261101a/);
+});

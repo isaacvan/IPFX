@@ -51,15 +51,63 @@
    $('iv2SwitchDialog').close();await engineCall({action:'state'});requestId=null;updateControls();
   }catch(e){$('iv2SwitchDialog').querySelector('[data-error]').textContent=e.message;}finally{busy=false;}
  }
+ // Daily-loss and drawdown meters for v2 (same markup as the v1 panel). The floors come from the engine's limits and match v2's
+ // enforcement: daily floor = the closed balance at 00:00 UTC minus the allowance, drawdown floor trails the closed balance.
+ function metersHtml(a){const L=a.limits||{};if(L.max_dd_floor==null||L.daily_floor==null||a.equity==null)return '';
+  const eq=Number(a.equity),money=v=>'$'+Math.abs(Number(v)).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const bar=(lbl,room,total,sub)=>{const pct=Math.max(0,Math.min(100,room/Math.max(total,1)*100)),col=room<=total*.25?'#ef4444':room<=total*.5?'#f59e0b':'#2563eb';
+   return '<div class="ch-bar"><div class="ch-bar-top"><span class="ch-bar-lbl">'+lbl+'</span><span class="ch-bar-val" style="color:'+col+'">'+money(Math.max(0,room))+' left</span></div>'+
+    '<div class="ch-track"><div class="ch-fill" style="width:'+pct.toFixed(1)+'%;background:'+col+'"></div></div><div class="ch-bar-sub">'+sub+'</div></div>';};
+  return bar('Daily loss room',eq-Number(L.daily_floor),Number(L.daily_loss_allowance_usd),'Resets 00:00 UTC · measured from your closed balance · floor '+money(L.daily_floor))+
+   bar('Drawdown room',eq-Number(L.max_dd_floor),Number(L.drawdown_allowance_usd),'Trails your closed balance · floor '+money(L.max_dd_floor));
+ }
+ // "How Infinity v2 works": short, numbers come from the account's saved rules so they are always the live ones.
+ function guideHtml(a){const r=a.infinity_v2?.rules||{},start=Number(a.starting_balance||r.starting_balance||0),stage=Number(a.stage||1);
+  const money=v=>'$'+Number(v).toLocaleString('en-GB',{maximumFractionDigits:2}),pc=v=>Number(v)+'%',of=(pct)=>money(start*Number(pct)/100);
+  const need=[];
+  if(r.target_pct)need.push('Profit target <b>'+pc(r.target_pct)+' ('+of(r.target_pct)+')</b> of counted profit');
+  if(r.min_counted_trades)need.push('At least <b>'+r.min_counted_trades+' counted trades</b> in this stage');
+  const sc=[r.stage_score!=null?'<b>'+needTxt(r.stage_score)+'</b> this stage':null,r.combined_score!=null?'<b>'+needTxt(r.combined_score)+'</b> overall':null].filter(Boolean).join(' and ');
+  if(sc)need.push('Consistency score '+sc);
+  if(r.best_day_share!=null)need.push('No single day over <b>'+pc(r.best_day_share*100)+'</b> of your profit');
+  if(stage===2)need.push('A verified identity to move up to Stage 3');
+  const li=t=>'<li>'+t+'</li>',mins=Number(r.min_hold_seconds||300)/60,pause=Number(r.stop_pause_seconds||600)/60,gap=r.group_gap_minutes||15;
+  const risk=of(r.risk_pct||0);
+  return '<div class="rs-sub">The goal</div><ul class="rs-rules">'+li('Pass each stage by showing <b>steady results, not luck</b>. You move up the moment <b>every</b> requirement below is met at once, with no open trades. There are no minimum days.')+
+   need.map(li).join('')+'</ul>'+
+   '<div class="rs-sub" style="margin-top:12px">How you are scored</div><ul class="rs-rules">'+
+   li('A <b>counted trade</b> is one trade, or several on the same instrument and direction within <b>'+gap+' minutes</b> of each other. They count once and share one risk limit.')+
+   li('Its result is <b>R</b>: profit or loss divided by the risk at your opening stop. Risk '+risk+' and make '+money(Number(String(risk).replace('$','').replace(',',''))*2)+' = <b>+2R</b>; get stopped out = <b>-1R</b>.')+
+   li('Your <b>consistency score</b> rises when wins steadily outweigh losses. Your overall score updates live and after every counted trade.')+'</ul>'+
+   '<div class="rs-sub" style="margin-top:12px">Before you place a trade</div><ul class="rs-rules">'+
+   li('Set a <b>stop loss within '+(r.stop_deadline_seconds||30)+' seconds</b>, at least <b>'+(r.stop_spread_multiple||8)+'× the spread</b> away. Tighten it or move it to break-even, never widen or remove it. '+(r.sl_strikes_max||3)+' missing stops end the run.')+
+   li('Risk at most <b>'+pc(r.risk_pct||0)+' ('+risk+')</b> per counted trade, and at most <b>'+(r.total_risk_multiple||3)+'×</b> that across all open trades.')+
+   li('Profit counts only on trades held <b>'+mins+' minutes</b> or more (a timer shows on each position). Losses always count.')+
+   li('After a stop-out, that instrument <b>pauses for '+pause+' minutes</b>.')+'</ul>'+
+   '<div class="rs-sub" style="margin-top:12px">Limits that end a run</div><ul class="rs-rules">'+
+   li('<b>Daily loss '+pc(r.daily_loss_pct||0)+' ('+of(r.daily_loss_pct||0)+')</b>, measured from your closed balance at 00:00 UTC.')+
+   li('<b>Max drawdown '+pc(r.max_drawdown_pct||0)+' ('+of(r.max_drawdown_pct||0)+')</b>, trailing your closed balance.')+
+   li('<b>No daily profit cap.</b> Overnight and weekend holding are allowed, but prices can gap past a stop.')+'</ul>';
+ }
+ function openGuide(){const a=account();if(a?.rules_version!=='infinity_v2')return;
+  let d=$('iv2GuideDialog');
+  if(!d){d=document.createElement('dialog');d.id='iv2GuideDialog';d.className='rs-dlg';d.setAttribute('aria-labelledby','iv2GuideTitle');
+   d.addEventListener('click',e=>{if(e.target.closest('[data-g="close"]'))d.close();});document.body.appendChild(d);}
+  d.innerHTML='<div class="rs-hd"><div class="rs-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg></div>'+
+   '<div class="rs-tt"><h2 id="iv2GuideTitle">How Infinity v2 works</h2><p>Stage '+(a.stage||1)+' · everything you need to trade this account.</p></div><button class="rs-x" type="button" aria-label="Close" data-g="close">&times;</button></div>'+
+   '<div class="rs-bd">'+guideHtml(a)+'</div><div class="rs-ft"><button type="button" class="rs-btn pri" data-g="close">Got it</button></div>';
+  if(!d.open)d.showModal();
+ }
  function render(){updateControls();const a=account();if(a?.rules_version!=='infinity_v2'){const ov=$('iv2Overall');if(ov)ov.hidden=true;return false;}
   const p=a.infinity_v2,r=p?.rules;if(!r)return false;
   const title=$('ch-title');if(!title)return false;
   title.textContent='Infinity v2 · Stage '+a.stage;
   $('ch-sub').textContent='Pass on your results. No minimum days, sessions or waiting period.';
   let ov=$('iv2Overall');if(!ov){ov=document.createElement('div');ov.id='iv2Overall';$('ch-sub').insertAdjacentElement('afterend',ov);}
-  ov.hidden=false;ov.innerHTML=overallHtml(p,a);
+  ov.hidden=false;ov.innerHTML=overallHtml(p,a)+'<button type="button" id="iv2GuideBtn" class="iv2-guide">How Infinity v2 works →</button>';
+  const gb=$('iv2GuideBtn');if(gb)gb.onclick=openGuide;try{if(typeof renderStageChecklist==='function')renderStageChecklist();}catch(_){}
   $('ch-verdict').textContent=p.integrity_hold?'Review required':p.eligible?'Requirements met':'In progress';
-  $('ch-bars').innerHTML='';$('ch-restart').hidden=true;
+  $('ch-bars').innerHTML=metersHtml(a);$('ch-restart').hidden=true;
   $('ch-reqs-rule').textContent='Meet all requirements at the same time, with no open positions or pending orders.';
   const lines=[];
   if(p.scoring_pending)lines.push([false,"Updating the score; advancement waits for the next scoring check."]);
@@ -83,13 +131,15 @@
   const om=$('omHint');if(om&&typeof omMode!=='undefined'&&omMode==='modify')om.textContent='Tighten your stop only; it cannot be removed or widened. Minimum distance is eight current spreads.';
  }
  function styles(){if($('iv2ScoreCss'))return;const c=document.createElement('style');c.id='iv2ScoreCss';c.textContent=
-  '#iv2Overall{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35rem .6rem;margin:.55rem 0 .2rem;padding:.55rem .7rem;border:1px solid rgba(37,99,235,.45);border-radius:10px;background:rgba(37,99,235,.10)}'+
+  '#iv2Overall[hidden]{display:none}#iv2Overall{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35rem .6rem;margin:.55rem 0 .2rem;padding:.55rem .7rem;border:1px solid rgba(37,99,235,.45);border-radius:10px;background:rgba(37,99,235,.10)}'+
   '.iv2-ov-k{font-size:11px;font-weight:600;color:var(--muted,#9ca3af);letter-spacing:.02em}.iv2-ov-v{font-size:20px;font-weight:800;color:#93c5fd;font-variant-numeric:tabular-nums}.iv2-ov-v.ok{color:#34d399}'+
   '.iv2-ov-s{flex-basis:100%;font-size:11px;color:var(--muted,#9ca3af)}'+
   '#iv2ScoreToast{position:fixed;top:96px;left:18px;z-index:9999;min-width:260px;max-width:340px;padding:.7rem .85rem;border:1px solid rgba(37,99,235,.55);border-radius:12px;background:#111317;color:#e5e7eb;box-shadow:0 12px 30px rgba(0,0,0,.45);opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .2s,transform .2s}'+
   '#iv2ScoreToast.show{opacity:1;transform:none;pointer-events:auto}.iv2-t-h{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.04em}'+
   '.iv2-t-h button{background:none;border:0;color:inherit;font-size:16px;line-height:1;cursor:pointer}.iv2-t-v{font-size:24px;font-weight:800;margin:.15rem 0;font-variant-numeric:tabular-nums}'+
   '.iv2-t-v .up{color:#34d399;font-size:14px}.iv2-t-v .down{color:#f87171;font-size:14px}.iv2-t-s{font-size:12px;color:#9ca3af}'+
+  '.iv2-guide{flex-basis:100%;text-align:left;background:none;border:0;padding:2px 0 0;color:#60a5fa;font:700 11.5px var(--font-ui);cursor:pointer}.iv2-guide:hover{text-decoration:underline}'+
+  'body.light .iv2-guide{color:#1d4ed8}'+
   'body.light #iv2Overall{background:rgba(37,99,235,.07)}body.light .iv2-ov-v{color:#1d4ed8}body.light .iv2-ov-v.ok{color:#047857}body.light #iv2ScoreToast{background:#fff;color:#111827}body.light .iv2-t-h{color:#1d4ed8}';
   document.head.appendChild(c);}
  function mount(){styles();const mode=document.querySelector('.acct-mode');if(!mode)return;
@@ -102,6 +152,6 @@
   window.addEventListener('ipfx-state',()=>{const a=account(),key=a?.id+':'+a?.rules_version;if(key!==lastAccountKey){lastAccountKey=key;refreshStatus();}updateControls();watchScore();});
   refreshStatus();setInterval(()=>{tick();},1000);setInterval(refreshStatus,60000);
  }
- window.ipfxInfinityV2={render,minLot,refresh:refreshStatus,pause:()=>lastQuote?.pause_until?Math.max(0,Math.ceil((Date.parse(lastQuote.pause_until)-Date.now())/1000)):0,price:p=>{const width=account()?.rules_version==='infinity_v2'?widths.get(p.s):null;if(!width)return p;const mid=Number.isFinite(p.m)?p.m:(p.a+p.b)/2;return {...p,b:mid-width/2,a:mid+width/2,sp:width};},quote:q=>{lastQuote=q;if(q?.symbol&&Number.isFinite(q.spread))widths.set(q.symbol,q.spread);tick();}};
+ window.ipfxInfinityV2={render,openGuide,minLot,refresh:refreshStatus,pause:()=>lastQuote?.pause_until?Math.max(0,Math.ceil((Date.parse(lastQuote.pause_until)-Date.now())/1000)):0,price:p=>{const width=account()?.rules_version==='infinity_v2'?widths.get(p.s):null;if(!width)return p;const mid=Number.isFinite(p.m)?p.m:(p.a+p.b)/2;return {...p,b:mid-width/2,a:mid+width/2,sp:width};},quote:q=>{lastQuote=q;if(q?.symbol&&Number.isFinite(q.spread))widths.set(q.symbol,q.spread);tick();}};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();

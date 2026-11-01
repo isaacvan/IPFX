@@ -43,3 +43,37 @@ test('critical warnings and stage review use accessible dialogs, and new entries
  assert.match(html,/Manage existing positions/);
  assert.match(html,/Manual acknowledgements cannot complete a requirement/);
 });
+
+// ---- Infinity v2 accounts get their own rows and their own six short lines (never the v1 session / day / 1-minute wording) ----
+function v2fixture(){return{account:{id:'v2a',challenge_type:'infinity',rules_version:'infinity_v2',stage:2,status:'active',equity:5100,balance:5100,starting_balance:5000,sl_strikes:0,sl_strikes_max:3,
+ limits:{daily_loss_allowance_usd:100,drawdown_allowance_usd:200,base_risk_per_trade_usd:17.5},progress:{},
+ infinity_v2:{applies:true,eligible:false,n:12,score:1.2,combined_score:1.5,counted_profit:120,target:350,best_day_share:.3,identity_required:true,
+  rules:{target_pct:7,min_counted_trades:40,stage_score:1.65,combined_score:2,best_day_share:.35,group_gap_minutes:15,stop_deadline_seconds:30,stop_spread_multiple:8,total_risk_multiple:3,sl_strikes_max:3,min_hold_seconds:300,stop_pause_seconds:600,risk_pct:.35,daily_loss_pct:2,max_drawdown_pct:4}}},
+ open_trades:[],pending_orders:[]};}
+test('v2 account: rows show counted profit, counted trades, both scores, best day, flat, standing and identity',()=>{
+ const c=checklist(v2fixture()),row=id=>c.rows.find(r=>r.id===id);
+ for(const id of ['target','trades','score','overall','consistency','flat','standing','identity','server'])assert.ok(row(id),id);
+ for(const id of ['elapsed','days','sessions','profitable'])assert.equal(row(id),undefined,'no v1 row '+id);
+ assert.match(row('target').text,/\$120\.00 \/ \$350\.00/);assert.match(row('trades').text,/12 \/ 40/);assert.match(row('score').text,/1\.20 \/ 1\.65/);assert.match(row('overall').text,/1\.50 \/ 2\.0/);
+ assert.equal(row('identity').done,false);assert.equal(c.ready,false);assert.equal(c.available,true);
+});
+test('v2 account: six short read-before-trading lines carry the v2 rules and numbers from the saved rules',()=>{
+ const c=checklist(v2fixture());assert.equal(c.read.length,6);
+ const all=c.read.join(' | ');
+ for(const re of [/To pass: make \$350\.00 profit with at least 40 counted trades, a consistency score of 1\.65 and an overall score of 2\.0 and no day over 35% of your profit, then close every trade\. No minimum days/,
+  /counted trade is one trade, or several on the same instrument and direction within 15 minutes/,/stop-loss within 30s, at least 8× the spread away\. Tighten it, never widen or remove it/,
+  /Risk up to \$17\.50 per counted trade and \$52\.50 across open trades\. 3 missing stops end the run/,/held 5 minutes or more; losses always count\. After a stop-out, that instrument pauses for 10 minutes/,
+  /lose \$100\.00 in one day \(from your closed balance at 00:00 UTC\) or drop \$200\.00 below your highest closed balance/])assert.match(all,re,String(re));
+ assert.doesNotMatch(all,/under 1 minute|sessions|trading days|profitable days|Daily profit cap|NaN|undefined/i);
+});
+test('v2 acknowledgement key is separate from v1, stable across live P&L, new for each account, and Stage 4 has no checklist',()=>{
+ const s=v2fixture(),key=checklist(s).key;assert.match(key,/^stage-read-iv2:/);
+ s.account.equity=4900;s.account.infinity_v2.counted_profit=-50;assert.equal(checklist(s).key,key);
+ s.account.id='v2b';assert.notEqual(checklist(s).key,key);
+ s.account.infinity_v2.eligible=true;s.account.infinity_v2.identity_required=false;s.account.infinity_v2.n=40;s.account.infinity_v2.score=2;s.account.infinity_v2.combined_score=2.1;s.account.infinity_v2.counted_profit=400;
+ assert.equal(checklist(s).ready,true);s.account.infinity_v2.eligible=false;assert.equal(checklist(s).ready,false);
+ s.account.stage=4;assert.equal(checklist(s),null);
+});
+test('v1 accounts keep their existing checklist untouched',()=>{
+ const s=fixture();assert.notEqual(s.account.rules_version,'infinity_v2');const c=checklist(s);assert.match(c.key,/^stage-read-v2:/);assert.ok(c.rows.some(r=>r.id==='sessions'));
+});
