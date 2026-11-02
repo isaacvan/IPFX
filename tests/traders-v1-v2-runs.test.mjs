@@ -14,16 +14,16 @@ test('admin overview: archived restart runs are returned per trader with their o
   assert.match(fn, /previous_runs: a\.challenge_type === "infinity" \? \(previousByUser\.get\(a\.user_id as string\) \?\? \[\]\) : \[\]/);
   assert.match(fn, /rules_version: a\.rules_version \?\? null,\s+started_at: a\.created_at,/);
   assert.match(fn, /realized_pnl: Math\.round\(\(Number\(r\.balance\) - Number\(r\.starting_balance\)\) \* 100\) \/ 100,/);
-  assert.match(read('workspace/traders.html'), /ws-traders\.js\?v=20261102b/);
+  assert.match(read('workspace/traders.html'), /ws-traders\.js\?v=20261102c/);
 });
 
-function boot(overview, detail) {
+function boot(overview, detail, stageReady = { accounts: [] }, calls = []) {
   const els = {}, handlers = {};
   const el = (id) => (els[id] ??= { id, innerHTML: '', value: '', addEventListener() {} });
   const T = {
     esc: (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;'), usd: (v) => '$' + Number(v).toFixed(2), ukTime: (v) => String(v).slice(0, 10),
-    admin: async (a) => (a === 'overview' ? overview : a === 'trader_detail' ? detail : { entries: [] }), ladder: async () => null,
-    mount() {}, status() {}, toast() {}, sheet: async () => null,
+    admin: async (a, b) => { calls.push([a, b]); return a === 'overview' ? overview : a === 'trader_detail' ? detail : a === 'stage_ready' ? stageReady : a === 'advance_stage' ? { ok: true } : { entries: [] }; }, ladder: async () => null,
+    mount() {}, status() {}, toast() {}, sheet: async (o) => (o.onSubmit ? o.onSubmit({}) : true),
   };
   const document = { getElementById: el, querySelector: () => null, hidden: false, addEventListener: (k, f) => { handlers[k] = f; } };
   const ctx = { window: { TeamOS: T }, document, setInterval() {}, console, Date, Number, Math, String, Array, Set, Object, JSON, Promise, Infinity, Map };
@@ -87,12 +87,33 @@ test('a trader who never restarted sees exactly the old combined view (no select
   assert.doesNotMatch(d, /Current run only/); assert.match(d, /NEWSYM/);
 });
 
-test('"Reached Stage 2" button lists traders on Stage 2 or later (funded included) and nobody still on Stage 1', async () => {
-  const mk = (id, extra) => trader({ user_id: id, account_id: id, full_name: id, email: id + '@example.com', previous_runs: [], ...extra });
-  const b = boot({ is_admin: true, traders: [mk('S1', { stage: 1 }), mk('S2', { stage: 2 }), mk('S3', { stage: 3 }), mk('FUND', { stage: 1, phase: 'funded' })] }, detail);
+test('"Reached Stage 2" lists Stage 1 traders whose boxes are all ticked, and Approve moves exactly that account up', async () => {
+  const mk = (id, extra) => trader({ user_id: id, account_id: id, full_name: id, email: id + '@example.com', previous_runs: [], stage: 1, ...extra });
+  const calls = [];
+  const b = boot({ is_admin: true, traders: [mk('READY1', {}), mk('NOTYET', {}), mk('ONS2', { stage: 2 })] }, detail,
+    { accounts: [{ account_id: 'READY1', ready: true, stage: 1 }, { account_id: 'NOTYET', ready: false, stage: 1 }, { account_id: 'ONS2', ready: true, stage: 2 }] }, calls);
   await b.tick();
-  assert.match(b.els.filters.innerHTML, /Reached Stage 2 · 3/);
+  assert.match(b.els.filters.innerHTML, /Reached Stage 2 · 1/, 'only the Stage 1 trader with every box ticked');
   b.click({ filter: 'Reached Stage 2' });
   const l = b.els.list.innerHTML;
-  assert.match(l, />S2</); assert.match(l, />S3</); assert.match(l, />FUND</); assert.doesNotMatch(l, />S1</);
+  assert.match(l, />READY1</); assert.doesNotMatch(l, />NOTYET</); assert.doesNotMatch(l, />ONS2</);
+  assert.match(l, /data-approve="READY1"/); assert.equal((l.match(/data-approve=/g) || []).length, 1);
+  b.click({ approve: 'READY1' }); await b.tick();
+  const adv = calls.filter(([a]) => a === 'advance_stage');
+  assert.equal(JSON.stringify(adv), JSON.stringify([['advance_stage', { account_id: 'READY1' }]]));
+});
+
+test('if the readiness check fails the list still loads and the button count is not shown as zero', async () => {
+  const b = boot({ is_admin: true, traders: [trader({ previous_runs: [] })] }, detail);
+  b.els.__noop = 1;
+  await b.tick();
+  assert.match(b.els.list.innerHTML, /Ada Trader/);
+});
+
+test('admin stage_ready: only active Infinity evaluation accounts, v2 or at profit target, same checklist the trader sees, read-only', () => {
+  const body = fn.slice(fn.indexOf('if (action === "stage_ready")'), fn.indexOf('if (action === "infinity_v2_review")'));
+  assert.match(body, /eq\("challenge_type", "infinity"\)\.eq\("phase", "evaluation"\)\.eq\("status", "active"\)/);
+  assert.match(body, /rules_version === "infinity_v2"/); assert.match(body, /profit_target_pct/);
+  assert.match(body, /stageChecklist\(db, a,/);
+  assert.doesNotMatch(body, /\.(insert|update|upsert|delete)\(|\.rpc\(/);
 });

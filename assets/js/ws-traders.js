@@ -29,8 +29,11 @@
   const rulesName = (v) => (v === 'infinity_v2' ? 'Infinity v2' : v === 'infinity_v1' ? 'Infinity v1' : '');
   const rulesCap = (v) => (v === 'infinity_v2' ? cap('v2', 'green') : v === 'infinity_v1' ? cap('v1', '') : '');
   const prevRuns = (t) => t.previous_runs || [];
+  // Accounts with every stage box ticked right now (server check 'stage_ready'), waiting for the team to approve the move up.
+  let ready = {}, readyChecked = false;
+  const isReady = (t) => !!ready[t.account_id] && Number(t.stage) === 1;
   const PRED = { All: () => true, Active: (t) => t.status === 'active', Breached: (t) => t.status === 'breached', 'A-book': (t) => inA(t), 'Risk no-go': (t) => t.detector?.state === 'RISK_NO_GO',
-    '100+ trades': (t) => Number(t.stats?.trades) >= 100, 'Reached Stage 2': (t) => Number(t.stage) >= 2 || t.phase === 'funded', 'Infinity v2': (t) => t.rules_version === 'infinity_v2', 'Infinity v1': (t) => t.rules_version === 'infinity_v1', Restarted: (t) => prevRuns(t).length > 0 };
+    '100+ trades': (t) => Number(t.stats?.trades) >= 100, 'Reached Stage 2': (t) => isReady(t), 'Infinity v2': (t) => t.rules_version === 'infinity_v2', 'Infinity v1': (t) => t.rules_version === 'infinity_v1', Restarted: (t) => prevRuns(t).length > 0 };
   const bookCap = (t) => inA(t) ? cap('A-book', 'blue') : cap('B-book', 'orange');
   const stageText = (t) => (t.phase === 'funded' ? 'Funded' : 'Stage ' + (t.stage || 1)) + (t.challenge_type && t.challenge_type !== 'infinity' ? ' · ' + t.challenge_type : '');
 
@@ -59,13 +62,13 @@
     $('summary').innerHTML = `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${sTile('Traders', traders.length)}${sTile('Active', traders.filter((t) => t.status === 'active').length)}
       ${sTile('In profit', traders.filter((t) => Number(t.realized_pnl) > 0).length, 'good')}${sTile('Net trader P&amp;L', usd(net), net < 0 ? 'bad' : net > 0 ? 'good' : '')}
       ${sTile('High potential', dc.HIGH_POTENTIAL || 0, 'good')}${sTile('Confirmed / live review', (dc.PROFITABILITY_CONFIRMED || 0) + (dc.LIVE_REVIEW_REQUIRED || 0), 'good')}${sTile('Risk no-go', dc.RISK_NO_GO || 0, 'bad')}
-      ${sTile('On Infinity v2', counts['Infinity v2'], 'good')}${sTile('Still on v1', counts['Infinity v1'])}${sTile('Restarted (v1 run kept)', counts.Restarted)}</div>
+      ${sTile('Reached Stage 2 (to approve)', readyChecked ? counts['Reached Stage 2'] : '—', counts['Reached Stage 2'] ? 'good' : '')}${sTile('On Infinity v2', counts['Infinity v2'], 'good')}${sTile('Still on v1', counts['Infinity v1'])}${sTile('Restarted (v1 run kept)', counts.Restarted)}</div>
       <div class="banner" style="margin:12px 0 0">Detector states run in shadow mode (uncalibrated). Treat them as “worth a look”, not a verdict. They never enable live copying or touch payouts.</div>`;
     $('detfilters').innerHTML = `<div class="seg"><button type="button" data-det="all" aria-pressed="${detFilter === 'all'}">Any detector · ${traders.length}</button>${DET_ORDER.filter((k) => dc[k]).map((k) => `<button type="button" data-det="${k}" aria-pressed="${detFilter === k}">${esc(DET[k]?.[0] || 'Not assessed')} · ${dc[k]}</button>`).join('')}</div>`;
     $('list').innerHTML = `<div class="tablewrap"><div class="scroll"><table><thead><tr><th>Trader</th><th>Stage</th><th>Rules</th><th>Status</th><th>Book</th><th class="r">P&amp;L</th><th class="r">Balance</th><th class="r">Trades</th><th class="r">Win rate</th><th class="r">Profit factor</th><th class="r">Expectancy</th><th class="r">Max DD</th><th class="r">Best trade</th><th>Detector</th></tr></thead><tbody>
       ${list.slice(0, 500).map((t) => { const e = expectancy(t.stats), st = t.stats || {}, d = det(t); return `<tr class="click" tabindex="0" data-open="${esc(t.account_id)}">
         <td><b>${esc(t.full_name || '—')}</b><br><span class="muted" style="font-size:12px">${esc(t.email || '')}</span></td>
-        <td class="muted">${esc(stageText(t))}</td><td>${rulesCap(t.rules_version)}${prevRuns(t).length ? `<div class="muted" style="font-size:11px">restarted · ${prevRuns(t).length} old run${prevRuns(t).length === 1 ? '' : 's'} kept</div>` : ''}</td><td>${statusCap(t)}${t.investigation_hold ? ' ' + cap('Hold', 'red') : ''}</td><td>${bookCap(t)}</td>
+        <td class="muted">${esc(stageText(t))}${isReady(t) ? `<div><button class="btn sm" type="button" data-approve="${esc(t.account_id)}" title="Every Stage 1 box is ticked">Approve to Stage 2</button></div>` : ''}</td><td>${rulesCap(t.rules_version)}${prevRuns(t).length ? `<div class="muted" style="font-size:11px">restarted · ${prevRuns(t).length} old run${prevRuns(t).length === 1 ? '' : 's'} kept</div>` : ''}</td><td>${statusCap(t)}${t.investigation_hold ? ' ' + cap('Hold', 'red') : ''}</td><td>${bookCap(t)}</td>
         <td class="r num ${Number(t.realized_pnl) < 0 ? 'bad' : Number(t.realized_pnl) > 0 ? 'good' : ''}">${usd(t.realized_pnl || 0)}<div class="muted" style="font-size:11px">${Number(t.starting_balance) > 0 ? (Number(t.realized_pnl) >= 0 ? '+' : '') + ((Number(t.realized_pnl) / Number(t.starting_balance)) * 100).toFixed(2) + '%' : ''}</div></td>
         <td class="r num">${usd(t.balance || 0)}</td><td class="r num">${esc(st.trades ?? 0)}</td>
         <td class="r num muted">${st.win_rate == null ? '—' : Number(st.win_rate).toFixed(0) + '%'}</td>
@@ -315,12 +318,15 @@
       const [o, c] = await Promise.all([T.admin('overview'), T.ladder('ongoing_copy_status').catch(() => null)]);
       if (o.is_admin === false) { $('list').innerHTML = '<div class="banner red">This account doesn’t have team access.</div>'; return; }
       traders = o.traders || []; copy = c;
+      // Which accounts have met every Stage requirement; a failure here must never stop the list loading.
+      try { const r = await T.admin('stage_ready'); ready = {}; for (const x of r.accounts || []) if (x.ready) ready[x.account_id] = x; readyChecked = true; } catch (_) { readyChecked = false; }
       if (open) open.t = traders.find((x) => x.account_id === open.t.account_id) || open.t;
       render(); T.status('Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
     } catch (e) { T.status(e.message); if (!traders.length) $('list').innerHTML = `<div class="banner red">${esc(e.message)}</div>`; }
   }
 
   document.addEventListener('click', (e) => {
+    const ap = e.target.closest('[data-approve]'); if (ap) { advance({ dataset: { account: ap.dataset.approve, ready: '1', title: 'Infinity Stage 1' } }); return; }
     const f = e.target.closest('[data-filter]'); if (f) { filter = f.dataset.filter; render(); return; }
     const df = e.target.closest('[data-det]'); if (df) { detFilter = df.dataset.det; render(); return; }
     if (e.target.closest('[data-close]')) { close(); return; }
@@ -331,7 +337,7 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && open && !document.querySelector('.os-sheet')) close();
-    const r = e.target.closest?.('[data-open]'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openTrader(r.dataset.open); }
+    const r = e.target.closest?.('[data-open]'); if (r && !e.target.closest('[data-approve]') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openTrader(r.dataset.open); }
   });
   T.mount({ page: 'traders', title: 'Traders' });
   $('search').addEventListener('input', (e) => { query = e.target.value; render(); });

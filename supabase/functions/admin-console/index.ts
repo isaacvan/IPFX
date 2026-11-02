@@ -1084,6 +1084,30 @@ Deno.serve(async (req) => {
     return json({ ok: true, next_stage: data.next_stage, already_created: !!data.already_created });
   }
 
+  // Which active Infinity accounts have every stage box ticked right now (the same checklist the trader sees), so the team can approve
+  // them to the next stage from the Traders page. Cheap candidates only: a v2 run, or a v1 run whose balance has reached its profit target.
+  if (action === "stage_ready") {
+    const { data: accts } = await db.from("trading_accounts").select("*").eq("challenge_type", "infinity").eq("phase", "evaluation").eq("status", "active")
+      .is("access_revoked_at", null).lte("stage", 3).order("created_at", { ascending: false }).limit(3000);
+    const cand = (accts ?? []).filter((a: Record<string, unknown>) => a.rules_version === "infinity_v2"
+      || (Number(a.profit_target_pct) > 0 && Number(a.balance) >= Number(a.starting_balance) * (1 + Number(a.profit_target_pct) / 100))).slice(0, 200);
+    const openBy = new Map<string, number>();
+    for (let i = 0; i < cand.length; i += 200) {
+      const { data: op } = await db.from("trades").select("account_id").eq("status", "open").in("account_id", cand.slice(i, i + 200).map((a: Record<string, unknown>) => a.id));
+      for (const r of op ?? []) openBy.set(String(r.account_id), (openBy.get(String(r.account_id)) ?? 0) + 1);
+    }
+    const out: Record<string, unknown>[] = [];
+    for (let i = 0; i < cand.length; i += 8) {
+      const batch = await Promise.all(cand.slice(i, i + 8).map(async (a: Record<string, unknown>) => {
+        const r = await stageChecklist(db, a, openBy.get(String(a.id)) ?? 0).catch(() => null);
+        return r ? { account_id: a.id, user_id: a.user_id, stage: Number(a.stage), rules_version: a.rules_version ?? null, ready: r.ready === true,
+          missing: r.items.filter((x: { done: boolean }) => !x.done).map((x: { text: string }) => x.text) } : null;
+      }));
+      out.push(...batch.filter(Boolean) as Record<string, unknown>[]);
+    }
+    return json({ ok: true, checked: cand.length, accounts: out });
+  }
+
   if (action === "infinity_v2_review") {
     const account_id=String(body.account_id??""), reason=String(body.reason??"").trim();
     if(reason.length<10)return err("Describe the evidence you reviewed (at least 10 characters).",400);
