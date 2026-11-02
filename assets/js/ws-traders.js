@@ -6,7 +6,7 @@
   const T = window.TeamOS, { esc, usd, ukTime } = T;
   const $ = (id) => document.getElementById(id);
   const DET = { RISK_NO_GO: ['Risk no-go', 'red'], HIGH_POTENTIAL: ['High potential', 'green'], PROFITABILITY_CONFIRMED: ['Confirmed', 'green'], LIVE_REVIEW_REQUIRED: ['Live review', 'blue'], OBSERVE: ['Observe', ''], INSUFFICIENT_EVIDENCE: ['Too few trades', ''] };
-  const FILTERS = ['All', 'Active', 'Breached', 'A-book', 'Risk no-go', '100+ trades'];
+  const FILTERS = ['All', 'Active', 'Breached', 'A-book', 'Risk no-go', '100+ trades', 'Infinity v2', 'Infinity v1', 'Restarted'];
   const DET_ORDER = ['HIGH_POTENTIAL', 'PROFITABILITY_CONFIRMED', 'LIVE_REVIEW_REQUIRED', 'OBSERVE', 'INSUFFICIENT_EVIDENCE', 'RISK_NO_GO', 'NOT_ASSESSED'];
   const detKey = (t) => (DET[t.detector?.state] ? t.detector.state : 'NOT_ASSESSED');
   let traders = [], copy = null, filter = 'All', detFilter = 'all', sortBy = 'pnl', query = '', open = null;
@@ -25,6 +25,12 @@
   const det = (t) => DET[t.detector?.state] || ['Not assessed', ''];
   const cap = (txt, cls) => `<span class="cap ${cls || ''}">${esc(txt)}</span>`;
   const statusCap = (t) => cap(t.status, t.status === 'active' ? 'green' : t.status === 'breached' ? 'red' : t.status === 'passed' ? 'blue' : '');
+  // Which Infinity rules a run is on. A restarted trader's old run is kept and shown separately, never mixed into the new one's numbers.
+  const rulesName = (v) => (v === 'infinity_v2' ? 'Infinity v2' : v === 'infinity_v1' ? 'Infinity v1' : '');
+  const rulesCap = (v) => (v === 'infinity_v2' ? cap('v2', 'green') : v === 'infinity_v1' ? cap('v1', '') : '');
+  const prevRuns = (t) => t.previous_runs || [];
+  const PRED = { All: () => true, Active: (t) => t.status === 'active', Breached: (t) => t.status === 'breached', 'A-book': (t) => inA(t), 'Risk no-go': (t) => t.detector?.state === 'RISK_NO_GO',
+    '100+ trades': (t) => Number(t.stats?.trades) >= 100, 'Infinity v2': (t) => t.rules_version === 'infinity_v2', 'Infinity v1': (t) => t.rules_version === 'infinity_v1', Restarted: (t) => prevRuns(t).length > 0 };
   const bookCap = (t) => inA(t) ? cap('A-book', 'blue') : cap('B-book', 'orange');
   const stageText = (t) => (t.phase === 'funded' ? 'Funded' : 'Stage ' + (t.stage || 1)) + (t.challenge_type && t.challenge_type !== 'infinity' ? ' · ' + t.challenge_type : '');
 
@@ -33,12 +39,7 @@
     let r = traders.filter((t) => {
       if (q && !`${t.full_name} ${t.email}`.toLowerCase().includes(q)) return false;
       if (detFilter !== 'all' && detKey(t) !== detFilter) return false;
-      if (filter === 'Active') return t.status === 'active';
-      if (filter === 'Breached') return t.status === 'breached';
-      if (filter === 'A-book') return inA(t);
-      if (filter === 'Risk no-go') return t.detector?.state === 'RISK_NO_GO';
-      if (filter === '100+ trades') return Number(t.stats?.trades) >= 100;
-      return true;
+      return PRED[filter] ? PRED[filter](t) : true;
     });
     const num = (v) => (v == null || !Number.isFinite(Number(v)) ? -Infinity : Number(v));
     const key = { pnl: (t) => num(t.realized_pnl), ret: (t) => (Number(t.starting_balance) > 0 ? num(t.realized_pnl) / Number(t.starting_balance) : -Infinity),
@@ -49,7 +50,7 @@
 
   function render() {
     const list = rows(), counts = {};
-    for (const f of FILTERS) counts[f] = f === 'All' ? traders.length : traders.filter((t) => (f === 'Active' ? t.status === 'active' : f === 'Breached' ? t.status === 'breached' : f === 'A-book' ? inA(t) : f === 'Risk no-go' ? t.detector?.state === 'RISK_NO_GO' : Number(t.stats?.trades) >= 100)).length;
+    for (const f of FILTERS) counts[f] = traders.filter(PRED[f]).length;
     $('filters').innerHTML = `<div class="seg">${FILTERS.map((f) => `<button type="button" data-filter="${esc(f)}" aria-pressed="${f === filter}">${esc(f)} · ${counts[f]}</button>`).join('')}</div>`;
     // Firm-wide summary and detector-state chips, as on the Operations trader list.
     const net = traders.reduce((s, t) => s + (Number(t.realized_pnl) || 0), 0), dc = {};
@@ -57,13 +58,14 @@
     const sTile = (k, v, cls = '') => `<div class="stat"><div class="k">${k}</div><div class="v num ${cls}">${v}</div></div>`;
     $('summary').innerHTML = `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${sTile('Traders', traders.length)}${sTile('Active', traders.filter((t) => t.status === 'active').length)}
       ${sTile('In profit', traders.filter((t) => Number(t.realized_pnl) > 0).length, 'good')}${sTile('Net trader P&amp;L', usd(net), net < 0 ? 'bad' : net > 0 ? 'good' : '')}
-      ${sTile('High potential', dc.HIGH_POTENTIAL || 0, 'good')}${sTile('Confirmed / live review', (dc.PROFITABILITY_CONFIRMED || 0) + (dc.LIVE_REVIEW_REQUIRED || 0), 'good')}${sTile('Risk no-go', dc.RISK_NO_GO || 0, 'bad')}</div>
+      ${sTile('High potential', dc.HIGH_POTENTIAL || 0, 'good')}${sTile('Confirmed / live review', (dc.PROFITABILITY_CONFIRMED || 0) + (dc.LIVE_REVIEW_REQUIRED || 0), 'good')}${sTile('Risk no-go', dc.RISK_NO_GO || 0, 'bad')}
+      ${sTile('On Infinity v2', counts['Infinity v2'], 'good')}${sTile('Still on v1', counts['Infinity v1'])}${sTile('Restarted (v1 run kept)', counts.Restarted)}</div>
       <div class="banner" style="margin:12px 0 0">Detector states run in shadow mode (uncalibrated). Treat them as “worth a look”, not a verdict. They never enable live copying or touch payouts.</div>`;
     $('detfilters').innerHTML = `<div class="seg"><button type="button" data-det="all" aria-pressed="${detFilter === 'all'}">Any detector · ${traders.length}</button>${DET_ORDER.filter((k) => dc[k]).map((k) => `<button type="button" data-det="${k}" aria-pressed="${detFilter === k}">${esc(DET[k]?.[0] || 'Not assessed')} · ${dc[k]}</button>`).join('')}</div>`;
-    $('list').innerHTML = `<div class="tablewrap"><div class="scroll"><table><thead><tr><th>Trader</th><th>Stage</th><th>Status</th><th>Book</th><th class="r">P&amp;L</th><th class="r">Balance</th><th class="r">Trades</th><th class="r">Win rate</th><th class="r">Profit factor</th><th class="r">Expectancy</th><th class="r">Max DD</th><th class="r">Best trade</th><th>Detector</th></tr></thead><tbody>
+    $('list').innerHTML = `<div class="tablewrap"><div class="scroll"><table><thead><tr><th>Trader</th><th>Stage</th><th>Rules</th><th>Status</th><th>Book</th><th class="r">P&amp;L</th><th class="r">Balance</th><th class="r">Trades</th><th class="r">Win rate</th><th class="r">Profit factor</th><th class="r">Expectancy</th><th class="r">Max DD</th><th class="r">Best trade</th><th>Detector</th></tr></thead><tbody>
       ${list.slice(0, 500).map((t) => { const e = expectancy(t.stats), st = t.stats || {}, d = det(t); return `<tr class="click" tabindex="0" data-open="${esc(t.account_id)}">
         <td><b>${esc(t.full_name || '—')}</b><br><span class="muted" style="font-size:12px">${esc(t.email || '')}</span></td>
-        <td class="muted">${esc(stageText(t))}</td><td>${statusCap(t)}${t.investigation_hold ? ' ' + cap('Hold', 'red') : ''}</td><td>${bookCap(t)}</td>
+        <td class="muted">${esc(stageText(t))}</td><td>${rulesCap(t.rules_version)}${prevRuns(t).length ? `<div class="muted" style="font-size:11px">restarted · ${prevRuns(t).length} old run${prevRuns(t).length === 1 ? '' : 's'} kept</div>` : ''}</td><td>${statusCap(t)}${t.investigation_hold ? ' ' + cap('Hold', 'red') : ''}</td><td>${bookCap(t)}</td>
         <td class="r num ${Number(t.realized_pnl) < 0 ? 'bad' : Number(t.realized_pnl) > 0 ? 'good' : ''}">${usd(t.realized_pnl || 0)}<div class="muted" style="font-size:11px">${Number(t.starting_balance) > 0 ? (Number(t.realized_pnl) >= 0 ? '+' : '') + ((Number(t.realized_pnl) / Number(t.starting_balance)) * 100).toFixed(2) + '%' : ''}</div></td>
         <td class="r num">${usd(t.balance || 0)}</td><td class="r num">${esc(st.trades ?? 0)}</td>
         <td class="r num muted">${st.win_rate == null ? '—' : Number(st.win_rate).toFixed(0) + '%'}</td>
@@ -71,15 +73,15 @@
         <td class="r num ${e.c}">${e.t}</td>
         <td class="r num ${Number(st.max_drawdown_pct) >= 4 ? 'bad' : 'muted'}">${st.max_drawdown_pct == null ? '—' : Number(st.max_drawdown_pct).toFixed(2) + '%'}</td>
         <td class="r num ${Number(st.consistency_pct) > 50 ? 'warn' : 'muted'}">${st.consistency_pct == null ? '—' : esc(st.consistency_pct) + '%'}</td>
-        <td>${cap(d[0], d[1])}</td></tr>`; }).join('') || '<tr><td colspan="13" class="muted">No traders match.</td></tr>'}
-      </tbody></table></div></div><p class="foot">${list.length > 500 ? 'Showing the first 500 of ' + list.length + '. Search to narrow down. ' : ''}Expectancy turns green only when positive over 100+ closed trades.</p>`;
+        <td>${cap(d[0], d[1])}</td></tr>`; }).join('') || '<tr><td colspan="14" class="muted">No traders match.</td></tr>'}
+      </tbody></table></div></div><p class="foot">${list.length > 500 ? 'Showing the first 500 of ' + list.length + '. Search to narrow down. ' : ''}Expectancy turns green only when positive over 100+ closed trades. The table shows each trader’s current run only; a restarted trader’s older run is kept and shown when you open them.</p>`;
     if (open) renderDrawer();
   }
 
   // ---- detail panel: the full trader record (everything the Operations trader view showed, plus hold times) ----
   async function openTrader(accountId) {
     const t = traders.find((x) => x.account_id === accountId); if (!t) return;
-    open = { t, detail: null, error: null, audit: null, allTrades: false }; renderDrawer();
+    open = { t, detail: null, error: null, audit: null, allTrades: false, run: 'current' }; renderDrawer();
     const [d, a] = await Promise.allSettled([T.admin('trader_detail', { user_id: t.user_id }), T.admin('audit_log', { user_id: t.user_id, page_size: 50 })]);
     if (!open || open.t !== t) return;
     if (d.status === 'fulfilled') open.detail = d.value; else open.error = d.reason?.message || 'Trader record unavailable';
@@ -226,15 +228,38 @@
       ${rows.map((x) => `<tr><td class="num muted">${ukTime(x.created_at)}</td><td><b>${esc(String(x.action).replace(/_/g, ' '))}</b></td><td class="muted" style="white-space:normal;min-width:260px">${esc(JSON.stringify(x.detail || {}).slice(0, 220))}</td></tr>`).join('')}</tbody></table></div></div>`;
   }
 
+  const when = (iso) => (iso ? ukTime(iso) : '—');
+  // One line per run, newest first: the current run and every earlier run the trader gave up on restarting, each with its own numbers.
+  function runsSection(t) {
+    const prev = prevRuns(t); if (!prev.length) return '';
+    const row = (x, cur) => { const st = x.stats || {}, pnl = Number(x.realized_pnl) || 0, ret = Number(x.starting_balance) > 0 ? ((pnl / Number(x.starting_balance)) * 100).toFixed(2) + '%' : '';
+      return `<tr><td><b>${cur ? 'Current run' : 'Previous run'}</b></td><td>${rulesCap(x.rules_version)} <span class="muted">${esc(rulesName(x.rules_version))}</span></td><td class="num muted">${when(cur ? t.started_at : x.started_at)}</td><td class="num muted">${cur ? 'now' : when(x.ended_at)}</td>
+        <td>${cur ? statusCap(t) : cap(x.status === 'closed' ? 'Restarted' : x.status, 'orange')}</td>
+        <td class="r num ${pnl < 0 ? 'bad' : pnl > 0 ? 'good' : ''}">${usd(pnl)}<div class="muted" style="font-size:11px">${esc(ret)}</div></td><td class="r num">${esc(st.trades ?? 0)}</td><td class="r num muted">${st.win_rate == null ? '—' : Number(st.win_rate).toFixed(0) + '%'}</td>
+        <td class="r num muted">${st.profit_factor == null ? '—' : Number(st.profit_factor).toFixed(2)}</td><td class="r num ${Number(st.max_drawdown_pct) >= 4 ? 'bad' : 'muted'}">${st.max_drawdown_pct == null ? '—' : Number(st.max_drawdown_pct).toFixed(2) + '%'}</td></tr>`; };
+    const cur = open.run;
+    const opt = (v, label) => `<button type="button" data-run="${esc(v)}" aria-pressed="${cur === v}">${esc(label)}</button>`;
+    return `${head('Runs', 'restarted on new rules; the old run is kept, not mixed in')}
+      <div class="tablewrap"><div class="scroll"><table style="min-width:0"><thead><tr><th>Run</th><th>Rules</th><th>Started</th><th>Ended</th><th>Status</th><th class="r">P&amp;L</th><th class="r">Trades</th><th class="r">Win rate</th><th class="r">Profit factor</th><th class="r">Max DD</th></tr></thead><tbody>
+      ${row({ ...t, stats: t.stats }, true)}${prev.map((x) => row(x, false)).join('')}</tbody></table></div></div>
+      <div class="row" style="margin:12px 0 0"><span class="muted" style="font-size:12px">Show below</span><div class="seg">${opt('current', 'Current run only')}${prev.map((x, i) => opt(x.account_id, 'Previous run' + (prev.length > 1 ? ' ' + (prev.length - i) : '') + ' (' + (rulesName(x.rules_version) || 'old') + ')')).join('')}${opt('all', 'All runs together')}</div></div>`;
+  }
+
   function renderDrawer() {
     const { t, detail, error } = open, st = t.stats || {}, e = expectancy(st), d = det(t);
     const a = inA(t), conn = (copy?.connections || []).find((c) => c.connected);
-    const per = detail?.per_account_profile || [], primary = per.find((x) => x.account_id === t.account_id) || per.find((x) => x.status === 'active') || per[0];
+    const allPer = detail?.per_account_profile || [];
+    // A restarted trader shows their current run by default; the old run's numbers are one click away and never blended in unless 'All runs together' is chosen.
+    const runMode = prevRuns(t).length ? open.run : 'all', runId = runMode === 'current' ? t.account_id : runMode;
+    const per = runMode === 'all' ? allPer : allPer.filter((x) => x.account_id === runId);
+    const ids = new Set(per.map((x) => x.account_id)), shown = runMode === 'all' ? detail?.trades : (detail?.trades || []).filter((x) => ids.has(x.account_id));
+    const primary = per.find((x) => x.account_id === t.account_id) || per.find((x) => x.status === 'active') || per[0];
     const scrollTop = document.querySelector('.os-drawer')?.scrollTop || 0;
     const ret = Number(t.starting_balance) > 0 ? signed((Number(t.realized_pnl) / Number(t.starting_balance)) * 100) + '%' : '';
     $('drawerSlot').innerHTML = `<div class="os-scrim os-drawer-scrim" data-close></div><aside class="os-drawer wide" role="dialog" aria-label="${esc(t.full_name || 'Trader')}">
       <div class="row" style="justify-content:space-between;align-items:flex-start"><div><h3>${esc(t.full_name || '—')}</h3><span class="muted">${esc(t.email || '')}</span></div><button class="btn sm" type="button" data-close>Done</button></div>
       <div class="row">${statusCap(t)}${bookCap(t)}${cap(d[0], d[1])}${cap(stageText(t))}${t.kyc_status ? cap('ID ' + t.kyc_status, t.kyc_status === 'verified' ? 'green' : 'orange') : ''}${t.investigation_hold ? cap('Investigation hold', 'red') : ''}</div>
+      ${prevRuns(t).length ? head('Current run', esc(rulesName(t.rules_version)) + ' · started ' + when(t.started_at)) : ''}
       <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:0">
         ${tile('P&amp;L', usd(t.realized_pnl || 0), Number(t.realized_pnl) < 0 ? 'bad' : Number(t.realized_pnl) > 0 ? 'good' : '', ret)}
         ${tile('Balance', usd(t.balance || 0))}${tile('Trades', esc(st.trades || 0))}${tile('Win rate', st.win_rate == null ? '—' : fmtNum(st.win_rate, 1) + '%')}
@@ -244,9 +269,10 @@
           <div class="trail"><div class="seg"><button class="a" type="button" aria-pressed="${a}" data-act="toA"${a || !conn ? ' disabled' : ''}${conn ? '' : ' title="Set up copying in Books first"'}>A-book</button><button class="b" type="button" aria-pressed="${!a}" data-act="toB"${a ? '' : ' disabled'}>B-book</button></div></div></div>
         <div class="item"><div class="body"><b>Investigation hold</b><span>${t.investigation_hold ? 'On: payouts and copying are held' : 'Off'}</span></div>
           <div class="trail"><button class="switch" role="switch" aria-checked="${!!t.investigation_hold}" aria-label="Investigation hold" data-act="hold"></button></div></div></div>
+      ${runsSection(t)}
       ${error ? `<div class="banner red">${esc(error)}</div>` : !detail ? '<div class="empty">Loading the full trader record…</div>'
-        : per.map((x) => stageSection(x.stage_requirements, per.length > 1 ? x.label : '', x) + drawdownSection(x.drawdown_check, per.length > 1 ? x.label : '')).join('') + equitySection(detail.trades) + profileSection(detail.combined_profile) + tradesSection(detail) + rejectsSection(detail) + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
-          + (per.length > 1 ? head('Per-account breakdown', per.length + ' accounts') + per.map((x) => `<div class="row" style="margin:14px 4px 0"><b>${esc(x.label)}</b>${cap(x.status, x.status === 'active' ? 'green' : x.status === 'breached' ? 'red' : '')}</div>${x === primary ? '' : readinessSection(x.readiness)}${profileSection(x.profile, x.label)}`).join('') : '')
+        : per.map((x) => stageSection(x.stage_requirements, per.length > 1 ? x.label : '', x) + drawdownSection(x.drawdown_check, per.length > 1 ? x.label : '')).join('') + equitySection(shown) + profileSection(runMode === 'all' ? detail.combined_profile : primary?.profile, runMode === 'all' ? '' : (runMode === 'current' ? 'current run' : 'previous run')) + tradesSection({ ...detail, trades: shown || [] }) + rejectsSection(detail) + readinessSection(primary?.readiness, per.length > 1 ? primary?.label : '')
+          + (runMode === 'all' && per.length > 1 ? head('Per-account breakdown', per.length + ' accounts') + per.map((x) => `<div class="row" style="margin:14px 4px 0"><b>${esc(x.label)}</b>${cap(x.status, x.status === 'active' ? 'green' : x.status === 'breached' ? 'red' : '')}</div>${x === primary ? '' : readinessSection(x.readiness)}${profileSection(x.profile, x.label)}`).join('') : '')
           + strategySection(detail) + identitySection(detail) + auditSection()}
     </aside>`;
     const dr = document.querySelector('.os-drawer'); if (dr && scrollTop) dr.scrollTop = scrollTop;
@@ -298,6 +324,7 @@
     const f = e.target.closest('[data-filter]'); if (f) { filter = f.dataset.filter; render(); return; }
     const df = e.target.closest('[data-det]'); if (df) { detFilter = df.dataset.det; render(); return; }
     if (e.target.closest('[data-close]')) { close(); return; }
+    const ru = e.target.closest('[data-run]'); if (ru && open) { open.run = ru.dataset.run; open.allTrades = false; renderDrawer(); return; }
     const r = e.target.closest('[data-open]'); if (r) { openTrader(r.dataset.open); return; }
     const b = e.target.closest('[data-act]'); if (!b || b.disabled || !open) return;
     ({ toA, toB, hold, v2review: () => reviewV2(b), advance: () => advance(b), alltrades: () => { open.allTrades = true; renderDrawer(); } })[b.dataset.act]?.();

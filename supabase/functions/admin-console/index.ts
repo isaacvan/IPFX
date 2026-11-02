@@ -761,7 +761,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === "overview") {
-    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }, { data: claims }, { data: kycRows }, { data: platCfg }, { data: sharedIps }] =
+    const [{ data: accounts }, { data: profiles }, { data: targets }, { data: summary }, { data: payouts }, { data: stats }, { data: risk }, { data: claims }, { data: kycRows }, { data: platCfg }, { data: sharedIps }, { data: archivedRuns }] =
       await Promise.all([
         db.from("trading_accounts").select("*").neq("phase", "demo").is("access_revoked_at", null).order("created_at", { ascending: false }),
         db.from("user_profiles").select("user_id,full_name,referral_code,restricted_jurisdiction"),
@@ -774,6 +774,8 @@ Deno.serve(async (req) => {
         db.from("trader_kyc").select("user_id,status"),
         db.from("platform_config").select("*").eq("id", true).maybeSingle(),
         db.from("shared_ip_accounts").select("*").limit(50),
+        // Runs a trader gave up to restart on Infinity v2: kept in full, shown on the Traders page as "previous run".
+        db.from("trading_accounts").select("id,user_id,label,status,stage,challenge_type,rules_version,starting_balance,balance,created_at,access_revoked_at").eq("access_revoked_reason", "voluntary_infinity_v2_restart").order("created_at", { ascending: false }),
       ]);
     // Trader detector state (Codex v2). Fetched separately and tolerantly:
     // until its migrations are applied the table doesn't exist, and the
@@ -812,6 +814,20 @@ Deno.serve(async (req) => {
     const sumByAcct = new Map<string, Record<string, unknown>>();
     for (const s of summary ?? []) sumByAcct.set(s.account_id, s);
 
+    // Each archived run with its own numbers, grouped by trader, so the current run is never mixed with the old one.
+    const previousByUser = new Map<string, Record<string, unknown>[]>();
+    for (const r of archivedRuns ?? []) {
+      const st = statByAcct.get(r.id as string), rk = riskByAcct.get(r.id as string);
+      const list = previousByUser.get(r.user_id as string) ?? [];
+      list.push({
+        account_id: r.id, label: r.label, stage: Number(r.stage ?? 1), status: r.status, rules_version: r.rules_version ?? "infinity_v1",
+        started_at: r.created_at, ended_at: r.access_revoked_at, starting_balance: Number(r.starting_balance), balance: Number(r.balance),
+        realized_pnl: Math.round((Number(r.balance) - Number(r.starting_balance)) * 100) / 100,
+        stats: st ? { trades: Number(st.trades), win_rate: st.win_rate == null ? null : Number(st.win_rate), profit_factor: st.profit_factor == null ? null : Number(st.profit_factor), best_trade: Number(st.best_trade), worst_trade: Number(st.worst_trade), max_drawdown_pct: rk ? Number(rk.max_drawdown_pct) : null }
+          : { trades: 0, win_rate: null, profit_factor: null, best_trade: 0, worst_trade: 0, max_drawdown_pct: null },
+      });
+      previousByUser.set(r.user_id as string, list);
+    }
     const traders = (accounts ?? []).map((a: Record<string, unknown>) => {
       const s = sumByAcct.get(a.id as string);
       const tg = targetByUser.get(a.user_id as string);
@@ -827,6 +843,9 @@ Deno.serve(async (req) => {
         phase: a.phase ?? "evaluation",
         challenge_type: a.challenge_type ?? "traditional",
         stage: Number(a.stage ?? 1),
+        rules_version: a.rules_version ?? null,
+        started_at: a.created_at,
+        previous_runs: a.challenge_type === "infinity" ? (previousByUser.get(a.user_id as string) ?? []) : [],
         detector: (() => {
           const d = detByAcct.get(a.id as string);
           return d ? {
