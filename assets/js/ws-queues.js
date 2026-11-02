@@ -169,11 +169,12 @@
       ]);
       overview = ov;
       counts.payouts = (ov.payouts || []).filter((p) => p.status === 'requested' || p.status === 'approved').length;
+      if (ov.queue_counts && tab !== 'kyc') counts.kyc = ov.queue_counts.kyc_pending ?? counts.kyc;   // Identity checks shows its number without being opened
       if (fb) counts.feedback = fb.counts?.new ?? 0;
       if (fl) counts.flags = fl.flags.length;
       if (tab !== 'payouts') await loadTab(tab);
       render();
-      T.status('Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+      T.status('Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (e) { T.status(e.message); $('panel').innerHTML = `<div class="banner red">${esc(e.message)}<button class="btn sm" type="button" data-act="retry">Try again</button></div>`; }
   }
 
@@ -227,5 +228,9 @@
   tabFromHash();
   $('refreshBtn').addEventListener('click', () => { data = {}; load(); });
   load();
-  setInterval(() => { if (!busy && !document.hidden && !document.querySelector('.os-scrim')) load(); }, 30000);
+  const tick = () => { if (!busy && !document.hidden && !document.querySelector('.os-scrim')) load(); };
+  setInterval(tick, 15000);
+  // Coming back to this tab (or window) shows current data at once instead of waiting for the next timer tick.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  window.addEventListener('focus', tick);
 })();

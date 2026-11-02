@@ -892,6 +892,8 @@ Deno.serve(async (req) => {
       detector_deployed: detectorDeployed,
       platform: { trading_halted: !!platCfg?.trading_halted, halted_reason: platCfg?.halted_reason ?? null, halted_at: platCfg?.halted_at ?? null },
       shared_ip_accounts: sharedIps ?? [],
+      // Counts for the Queues tabs, so every tab shows its number without being opened.
+      queue_counts: { kyc_pending: (kycRows ?? []).filter((k: { status: string }) => k.status === "pending").length },
     });
   }
 
@@ -2022,20 +2024,26 @@ Deno.serve(async (req) => {
   if (action === "kyc_queue") {
     const { data: pending } = await db.from("trader_kyc").select("user_id,status,updated_at").eq("status", "pending").order("updated_at");
     const out = [];
-    for (const row of pending ?? []) {
-      const { data: au } = await db.auth.admin.getUserById(row.user_id);
-      const { data: docs } = await db.from("kyc_submissions").select("id,doc_type,created_at")
-        .eq("user_id", row.user_id).order("created_at", { ascending: false }).limit(8);
-      const files = (docs ?? []).map((d: { id: string; doc_type: string; created_at: string }) => ({ id: d.id, doc_type: d.doc_type, uploaded_at: d.created_at }));
-      const { data: profile } = await db.from("user_profiles").select("full_name,country_code").eq("user_id", row.user_id).maybeSingle();
-      const { data: identity } = await db.from("trader_identity_private")
-        .select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code")
-        .eq("user_id", row.user_id).maybeSingle();
-      out.push({
-        user_id: row.user_id, submitted_at: row.updated_at, email: au?.user?.email ?? null,
-        full_name: profile?.full_name ?? au?.user?.user_metadata?.full_name ?? null, country: profile?.country_code ?? null,
-        identity: maskIdentity(identity ? { ...identity, user_id: row.user_id } : null), documents: files,
-      });
+    // Each trader's four lookups are independent, so a batch of 8 traders runs at once (it used to be one call after another).
+    const pendingRows = pending ?? [];
+    for (let i = 0; i < pendingRows.length; i += 8) {
+      const batch = await Promise.all(pendingRows.slice(i, i + 8).map(async (row: { user_id: string; updated_at: string }) => {
+        const [{ data: au }, { data: docs }, { data: profile }, { data: identity }] = await Promise.all([
+          db.auth.admin.getUserById(row.user_id),
+          db.from("kyc_submissions").select("id,doc_type,created_at").eq("user_id", row.user_id).order("created_at", { ascending: false }).limit(8),
+          db.from("user_profiles").select("full_name,country_code").eq("user_id", row.user_id).maybeSingle(),
+          db.from("trader_identity_private")
+            .select("legal_first_name,legal_middle_names,legal_last_name,date_of_birth,phone_e164,address_line_1,address_line_2,city,region,postal_code,country_code,nationality_code")
+            .eq("user_id", row.user_id).maybeSingle(),
+        ]);
+        const files = (docs ?? []).map((d: { id: string; doc_type: string; created_at: string }) => ({ id: d.id, doc_type: d.doc_type, uploaded_at: d.created_at }));
+        return {
+          user_id: row.user_id, submitted_at: row.updated_at, email: au?.user?.email ?? null,
+          full_name: profile?.full_name ?? au?.user?.user_metadata?.full_name ?? null, country: profile?.country_code ?? null,
+          identity: maskIdentity(identity ? { ...identity, user_id: row.user_id } : null), documents: files,
+        };
+      }));
+      out.push(...batch);
     }
     const { error: queueAuditError } = await db.from("admin_audit_log").insert({
       actor_id: user.id, action: "kyc_queue_identity_view",

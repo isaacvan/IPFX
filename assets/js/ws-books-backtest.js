@@ -42,6 +42,10 @@
   const when = (v) => { const t = Date.parse(v); return Number.isFinite(t) ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(t) : '—'; };
   const px = (v, sym) => (v == null ? '—' : Number(v).toFixed(/JPY/.test(sym) ? 3 : Number(v) > 50 ? 2 : 5));
 
+  // Minutes since the saved calculation, and whether that is too old for a result that is meant to refresh every 10 minutes.
+  const ageMin = () => { const t = Date.parse(saved || (r && r.as_of)); return Number.isFinite(t) ? Math.max(0, Math.round((Date.now() - t) / 60000)) : null; };
+  const isStale = () => { const m = ageMin(); return m === null || m > 30; };
+  const agoText = (m) => (m === null ? 'at an unknown time' : m >= 2880 ? Math.round(m / 1440) + ' days ago' : m >= 120 ? Math.round(m / 60) + ' hours ago' : m + ' minutes ago');
   async function run() {
     if (busy) return;
     busy = true; err = ''; render();
@@ -160,9 +164,24 @@
     if (busy && !r) { root.innerHTML = head + '<div class="empty">Loading…</div>'; return; }
     if (err && !r) { root.innerHTML = head + `<div class="banner red">${esc(err)}<button class="btn sm" data-bt="run">Try again</button></div>`; return; }
     if (!r) { root.innerHTML = head; return; }
-    root.innerHTML = head + `<p class="lede" style="margin:4px 0 0">${esc(ukTime(r.from))} to ${esc(ukTime(r.to))} · calculated ${esc(ukTime(saved || r.as_of))} (updates every 10 minutes)${err ? ` · <span class="bad">${esc(err)}</span>` : ''}</p>`
+    root.innerHTML = head + `<p class="lede" style="margin:4px 0 0">${esc(ukTime(r.from))} to ${esc(ukTime(r.to))} · calculated ${esc(ukTime(saved || r.as_of))} (updates every 10 minutes)${isStale() ? ` · <span class="bad">OUT OF DATE: last calculated ${esc(agoText(ageMin()))}. The refresh job is not running.</span>` : ''}${err ? ` · <span class="bad">${esc(err)}</span>` : ''}</p>`
       + bookBlock('a') + bookBlock('b') + notes();
   }
+
+  // Quiet refresh: look every minute and redraw only when a newer calculation exists (or the 'out of date' state changes), never while a
+  // box is being typed in, so nobody loses their place.
+  async function quietRefresh() {
+    if (busy || document.hidden || !r) return;
+    const ae = document.activeElement; if (ae && root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
+    const wasStale = isStale();
+    try {
+      const j = await T.brain('e8_copy_backtest'); const at = j.computed_at || null;
+      if (at !== saved) { r = j.backtest; saved = at; err = r?.available ? '' : (r?.reason || 'Not available yet'); render(); }
+      else if (wasStale !== isStale()) render();
+    } catch (_) { /* keep the last numbers; the 'out of date' note says how old they are */ }
+  }
+  setInterval(quietRefresh, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) quietRefresh(); });
 
   root.addEventListener('click', (e) => {
     const b = e.target.closest('[data-bt]'); if (!b || b.disabled) return;

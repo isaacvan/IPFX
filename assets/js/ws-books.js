@@ -332,5 +332,7 @@
   T.mount({ page: 'books', title: 'Books' });
   $('refreshBtn').addEventListener('click', load);
   load();
-  setInterval(() => { if (!busy && !document.hidden && !document.querySelector('.os-scrim')) load(); }, 10000);
+  const tick = () => { if (!busy && !document.hidden && !document.querySelector('.os-scrim')) load(); };
+  setInterval(tick, 10000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 })();

@@ -5,6 +5,8 @@
   'use strict';
   const T = window.TeamOS, { esc, usd, ukTime } = T;
   const $ = (id) => document.getElementById(id);
+  // How old the forecast is, in words; past 45 minutes it is flagged (forecasts are meant to run every 15 minutes).
+  const forecastAge = (iso) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000)); if (!Number.isFinite(m)) return 'age unknown'; const t = m < 1 ? 'just now' : m < 120 ? m + ' min ago' : Math.round(m / 60) + ' hours ago'; return m > 45 ? t + ' · OUT OF DATE' : t; };
   let d = null, busy = false;
   const COVER = { healthy: ['Healthy', 'green', 'Cash covers the 90-day bad case.'], tight: ['Tight', 'orange', 'Cash only just covers the 90-day bad case.'],
     short: ['Short', 'red', 'Cash doesn’t cover the 90-day bad case.'], unknown: ['Unknown', '', 'Forecast figures are missing.'] };
@@ -33,7 +35,7 @@
   function forecast() {
     const s = d.snapshot, ok = figures();
     const cell = (k, v, p, g) => `<div class="stat"><div class="k">${k}</div><div class="v num">${ok ? money(v) : '—'}</div><div class="s">${ok && p != null ? `Bad case ${money(p)} · ${Number(g).toFixed(1)} graduates` : '&nbsp;'}</div></div>`;
-    return `<div class="grouphead">Payouts ahead <span class="sub">${s ? `Forecast ${ukTime(s.as_of)} UK · ${esc(s.open_accounts)} open accounts` : 'No forecast yet · runs every hour'}</span></div>
+    return `<div class="grouphead">Payouts ahead <span class="sub">${s ? `Forecast ${ukTime(s.as_of)} UK (${forecastAge(s.as_of)}) · ${esc(s.open_accounts)} open accounts` : 'No forecast yet · runs every 15 minutes'}</span></div>
       <div class="stats">${cell('Next 7 days', s?.liab_7d)}${cell('Next 30 days', s?.liab_30d, s?.liab_30d_p90, s?.graduates_30d)}${cell('Next 60 days', s?.liab_60d)}${cell('Next 90 days', s?.liab_90d, s?.liab_90d_p90, s?.graduates_90d)}</div>
       <p class="foot">Expected payouts from each trader’s results so far. The bad case is the 90th percentile and treats traders as independent, so correlated losses can be worse${ok && s.notes?.dependence_stress_usd != null ? ` (if every open account graduated: ${money(s.notes.dependence_stress_usd)})` : ''}. Demo profits never count as cash.</p>`;
   }
@@ -174,7 +176,7 @@
   async function load() {
     try {
       d = await T.ladder('overview'); render();
-      T.status('Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+      T.status('Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (e) {
       T.status(e.message);
       if (!d) $('treasury').innerHTML = `<div class="banner red">${esc(e.message)}<button class="btn sm" data-act="refresh">Try again</button></div>`;
@@ -189,5 +191,8 @@
   T.mount({ page: 'treasury', title: 'Treasury' });
   $('refreshBtn').addEventListener('click', load);
   load();
-  setInterval(() => { if (!busy && !document.hidden && !document.querySelector('.os-scrim')) load(); }, 60000);
+  const tick = () => { if (!busy && !document.hidden && !document.querySelector('.os-scrim')) load(); };
+  setInterval(tick, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  window.addEventListener('focus', tick);
 })();
