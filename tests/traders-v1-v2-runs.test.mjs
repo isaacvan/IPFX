@@ -14,7 +14,7 @@ test('admin overview: archived restart runs are returned per trader with their o
   assert.match(fn, /previous_runs: a\.challenge_type === "infinity" \? \(previousByUser\.get\(a\.user_id as string\) \?\? \[\]\) : \[\]/);
   assert.match(fn, /rules_version: a\.rules_version \?\? null,\s+started_at: a\.created_at,/);
   assert.match(fn, /realized_pnl: Math\.round\(\(Number\(r\.balance\) - Number\(r\.starting_balance\)\) \* 100\) \/ 100,/);
-  assert.match(read('workspace/traders.html'), /ws-traders\.js\?v=20261102a/);
+  assert.match(read('workspace/traders.html'), /ws-traders\.js\?v=20261102b/);
 });
 
 function boot(overview, detail) {
@@ -85,4 +85,14 @@ test('a trader who never restarted sees exactly the old combined view (no select
   await b.tick(); b.click({ open: 'NEW' }); await b.tick();
   const d = b.els.drawerSlot.innerHTML;
   assert.doesNotMatch(d, /Current run only/); assert.match(d, /NEWSYM/);
+});
+
+test('"Reached Stage 2" button lists traders on Stage 2 or later (funded included) and nobody still on Stage 1', async () => {
+  const mk = (id, extra) => trader({ user_id: id, account_id: id, full_name: id, email: id + '@example.com', previous_runs: [], ...extra });
+  const b = boot({ is_admin: true, traders: [mk('S1', { stage: 1 }), mk('S2', { stage: 2 }), mk('S3', { stage: 3 }), mk('FUND', { stage: 1, phase: 'funded' })] }, detail);
+  await b.tick();
+  assert.match(b.els.filters.innerHTML, /Reached Stage 2 · 3/);
+  b.click({ filter: 'Reached Stage 2' });
+  const l = b.els.list.innerHTML;
+  assert.match(l, />S2</); assert.match(l, />S3</); assert.match(l, />FUND</); assert.doesNotMatch(l, />S1</);
 });

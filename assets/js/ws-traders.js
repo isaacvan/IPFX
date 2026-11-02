@@ -6,7 +6,7 @@
   const T = window.TeamOS, { esc, usd, ukTime } = T;
   const $ = (id) => document.getElementById(id);
   const DET = { RISK_NO_GO: ['Risk no-go', 'red'], HIGH_POTENTIAL: ['High potential', 'green'], PROFITABILITY_CONFIRMED: ['Confirmed', 'green'], LIVE_REVIEW_REQUIRED: ['Live review', 'blue'], OBSERVE: ['Observe', ''], INSUFFICIENT_EVIDENCE: ['Too few trades', ''] };
-  const FILTERS = ['All', 'Active', 'Breached', 'A-book', 'Risk no-go', '100+ trades', 'Infinity v2', 'Infinity v1', 'Restarted'];
+  const FILTERS = ['All', 'Active', 'Breached', 'A-book', 'Risk no-go', '100+ trades', 'Reached Stage 2', 'Infinity v2', 'Infinity v1', 'Restarted'];
   const DET_ORDER = ['HIGH_POTENTIAL', 'PROFITABILITY_CONFIRMED', 'LIVE_REVIEW_REQUIRED', 'OBSERVE', 'INSUFFICIENT_EVIDENCE', 'RISK_NO_GO', 'NOT_ASSESSED'];
   const detKey = (t) => (DET[t.detector?.state] ? t.detector.state : 'NOT_ASSESSED');
   let traders = [], copy = null, filter = 'All', detFilter = 'all', sortBy = 'pnl', query = '', open = null;
@@ -30,7 +30,7 @@
   const rulesCap = (v) => (v === 'infinity_v2' ? cap('v2', 'green') : v === 'infinity_v1' ? cap('v1', '') : '');
   const prevRuns = (t) => t.previous_runs || [];
   const PRED = { All: () => true, Active: (t) => t.status === 'active', Breached: (t) => t.status === 'breached', 'A-book': (t) => inA(t), 'Risk no-go': (t) => t.detector?.state === 'RISK_NO_GO',
-    '100+ trades': (t) => Number(t.stats?.trades) >= 100, 'Infinity v2': (t) => t.rules_version === 'infinity_v2', 'Infinity v1': (t) => t.rules_version === 'infinity_v1', Restarted: (t) => prevRuns(t).length > 0 };
+    '100+ trades': (t) => Number(t.stats?.trades) >= 100, 'Reached Stage 2': (t) => Number(t.stage) >= 2 || t.phase === 'funded', 'Infinity v2': (t) => t.rules_version === 'infinity_v2', 'Infinity v1': (t) => t.rules_version === 'infinity_v1', Restarted: (t) => prevRuns(t).length > 0 };
   const bookCap = (t) => inA(t) ? cap('A-book', 'blue') : cap('B-book', 'orange');
   const stageText = (t) => (t.phase === 'funded' ? 'Funded' : 'Stage ' + (t.stage || 1)) + (t.challenge_type && t.challenge_type !== 'infinity' ? ' · ' + t.challenge_type : '');
 
