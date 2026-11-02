@@ -108,6 +108,30 @@ test('closed-balance midnight baseline and no daily cap preserve an overnight wi
  assert.equal((await db.query('select fn_infinity_cap_closes_positions($1) p',[a.id])).rows[0].p,false);
  }finally{await db.close();}
 });
+test('restart: a trader who already holds an Infinity run restarts without identity or KYC; a new applicant still needs both; other checks still apply',opts,async()=>{
+ const {db,account}=await v2db();try{const a=await account({version:'infinity_v1',created:new Date(Date.now()-40*86400000).toISOString()});
+ await db.exec('delete from trader_identity_private;delete from trader_kyc');
+ const p=(await db.query("select fn_restart_infinity_v2($1,'test-v2',true,true) p",[uid])).rows[0].p;assert.equal(p.ok,true,'existing trader restarts with no identity record and no KYC application');
+ assert.equal((await db.query('select status from trading_accounts where id=$1',[a.id])).rows[0].status,'closed');
+ const newbie='00000000-0000-4000-8000-0000000000aa';
+ await db.exec(`insert into auth.users(id,email_confirmed_at) values('${newbie}',now());insert into user_profiles values('${newbie}',true,false)`);
+ await assert.rejects(db.query("select fn_restart_infinity_v2($1,'test-v2',true,true)",[newbie]),/COMPLETE_IDENTITY_FIRST/,'no Infinity run and no identity: still blocked');
+ await db.exec(`insert into trader_identity_private(user_id,date_of_birth) values('${newbie}','1990-01-01')`);
+ await assert.rejects(db.query("select fn_restart_infinity_v2($1,'test-v2',true,true)",[newbie]),/COMPLETE_KYC_FIRST/,'identity but no KYC application and no run: still blocked');
+ await db.exec(`insert into trader_kyc values('${newbie}','verified')`);
+ await assert.rejects(db.query("select fn_restart_infinity_v2($1,'test-v2',true,true)",[newbie]),/INFINITY_RUN_REQUIRED/,'fully verified but no run to restart');
+ }finally{await db.close();}
+});
+test('restart: unconfirmed email, restricted jurisdiction and under-18 identity still block a trader who holds a run',opts,async()=>{
+ const {db,account}=await v2db();try{await account({version:'infinity_v1',created:new Date(Date.now()-40*86400000).toISOString()});
+ await db.exec('delete from trader_kyc');
+ await db.exec("update user_profiles set restricted_jurisdiction=true");await assert.rejects(db.query("select fn_restart_infinity_v2($1,'test-v2',true,true)",[uid]),/RESTRICTED_JURISDICTION/);
+ await db.exec("update user_profiles set restricted_jurisdiction=false;update trader_identity_private set date_of_birth=(current_date-interval '16 years')::date");
+ await assert.rejects(db.query("select fn_restart_infinity_v2($1,'test-v2',true,true)",[uid]),/ADULT_AGE_REQUIRED/,'the age check still runs whenever an identity record exists');
+ await db.exec("update trader_identity_private set date_of_birth='1990-01-01';update auth.users set email_confirmed_at=null");
+ await assert.rejects(db.query("select fn_restart_infinity_v2($1,'test-v2',true,true)",[uid]),/VERIFY_EMAIL_FIRST/);
+ }finally{await db.close();}
+});
 test('restart is atomic, repeat-safe and preserves old payouts and archived trade history',opts,async()=>{
  const {db,account}=await v2db();try{const a=await account({version:'infinity_v1',created:new Date(Date.now()-40*86400000).toISOString()});
  await db.query("insert into payouts(account_id,status,trader_share) values($1,'requested',700)",[a.id]);

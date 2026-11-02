@@ -99,3 +99,13 @@ test('IPFX Markets v2 view: how-it-works guide, limit meters, first-time prompt,
   assert.match(read('trading.html'), /infinity-v2-ui\.js\?v=20261101c/);
   const w=read('assets/js/challenge-warnings.js');assert.match(w,/rules_version==='infinity_v2'/);assert.match(w,/stage-read-iv2:/);assert.match(read('trading.html'), /challenge-warnings\.js\?v=20261101a/);
 });
+
+test('restart eligibility: traders who already hold an Infinity run skip identity and KYC in both the engine status and the database restart', () => {
+  const eng = read('supabase/functions/trading-engine/index.ts');
+  assert.match(eng, /const heldInfinityRun = list\.some\(\(a: \{ challenge_type: string \}\) => a\.challenge_type === "infinity"\);/);
+  assert.match(eng, /else if \(!identity && !heldInfinityRun\) reason = "Complete your identity and residential address before starting the challenge\."/);
+  assert.match(eng, /!\["pending", "verified"\]\.includes\(String\(kyc\?\.status \?\? ""\)\) && !heldInfinityRun/);
+  assert.match(eng, /if \(!identity\) return \{ ok: false, status: 409, error: "Complete your identity and residential address before activating a challenge\."/, 'promo-claim activation (new accounts) is unchanged');
+  const m = read('supabase/migrations/20261102010000_infinity_restart_existing_traders_skip_identity.sql');
+  assert.match(m, /RESTART_IDENTITY_SOURCE_DRIFT/); assert.match(m, /COMPLETE_IDENTITY_FIRST/); assert.match(m, /COMPLETE_KYC_FIRST/);
+});

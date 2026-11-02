@@ -1868,6 +1868,7 @@ async function infinityStatus(db: Db, user: any) {
     db.rpc("fn_infinity_breach_lockout", { p_user: user.id }),
   ]);
   if (monthly.error || !monthly.data) throw new Error("INFINITY_ELIGIBILITY_UNAVAILABLE");
+  const heldInfinityRun = list.some((a: { challenge_type: string }) => a.challenge_type === "infinity");
   let reason: string | null = null;
   if (monthly.data.locked) reason = monthly.data.blocked_until
     ? "Account has been breached. Infinity restarts on " + new Date(monthly.data.blocked_until).toISOString().slice(0, 10) + " at 00:00 UTC."
@@ -1875,8 +1876,9 @@ async function infinityStatus(db: Db, user: any) {
   else if (!preset) reason = "The Infinity Challenge is unavailable right now.";
   else if (!user.email_confirmed_at) reason = "Verify your email address first — check your inbox for the confirmation link.";
   else if (profile?.restricted_jurisdiction) reason = "Sorry — we can't offer challenges in your jurisdiction.";
-  else if (!identity) reason = "Complete your identity and residential address before starting the challenge.";
-  else if (!["pending", "verified"].includes(String(kyc?.status ?? ""))) reason = "Complete the identity-document application before starting the challenge.";
+  // A trader who already holds an Infinity run restarts without redoing identity / KYC (owner decision 2 Nov 2026); new applicants still need both.
+  else if (!identity && !heldInfinityRun) reason = "Complete your identity and residential address before starting the challenge.";
+  else if (!["pending", "verified"].includes(String(kyc?.status ?? "")) && !heldInfinityRun) reason = "Complete the identity-document application before starting the challenge.";
   else if (hasActive) reason = "You already have an active challenge. Finish it before starting another.";
   else if (used >= cap) reason = `You've used all ${cap} Infinity attempts this month. They reset on the 1st.`;
   return {
