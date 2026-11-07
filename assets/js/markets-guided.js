@@ -205,6 +205,23 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     $('gtExact').onclick = () => { invalidStopDistance = false; if (!slOn) toggleSLTP('sl'); expanded = true; refresh(); $('slPrice').focus(); };
     const sl = $('slPrice'); if (sl) sl.addEventListener('input', () => { manualStopPrice = sl.value.trim() !== '' || !!sl.validity?.badInput; refresh(); });
   }
+  // Stop preview on the chart (as TradeLocker draws an order preview): dashed lines at the exact buy and sell stop prices
+  // the next order would carry, so the trader sees where the stop sits before clicking. Read-only; they follow the ticket.
+  let previewSeries = null, previewLines = {};
+  function stopPreview(levels) {
+    const ch = typeof ipfxChart !== 'undefined' ? ipfxChart : null, series = ch && ch.series;
+    if (previewSeries && previewSeries !== series) { previewLines = {}; previewSeries = null; }   // the chart rebuilt its series
+    for (const k of Object.keys(previewLines)) if (!levels || !(k in levels)) { try { previewSeries.removePriceLine(previewLines[k].line); } catch (_) {} delete previewLines[k]; }
+    if (!levels || !series || !series.createPriceLine) return;
+    previewSeries = series;
+    for (const [k, price] of Object.entries(levels)) {
+      if (!(price > 0)) continue;
+      const cur = previewLines[k];
+      if (cur && cur.price === price) continue;
+      const opts = { price, color: 'rgba(245,158,11,.85)', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: k };
+      if (cur) { cur.line.applyOptions(opts); cur.price = price; } else previewLines[k] = { line: series.createPriceLine(opts), price };
+    }
+  }
   let lastSym = typeof activeSym === 'undefined' ? null : activeSym;
   function refresh() {
     const card = $('gtCard'); if (!card) return;
@@ -214,6 +231,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     card.hidden = !active;
     const btns = document.querySelectorAll('#tab-order .op-exec-btn');
     if (!active) {
+      stopPreview(null);
       const viewOnly = typeof viewOnlyReason === 'function' ? viewOnlyReason(activeSym) : null;
       btns.forEach((b) => { b.classList.toggle('gt-off', !!viewOnly); b.setAttribute('aria-disabled', String(!!viewOnly)); if (viewOnly) b.title = viewOnly; else b.removeAttribute('title'); });
       viewOnlyNote(viewOnly);
@@ -247,7 +265,9 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     const riskTxt = shownRisk != null ? `${usd(shownRisk)} risk · ${shownLots.toFixed(lotDigits())} lots` : 'risk —';
     $('gtSumMain').textContent = manualStopPrice ? `Stop at ${$('slPrice').value || '—'} · ${riskTxt}` : invalidStopDistance ? 'Stop distance needed' : `${(d / pipSize()).toFixed(1)} ${unit().replace(/s$/, '')} stop · ${riskTxt}`;
     const subTxt = manualStopPrice ? 'Exact stop price, checked for Buy and Sell separately' : invalidStopDistance ? 'Enter a stop distance to trade' : `Max ${usd(c)} a trade · buy stop ${stopFor('buy').toFixed(digits())} · sell stop ${stopFor('sell').toFixed(digits())}`;
-    $('gtSumSub').textContent = subTxt; $('gtSum').title = 'A stop-loss is added to every order automatically. ' + subTxt + '. Click to change.';
+    $('gtSumSub').textContent = subTxt;
+    const typedStop = Number($('slPrice')?.value);
+    stopPreview(invalidStopDistance ? null : manualStopPrice ? (typedStop > 0 ? { 'Stop': typedStop } : null) : { 'Buy stop': stopFor('buy'), 'Sell stop': stopFor('sell') }); $('gtSum').title = 'A stop-loss is added to every order automatically. ' + subTxt + '. Click to change.';
     // Buy/Sell sits right under this card: when every check passes, one reassuring line beats four, so the trader
     // doesn't have to scroll past a wall of ticks to reach the buttons. The full list comes back the moment something
     // needs attention, so nothing diagnostic is ever hidden while a trade is actually blocked.

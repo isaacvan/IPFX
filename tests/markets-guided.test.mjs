@@ -232,5 +232,15 @@ test('trading.html: changing instrument clears stop, take-profit and trigger pri
   assert.match(html, /if\(sym!==activeSym\)\{clearOrdPrices\(\);clearTicketLevels\(\);\}/);
   assert.match(html, /\.op-limit-card\[hidden\]\{display:none!important\}/);
   assert.match(fs.readFileSync(new URL('../assets/js/infinity-restart.js', import.meta.url), 'utf8'), /\.tb-restart\[hidden\]\{display:none!important\}/);
-  assert.match(html, /markets-guided\.js\?v=20261107a/);
+  assert.match(html, /markets-guided\.js\?v=20261107b/);
+});
+test('the chart shows dashed buy-stop and sell-stop preview lines at the prices the next order would carry', () => {
+  const { ctx, tick } = page({ multiple: 3 });
+  const lines = [];
+  ctx.ipfxChart = { series: { createPriceLine(o) { const l = { o, applyOptions(n) { this.o = n; } }; lines.push(l); return l; }, removePriceLine(l) { lines.splice(lines.indexOf(l), 1); } } };
+  tick();
+  assert.deepEqual(lines.map((l) => l.o.title).sort(), ['Buy stop', 'Sell stop']);
+  assert.equal(lines.find((l) => l.o.title === 'Buy stop').o.price, 1.12045); assert.equal(lines.find((l) => l.o.title === 'Sell stop').o.price, 1.12485);
+  tick(); assert.equal(lines.length, 2, 'refreshing does not stack duplicate lines');
+  ctx.engineState.account.is_demo = true; tick(); assert.equal(lines.length, 0, 'gone when the protected ticket is not in use');
 });
