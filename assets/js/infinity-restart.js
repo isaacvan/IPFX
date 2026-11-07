@@ -10,6 +10,7 @@
 
   const css = `
 .tb-restart{height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 6px 0 9px;margin-left:8px;border:1px solid rgba(37,99,235,.45);border-radius:7px;background:rgba(37,99,235,.12);color:#9dbbff;font:700 10px var(--font-ui);letter-spacing:.04em;cursor:pointer;flex-shrink:0;transition:background .15s,border-color .15s,color .15s}
+.tb-restart[hidden]{display:none!important}
 .tb-restart:hover{background:rgba(37,99,235,.22);border-color:rgba(59,130,246,.75);color:#fff}
 .tb-restart:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}
 .tb-restart svg{width:12px;height:12px;flex-shrink:0}

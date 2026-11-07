@@ -37,7 +37,7 @@ async function fixture(){
    var execSymbol=s=>s,symMeta=()=>({quoteCurrency:'USD'}),contractSizeFor=()=>100000,clientUsdPerQuote=()=>1,futSym=()=>null;
    var blockInfinityTradeAttempt=()=>false,stageRulesBlockEntry=()=>false,dailyCapMessage=()=>null,feedFresh=()=>true,freshToken=async()=>'synthetic';
    var updatePnlPreview=()=>{},updateRiskPreview=()=>{},updateSltpReadouts=()=>{},renderPositions=()=>{},renderEngineAccount=()=>{},announceAutoClosedTrades=()=>{},showVenueBanner=()=>{};
-   var fmtPx=p=>String(p),messages=[];function engineMsg(m){messages.push(m);}
+   var fmtPx=p=>String(p),messages=[],viewOnlyReason=()=>null;function engineMsg(m){messages.push(m);}
    window.fetch=async(_url,init)=>({ok:true,status:200,json:()=>window.syntheticEngine(JSON.parse(init.body))});
    document.body.classList.add('signed-in');localStorage.setItem('ipfx-markets-tour-v1','1');
    ${slice('async function engineCall(body){','// Non-trading engine calls')}
@@ -64,7 +64,8 @@ test('real desktop Markets ticket retains smaller lots, attaches a stop, and blo
   await f.page.locator('#tab-order .op-exec-buy').click();
   await f.page.waitForFunction(()=>messages.some(m=>m.includes('filled')));
   assert.equal(f.requests.length,1);assert.equal(f.requests[0].volume,.01);assert.ok(f.requests[0].sl<1.1227);
-  await f.page.locator('#gtExact').click();
+  await f.page.locator('#gtSum').click();await f.page.locator('#gtExact').click();   // the exact-stop control sits behind Edit since the Nov 2026 redesign
+  
   const oldStop=Number(await f.page.locator('#slPrice').inputValue());
   await f.page.locator('.op-sltp-grp').first().getByRole('button',{name:'+',exact:true}).click();
   assert.equal(Number(await f.page.locator('#slPrice').inputValue()),Number((oldStop+.00001).toFixed(5)));
@@ -146,7 +147,8 @@ test('native unfinished numbers cannot remove stops, disable trailing or silentl
   await f.page.locator('#omGo').click();assert.equal(f.requests.length,0);assert.match(await f.page.locator('#omErr').innerText(),/0\.01 lot increments/);
   await f.page.locator('#omF1').fill('0.05');await f.page.locator('#omGo').click();
   await f.page.waitForFunction(()=>messages.includes('Partial close filled'));assert.equal(f.requests.length,1);assert.equal(f.requests[0].volume,.05);
-  await f.page.locator('#gtExact').click();await f.page.locator('#slPrice').fill('');await f.page.locator('#slPrice').pressSequentially('1e');
+  await f.page.locator('#gtSum').click();await f.page.locator('#gtExact').click();   // the exact-stop control sits behind Edit since the Nov 2026 redesign
+  await f.page.locator('#slPrice').fill('');await f.page.locator('#slPrice').pressSequentially('1e');
   assert.equal(await f.page.locator('#slPrice').evaluate(el=>el.validity.badInput),true);
   await f.page.locator('#tab-order .op-exec-buy').click({force:true});assert.equal(f.requests.length,1);assert.match(await f.page.evaluate(()=>messages.at(-1)),/valid stop price/);
   await f.page.locator('#slPrice').fill('1.121');await f.page.locator('#tab-order .op-exec-buy').click();

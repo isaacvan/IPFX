@@ -77,7 +77,7 @@ test('monthly restart notice: only v1 traders with a restart left, dismissible, 
   assert.match(js, /left > 0 && !noteDismissed\(\)/);
   assert.match(js, /Keep my run/); assert.match(js, /Restart on v2/);
   assert.match(js, /else \{ note\.hidden = true; open\(\); \}/, 'restart goes through the two-step agree dialog, never directly');
-  assert.match(read('trading.html'), /infinity-restart\.js\?v=20261101a/);
+  assert.match(read('trading.html'), /infinity-restart\.js\?v=20261107a/);
 });
 
 test('sign-up / pre-register form records the current published Terms and Privacy versions and links the live pages', () => {

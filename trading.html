@@ -1324,7 +1324,7 @@ body.light .postbl tbody tr:hover{background:rgba(0,0,0,.035)}
 .op-sltp-stepper{min-height:38px;border-radius:9px;}
 .op-sltp-step{width:32px;}
 .op-sltp-pnl{text-align:left;padding-left:2px;}
-.op-limit-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(148,163,184,.04);}
+.op-limit-card[hidden]{display:none!important}.op-limit-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(148,163,184,.04);}
 .op-limit-card>div{min-width:0;}
 .op-limit-card strong{display:block;margin-top:3px;font-size:13px;font-weight:650;color:var(--fg);white-space:normal;}
 .op-limit-state{flex-shrink:0;padding:4px 7px;border-radius:999px;background:rgba(148,163,184,.09);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
@@ -5906,6 +5906,9 @@ function renderEngineAccount(){
     if(L.max_risk_per_trade_usd!=null)parts.push(f(L.max_risk_per_trade_usd)+' max risk');
     if(L.max_risk_per_trade_pct!=null)parts.push('('+Number(L.max_risk_per_trade_pct).toFixed(2).replace(/\.00$/,'')+'% of account)');
     limit.textContent=parts.join(' ')||'Limits active';
+    // A practice account has no per-trade limit and no stop rule, so the card would only say "Limits active".
+    const card=document.getElementById('opLimitCard');
+    if(card)card.hidden=!!a.is_demo&&L.max_risk_per_trade_usd==null&&!L.require_stop_loss;
   }
   if(state){
     const monthlyBlocked=accountModeIntent==='challenge'&&currentInfinityLock()?.locked;
@@ -6752,8 +6755,14 @@ function clearOrdPrices(){
   ordMidPrice=0;lastQuoteTs=0;lastQuoteSym=null;quoteAppliedRt=0;
   setFeed('connecting');
 }
+// Stop, take-profit and trigger prices belong to one instrument: a Bitcoin stop of 75000 must never ride along to EUR/USD.
+function clearTicketLevels(){
+  ['slPrice','tpPrice','triggerPrice'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if(typeof updateSltpReadouts==='function')updateSltpReadouts();
+  if(typeof updateTriggerHint==='function')updateTriggerHint();
+}
 function changeInstrument(sym){
-  if(sym!==activeSym)clearOrdPrices();
+  if(sym!==activeSym){clearOrdPrices();clearTicketLevels();}
   activeSym=sym;
   if(futSym(sym)){ // futures trade in whole contracts
     ordLots=Math.min(FUT_SPECS[futSym(sym)][1],Math.max(1,Math.round(ordLots)));
@@ -7437,8 +7446,8 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
-<script src="/assets/js/markets-guided.js?v=20261020b"></script>
-<script src="/assets/js/infinity-restart.js?v=20261101a"></script>
+<script src="/assets/js/markets-guided.js?v=20261107a"></script>
+<script src="/assets/js/infinity-restart.js?v=20261107a"></script>
 <script src="/assets/js/infinity-v2-ui.js?v=20261102a"></script>
 
 <dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
