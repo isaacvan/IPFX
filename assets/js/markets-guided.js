@@ -210,6 +210,11 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
   let previewSeries = null, previewLines = {};
   function stopPreview(levels) {
     const ch = typeof ipfxChart !== 'undefined' ? ipfxChart : null, series = ch && ch.series;
+    // The IPFX chart draws them as real stop pills (lots | -$ | price on the axis, as TradeLocker does).
+    if (ch && typeof ch.setPreview === 'function') {
+      ch.setPreview(levels ? Object.entries(levels).map(([k, v]) => ({ key: k, label: k, price: v.price, lots: v.lots, usd: v.loss, digits: digits() })) : []);
+      return;
+    }
     if (previewSeries && previewSeries !== series) { previewLines = {}; previewSeries = null; }   // the chart rebuilt its series
     for (const k of Object.keys(previewLines)) if (!levels || !(k in levels)) { try { previewSeries.removePriceLine(previewLines[k].line); } catch (_) {} delete previewLines[k]; }
     if (!levels || !series || !series.createPriceLine) return;
@@ -269,8 +274,8 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     $('gtSumSub').textContent = subTxt;
     // Each line carries the dollars lost if it is hit, as TradingView labels its stop line (e.g. "Buy stop −$4.46").
     const typedStop = Number($('slPrice')?.value);
-    const lossAt = (side, stop) => { const e = side === 'buy' ? q?.ask : q?.bid; if (!(e > 0) || !(stop > 0)) return null; const dd = Math.abs(e - stop), l = useLots(lotsFor(dd, side)), p = perLot(dd); return l != null && p ? l * p : null; };
-    const line = (label, side, stop) => { const loss = lossAt(side, stop); return { price: stop, title: loss != null ? `${label} −${usd(loss)}` : label }; };
+    const sizeAt = (side, stop) => { const e = side === 'buy' ? q?.ask : q?.bid; if (!(e > 0) || !(stop > 0)) return null; const dd = Math.abs(e - stop), l = useLots(lotsFor(dd, side)), p = perLot(dd); return l != null && p ? { lots: l, loss: l * p } : null; };
+    const line = (label, side, stop) => { const z = sizeAt(side, stop); return { price: stop, lots: z && z.lots, loss: z && z.loss, title: z ? `${label} −${usd(z.loss)}` : label }; };
     stopPreview(invalidStopDistance ? null : manualStopPrice ? (typedStop > 0 ? { 'Stop': line('Stop', manualSide || (q && typedStop < q.bid ? 'buy' : 'sell'), typedStop) } : null)
       : { 'Buy stop': line('Buy stop', 'buy', stopFor('buy')), 'Sell stop': line('Sell stop', 'sell', stopFor('sell')) }); $('gtSum').title = 'A stop-loss is added to every order automatically. ' + subTxt + '. Click to change.';
     // Buy/Sell sits right under this card: when every check passes, one reassuring line beats four, so the trader

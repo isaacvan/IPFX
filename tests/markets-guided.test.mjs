@@ -163,15 +163,14 @@ test('the Simple/Pro view switch was reverted: nothing is hidden by a gt-simple 
   assert.ok(!/gt-simple|SIMPLE_HIDE|gtView/.test(src), 'the full layout (all timeframes, side tabs, bottom tabs) stays as-is, undoing the earlier Simple default');
 });
 
-test('Buy/Sell moves higher: the checks collapse to one line when ready, and the Stage pass checklist moves below the trade row', () => {
+test('Buy/Sell moves higher: nothing is listed when ready, and the Stage pass checklist lives in the Challenge tab, not the order ticket', () => {
   assert.match(src, /const html = !bad \? '' :/, 'nothing is listed when every check passes; only blocking reasons when one fails');
   assert.match(src, /id="gtSum"/, 'a one-line summary replaces the large Protected order panel');
-  const tradeRowAt = html.indexOf('class="op-trade-row"');
-  const checklistAt = html.indexOf('id="stageChecklist"');
-  const dailyCapAt = html.indexOf('id="dailyCapNotice"');
-  assert.ok(tradeRowAt > 0 && checklistAt > 0 && dailyCapAt > 0);
-  assert.ok(dailyCapAt < tradeRowAt, 'the "can\'t trade right now" notice still sits right above the buttons');
-  assert.ok(checklistAt > tradeRowAt, 'the stage pass checklist (progress tracking, not a pre-trade gate) moved below Buy/Sell');
+  const orderTab = html.slice(html.indexOf('id="tab-order"'), html.indexOf('<!-- INDICATORS TAB') > 0 ? html.indexOf('<!-- INDICATORS TAB') : html.indexOf('id="tab-indicators"'));
+  assert.ok(!orderTab.includes('id="stageChecklist"'), 'the checklist is no longer in the order ticket');
+  const ch = html.indexOf('id="ch-note"'), list = html.indexOf('id="stageChecklist"');
+  assert.ok(ch > 0 && list > ch && list - ch < 400, 'it sits with the Challenge requirements');
+  assert.ok(html.indexOf('id="dailyCapNotice"') < html.indexOf('class="op-trade-row"'), 'the cannot-trade-now notice still sits right above the buttons');
 });
 
 // November 2026 redesign: the ticket sizes inside the room left by open positions (same trade idea, and all open trades), the
@@ -232,7 +231,7 @@ test('trading.html: changing instrument clears stop, take-profit and trigger pri
   assert.match(html, /if\(sym!==activeSym\)\{clearOrdPrices\(\);clearTicketLevels\(\);\}/);
   assert.match(html, /\.op-limit-card\[hidden\]\{display:none!important\}/);
   assert.match(fs.readFileSync(new URL('../assets/js/infinity-restart.js', import.meta.url), 'utf8'), /\.tb-restart\[hidden\]\{display:none!important\}/);
-  assert.match(html, /markets-guided\.js\?v=20261107c/);
+  assert.match(html, /markets-guided\.js\?v=20261107d/);
 });
 test('the chart shows dashed buy-stop and sell-stop preview lines at the prices the next order would carry', () => {
   const { ctx, tick } = page({ multiple: 3 });

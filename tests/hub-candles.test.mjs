@@ -105,5 +105,5 @@ test('page: hub first, Edge Function fallback, and empty second-level history fa
   assert.match(chart, /j\.bars\.length \|\| j\.source !== "ipfx-ticks"/);
   assert.equal((chart.match(/fetchCandles\(/g) || []).length, 4, 'definition + history load + other-symbol closes + volume refresh');
   assert.equal((chart.match(/\$\{CANDLES_URL\}\?/g) || []).length, 1, 'the Edge URL is only used inside the fallback');
-  assert.match(read('trading.html'), /ipfx-chart\.js\?v=20261024-hubcandles/);
+  assert.match(read('trading.html'), /ipfx-chart\.js\?v=20261107a/);
 });

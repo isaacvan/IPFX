@@ -54,7 +54,7 @@ try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch
 <script src="/assets/js/ipfx-indicators-smc.js"></script>
 <script src="/assets/js/ipfx-indicators-extra.js"></script>
 <script src="/assets/js/ipfx-indicators-plus.js"></script>
-<script src="/assets/js/ipfx-chart.js?v=20261024-hubcandles"></script>
+<script src="/assets/js/ipfx-chart.js?v=20261107a-hubcandles"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -172,6 +172,21 @@ body.light .chart-pos-chip{background:rgba(255,255,255,.92);box-shadow:0 10px 28
 .ipc-x{width:18px;padding:0;background:transparent;color:var(--muted2);}
 .ipc-x:hover{background:rgba(239,68,68,.16);color:#ff8d99;}
 .ipc-light .ipc-tag{background:rgba(255,255,255,.95);box-shadow:0 6px 18px rgba(15,23,42,.12);color:#111;}
+/* Stop / take-profit lines (Nov 2026, TradeLocker layout in IPFX style): solid thin line, outlined pill
+   "lots | money | ×", price in an outlined box on the axis. Orders not placed yet use the same pill on a dashed line. */
+.ipc-sl,.ipc-tp{border-top-style:solid;}
+.ipc-preview{border-top-style:dashed;}
+.ipc-pill{padding:0;gap:0;overflow:hidden;height:22px;top:-11px;right:14px;border-radius:5px;color:var(--c);font-weight:700;background:rgba(10,10,12,.96);}
+.ipc-pill b{display:none;}
+.ipc-seg{height:100%;display:flex;align-items:center;padding:0 .6rem;border-left:1px solid color-mix(in srgb,var(--c) 75%,transparent);}
+.ipc-seg:first-child{border-left:0;}
+.ipc-pill .ipc-val{color:var(--c);font-weight:700;min-width:64px;justify-content:center;}
+.ipc-pill .ipc-name{font-weight:800;letter-spacing:.02em;}
+.ipc-pill .ipc-x.ipc-seg{width:auto;height:100%;padding:0 .5rem;border-radius:0;background:transparent;color:var(--c);font-size:.7rem;}
+.ipc-pill .ipc-x.ipc-seg:hover{background:color-mix(in srgb,var(--c) 18%,transparent);}
+.ipc-axis{position:absolute;left:var(--pane-w,100%);top:-11px;height:22px;display:flex;align-items:center;padding:0 6px;margin-left:1px;border:1px solid var(--c);border-radius:4px;background:rgba(10,10,12,.96);color:var(--c);font-size:.68rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;}
+.ipc-preview .ipc-pill{opacity:.92;}
+.ipc-light .ipc-pill,.ipc-light .ipc-axis{background:rgba(255,255,255,.97);}
 .ipc-light .ipc-add{background:rgba(0,0,0,.05);}
 body.ipc-dragging,body.ipc-dragging *{cursor:ns-resize!important;user-select:none!important;}
 @media(max-width:760px){.ipc-val{display:none}.ipc-entry .ipc-tag{left:6px}.ipc-sl .ipc-tag,.ipc-tp .ipc-tag{right:6px}}
@@ -1949,7 +1964,6 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         <div class="op-margin-row"><span>Estimated initial margin</span><strong id="op-margin">~$0.00 (0.00%)</strong></div>
         <button type="button" class="hk-chip" id="hkChip" onclick="toggleHotkeys()" title="Keyboard trading shortcuts"></button>
         <div class="op-presets" aria-label="Quick lot sizes"><button type="button" class="op-preset active" onclick="setLots(0.01,this)">0.01</button><button type="button" class="op-preset" onclick="setLots(0.1,this)">0.10</button><button type="button" class="op-preset" onclick="setLots(0.5,this)">0.50</button><button type="button" class="op-preset" onclick="setLots(1,this)">1.00</button><button type="button" class="op-preset" onclick="setLots(2,this)">2.00</button></div>
-        <details id="stageChecklist" class="stage-checklist" hidden><summary id="stageChecklistSummary">Stage pass checklist</summary><p id="stageChecklistStatus"></p><div id="stageChecklistRows"></div><button type="button" onclick="showStageRuleReview(true)">Review and acknowledge every stage rule</button></details>
         <details class="op-advanced"><summary>Price impact and position tools</summary><div class="op-price-grid"><div class="op-pg-col op-pg-left"><div class="op-pg-cell op-pg-price op-sell-price" id="op-bid-val">—</div><div class="op-pg-cell op-pg-val" id="op-ticks-l">—</div><div class="op-pg-cell op-pg-val" id="pnl-sell">—<span class="op-pg-sfx">$</span></div><div class="op-pg-cell op-pg-val" id="op-bal-sell">—<span class="op-pg-sfx">%</span></div></div><div class="op-pg-col op-pg-center"><div class="op-pg-cell op-pg-lbl">Price</div><div class="op-pg-cell op-pg-lbl">Ticks</div><div class="op-pg-cell op-pg-lbl">P&amp;L</div><div class="op-pg-cell op-pg-lbl">Balance</div></div><div class="op-pg-col op-pg-right"><div class="op-pg-cell op-pg-price op-buy-price" id="op-ask-val">—</div><div class="op-pg-cell op-pg-val" id="op-ticks-r">—</div><div class="op-pg-cell op-pg-val" id="pnl-buy">—<span class="op-pg-sfx">$</span></div><div class="op-pg-cell op-pg-val" id="op-bal-buy">—<span class="op-pg-sfx">%</span></div></div></div><div class="op-actions"><button type="button" class="op-act" onclick="closePosition()">Close latest trade</button><button type="button" class="op-act danger" onclick="flattenAll()">Close all positions</button></div><div class="op-pos-hd">Open positions</div><div id="ord-pos-list"><div class="of-pos-empty">No open positions</div></div></details>
         <div class="of-note">Practice mode · simulated trading, no real money. IPFX does not hold client deposits, provide brokerage services or give investment advice.</div>
       </div>
@@ -2442,6 +2456,8 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
         <div class="ch-reqs-rule" id="ch-reqs-rule">Every box below must be ticked at the same time before you move up to the next stage. Reaching the profit target alone does not move you up.</div>
         <div class="ch-reqs" id="ch-reqs"></div>
         <div class="ch-note" id="ch-note"></div>
+        <!-- Stage pass checklist: progress tracking, so it lives with the other requirements, not in the order ticket (Nov 2026). -->
+        <details id="stageChecklist" class="stage-checklist" hidden><summary id="stageChecklistSummary">Stage pass checklist</summary><p id="stageChecklistStatus"></p><div id="stageChecklistRows"></div><button type="button" onclick="showStageRuleReview(true)">Review and acknowledge every stage rule</button></details>
       </div>
     </div>
 
@@ -4702,11 +4718,51 @@ function engineToken(){
     return sess&&sess.access_token?sess.access_token:null;
   }catch(_){return null;}
 }
+// Alerts (Nov 2026): every message is a card like TradeLocker's: an icon, a bold title, what happened, the order
+// details, and a close button. Cards stack at the top of the screen (newest first, at most four), close by themselves
+// (errors stay longer) and pause while the pointer is over them. Callers still pass one sentence; alertParts() splits it.
+function alertParts(txt,ok,kind){
+  const s=String(txt??'').trim();
+  let m=s.match(/^(BUY|SELL) ([\d.]+) (\S+) filled(?: @ (.+))?$/i);
+  if(m)return{title:'Position opened',sub:'Market order filled',detail:`${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()} ${m[2]} ${m[3]}${m[4]?' @ '+m[4]:''}`};
+  m=s.match(/^(?:(\S+) )?position closed(.*)$/i);
+  if(m)return{title:'Position closed',sub:'Market order filled',detail:`${m[1]||''} ${(m[2]||'').replace(/^[\s:—-]+/,'')}`.trim()};
+  m=s.match(/^([^—:]{3,44}) — (.+)$/);
+  if(m)return{title:m[1],sub:'',detail:m[2]};
+  m=s.match(/^([^:]{3,40}): (.+)$/);
+  if(m)return{title:m[1],sub:'',detail:m[2]};
+  if(ok&&s.length<=48)return{title:s,sub:'',detail:''};
+  const title=ok?'Done':kind==='warning'?'Heads up':/order|risk|stop|lot|margin|spread|price|limit|market|instrument|position|trade/i.test(s)?'Order not placed':'Something went wrong';
+  return{title,sub:'',detail:s};
+}
 function engineMsg(txt,ok,kind){
-  let el=document.getElementById('engToast');
-  if(!el){el=document.createElement('div');el.id='engToast';el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:.6rem 1.1rem;border-radius:8px;font-size:.78rem;font-weight:600;box-shadow:0 4px 24px rgba(0,0,0,.35);transition:opacity .3s;max-width:90vw;opacity:0';document.body.appendChild(el);}
-  el.style.background=ok?'#10b981':kind==='warning'?'#b45309':'#ef4444';el.style.color='#fff';el.textContent=txt;el.style.opacity='1';
-  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3500);
+  let box=document.getElementById('engToasts');
+  if(!box){
+    box=document.createElement('div');box.id='engToasts';box.className='eng-toasts';document.body.appendChild(box);
+    const st=document.createElement('style');st.textContent=`.eng-toasts{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100vw - 32px));pointer-events:none}
+.eng-toast{display:grid;grid-template-columns:28px 1fr 28px;gap:12px;align-items:start;padding:12px 12px 12px 14px;border:1px solid #2a2a31;border-radius:12px;background:#141417;color:#f4f4f5;box-shadow:0 14px 40px rgba(0,0,0,.5);font:13px/1.45 var(--font-ui,Inter,system-ui,sans-serif);pointer-events:auto;animation:engIn .18s ease-out}
+.eng-toast .ic{width:24px;height:24px;margin-top:1px;border-radius:50%;border:1.6px solid currentColor;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.eng-toast.ok .ic{color:#10b981}.eng-toast.err .ic{color:#ef4444}.eng-toast.warn .ic{color:#f59e0b}
+.eng-toast b{display:block;font-size:14px;font-weight:700;color:#fff;margin-bottom:2px}.eng-toast span{display:block;color:#9ca3af}
+.eng-toast button{width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#9ca3af;font-size:18px;line-height:1;cursor:pointer}
+.eng-toast button:hover{background:#23232a;color:#fff}.eng-toast button:focus-visible{outline:2px solid #3b82f6}
+body.light .eng-toast{background:#fff;border-color:#e5e7eb;color:#111827;box-shadow:0 14px 40px rgba(15,23,42,.14)}body.light .eng-toast b{color:#111827}body.light .eng-toast span{color:#4b5563}
+@keyframes engIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.eng-toast{animation:none}}`;document.head.appendChild(st);
+  }
+  const p=alertParts(txt,ok,kind),tone=ok?'ok':kind==='warning'?'warn':'err';
+  const card=document.createElement('div');card.className='eng-toast '+tone;card.setAttribute('role',tone==='err'?'alert':'status');
+  const ic=document.createElement('div');ic.className='ic';ic.setAttribute('aria-hidden','true');ic.textContent=tone==='ok'?'✓':'!';
+  const body=document.createElement('div');
+  const t=document.createElement('b');t.textContent=p.title;body.appendChild(t);
+  for(const line of [p.sub,p.detail])if(line){const sp=document.createElement('span');sp.textContent=line;body.appendChild(sp);}
+  const x=document.createElement('button');x.type='button';x.setAttribute('aria-label','Dismiss');x.textContent='×';
+  card.append(ic,body,x);box.prepend(card);
+  while(box.children.length>4)box.lastElementChild.remove();
+  const ms=tone==='ok'?5000:tone==='warn'?7000:8000;let timer=null;
+  const close=()=>{clearTimeout(timer);card.remove();};
+  const arm=()=>{clearTimeout(timer);timer=setTimeout(close,ms);};
+  x.onclick=close;card.onmouseenter=()=>clearTimeout(timer);card.onmouseleave=arm;arm();
 }
 // Announces positions the ENGINE closed between polls (stop-loss hit,
 // take-profit hit, a drawdown-breach flatten) — the events TradeLocker
@@ -7446,7 +7502,7 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
-<script src="/assets/js/markets-guided.js?v=20261107c"></script>
+<script src="/assets/js/markets-guided.js?v=20261107d"></script>
 <script src="/assets/js/infinity-restart.js?v=20261107a"></script>
 <script src="/assets/js/infinity-v2-ui.js?v=20261102a"></script>
 

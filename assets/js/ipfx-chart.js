@@ -68,7 +68,7 @@
   }
   // 1.23K / 4.56M for volume-sized numbers
   const compact = (v) => { const a = Math.abs(v); return a >= 1e9 ? (v / 1e9).toFixed(2) + "B" : a >= 1e6 ? (v / 1e6).toFixed(2) + "M" : a >= 1e3 ? (v / 1e3).toFixed(2) + "K" : v.toFixed(0); };
-  const money = (v) => (v < 0 ? "-$" : "+$") + Math.abs(v).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const money = (v) => (v < 0 ? "−$" : "+$") + Math.abs(v).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   /**
@@ -800,6 +800,15 @@
       return t[kind] == null ? null : Number(t[kind]);
     }
 
+    // Stop lines for an order that is not placed yet (the ticket's buy and sell stops). Same pill as a real stop, dashed line.
+    // [{ key, label, price, lots, usd, digits }]
+    let previews = [], previewSig = "";
+    function setPreview(list) {
+      previews = (list || []).filter((p) => p && p.price > 0);
+      const sig = JSON.stringify(previews.map((p) => [p.key, p.label]));
+      if (sig !== previewSig) { previewSig = sig; render(true); } else position();
+    }
+
     function setTrades(list) {
       trades = (list || []).filter((t) => t && t.id != null);
       const ids = new Set(trades.map((t) => t.id));
@@ -858,16 +867,26 @@
           const v = kind === "sl" ? sl : tp;
           if (v == null) continue;
           const removable = kind === "tp" || !hooks.stopRequired();
+          const name = kind === "sl" ? "Stop loss" : "Take profit";
+          // TradeLocker-style: one outlined pill "lots | money at this level | ×" and the price in an outlined box on the axis.
           html.push(
             `<div class="ipc-line ipc-${kind}${busy}" data-id="${esc(t.id)}" data-kind="${kind}">` +
               `<div class="ipc-grab" data-drag="${kind}" data-id="${esc(t.id)}" role="slider" tabindex="0"` +
-              ` aria-label="${kind === "sl" ? "Stop loss" : "Take profit"} — drag or use arrow keys" aria-valuenow="${v}"></div>` +
-              `<div class="ipc-tag" data-drag="${kind}" data-id="${esc(t.id)}"><b>${kind.toUpperCase()}</b> <span class="ipc-px"></span>` +
-              `<span class="ipc-val"></span>` +
-              (removable ? `<button type="button" class="ipc-x" data-remove="${kind}" data-id="${esc(t.id)}" title="Remove ${kind.toUpperCase()}" aria-label="Remove ${kind.toUpperCase()}">✕</button>` : "") +
-              `</div></div>`,
+              ` aria-label="${name} — drag or use arrow keys" aria-valuenow="${v}"></div>` +
+              `<div class="ipc-tag ipc-pill" data-drag="${kind}" data-id="${esc(t.id)}" title="${name}: drag to move">` +
+              `<span class="ipc-seg ipc-lots">${Number(t.volume).toFixed(2)}</span><span class="ipc-seg ipc-val"></span>` +
+              (removable ? `<button type="button" class="ipc-x ipc-seg" data-remove="${kind}" data-id="${esc(t.id)}" title="Remove ${name.toLowerCase()}" aria-label="Remove ${name.toLowerCase()}">✕</button>` : "") +
+              `</div><div class="ipc-axis"><span class="ipc-px"></span></div></div>`,
           );
         }
+      }
+      for (const p of previews) {
+        html.push(
+          `<div class="ipc-line ipc-sl ipc-preview" data-preview="${esc(p.key)}">` +
+            `<div class="ipc-tag ipc-pill" title="${esc(p.label)}: added to the order when you click ${esc(p.label.split(" ")[0])}">` +
+            `<span class="ipc-seg ipc-name">${esc(p.label)}</span><span class="ipc-seg ipc-lots"></span><span class="ipc-seg ipc-val"></span></div>` +
+            `<div class="ipc-axis"><span class="ipc-px"></span></div></div>`,
+        );
       }
       overlay.innerHTML = html.join("");
       position();
@@ -881,6 +900,17 @@
       const pane = chart.paneSize();
       overlay.style.setProperty("--pane-w", pane.width + "px");
       overlay.querySelectorAll(".ipc-line").forEach((el) => {
+        if (el.dataset.preview != null) {
+          const p = previews.find((x) => x.key === el.dataset.preview);
+          const y = p ? series.priceToCoordinate(p.price) : null;
+          if (y == null || y < -2 || y > pane.height + 2) { el.style.display = "none"; return; }
+          el.style.display = "";
+          el.style.transform = `translateY(${Math.round(y)}px)`;
+          el.querySelector(".ipc-px").textContent = Number(p.price).toFixed(p.digits ?? 5);
+          el.querySelector(".ipc-lots").textContent = p.lots == null ? "—" : Number(p.lots).toFixed(2);
+          el.querySelector(".ipc-val").textContent = p.usd == null ? "—" : money(-Math.abs(p.usd));
+          return;
+        }
         const t = tradeById(el.dataset.id);
         if (!t) return;
         const kind = el.dataset.kind;
@@ -901,18 +931,22 @@
         el.querySelector(".ipc-px").textContent = price.toFixed(digits);
         const val = el.querySelector(".ipc-val");
         const pnl = hooks.pnlAt(t, price);
-        let text = pnl == null ? "" : money(pnl);
+        // The pill shows only the money at this level, as TradeLocker does; the limit check lives in the tooltip and the
+        // pill glows red when the engine would refuse the level.
+        let note = "";
         let over = false;
         if (kind === "sl") {
           // Same measure as the engine (distance from entry), so "over" here
           // means the engine would refuse it too.
           const risk = hooks.riskAt(t, price), limit = hooks.riskLimit();
           if (risk != null && limit != null) over = risk > limit + 0.01;
-          if (over) text += ` · over your ${money(limit).slice(1)} limit`;
-          else if (pnl != null && pnl >= 0) text = `locks ${money(pnl)}`;
-          else if (risk != null && limit != null) text += ` · ${(risk / limit * 100).toFixed(0)}% of limit`;
+          if (over) note = `Over your ${money(limit).slice(1)} risk limit: the engine will refuse this stop`;
+          else if (pnl != null && pnl >= 0) note = `Locks ${money(pnl)} profit`;
+          else if (risk != null && limit != null) note = `${(risk / limit * 100).toFixed(0)}% of your ${money(limit).slice(1)} risk limit`;
         }
-        val.textContent = text;
+        val.textContent = pnl == null ? "—" : money(pnl);
+        const tag = el.querySelector(".ipc-tag");
+        if (tag) tag.title = (kind === "sl" ? "Stop loss" : "Take profit") + (note ? ` · ${note}` : "") + ". Drag to move.";
         el.classList.toggle("ipc-over", over);
       });
     }
@@ -1073,6 +1107,7 @@
       load,
       onQuote,
       setTrades,
+      setPreview,
       // For page-level features built on top (indicators, drawing tools).
       get chart() { return chart; },
       get series() { return series; },
