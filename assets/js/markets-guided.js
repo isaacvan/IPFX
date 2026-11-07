@@ -214,12 +214,13 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     for (const k of Object.keys(previewLines)) if (!levels || !(k in levels)) { try { previewSeries.removePriceLine(previewLines[k].line); } catch (_) {} delete previewLines[k]; }
     if (!levels || !series || !series.createPriceLine) return;
     previewSeries = series;
-    for (const [k, price] of Object.entries(levels)) {
+    for (const [k, v] of Object.entries(levels)) {
+      const price = v && v.price, title = (v && v.title) || k;
       if (!(price > 0)) continue;
       const cur = previewLines[k];
-      if (cur && cur.price === price) continue;
-      const opts = { price, color: 'rgba(245,158,11,.85)', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: k };
-      if (cur) { cur.line.applyOptions(opts); cur.price = price; } else previewLines[k] = { line: series.createPriceLine(opts), price };
+      if (cur && cur.price === price && cur.title === title) continue;
+      const opts = { price, color: 'rgba(245,158,11,.85)', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title };
+      if (cur) { cur.line.applyOptions(opts); cur.price = price; cur.title = title; } else previewLines[k] = { line: series.createPriceLine(opts), price, title };
     }
   }
   let lastSym = typeof activeSym === 'undefined' ? null : activeSym;
@@ -266,8 +267,12 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     $('gtSumMain').textContent = manualStopPrice ? `Stop at ${$('slPrice').value || '—'} · ${riskTxt}` : invalidStopDistance ? 'Stop distance needed' : `${(d / pipSize()).toFixed(1)} ${unit().replace(/s$/, '')} stop · ${riskTxt}`;
     const subTxt = manualStopPrice ? 'Exact stop price, checked for Buy and Sell separately' : invalidStopDistance ? 'Enter a stop distance to trade' : `Max ${usd(c)} a trade · buy stop ${stopFor('buy').toFixed(digits())} · sell stop ${stopFor('sell').toFixed(digits())}`;
     $('gtSumSub').textContent = subTxt;
+    // Each line carries the dollars lost if it is hit, as TradingView labels its stop line (e.g. "Buy stop −$4.46").
     const typedStop = Number($('slPrice')?.value);
-    stopPreview(invalidStopDistance ? null : manualStopPrice ? (typedStop > 0 ? { 'Stop': typedStop } : null) : { 'Buy stop': stopFor('buy'), 'Sell stop': stopFor('sell') }); $('gtSum').title = 'A stop-loss is added to every order automatically. ' + subTxt + '. Click to change.';
+    const lossAt = (side, stop) => { const e = side === 'buy' ? q?.ask : q?.bid; if (!(e > 0) || !(stop > 0)) return null; const dd = Math.abs(e - stop), l = useLots(lotsFor(dd, side)), p = perLot(dd); return l != null && p ? l * p : null; };
+    const line = (label, side, stop) => { const loss = lossAt(side, stop); return { price: stop, title: loss != null ? `${label} −${usd(loss)}` : label }; };
+    stopPreview(invalidStopDistance ? null : manualStopPrice ? (typedStop > 0 ? { 'Stop': line('Stop', manualSide || (q && typedStop < q.bid ? 'buy' : 'sell'), typedStop) } : null)
+      : { 'Buy stop': line('Buy stop', 'buy', stopFor('buy')), 'Sell stop': line('Sell stop', 'sell', stopFor('sell')) }); $('gtSum').title = 'A stop-loss is added to every order automatically. ' + subTxt + '. Click to change.';
     // Buy/Sell sits right under this card: when every check passes, one reassuring line beats four, so the trader
     // doesn't have to scroll past a wall of ticks to reach the buttons. The full list comes back the moment something
     // needs attention, so nothing diagnostic is ever hidden while a trade is actually blocked.
