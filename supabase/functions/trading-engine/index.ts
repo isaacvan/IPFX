@@ -2157,8 +2157,7 @@ async function strikeOutRun(db: Db, acct: Acct, open: Tr[]): Promise<Tr[]> {
 }
 
 // Is the hub's tick-by-tick risk engine covering open accounts right now? Fails closed (false) on any doubt.
-const FULL_SWEEP_WITH_HUB_MS = 28_000;
-let lastFullSweepAt = 0;
+const FULL_SWEEP_WITH_HUB_S = 28;
 async function hubRiskCovering(): Promise<boolean> {
   const url = Deno.env.get("HUB_INGEST_URL");
   if (!url) return false;
@@ -3368,7 +3367,7 @@ if (body.action === "sweep") {
  const lease=await db.rpc("claim_engine_sweep",{p_seconds:55});
  if(lease.error||(lease.data!==true&&lease.data!==false))return new Response(JSON.stringify({ok:false,error:"SWEEP_LEASE_UNAVAILABLE"}),{headers:{...CORS,"Content-Type":"application/json"}});
  if(lease.data===false)return new Response(JSON.stringify({ok:true,skipped:"previous sweep still running"}),{headers:{...CORS,"Content-Type":"application/json"}});
- const failures=[],warnings=[];let visited=0,checked=0,breached=0,unvisited=0,alertsFired=0;
+ const failures=[],warnings=[];let visited=0,checked=0,breached=0,unvisited=0,alertsFired=0,hubState="unknown";
  try {
   const ids=new Set();
   for(const [table,status]of [["trades","open"],["pending_orders","pending"]]) {
@@ -3385,11 +3384,16 @@ if (body.action === "sweep") {
   catch{failures.push({stage:"pass_candidates",code:"QUERY_FAILED"});}
   try{alertsFired = await evaluateAlerts(db, null);}catch{warnings.push("ALERT_CHECK_FAILED");}
   const hubCovering=await hubRiskCovering();
-  if(hubCovering&&Date.now()-lastFullSweepAt<FULL_SWEEP_WITH_HUB_MS){
+  // Each call may run on a fresh isolate, so the time of the last full pass is kept in the database. Any error -> full pass.
+  let fullDue=true;
+  if(hubCovering){try{const r=await db.rpc("engine_sweep_full_due",{p_seconds:FULL_SWEEP_WITH_HUB_S});fullDue=r.error?true:r.data!==false;}catch{fullDue=true;}}
+  else{try{await db.rpc("engine_sweep_full_due",{p_seconds:0});}catch{/* stamping only */}}
+  hubState=hubCovering?(fullDue?"hub_full":"hub_deferred"):"no_hub";
+  if(!fullDue){
    // Accounts with open trades or pending orders (the hub watches them) wait for the next 30 s pass; pass candidates
    // (accounts at their target with nothing open, which the hub does not watch) are still checked now.
    for(const id of [...ids])if(!passIds.has(String(id)))ids.delete(id);
-  } else lastFullSweepAt=Date.now();
+  }
   const queue=[...ids].sort(()=>Math.random()-.5),deadline=Date.now()+40000;
   for(const id of queue){
    if(Date.now()>deadline)break;
@@ -3409,7 +3413,7 @@ if (body.action === "sweep") {
   try{const{error}=await db.rpc("release_engine_sweep");if(error)failures.push({stage:"release",code:error.code??"LEASE_RELEASE_FAILED"});}
   catch{failures.push({stage:"release",code:"LEASE_RELEASE_FAILED"});}
  }
- return new Response(JSON.stringify({ok:failures.length===0,swept:visited,checked,unvisited,breached,alerts_fired:alertsFired,failures,warnings}),{headers:{...CORS,"Content-Type":"application/json"}});
+ return new Response(JSON.stringify({ok:failures.length===0,swept:visited,checked,unvisited,breached,alerts_fired:alertsFired,mode:hubState,failures,warnings}),{headers:{...CORS,"Content-Type":"application/json"}});
 }
 
 

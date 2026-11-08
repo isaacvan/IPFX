@@ -317,11 +317,12 @@ test('engine: quote reads fetch only fresh rows and the columns used; the backup
   const sweep = eng.slice(eng.indexOf('if (body.action === "sweep") {'), eng.indexOf('// privileged client for writes'));
   assert.match(sweep, /const hubCovering=await hubRiskCovering\(\);/);
   assert.match(sweep, /if\(!passIds\.has\(String\(id\)\)\)ids\.delete\(id\)/, 'pass candidates are still checked every 10 s');
-  assert.match(sweep, /else lastFullSweepAt=Date\.now\(\);/);
+  assert.match(sweep, /db\.rpc\("engine_sweep_full_due",\{p_seconds:FULL_SWEEP_WITH_HUB_S\}\);fullDue=r\.error\?true:r\.data!==false;/, 'last full pass is kept in the database; errors mean a full pass');
   assert.doesNotMatch(sweep, /select\("status"\)/, 'no second account read per account');
   const hub = eng.slice(eng.indexOf('async function hubRiskCovering'), eng.indexOf('// Marks positions, applies SL/TP'));
   assert.match(hub, /k\?\.mode === "active" && k\?\.healthy === true/); assert.match(hub, /catch \(_\) \{ return false; \}/);
-  assert.match(eng, /const FULL_SWEEP_WITH_HUB_MS = 28_000;/);
+  assert.match(eng, /const FULL_SWEEP_WITH_HUB_S = 28;/);
+  assert.match(fs.readFileSync(new URL('../supabase/migrations/20261108150000_engine_sweep_full_due.sql', import.meta.url), 'utf8'), /grant execute on function public\.engine_sweep_full_due\(integer\) to service_role;/);
   const mig = fs.readFileSync(new URL('../supabase/migrations/20261108140000_venue_sync_only_when_connected.sql', import.meta.url), 'utf8');
   assert.match(mig, /where exists \(select 1 from public\.venue_connections where status in \(''connected'',''error''\)\)/);
 });
