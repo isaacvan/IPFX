@@ -307,3 +307,21 @@ test('engine: Infinity orders may open without a stop; traditional challenges th
   assert.equal((eng.match(/challenge_type !== "infinity" && \(?(acct|A)( as Acct\))?\)?\.require_stop_loss && sl === null/g) || []).length, 3);
   assert.doesNotMatch(eng, /rules_version !== "infinity_v2" && \(?(acct|A)( as Acct\))?\)?\.require_stop_loss && sl === null/);
 });
+
+// Supabase usage (8 Nov 2026): the 10 s backup sweep and the quote warm-up were most of the project's egress.
+test('engine: quote reads fetch only fresh rows and the columns used; the backup sweep defers to a healthy hub', () => {
+  const eng = fs.readFileSync(new URL('../supabase/functions/trading-engine/index.ts', import.meta.url), 'utf8');
+  assert.match(eng, /const QUOTE_COLS = "symbol,mid,bid,ask,spread,provider_ts,received_at,feed_ts,source";/);
+  assert.doesNotMatch(eng, /from\("live_quotes"\)\.select\("\*"\)/, 'no full-row live_quotes reads left');
+  assert.match(eng, /\.select\(QUOTE_COLS\)\s*\n?\s*\.gte\("received_at"/);
+  const sweep = eng.slice(eng.indexOf('if (body.action === "sweep") {'), eng.indexOf('// privileged client for writes'));
+  assert.match(sweep, /const hubCovering=await hubRiskCovering\(\);/);
+  assert.match(sweep, /if\(!passIds\.has\(String\(id\)\)\)ids\.delete\(id\)/, 'pass candidates are still checked every 10 s');
+  assert.match(sweep, /else lastFullSweepAt=Date\.now\(\);/);
+  assert.doesNotMatch(sweep, /select\("status"\)/, 'no second account read per account');
+  const hub = eng.slice(eng.indexOf('async function hubRiskCovering'), eng.indexOf('// Marks positions, applies SL/TP'));
+  assert.match(hub, /k\?\.mode === "active" && k\?\.healthy === true/); assert.match(hub, /catch \(_\) \{ return false; \}/);
+  assert.match(eng, /const FULL_SWEEP_WITH_HUB_MS = 28_000;/);
+  const mig = fs.readFileSync(new URL('../supabase/migrations/20261108140000_venue_sync_only_when_connected.sql', import.meta.url), 'utf8');
+  assert.match(mig, /where exists \(select 1 from public\.venue_connections where status in \(''connected'',''error''\)\)/);
+});

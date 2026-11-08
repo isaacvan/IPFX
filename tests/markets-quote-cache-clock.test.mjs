@@ -9,10 +9,10 @@ const quote=(extra={})=>({symbol:'USDJPY',mid:150,bid:149.99,ask:150.01,spread:.
 const row=q=>({...q,received_at:new Date(q.receivedTs).toISOString(),provider_ts:new Date(q.providerTs).toISOString(),feed_ts:new Date(q.feedTs).toISOString()});
 function fixture(){
  let rows=[],upstream=0,reads=0;const cache=new Map();
- const c=vm.createContext({Date:class extends Date{static now(){return 100000;}},quoteCache:cache,CACHE_TTL_MS:750,SHARED_CACHE_TTL_MS:1300,INSTRUMENTS:{USDJPY:{cls:'forex'}},FXCM_SYMBOLS:{USDJPY:'USDJPY'},
+ const c=vm.createContext({Date:class extends Date{static now(){return 100000;}},quoteCache:cache,CACHE_TTL_MS:750,SHARED_CACHE_TTL_MS:1300,QUOTE_COLS:'symbol,mid,bid,ask,spread,provider_ts,received_at,feed_ts,source',INSTRUMENTS:{USDJPY:{cls:'forex'}},FXCM_SYMBOLS:{USDJPY:'USDJPY'},
   STALE_MS:8000,STALE_MS_CRYPTO:20000,STALE_MS_FUTURES:15000,SYMBOL_QUIET_MAX_MS:60000,BAD_TICK_WINDOW_MS:60000,BAD_TICK_MAX_MOVE:{forex:.03},
   fetchFxcmRaw:async()=>{upstream++;return{bid:149.99,ask:150.01,ts:100000,feedTs:100000};},lastKnownQuote:async()=>null,
-  round6:n=>Math.round(n*1e6)/1e6,getCacheClient:()=>({from:()=>{const q={select(){return q;},eq(){return q;},maybeSingle:async()=>{reads++;return{data:rows[0]??null};},upsert:async()=>({}),then:resolve=>{reads++;return Promise.resolve(resolve({data:rows}));}};return q;}})});
+  round6:n=>Math.round(n*1e6)/1e6,getCacheClient:()=>({from:()=>{const q={select(){return q;},eq(){return q;},gte(){return q;},maybeSingle:async()=>{reads++;return{data:rows[0]??null};},upsert:async()=>({}),then:resolve=>{reads++;return Promise.resolve(resolve({data:rows}));}};return q;}})});
  vm.runInContext(stripTypeScriptTypes(part('const quoteCacheAt','const CACHE_TTL_MS')),c);
  vm.runInContext(stripTypeScriptTypes(part('function quoteStale(','// backward-compatible mid-price')),c);
  vm.runInContext(stripTypeScriptTypes(part('async function fetchQuote(','function round6(')),c);

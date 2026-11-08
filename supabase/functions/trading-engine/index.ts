@@ -303,6 +303,7 @@ const CACHE_TTL_MS = 750;
 // once, so a stored price up to 1.3s old is still the current price. Without this a quiet symbol would miss the shared cache about
 // half the time and every order on it would go to the upstream feed. The in-process cache above keeps the strict 750ms.
 const SHARED_CACHE_TTL_MS = 1300;
+const QUOTE_COLS = "symbol,mid,bid,ask,spread,provider_ts,received_at,feed_ts,source";
 // Staleness is judged on the provider's own timestamp. Calibrated against the
 // FXCM public feed (2026-09-17, London session): FX, metals and indices ran
 // 2-4s behind at the median and under 10s at worst; crypto up to ~16s.
@@ -424,7 +425,7 @@ async function fetchQuote(symKey: string): Promise<Quote | null> {
   // feed blocked. This makes the cache actually shared across them.
   try {
     const db2 = getCacheClient();
-    const { data: cached } = await db2.from("live_quotes").select("*").eq("symbol", symKey).maybeSingle();
+    const { data: cached } = await db2.from("live_quotes").select(QUOTE_COLS).eq("symbol", symKey).maybeSingle();
     if (cached) {
       const ageMs = Date.now() - new Date(cached.received_at).getTime();
       if (ageMs >= 0 && ageMs < SHARED_CACHE_TTL_MS) {
@@ -499,7 +500,10 @@ async function warmQuotes(force = false): Promise<void> {
   if (!force && Date.now() - lastWarmAt < WARM_EVERY_MS) return;
   lastWarmAt = Date.now();
   try {
-    const { data } = await getCacheClient().from("live_quotes").select("*");
+    // Only rows young enough to use (the loop below skips older ones anyway) and only the columns it reads: same quotes, a
+    // fraction of the bytes. This read ran tens of thousands of times an hour and was most of the project's egress (Nov 2026).
+    const { data } = await getCacheClient().from("live_quotes").select(QUOTE_COLS)
+      .gte("received_at", new Date(Date.now() - SHARED_CACHE_TTL_MS).toISOString());
     const now = Date.now();
     for (const row of data ?? []) {
       const receivedTs = Date.parse(row.received_at);
@@ -998,7 +1002,7 @@ async function runQuotePump(db: Db, durationMs: number): Promise<{ ticks: number
   }
   const prev = new Map<string, Quote>();
   try {
-    const seed = await quickRead<Record<string, any>[]>(db.from("live_quotes").select("*"));   // only feeds the bad-tick filter
+    const seed = await quickRead<Record<string, any>[]>(db.from("live_quotes").select(QUOTE_COLS));   // only feeds the bad-tick filter
     for (const row of seed ?? []) {
       if (!FXCM_SYMBOLS[row.symbol]) continue;
       prev.set(row.symbol, {
@@ -1807,7 +1811,7 @@ async function orderBurstExceeded(db: Db, accountId: string): Promise<boolean> {
 // Last price the feed actually printed for a symbol, however old.
 async function lastKnownQuote(symKey: string): Promise<Quote | null> {
   try {
-    const { data } = await getCacheClient().from("live_quotes").select("*").eq("symbol", symKey).maybeSingle();
+    const { data } = await getCacheClient().from("live_quotes").select(QUOTE_COLS).eq("symbol", symKey).maybeSingle();
     if (!data) return null;
     return {
       symbol: symKey, mid: Number(data.mid), bid: Number(data.bid), ask: Number(data.ask),
@@ -2150,6 +2154,23 @@ async function strikeOutRun(db: Db, acct: Acct, open: Tr[]): Promise<Tr[]> {
   }
   const { data: left } = await db.from("trades").select("*").eq("account_id", acct.id).eq("status", "open");
   return left ?? [];
+}
+
+// Is the hub's tick-by-tick risk engine covering open accounts right now? Fails closed (false) on any doubt.
+const FULL_SWEEP_WITH_HUB_MS = 28_000;
+let lastFullSweepAt = 0;
+async function hubRiskCovering(): Promise<boolean> {
+  const url = Deno.env.get("HUB_INGEST_URL");
+  if (!url) return false;
+  try {
+    const r = await fetch(new URL("/health", url).toString(), { signal: AbortSignal.timeout(1500) });
+    if (!r.ok) { await r.body?.cancel(); return false; }
+    // deno-lint-ignore no-explicit-any
+    const h: any = await r.json();
+    const k = h?.risk;
+    return h?.ok === true && k?.mode === "active" && k?.healthy === true && Number(k?.lastFullAgoS) < 120
+      && Number(k?.queue) < 50 && Number(k?.unresolvedErrors) === 0;
+  } catch (_) { return false; }
 }
 
 // Marks positions, applies SL/TP, daily rollover, breach/pass rules.
@@ -3337,6 +3358,10 @@ const handleRequest = async (req: Request): Promise<Response> => {
   }
 
 if (body.action === "sweep") {
+ // The hub's risk engine (mode "active") checks every open account on every price tick, so this database sweep is the
+ // backup. While the hub reports itself healthy, the per-account pass runs every 30 s instead of every 10 s; the moment
+ // the hub is unhealthy, unreachable or behind, it runs every 10 s again. Pass candidates and price alerts stay every 10 s.
+ // (Nov 2026: the 10 s pass was ~90% of the project's API traffic and egress, around the clock.)
  const secret=req.headers.get("x-cron-secret"),expected=Deno.env.get("CRON_SECRET");
  if(!expected||secret!==expected)return err("Not authorized",401);
  const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -3355,9 +3380,16 @@ if (body.action === "sweep") {
     if(page.length<1000)break;
    }
   }
-  try{const{data:ready,error}=await db.rpc("fn_pass_candidates");if(error)failures.push({stage:"pass_candidates",code:error.code??"QUERY_FAILED"});else for(const row of ready??[])ids.add(String(row.account_id));}
+  const passIds=new Set<string>();
+  try{const{data:ready,error}=await db.rpc("fn_pass_candidates");if(error)failures.push({stage:"pass_candidates",code:error.code??"QUERY_FAILED"});else for(const row of ready??[]){ids.add(String(row.account_id));passIds.add(String(row.account_id));}}
   catch{failures.push({stage:"pass_candidates",code:"QUERY_FAILED"});}
   try{alertsFired = await evaluateAlerts(db, null);}catch{warnings.push("ALERT_CHECK_FAILED");}
+  const hubCovering=await hubRiskCovering();
+  if(hubCovering&&Date.now()-lastFullSweepAt<FULL_SWEEP_WITH_HUB_MS){
+   // Accounts with open trades or pending orders (the hub watches them) wait for the next 30 s pass; pass candidates
+   // (accounts at their target with nothing open, which the hub does not watch) are still checked now.
+   for(const id of [...ids])if(!passIds.has(String(id)))ids.delete(id);
+  } else lastFullSweepAt=Date.now();
   const queue=[...ids].sort(()=>Math.random()-.5),deadline=Date.now()+40000;
   for(const id of queue){
    if(Date.now()>deadline)break;
@@ -3367,10 +3399,8 @@ if (body.action === "sweep") {
     if(error){failures.push({id,stage:"account",code:error.code??"LOOKUP_FAILED"});continue;}
     if(!acct||(acct.access_revoked_at && acct.status !== "breached")||!(isTradableAccount(acct as Acct) || acct.status === "breached"))continue;
     const before=acct.status;await enforce(db, acct as Acct);checked++;
-    if(before==="active"){
-     const{data:after,error}=await db.from("trading_accounts").select("status").eq("id",id).maybeSingle();
-     if(error)warnings.push("BREACH_COUNT_REFRESH_FAILED");else if(after?.status==="breached")breached++;
-    }
+    // enforce() keeps acct.status in step with the database (it re-reads the row when its own save loses a race).
+    if(before==="active"&&acct.status==="breached")breached++;
    }catch{failures.push({id,stage:"enforce",code:"ACCOUNT_ENFORCE_FAILED"});}
   }
   unvisited=queue.length-visited;
