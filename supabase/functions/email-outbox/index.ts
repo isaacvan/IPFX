@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
   const live = Deno.env.get("EMAIL_OUTBOX_LIVE") === "1";
   // Owner tests first, then time-sensitive notices (breach / restart), then the approval backlog; oldest first within each.
   // deno-lint-ignore no-explicit-any
-  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_monthly_restart_v2" || r.template_key === "infinity_account_reinstated" ? 2 : 0);
+  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_monthly_restart_v2" || r.template_key === "infinity_account_reinstated" ? 2 : 0 - (r.template_key === "infinity_comeback" ? 1 : 0));
   // deno-lint-ignore no-explicit-any
   const list = (rows ?? []).filter((r: any) => live || r.payload?.test === true)
     // deno-lint-ignore no-explicit-any
