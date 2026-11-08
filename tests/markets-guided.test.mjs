@@ -5,16 +5,16 @@ import test from 'node:test'; import assert from 'node:assert/strict'; import fs
 const src = fs.readFileSync(new URL('../assets/js/markets-guided.js', import.meta.url), 'utf8');
 const html = fs.readFileSync(new URL('../trading.html', import.meta.url), 'utf8');
 
-function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg = null, type = 'market', slOn = false, slValue = '', symbol = 'EURUSD', bid = 1.1226, ask = 1.1227, digits = 5, contract = 100000, mount = false, open = [], multiple = null } = {}) {
+function page({ demo = false, status = 'active', cap = 5, fresh = true, capMsg = null, type = 'market', slOn = false, slValue = '', symbol = 'EURUSD', bid = 1.1226, ask = 1.1227, digits = 5, contract = 100000, mount = false, open = [], multiple = null, infinity = false, auto = '0', strikes = 0, rv = null } = {}) {
   const sent = [], msgs = [], ticks = [];
   const events = {}, distanceEvents = {};
-  const els = { slPrice: { value: slValue, addEventListener(type, fn) { events[type] = fn; }, focus() {} }, gtCard: mount ? null : { hidden: true, classList: { toggle() {} } }, gtSum: { setAttribute() {}, addEventListener() {} }, gtSumMain: { textContent: '' }, gtSumSub: { textContent: '' }, gtSumEdit: { textContent: '' }, gtStop: { value: '', addEventListener(type,fn) { distanceEvents[type]=fn; } }, gtStopSub: { textContent: '' }, gtChips: { innerHTML: '' }, gtChecks: { innerHTML: '' }, gtLotNote: { innerHTML: '' }, gtExact: { onclick: null }, 'ord-lots': {} };
+  const els = { slPrice: { value: slValue, addEventListener(type, fn) { events[type] = fn; }, focus() {} }, gtCard: mount ? null : { hidden: true, classList: { toggle() {} } }, gtSum: { setAttribute() {}, addEventListener() {} }, gtSumMain: { textContent: '' }, gtSumSub: { textContent: '' }, gtSumEdit: { textContent: '' }, gtStop: { value: '', addEventListener(type,fn) { distanceEvents[type]=fn; } }, gtStopSub: { textContent: '' }, gtChips: { innerHTML: '' }, gtChecks: { innerHTML: '' }, gtLotNote: { innerHTML: '' }, gtExact: { onclick: null }, gtAuto: { hidden: true, attrs: {}, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener() {} }, gtRule: { hidden: true, innerHTML: '' }, 'ord-lots': {} };
   const node = () => ({ id: '', className: '', style: {}, listeners: {}, appendChild() {}, before() {}, after() {}, addEventListener(type,fn) { this.listeners[type]=fn; }, setAttribute() {}, classList: { toggle() {}, remove() {} } });
   const bar = node(); bar.after = (el) => { els.gtCard = el; };
   const ctx = {
     document: { readyState: 'complete', head: node(), body: node(), getElementById: (id) => els[id] || null, querySelector: (sel) => mount && sel === '#tab-order .op-quickbar' ? bar : null, querySelectorAll: () => [], createElement: node, addEventListener() {} },
-    localStorage: { getItem: () => '1', setItem() {} }, setInterval: (fn) => { ticks.push(fn); return 0; }, clearInterval() {}, setTimeout: () => 0,
-    engineState: { account: { status, is_demo: demo, limits: { require_stop_loss: true, max_risk_per_trade_usd: cap, total_open_risk_multiple: multiple } }, open_trades: open },
+    localStorage: { getItem: (k) => k === 'ipfx-ticket-autostop' ? auto : '1', setItem() {} }, setInterval: (fn) => { ticks.push(fn); return 0; }, clearInterval() {}, setTimeout: () => 0,
+    engineState: { account: { status, is_demo: demo, challenge_type: infinity ? 'infinity' : 'traditional', rules_version: rv, sl_strikes: strikes, sl_strikes_max: 3, limits: { require_stop_loss: true, max_risk_per_trade_usd: cap, total_open_risk_multiple: multiple, stop_loss_deadline_seconds: infinity ? 30 : null } }, open_trades: open },
     activeSym: symbol, liveQuotesBySymbol: new Map([[symbol, { bid, ask, digits }]]),
     WL_DATA: { forex: [{ sym: 'EURUSD' }], metals: [{ sym: 'XAUUSD' }] }, execSymbol: (s) => s, futSym: () => null, symMeta: () => ({ quoteCurrency: 'USD' }),
     contractSizeFor: () => contract, clientUsdPerQuote: () => 1, feedFresh: () => fresh, dailyCapMessage: () => capMsg,
@@ -231,7 +231,7 @@ test('trading.html: changing instrument clears stop, take-profit and trigger pri
   assert.match(html, /if\(sym!==activeSym\)\{clearOrdPrices\(\);clearTicketLevels\(\);\}/);
   assert.match(html, /\.op-limit-card\[hidden\]\{display:none!important\}/);
   assert.match(fs.readFileSync(new URL('../assets/js/infinity-restart.js', import.meta.url), 'utf8'), /\.tb-restart\[hidden\]\{display:none!important\}/);
-  assert.match(html, /markets-guided\.js\?v=20261107d/);
+  assert.match(html, /markets-guided\.js\?v=20261108a/);
 });
 test('the chart shows dashed buy-stop and sell-stop preview lines at the prices the next order would carry', () => {
   const { ctx, tick } = page({ multiple: 3 });
@@ -242,4 +242,68 @@ test('the chart shows dashed buy-stop and sell-stop preview lines at the prices 
   assert.equal(lines.find((l) => /^Buy stop/.test(l.o.title)).o.price, 1.12045); assert.equal(lines.find((l) => /^Sell stop/.test(l.o.title)).o.price, 1.12485);
   tick(); assert.equal(lines.length, 2, 'refreshing does not stack duplicate lines');
   ctx.engineState.account.is_demo = true; tick(); assert.equal(lines.length, 0, 'gone when the protected ticket is not in use');
+});
+
+// 8 Nov 2026 (owner): Infinity trades no longer need a stop before they are placed; the 30-second rule is stated strictly instead.
+test('Infinity: Buy goes through without a stop, sized so the suggested stop still fits, and the rule is shown in red', async () => {
+  const { ctx, sent, msgs, els, tick } = page({ infinity: true, strikes: 1 });
+  tick();
+  assert.equal(els.gtAuto.hidden, false, 'Auto stop switch is offered on Infinity');
+  assert.equal(els.gtAuto.attrs['aria-checked'], 'false', 'and is off by default');
+  assert.match(els.gtSumMain.textContent, /^No stop loss · 0\.02 lots$/);
+  assert.match(els.gtSumSub.textContent, /^Add a stop within 30s of the fill/);
+  assert.equal(els.gtRule.hidden, false);
+  assert.match(els.gtRule.innerHTML, /Challenge rule: stop loss within 30 seconds/);
+  assert.match(els.gtRule.innerHTML, /without a stop loss/); assert.match(els.gtRule.innerHTML, /closed automatically/); assert.match(els.gtRule.innerHTML, /removed/);
+  assert.match(els.gtRule.innerHTML, /Warnings: <em>1 of 3<\/em>/);
+  els.slPrice.value = '1.1';                      // a stop left in the field from an earlier order must not be sent
+  ctx.slOn = true;
+  await ctx.window.placeOrder('buy');
+  assert.equal(msgs.length, 0, 'no "stop required" message');
+  assert.equal(sent.length, 1); assert.equal(els.slPrice.value, ''); assert.ok(!(sent[0].sl > 0), 'sent without a stop'); assert.equal(sent[0].lots, 0.02);
+});
+
+test('Infinity: one warning left says the next one ends the run', () => {
+  const { els, tick } = page({ infinity: true, strikes: 2 }); tick();
+  assert.match(els.gtRule.innerHTML, /2 of 3<\/em> — <em>one more ends this run<\/em>/);
+});
+
+test('Infinity with Auto stop on keeps adding the stop; traditional challenges always do', async () => {
+  const a = page({ infinity: true, auto: '1' }); a.tick();
+  assert.equal(a.els.gtAuto.attrs['aria-checked'], 'true');
+  await a.ctx.window.placeOrder('buy'); assert.equal(a.sent[0].sl, 1.12045);
+  const t = page(); t.tick(); assert.equal(t.els.gtAuto.hidden, true, 'no switch on a traditional challenge');
+  await t.ctx.window.placeOrder('buy'); assert.equal(t.sent[0].sl, 1.12045);
+});
+
+test('Infinity v2: a trade without a stop counts as a full limit, so a second one on the same idea is held back with the reason', async () => {
+  const open = [{ id: 'x', symbol: 'EURUSD', side: 'buy', open_price: 1.1226, sl: null, volume: 0.02 }];
+  const { ctx, sent, msgs, tick } = page({ infinity: true, rv: 'infinity_v2', multiple: 3, open });
+  tick();
+  await ctx.window.placeOrder('buy');
+  assert.equal(sent.length, 0); assert.match(msgs[0], /already have an open EURUSD buy on this trade idea\. Add a stop to it/);
+  await ctx.window.placeOrder('sell'); assert.equal(sent.length, 1, 'the other direction is a different idea');
+});
+
+test('suggested stop for the 30-second card fits the risk limit and sits on the loss side', () => {
+  const { ctx } = page({ infinity: true, rv: 'infinity_v2', multiple: 3 });
+  const s = ctx.window.ipfxSuggestStop({ id: 't', symbol: 'EURUSD', side: 'buy', open_price: 1.1227, volume: 0.02, sl: null });
+  assert.ok(s.sl < 1.1226 && !s.why, JSON.stringify(s)); assert.ok(s.risk <= 5 * 0.95 + 1e-9);
+  const big = ctx.window.ipfxSuggestStop({ id: 't', symbol: 'EURUSD', side: 'sell', open_price: 1.1226, volume: 50, sl: null });
+  assert.match(big.why, /No stop fits/);
+});
+
+test('trading.html: a red 30-second card for every Infinity trade without a stop, with Add stop, that the 10-second pop-up does not cover', () => {
+  assert.match(html, /function stopRuleAlerts\(state\)/);
+  assert.match(html, /try\{stopRuleAlerts\(state\);\}/);
+  assert.match(html, /<button type="button" class="rule-add">Add stop<\/button>/);
+  assert.match(html, /Challenge rule: add a stop loss within '\+dl\+' seconds or this trade is /);
+  assert.match(html, /w\.code!=='missing-stop'/); assert.match(html, /box\.insertBefore\(card,\[\.\.\.box\.children\]\.find\(c=>!c\.classList\.contains\('rule'\)\)\|\|null\)/, 'stop cards stay on top');
+  assert.match(html, /!c\.classList\.contains\('rule'\)/, 'ordinary alerts never push the rule card out of the stack');
+});
+
+test('engine: Infinity orders may open without a stop; traditional challenges that require one still refuse', () => {
+  const eng = fs.readFileSync(new URL('../supabase/functions/trading-engine/index.ts', import.meta.url), 'utf8');
+  assert.equal((eng.match(/challenge_type !== "infinity" && \(?(acct|A)( as Acct\))?\)?\.require_stop_loss && sl === null/g) || []).length, 3);
+  assert.doesNotMatch(eng, /rules_version !== "infinity_v2" && \(?(acct|A)( as Acct\))?\)?\.require_stop_loss && sl === null/);
 });

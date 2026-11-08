@@ -7,7 +7,7 @@ import vm from 'node:vm';
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const html = read('trading.html'), chart = read('assets/js/ipfx-chart.js'), guided = read('assets/js/markets-guided.js');
 
-const fn = html.slice(html.indexOf('function alertParts('), html.indexOf('function engineMsg('));
+const fn = html.slice(html.indexOf('function alertParts('), html.indexOf('function engToastBox('));
 const ctx = {}; vm.createContext(ctx); vm.runInContext(fn + '\nglobalThis.alertParts = alertParts;', ctx);
 const parts = (...a) => JSON.parse(JSON.stringify(ctx.alertParts(...a)));
 
@@ -28,8 +28,8 @@ test('a rejection says the order was not placed and gives the engine reason in f
   assert.equal(parts('The classic chart could not load — check your connection or ad blocker.', false).title, 'The classic chart could not load');
 });
 test('the card: icon, title, lines, close button; stacks newest first, at most four; errors announced as alerts and kept longer', () => {
-  const body = html.slice(html.indexOf('function engineMsg('), html.indexOf('let prevOpenTradeIds'));
-  assert.match(body, /box\.prepend\(card\)/); assert.match(body, /while\(box\.children\.length>4\)/);
+  const body = html.slice(html.indexOf('function engToastBox('), html.indexOf('let prevOpenTradeIds'));
+  assert.match(body, /box\.insertBefore\(card,/, 'newest ordinary alert first, under any stop-rule card');assert.match(body, /while\(box\.children\.length>4&&plain\.length>1\)/);
   assert.match(body, /setAttribute\('role',tone==='err'\?'alert':'status'\)/);
   assert.match(body, /setAttribute\('aria-label','Dismiss'\)/);
   assert.match(body, /card\.onmouseenter=\(\)=>clearTimeout\(timer\)/, 'pauses while hovered');

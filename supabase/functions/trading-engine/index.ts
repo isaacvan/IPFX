@@ -1566,7 +1566,8 @@ function ruleGate(
 
   const dailyCap = dailyProfitCapReason(acct, equityNow);
   if (dailyCap) return dailyCap;
-  if (acct.rules_version !== "infinity_v2" && acct.require_stop_loss && sl === null) {
+  // Infinity (v1 and v2): a stop is not needed to open; the 30-second rule in enforce() closes a trade still without one.
+  if (acct.challenge_type !== "infinity" && acct.require_stop_loss && sl === null) {
     return "This challenge requires a stop-loss on every order";
   }
   if (acct.max_risk_per_trade_pct != null && sl !== null) {
@@ -2862,7 +2863,7 @@ function cleanRpcError(raw: string): string {
 function cleanV2Error(message: string): string {
   const labels: Record<string,string> = { V2_NOT_LIVE: "Infinity v2 is not live yet.", TERMS_NOT_ACCEPTED: "Accept the current Infinity v2 terms first.",
     CLOSE_OPEN_POSITIONS_FIRST: "Close your open positions first.", CANCEL_PENDING_ORDERS_FIRST: "Cancel your pending orders first.", BREACH_LOCKOUT_ACTIVE: "Your breach lockout is still active. Restart on the next eligible month.",
-    STOP_CANNOT_WIDEN: "A stop can only be tightened, never widened.", STOP_TOO_CLOSE: "Your stop must be at least eight current spreads away.",
+    STOP_CANNOT_WIDEN: "A stop can only be tightened, never widened.", STOP_TOO_CLOSE: "Your stop must be at least eight current spreads away.", OPENING_STOP_TOO_LATE: "The 30 seconds to add a stop have passed; this trade is being closed under the stop-loss rule.",
     STOP_OUT_PAUSE: "This instrument is paused for ten minutes after a stop-out.", COUNTED_TRADE_RISK_LIMIT: "These entries share one counted-trade risk limit. Reduce size.", TOTAL_OPEN_RISK_LIMIT: "Your total open risk limit would be exceeded.", INTEGRITY_REVIEW_REQUIRED: "Your account needs a review before advancement or payout.",
     // Plain words for the database checks traders actually hit (INVALID_LOT_STEP was shown raw on 686 rejected orders in a week).
     INVALID_LOT_STEP: "That lot size is not allowed for this market. Use a whole multiple of its minimum lot size.", ORDER_BURST_LIMIT: "Too many new orders in a few seconds. Wait a moment and try again.",
@@ -3942,7 +3943,7 @@ if (body.action === "sweep") {
         return err("Stop loss must be on the loss side of the trigger price");
       if (tp !== null && ((side === "buy" && tp <= trigger) || (side === "sell" && tp >= trigger)))
         return err("Take profit must be on the profit side of the trigger price");
-      if ((acct as Acct).rules_version !== "infinity_v2" && (acct as Acct).require_stop_loss && sl === null)
+      if ((acct as Acct).challenge_type !== "infinity" && (acct as Acct).require_stop_loss && sl === null)
         return err("This challenge requires a stop-loss on every order.");
 
       let expiresAt: string | null = null;
@@ -4194,7 +4195,7 @@ if (body.action === "sweep") {
       if (dailyCap) return reject(dailyCap, q);
 
       // A risk cap is unverifiable without a stop, so the two travel together.
-      if (A.rules_version !== "infinity_v2" && A.require_stop_loss && sl === null) {
+      if (A.challenge_type !== "infinity" && A.require_stop_loss && sl === null) {
         return reject("This challenge requires a stop-loss on every order.", q);
       }
 

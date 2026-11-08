@@ -9,6 +9,11 @@
    ("Stop 40.0 pips · Risk $4.00 of $5.00 · 0.01 lots  Edit"); Edit opens the full controls. Sizing now leaves room for
    risk already open on the same trade idea and in total (the two limits behind most rejections after v2 launched) and
    for half a spread of slippage. View-only markets disable Buy/Sell on every ticket, not just the challenge one.
+   8 Nov 2026 (owner): on Infinity accounts the stop is no longer needed to place a trade. Buy/Sell send the order as it is
+   ("Auto stop" can be switched on to keep adding one), the ticket states the 30-second stop rule in red, and after the fill
+   a card that cannot be dismissed counts down the 30 seconds with an "Add stop" button (window.ipfxSuggestStop). The
+   engine still closes a trade left without a stop, removes its profit and records a warning; 3 warnings end the run.
+   Traditional challenges that require a stop keep the automatic stop.
    Uses the page's own globals (engineState, activeSym, liveQuotesBySymbol, setLots, placeOrder, ...). */
 (() => {
   'use strict';
@@ -24,12 +29,21 @@
   let expanded = false;         // full stop/risk controls shown (remembered per browser); the one-line summary otherwise
   try { expanded = localStorage.getItem(OPEN_KEY) === '1'; } catch (_) {}
   let lastChecksHtml = '';
+  const AUTO_KEY = 'ipfx-ticket-autostop';
+  let autoStop = false;         // Infinity: add the suggested stop to each order (off by default; remembered per browser)
+  try { autoStop = localStorage.getItem(AUTO_KEY) === '1'; } catch (_) {}
 
   const acct = () => (typeof engineState !== 'undefined' && engineState && engineState.account) || null;
   const minLot = () => typeof window!=='undefined' && window.ipfxInfinityV2 ? window.ipfxInfinityV2.minLot() : 0.01;
   const lotDigits = () => minLot()<0.01?3:2;
   const lim = () => (acct() && acct().limits) || {};
   const isFut = () => typeof futSym === 'function' && !!futSym(activeSym);
+  // Infinity runs enforce the stop with the 30-second rule, so the ticket does not have to: a stop is optional there.
+  const deadline = () => { const v = +lim().stop_loss_deadline_seconds; return isFinite(v) && v > 0 ? v : null; };
+  const optional = () => acct()?.challenge_type === 'infinity' && deadline() != null;
+  const sending = () => !optional() || autoStop || manualStopPrice;     // does the next order carry a stop?
+  const strikes = () => { const a = acct() || {}; return { n: +a.sl_strikes || 0, max: +a.sl_strikes_max || +a.infinity_v2?.rules?.sl_strikes_max || 3 }; };
+  const v2 = () => acct()?.rules_version === 'infinity_v2';
   const on = () => { const a = acct(); return !!(a && lim().require_stop_loss && !a.is_demo && a.status === 'active' && !isFut()); };
   const quote = () => liveQuotesBySymbol.get(execSymbol(activeSym)) || null;
   const mid = () => { const q = quote(); return q ? (q.bid + q.ask) / 2 : (typeof ordMidPrice === 'number' ? ordMidPrice : 0); };
@@ -57,7 +71,8 @@
   const openRisk = (pick) => {
     let total = 0;
     for (const t of (typeof engineState !== 'undefined' && engineState && engineState.open_trades) || []) {
-      if (t.sl == null || !pick(t)) continue;
+      if (!pick(t)) continue;
+      if (t.sl == null) { if (v2() && cap() != null) total += cap(); continue; }   // the v2 guard counts it as a full limit
       const conv = clientUsdPerQuote(symMeta(t.symbol).quoteCurrency); if (conv == null) continue;
       const per = t.side === 'buy' ? +t.open_price - +t.sl : +t.sl - +t.open_price;
       total += Math.max(0, per) * contractSizeFor(t.symbol) * +t.volume * conv;
@@ -102,13 +117,24 @@
     const invalidInput = !!field?.validity?.badInput;
     const invalidDistance = invalidStopDistance && !manualStopPrice;
     const validSide = !manual || (Number.isFinite(typed) && typed > 0 && (side === 'buy' ? typed < entry : typed > entry));
-    const d = manual && validSide ? Math.abs(entry - typed) : dist();
+    const noStop = !sending();
+    const d = manual && validSide ? Math.abs(entry - typed) : noStop && invalidStopDistance ? defaultDist() : dist();
     const max = lotsFor(d, side), lots = useLots(max), p = perLot(d), c = cap(), full = max == null || max < minLot() ? roomWhy(side) : null;
     const out = [];
+    if (noStop) {
+      // No stop goes with the order. It still has to be possible to add one inside the risk limit within the deadline, or the
+      // trade is a guaranteed warning; and Infinity v2 counts a trade without a stop as a full per-trade limit until it has one.
+      const need = v2() && c != null && side ? Math.min(c - sameIdea(side), c * (multiple() || 1e9) - openRisk(() => true)) : null;
+      out.push({ ok: need == null || need >= c - 0.01, text: 'Room for this trade', why: need != null && c - sameIdea(side) < c - 0.01
+        ? `You already have an open ${short()} ${side === 'buy' ? 'buy' : 'sell'} on this trade idea. Add a stop to it (or close it) before opening another.`
+        : `Your open trades already use your total risk limit. Add stops to them, tighten or close one first.` });
+      out.push({ ok: !!q && max != null && max >= minLot(), text: 'Size', why: !q ? 'Waiting for a live price for this market' : p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits'
+        : 'No stop would fit your risk limit at the minimum size on this market, so you could not add one in time. Try another market.' });
+    } else
     out.push({ ok: !invalidInput && !invalidDistance && !!q && validSide && d > 0 && d >= minDist(), text: d > 0 ? `Stop ${(d / pipSize()).toFixed(1)} ${unit()} away` : 'Set a stop distance',
       why: invalidInput ? 'Finish entering a valid stop price before submitting.' : invalidDistance ? 'Enter a valid positive stop distance before submitting.' : !q ? 'Waiting for a live price for this market' : !validSide ? `For ${side}, set a stop on the loss side of the entry price` : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too close to price for the broker' });
     const risk = lots && p ? lots * p : null;
-    out.push({ ok: !full && max != null && max >= minLot(), text: risk != null && lots >= minLot() ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(lotDigits())} lots` : 'Risk', why: full ? full : p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
+    if (!noStop) out.push({ ok: !full && max != null && max >= minLot(), text: risk != null && lots >= minLot() ? `Risk ${usd(risk)} of ${usd(c)} · ${lots.toFixed(lotDigits())} lots` : 'Risk', why: full ? full : p == null ? 'Waiting for a conversion price' : c == null ? 'Waiting for your account limits' : defaultDist() < minDist() ? 'This market needs more than your current risk limit at the minimum 0.01 lot size. Try another market or wait for your limit to reset.' : 'Stop too wide for your risk limit at the minimum size: move the stop closer' });
     const viewOnly = typeof viewOnlyReason === 'function' ? viewOnlyReason(activeSym) : null;
     if (viewOnly) out.unshift({ ok: false, text: 'View-only instrument', why: viewOnly });   // listed first so it is the reason shown
     const fresh = typeof feedFresh !== 'function' || feedFresh();
@@ -138,6 +164,15 @@ body.gt-on #opLimitCard{display:none!important}
 /* the classic "Stop loss" tick box would read as "no stop" here: the stop is always added, and Edit > exact price opens the field */
 body.gt-on .op-quickbar .op-quick:nth-child(2){display:none!important}
 body.light .gt-sum-txt b{color:#111827}body.light .gt-sum-edit{border-color:#d1d5db;color:#1d4ed8}
+.gt-top{display:flex;align-items:center;gap:8px}.gt-top .gt-sum{flex:1;min-width:0}
+.gt-auto{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:1px solid #2f2f36;border-radius:7px;background:transparent;color:#cbd5e1;font:600 .74rem Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.gt-auto i{width:22px;height:12px;border-radius:999px;background:#3f3f46;position:relative;transition:background .15s}.gt-auto i::after{content:"";position:absolute;top:2px;left:2px;width:8px;height:8px;border-radius:50%;background:#e4e4e7;transition:left .15s}
+.gt-auto[aria-checked="true"] i{background:#10b981}.gt-auto[aria-checked="true"] i::after{left:12px}
+.gt-auto:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}.gt-auto[hidden]{display:none}
+.gt-card.gt-nostop{border-color:rgba(239,68,68,.45)}.gt-card.gt-nostop .gt-sum-ic{background:rgba(239,68,68,.14);color:#ef4444}
+.gt-rule{margin:10px 0 0;padding:9px 11px;border:1px solid rgba(239,68,68,.5);border-radius:9px;background:rgba(239,68,68,.08);color:#fecaca;font-size:.76rem;line-height:1.45}
+.gt-rule b{display:block;color:#f87171;font-size:.78rem;letter-spacing:.02em;margin-bottom:2px}.gt-rule em{font-style:normal;font-weight:700;color:#fff}.gt-rule[hidden]{display:none}
+body.light .gt-rule{color:#7f1d1d;background:#fef2f2}body.light .gt-rule b{color:#b91c1c}body.light .gt-rule em{color:#111827}body.light .gt-auto{border-color:#d1d5db;color:#374151}
 .gt-h{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa0aa;margin-bottom:8px}
 .gt-h b{color:#10b981;font-size:.68rem;letter-spacing:.04em}
 .gt-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}
@@ -172,9 +207,11 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     if ($('gtCard')) return;
     const bar = document.querySelector('#tab-order .op-quickbar'); if (!bar) return;
     const el = document.createElement('div'); el.className = 'gt-card'; el.id = 'gtCard'; el.hidden = true;
-    el.innerHTML = `<button type="button" class="gt-sum" id="gtSum" aria-expanded="false" aria-controls="gtMore" title="Your stop-loss is added to every order automatically">
+    el.innerHTML = `<div class="gt-top"><button type="button" class="gt-sum" id="gtSum" aria-expanded="false" aria-controls="gtMore" title="Your stop-loss is added to every order automatically">
         <span class="gt-sum-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
         <span class="gt-sum-txt"><b id="gtSumMain">Stop-loss on every trade</b><span id="gtSumSub"></span></span><span class="gt-sum-edit" id="gtSumEdit">Edit</span></button>
+      <button type="button" class="gt-auto" id="gtAuto" role="switch" aria-checked="false" hidden title="Add the suggested stop to every order">Auto stop <i aria-hidden="true"></i></button></div>
+      <div class="gt-rule" id="gtRule" role="note" hidden></div>
       <div id="gtMore">
       <div class="gt-row" id="gtStopRow"><span>Stop loss</span><div class="gt-step"><button type="button" data-gt="stop-" aria-label="Move stop closer">−</button><input id="gtStop" inputmode="decimal" aria-label="Stop distance"><button type="button" data-gt="stop+" aria-label="Move stop further">+</button></div></div>
       <div class="gt-sub" id="gtStopSub"></div>
@@ -184,6 +221,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
       </div>
       <ul class="gt-checks" id="gtChecks" aria-live="polite"></ul>`;
     bar.after(el);
+    $('gtAuto').addEventListener('click', () => { autoStop = !autoStop; try { localStorage.setItem(AUTO_KEY, autoStop ? '1' : '0'); } catch (_) {} refresh(); });
     $('gtSum').addEventListener('click', () => { expanded = !expanded; try { localStorage.setItem(OPEN_KEY, expanded ? '1' : '0'); } catch (_) {} refresh(); if (expanded) $('gtStop').focus(); });
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-gt]'); if (!b) return;
@@ -267,8 +305,25 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     const open = expanded || stopProblem;
     card.classList.toggle('gt-open', open); card.classList.toggle('gt-warn', !!bad);
     $('gtSum').setAttribute('aria-expanded', String(open)); $('gtSumEdit').textContent = open ? 'Done' : 'Edit';
+    const noStop = !sending(), dl = deadline(), st = strikes();
+    $('gtAuto').hidden = !optional(); $('gtAuto').setAttribute('aria-checked', String(optional() && autoStop));
+    card.classList.toggle('gt-nostop', noStop);
+    const rule = $('gtRule');
+    if (optional()) {
+      // The rule in plain, strict words, always visible while orders go without a stop (and as a reminder when Auto stop is on).
+      const left = Math.max(0, st.max - st.n);
+      const html = `<b>⚠ Challenge rule: stop loss within ${dl} seconds</b>${noStop ? 'This order is sent <em>without a stop loss</em>. ' : ''}Every trade must have a stop loss within <em>${dl} seconds</em> of opening. If not, it is <em>closed automatically</em>, any profit is <em>removed</em>, it does not count towards progress and you get a <em>warning</em>. Warnings: <em>${st.n} of ${st.max}</em>${left <= 1 ? ' — <em>one more ends this run</em>' : ` — the ${st.max}${st.max === 3 ? 'rd' : 'th'} ends this run and you restart from Stage 1`}.`;
+      if (rule.innerHTML !== html) rule.innerHTML = html;
+      rule.hidden = !noStop && st.n === 0;
+    } else rule.hidden = true;
     const shownLots = useLots(max), shownRisk = shownLots != null && sizingDist != null && perLot(sizingDist) ? shownLots * perLot(sizingDist) : null;
     const riskTxt = shownRisk != null ? `${usd(shownRisk)} risk · ${shownLots.toFixed(lotDigits())} lots` : 'risk —';
+    if (noStop) {
+      $('gtSumMain').textContent = `No stop loss · ${shownLots != null ? shownLots.toFixed(lotDigits()) + ' lots' : 'size —'}`;
+      $('gtSumSub').textContent = `Add a stop within ${dl}s of the fill · suggested ${(d / pipSize()).toFixed(1)} ${unit()} · max ${usd(c)} a trade`;
+      $('gtSum').title = 'Orders are sent without a stop loss. Add one within ' + dl + ' seconds of the fill, or switch on Auto stop. Click to change the size.';
+      stopPreview(null);
+    } else {
     $('gtSumMain').textContent = manualStopPrice ? `Stop at ${$('slPrice').value || '—'} · ${riskTxt}` : invalidStopDistance ? 'Stop distance needed' : `${(d / pipSize()).toFixed(1)} ${unit().replace(/s$/, '')} stop · ${riskTxt}`;
     const subTxt = manualStopPrice ? 'Exact stop price, checked for Buy and Sell separately' : invalidStopDistance ? 'Enter a stop distance to trade' : `Max ${usd(c)} a trade · buy stop ${stopFor('buy').toFixed(digits())} · sell stop ${stopFor('sell').toFixed(digits())}`;
     $('gtSumSub').textContent = subTxt;
@@ -278,6 +333,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     const line = (label, side, stop) => { const z = sizeAt(side, stop); return { price: stop, lots: z && z.lots, loss: z && z.loss, title: z ? `${label} −${usd(z.loss)}` : label }; };
     stopPreview(invalidStopDistance ? null : manualStopPrice ? (typedStop > 0 ? { 'Stop': line('Stop', manualSide || (q && typedStop < q.bid ? 'buy' : 'sell'), typedStop) } : null)
       : { 'Buy stop': line('Buy stop', 'buy', stopFor('buy')), 'Sell stop': line('Sell stop', 'sell', stopFor('sell')) }); $('gtSum').title = 'A stop-loss is added to every order automatically. ' + subTxt + '. Click to change.';
+    }
     // Buy/Sell sits right under this card: when every check passes, one reassuring line beats four, so the trader
     // doesn't have to scroll past a wall of ticks to reach the buttons. The full list comes back the moment something
     // needs attention, so nothing diagnostic is ever hidden while a trade is actually blocked.
@@ -305,6 +361,15 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
       const bad = checks(side).find((x) => !x.ok);
       if (bad) { engineMsg(bad.why); return; }
       const slField = $('slPrice');
+      if (!sending()) {
+        // Infinity, Auto stop off: the order goes without a stop. Lots stay sized so the suggested stop still fits the limit.
+        syncUser();
+        const lots = useLots(lotsFor(dist(), side));
+        if (!(lots >= minLot())) { engineMsg('No stop would fit your risk limit at the minimum size on this market, so you could not add one in time.'); return; }
+        if (slField) slField.value = '';
+        setLots(lots, null); lastSet = ordLots;
+        return original.call(this, side);
+      }
       const typed = Number(slField && slField.value);
       const stop = manualStopPrice ? typed : stopFor(side);
       syncUser();
@@ -313,16 +378,42 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
       if (!slOn) toggleSLTP('sl');
       slField.value = String(stop);
       setLots(lots, null); lastSet = ordLots;
-    } else if (on() && !slOn) {
+    } else if (on() && !slOn && !optional()) {
       engineMsg('Add a stop loss to this pending order: your challenge requires one on every order.'); return;
     }
     return original.call(this, side);
   };
 
+  // The stop the "Add stop" button on the 30-second card sends for an open trade: the ticket's suggested distance, cut to
+  // what the risk limit allows at the trade's size (measured from entry, as the engine does), and at least the minimum
+  // distance from the current price. Returns { sl, risk } or { why } when no stop can fit.
+  window.ipfxSuggestStop = function (t) {
+    const sym = t && t.symbol; if (!sym) return { why: 'Position not found' };
+    const q = liveQuotesBySymbol.get(execSymbol(sym)); if (!q) return { why: 'Waiting for a live price' };
+    const conv = clientUsdPerQuote(symMeta(sym).quoteCurrency); if (conv == null) return { why: 'Waiting for a conversion price' };
+    const k = contractSizeFor(sym) * +t.volume * conv, entry = +t.open_price, buy = t.side === 'buy', mark = buy ? q.bid : q.ask;
+    const c = cap(), m = multiple();
+    const others = (pick) => openRisk((x) => x.id !== t.id && pick(x));
+    let roomUsd = c == null ? Infinity : c - others((x) => execSymbol(x.symbol) === execSymbol(sym) && x.side === t.side);
+    if (c != null && m && v2()) roomUsd = Math.min(roomUsd, c * m - others(() => true));
+    const maxD = roomUsd * BUFFER / k;
+    const spread = Math.max(0, q.ask - q.bid), pxMid = (q.bid + q.ask) / 2;
+    const minD = v2() ? spread * Number(acct()?.infinity_v2?.rules?.stop_spread_multiple || 8) * 1.05 : pxMid * 0.0002;
+    const cat = Object.keys(WL_DATA).find((key) => WL_DATA[key].some((i) => execSymbol(i.sym) === execSymbol(sym))) || 'forex';
+    const suggested = pxMid * (cat === 'crypto' ? 0.008 : cat === 'metals' || cat === 'indices' ? 0.0025 : 0.002);
+    const dg = Number.isInteger(q.digits) ? q.digits : (/JPY/.test(execSymbol(sym)) ? 3 : cat === 'forex' ? 5 : 2), f = 10 ** dg;
+    let sl = buy ? entry - Math.min(suggested, maxD) : entry + Math.min(suggested, maxD);
+    if (buy ? sl > mark - minD : sl < mark + minD) sl = buy ? mark - minD : mark + minD;   // far enough from the current price
+    sl = buy ? Math.floor(sl * f + 1e-9) / f : Math.ceil(sl * f - 1e-9) / f;
+    const risk = Math.abs(entry - sl) * k;
+    if (!(maxD > 0) || risk > roomUsd + 0.005) return { why: `No stop fits your ${c == null ? '' : usd(Math.max(0, roomUsd)) + ' '}risk room at ${(+t.volume).toFixed(lotDigits())} lots now that price has moved. Close the trade to avoid a warning.` };
+    return { sl, risk };
+  };
+
   // ---- first-visit tour ----
   const STEPS = [
     { sel: '#op-sym', title: 'Pick a market', text: 'Choose what to trade here, or press / to search. The chart follows your choice.' },
-    { sel: '#gtSum', alt: '.op-quickbar', title: 'Your stop loss is automatic', text: 'Every challenge trade needs a stop loss, so one is added for you on the right side when you click Buy or Sell. This line shows the stop, the dollars at risk and the lot size. Click Edit to change the stop or how much to risk.' },
+    { sel: '#gtSum', alt: '.op-quickbar', title: 'Stop loss: within 30 seconds', text: 'On Infinity you can place a trade without a stop, but every trade needs one within 30 seconds or it is closed, its profit removed and you get a warning (3 end the run). After each fill a red card counts down with an Add stop button. Switch on Auto stop to add one to every order.' },
     { sel: '.op-trade-row', title: 'Buy or Sell', text: 'Click Buy if you think price goes up, Sell if it goes down. If a button is greyed out, the reason is written just above it.' },
     { sel: '.btab[onclick*="challenge"]', title: 'Watch your progress', text: 'Your target, loss limits and every rule you still need to meet are in the Challenge tab.' },
   ];

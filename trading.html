@@ -2836,7 +2836,9 @@ function updateRiskPreview(){
     if(a&&L.require_stop_loss){
       box.style.display='';box.className='op-risk over';
       document.getElementById('opRiskVal').textContent='No stop set';
-      document.getElementById('opRiskNote').textContent='This challenge requires a stop-loss on every order — the engine will reject this.';
+      document.getElementById('opRiskNote').textContent=a.challenge_type==='infinity'&&+L.stop_loss_deadline_seconds>0
+        ?`Challenge rule: add a stop loss within ${L.stop_loss_deadline_seconds} seconds of the fill or the trade is closed, any profit removed and you get a warning (${+a.sl_strikes||0} of ${+a.sl_strikes_max||3} used).`
+        :'This challenge requires a stop-loss on every order — the engine will reject this.';
     } else { box.style.display='none'; }
     return;
   }
@@ -3034,9 +3036,11 @@ function renderRuleReminders(){
     if(urgent.dataset.signature!==key){urgent.replaceChildren();critical.forEach(w=>{const li=document.createElement('li');li.textContent=w.message;urgent.appendChild(li);});urgent.dataset.signature=key;}
   }
   if(document.getElementById('stageRulesDialog').open||document.getElementById('ruleCriticalDialog').open)return;
-  const notice=window.IPFXRuleWarnings.announcement(warnings,a&&a.id,now,ruleWarningSeen);
+  const cardsOn=typeof stopRuleCards!=='undefined'&&stopRuleCards.size>0;
+  const announceable=cardsOn?warnings.filter(w=>w.code!=='missing-stop'):warnings;   // the 30-second card already says it, with Add stop
+  const notice=window.IPFXRuleWarnings.announcement(announceable,a&&a.id,now,ruleWarningSeen);
   if(notice){
-    if(notice.level==='critical'&&showCriticalRuleWarning(warnings)){
+    if(notice.level==='critical'&&showCriticalRuleWarning(announceable)){
       warnings.filter(w=>w.level==='critical').forEach(w=>{ruleWarningSeen[a.id+':'+w.code+':critical']=now;});
     }
     engineMsg(notice.message,false,notice.level==='critical'?'critical':'warning');
@@ -3122,7 +3126,7 @@ function renderChallenge(){
   const ddModeLbl={static:'Static drawdown',trailing_intraday:'Trailing drawdown (intraday)',trailing_eod:'Trailing drawdown (end-of-day)',trailing_balance:'Trailing drawdown (closed balance)'};
   document.getElementById('ch-sub').textContent=
     (ddModeLbl[L.drawdown_mode]||'Static drawdown')+
-    (L.require_stop_loss?' · stop-loss required on every order':'');
+    (L.require_stop_loss?(a.challenge_type==='infinity'&&+L.stop_loss_deadline_seconds>0?` · stop-loss within ${L.stop_loss_deadline_seconds}s of every fill`:' · stop-loss required on every order'):'');
 
   // verdict chip
   const v=document.getElementById('ch-verdict');
@@ -4735,7 +4739,7 @@ function alertParts(txt,ok,kind){
   const title=ok?'Done':kind==='warning'?'Heads up':/order|risk|stop|lot|margin|spread|price|limit|market|instrument|position|trade/i.test(s)?'Order not placed':'Something went wrong';
   return{title,sub:'',detail:s};
 }
-function engineMsg(txt,ok,kind){
+function engToastBox(){
   let box=document.getElementById('engToasts');
   if(!box){
     box=document.createElement('div');box.id='engToasts';box.className='eng-toasts';document.body.appendChild(box);
@@ -4748,8 +4752,24 @@ function engineMsg(txt,ok,kind){
 .eng-toast button:hover{background:#23232a;color:#fff}.eng-toast button:focus-visible{outline:2px solid #3b82f6}
 body.light .eng-toast{background:#fff;border-color:#e5e7eb;color:#111827;box-shadow:0 14px 40px rgba(15,23,42,.14)}body.light .eng-toast b{color:#111827}body.light .eng-toast span{color:#4b5563}
 @keyframes engIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.eng-toast{animation:none}}`;document.head.appendChild(st);
+@media(prefers-reduced-motion:reduce){.eng-toast{animation:none}}
+.eng-toast.rule{border-color:rgba(239,68,68,.65);background:#1a0f10;box-shadow:0 0 0 1px rgba(239,68,68,.25),0 14px 40px rgba(0,0,0,.55)}
+.eng-toast.rule b{color:#fecaca}.eng-toast.rule .cd{font-variant-numeric:tabular-nums;color:#fff}
+.eng-toast.rule .rule-txt{color:#fca5a5;margin-top:4px}.eng-toast.rule .rule-txt em{font-style:normal;font-weight:700;color:#fff}
+.eng-toast.rule.urgent{animation:engPulse 1s ease-in-out infinite}
+.eng-toast .rule-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.eng-toast .rule-act button{width:auto;height:30px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:700;line-height:1}
+.eng-toast .rule-act .rule-add{background:#ef4444;color:#fff}.eng-toast .rule-act .rule-add:hover{background:#dc2626;color:#fff}
+.eng-toast .rule-act .rule-edit{background:transparent;color:#fecaca;border:1px solid rgba(239,68,68,.5)}
+.eng-toast .rule-act .rule-add:disabled{opacity:.6;cursor:wait}.eng-toast .rule-hint{flex-basis:100%;color:#fbbf24;font-size:12px}.eng-toast .rule-hint:empty{display:none}
+body.light .eng-toast.rule{background:#fff5f5;border-color:#fca5a5}body.light .eng-toast.rule b{color:#991b1b}body.light .eng-toast.rule .cd,body.light .eng-toast.rule .rule-txt em{color:#111827}body.light .eng-toast.rule .rule-txt{color:#b91c1c}body.light .eng-toast .rule-act .rule-edit{color:#b91c1c}
+@keyframes engPulse{50%{box-shadow:0 0 0 3px rgba(239,68,68,.55),0 14px 40px rgba(0,0,0,.55)}}
+@media(prefers-reduced-motion:reduce){.eng-toast.rule.urgent{animation:none;border-width:2px}}`;document.head.appendChild(st);
   }
+  return box;
+}
+function engineMsg(txt,ok,kind){
+  const box=engToastBox();
   const p=alertParts(txt,ok,kind),tone=ok?'ok':kind==='warning'?'warn':'err';
   const card=document.createElement('div');card.className='eng-toast '+tone;card.setAttribute('role',tone==='err'?'alert':'status');
   const ic=document.createElement('div');ic.className='ic';ic.setAttribute('aria-hidden','true');ic.textContent=tone==='ok'?'✓':'!';
@@ -4757,8 +4777,9 @@ body.light .eng-toast{background:#fff;border-color:#e5e7eb;color:#111827;box-sha
   const t=document.createElement('b');t.textContent=p.title;body.appendChild(t);
   for(const line of [p.sub,p.detail])if(line){const sp=document.createElement('span');sp.textContent=line;body.appendChild(sp);}
   const x=document.createElement('button');x.type='button';x.setAttribute('aria-label','Dismiss');x.textContent='×';
-  card.append(ic,body,x);box.prepend(card);
-  while(box.children.length>4)box.lastElementChild.remove();
+  card.append(ic,body,x);box.insertBefore(card,[...box.children].find(c=>!c.classList.contains('rule'))||null);   // 30-second stop cards stay on top
+  const plain=[...box.children].filter(c=>!c.classList.contains('rule'));
+  while(box.children.length>4&&plain.length>1)plain.pop().remove();
   const ms=tone==='ok'?5000:tone==='warn'?7000:8000;let timer=null;
   const close=()=>{clearTimeout(timer);card.remove();};
   const arm=()=>{clearTimeout(timer);timer=setTimeout(close,ms);};
@@ -4774,9 +4795,47 @@ body.light .eng-toast{background:#fff;border-color:#e5e7eb;color:#111827;box-sha
 // ALREADY announced directly at their own call site (closeTradeById /
 // closePosition / flattenAll / the partial-close flow), so both are
 // excluded here or every self-initiated close would toast twice.
+// 30-second stop rule (8 Nov 2026). On Infinity a trade may be opened without a stop, so each one gets a red card that
+// cannot be dismissed: it counts down the seconds left, states the penalty in plain words and offers "Add stop" (the
+// suggested stop, sized to the risk limit, from markets-guided.js) or "Set my own". It goes once the trade has a stop or
+// is closed. The engine closes a trade still without a stop at the deadline, removes its profit and records a warning.
+const stopRuleCards=new Map();
+function stopRuleAlerts(state){
+  const a=state&&state.account,L=(a&&a.limits)||{},dl=+L.stop_loss_deadline_seconds;
+  const missing=new Map();
+  if(a&&a.challenge_type==='infinity'&&dl>0&&a.status==='active')for(const t of state.open_trades||[])if(!(+t.sl>0))missing.set(t.id,t);
+  for(const [id,c] of stopRuleCards)if(!missing.has(id)){clearInterval(c.timer);c.el.remove();stopRuleCards.delete(id);}
+  for(const [id,t] of missing){
+    const cur=stopRuleCards.get(id);if(cur){cur.t=t;continue;}
+    const n=+a.sl_strikes||0,max=+a.sl_strikes_max||3,sym=execSymbol(t.symbol);
+    const el=document.createElement('div');el.className='eng-toast err rule';el.setAttribute('role','alert');el.dataset.trade=id;
+    el.innerHTML='<div class="ic" aria-hidden="true">!</div><div><b>No stop loss: <span class="cd"></span></b><span class="rule-pos"></span>'+
+      '<span class="rule-txt"></span><div class="rule-act"><button type="button" class="rule-add">Add stop</button><button type="button" class="rule-edit">Set my own</button><span class="rule-hint" aria-live="polite"></span></div></div><div></div>';
+    el.querySelector('.rule-pos').textContent=`${t.side==='buy'?'Buy':'Sell'} ${(+t.volume).toFixed(a.rules_version==='infinity_v2'?3:2)} ${sym} @ ${fmtPx(+t.open_price,t.symbol)}`;
+    const txt=el.querySelector('.rule-txt');
+    txt.append('Challenge rule: add a stop loss within '+dl+' seconds or this trade is ');
+    for(const [strong,after] of [['closed automatically',', any profit is '],['removed',', it does not count towards progress and you get '],['warning '+(n+1)+' of '+max,n+1>=max?'. That warning ends this run.':'. '+max+' warnings end the run.']]){const em=document.createElement('em');em.textContent=strong;txt.append(em,after);}
+    const card={el,t,timer:null},cd=el.querySelector('.cd'),hint=el.querySelector('.rule-hint'),add=el.querySelector('.rule-add');
+    const opened=Date.parse(t.opened_at||'')||Date.now();
+    const tick=()=>{const left=Math.max(0,Math.ceil(dl-(Date.now()-opened)/1000));cd.textContent=left>0?left+'s left':'time is up, closing under the stop-loss rule';el.classList.toggle('urgent',left<=10);add.hidden=left<=0;};
+    tick();card.timer=setInterval(tick,500);
+    add.onclick=async()=>{
+      const s=typeof window.ipfxSuggestStop==='function'?window.ipfxSuggestStop(card.t):{why:'Use "Set my own" to add a stop.'};
+      if(s.why){hint.textContent=s.why;return;}
+      if(engineBusy){hint.textContent='Another order is still working, try again in a moment.';return;}
+      add.disabled=true;engineBusy=true;let r=null;
+      try{r=await engineCall({action:'modify',trade_id:card.t.id,sl:s.sl,tp:card.t.tp==null?null:+card.t.tp});}finally{engineBusy=false;add.disabled=false;}
+      if(r)engineMsg(`Stop loss added: ${sym} stop ${fmtPx(s.sl,card.t.symbol)} (risk $${s.risk.toFixed(2)})`,true);
+      else hint.textContent='The stop was not saved. Try again or use "Set my own".';
+    };
+    el.querySelector('.rule-edit').onclick=()=>{try{openModifyDialog(card.t.id);}catch(_){hint.textContent='Drag the stop on the chart or use the Positions tab.';}};
+    engToastBox().prepend(el);stopRuleCards.set(id,card);
+  }
+}
 let prevOpenTradeIds=null;
 function announceAutoClosedTrades(state){
   window.IPFXServiceNotices?.render(state.service_controls,state.account?.id);
+  try{stopRuleAlerts(state);}catch(e){console.warn('[stop-rule]',e);}
   const openNow=new Set((state.open_trades||[]).map(t=>t.id));
   if(prevOpenTradeIds){
     const closedMap=new Map((state.closed_trades||[]).map(t=>[t.id,t]));
@@ -5969,7 +6028,7 @@ function renderEngineAccount(){
   if(state){
     const monthlyBlocked=accountModeIntent==='challenge'&&currentInfinityLock()?.locked;
     const locked=monthlyBlocked||(a.status&&a.status!=='active'&&a.status!=='demo');
-    state.textContent=monthlyBlocked?'Infinity breached':locked?String(a.status).replace(/_/g,' '):(L.require_stop_loss?'Stop required':'Ready');
+    state.textContent=monthlyBlocked?'Infinity breached':locked?String(a.status).replace(/_/g,' '):(L.require_stop_loss?(a.challenge_type==='infinity'&&+L.stop_loss_deadline_seconds>0?'Stop within '+L.stop_loss_deadline_seconds+'s':'Stop required'):'Ready');
     state.className='op-limit-state '+(locked?'locked':'ready');
   }
   updateRiskPreview();
@@ -7502,7 +7561,7 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
-<script src="/assets/js/markets-guided.js?v=20261107d"></script>
+<script src="/assets/js/markets-guided.js?v=20261108a"></script>
 <script src="/assets/js/infinity-restart.js?v=20261107a"></script>
 <script src="/assets/js/infinity-v2-ui.js?v=20261102a"></script>
 
