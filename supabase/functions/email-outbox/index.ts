@@ -8,7 +8,7 @@ import { emailShell, render } from "../_shared/lifecycle-email.ts";
 
 const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? "80");
 const PER_RUN = Number(Deno.env.get("EMAIL_PER_RUN") ?? "10");
-const TEMPLATES = ["infinity_v2_launch", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
+const TEMPLATES = ["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
 // Emails that only make sense while the trader has an active Infinity account.
 const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
 
@@ -88,8 +88,19 @@ Deno.serve(async (req) => {
           skipped++;continue;
         }
       }
+      if (row.template_key === "infinity_comeback") {
+        // Full-page marketing email: needs the recipient's first name and working rules, terms and app links, and is sent without the shell.
+        vars.first_name = name.trim().split(/\s+/)[0];
+        const valid = ["rules_page_url", "terms_url", "trading_url"].every(k => {
+          try { return new URL(String(vars[k] ?? "")).protocol === "https:"; } catch { return false; }
+        });
+        if (!valid) {
+          await db.from("email_events").update({status:"skipped",error_message:"Come-back email needs https rules, terms and app links"}).eq("id",row.id);
+          skipped++;continue;
+        }
+      }
       const subject = render(tmpl.subject, vars);
-      const html = row.template_key === "infinity_v2_launch" ? render(tmpl.body_html,vars,true) : emailShell(subject, tmpl.preheader, render(tmpl.body_html, vars, true));
+      const html = row.template_key === "infinity_v2_launch" || row.template_key === "infinity_comeback" ? render(tmpl.body_html,vars,true) : emailShell(subject, tmpl.preheader, render(tmpl.body_html, vars, true));
       const text = render(tmpl.body_text, vars);
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
