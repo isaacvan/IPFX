@@ -170,8 +170,8 @@ body.light .gt-sum-txt b{color:#111827}body.light .gt-sum-edit{border-color:#d1d
 .gt-auto[aria-checked="true"] i{background:#10b981}.gt-auto[aria-checked="true"] i::after{left:12px}
 .gt-auto:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}.gt-auto[hidden]{display:none}
 .gt-card.gt-nostop{border-color:rgba(239,68,68,.45)}.gt-card.gt-nostop .gt-sum-ic{background:rgba(239,68,68,.14);color:#ef4444}
-.gt-rule{margin:10px 0 0;padding:9px 11px;border:1px solid rgba(239,68,68,.5);border-radius:9px;background:rgba(239,68,68,.08);color:#fecaca;font-size:.76rem;line-height:1.45}
-.gt-rule b{display:block;color:#f87171;font-size:.78rem;letter-spacing:.02em;margin-bottom:2px}.gt-rule em{font-style:normal;font-weight:700;color:#fff}.gt-rule[hidden]{display:none}
+.gt-rule{margin:8px 0 0;padding:6px 9px;border:1px solid rgba(239,68,68,.5);border-radius:8px;background:rgba(239,68,68,.08);color:#fecaca;font-size:.7rem;line-height:1.35}
+.gt-rule b{display:block;color:#f87171;font-size:.72rem;letter-spacing:.02em;margin-bottom:1px}.gt-rule em{font-style:normal;font-weight:700;color:#fff}.gt-rule[hidden]{display:none}
 body.light .gt-rule{color:#7f1d1d;background:#fef2f2}body.light .gt-rule b{color:#b91c1c}body.light .gt-rule em{color:#111827}body.light .gt-auto{border-color:#d1d5db;color:#374151}
 .gt-h{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa0aa;margin-bottom:8px}
 .gt-h b{color:#10b981;font-size:.68rem;letter-spacing:.04em}
@@ -312,7 +312,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     if (optional()) {
       // The rule in plain, strict words, always visible while orders go without a stop (and as a reminder when Auto stop is on).
       const left = Math.max(0, st.max - st.n);
-      const html = `<b>⚠ Challenge rule: stop loss within ${dl} seconds</b>${noStop ? 'This order is sent <em>without a stop loss</em>. ' : ''}Every trade must have a stop loss within <em>${dl} seconds</em> of opening. If not, it is <em>closed automatically</em>, any profit is <em>removed</em>, it does not count towards progress and you get a <em>warning</em>. Warnings: <em>${st.n} of ${st.max}</em>${left <= 1 ? ' — <em>one more ends this run</em>' : ` — the ${st.max}${st.max === 3 ? 'rd' : 'th'} ends this run and you restart from Stage 1`}.`;
+      const html = `<b>⚠ Challenge rule: stop loss within ${dl} seconds</b>${noStop ? 'Sent <em>without a stop loss</em>. ' : ''}Add one in time or the trade is <em>closed automatically</em>, profit <em>removed</em>, and you get a <em>warning</em>. Warnings: <em>${st.n} of ${st.max}</em>${left <= 1 ? ' — <em>one more ends this run</em>' : ` — the ${st.max}${st.max === 3 ? 'rd' : 'th'} restarts you at Stage 1`}.`;
       if (rule.innerHTML !== html) rule.innerHTML = html;
       rule.hidden = !noStop && st.n === 0;
     } else rule.hidden = true;
