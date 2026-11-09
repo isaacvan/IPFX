@@ -19,3 +19,11 @@ test('v2 guard: bookkeeping updates (close request) pass on a frozen account; le
   assert.match(s, /if new\.status<>'open' then return new;end if;/);
   assert.match(s, /if tg_op='UPDATE' and new\.volume>old\.volume then raise exception 'POSITION_VOLUME_CANNOT_INCREASE'/);
 });
+
+test('infinity_v2_price works out the reference window once, so the E8 lookup can use its index', () => {
+  const s = mig('20261109180000_infinity_v2_price_index_window.sql');
+  assert.match(s, /now_ts:=clock_timestamp\(\);since:=now_ts-make_interval\(secs=>max_age\);/);
+  assert.match(s, /e\.received_at between since and now_ts\s+and e\.requested_at>=since/);
+  const body = s.slice(s.indexOf('select e.* into r'), s.indexOf('if found then width'));
+  assert.doesNotMatch(body, /clock_timestamp\(\)/, 'no volatile bound inside the lookup');
+});
