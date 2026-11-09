@@ -47,7 +47,7 @@
 **Stops and holding:**
 1. **Stop loss on every trade,** set when you open it or within 30 seconds. A trade still without one is closed and counts as a strike; three strikes end the run.
 2. **Minimum stop distance: 8 × the current spread** for that instrument. The order ticket shows the minimum and won't accept a tighter stop.
-3. **Stops can be tightened or moved to break-even or into profit, but never moved further away.**
+3. **Stops can be moved either way, but a trade must keep one.** A widened stop is re-checked against the per-trade and total open-risk limits, and the trade's recorded risk grows to match.
 4. **Minimum hold: 5 minutes.** Profit from a trade closed in under 5 minutes doesn't count toward your target or payout. Losses always count.
 5. **Overnight and weekend holding allowed.** Markets can gap, and a gap can fill beyond your stop.
 
@@ -100,7 +100,7 @@ Evidence: 2,004 trades from 241 traders, 11–23 Oct, each scored against its op
 | Consistency score plus counted trades | Past profit alone predicted nothing (+0.05). Stacking counted as separate trades let 45% of no-edge players pass in simulation |
 | Minimum stop 8 × spread | Stops under 4 spreads: −0.66R copied, almost all of it cost |
 | 5-minute hold | Under 1 min: −0.83R; 1–5 min: −0.50R, losing on direction too |
-| No widening stops | Widened-stop trades did no better (−0.32R), and widening hides true risk |
+| Widening stops allowed (changed 2026-11-09) | Owner decision: any stop is fine while the trade has one; the risk limit still applies to the widened stop |
 | 10-minute pause after a stop-out | Trades within 15 minutes of a loss: −0.46R, against −0.17R otherwise |
 | No profit-cap close | Cap closures averaged +1.75R: it was cutting winners |
 | Daily loss from closed balance | Stops overnight winners breaching on a normal pullback |

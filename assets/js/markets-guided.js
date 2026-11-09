@@ -221,6 +221,8 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
       </div>
       <ul class="gt-checks" id="gtChecks" aria-live="polite"></ul>`;
     bar.after(el);
+    // Sell / Order size / Buy sit above the stop-loss card, so the order buttons come first.
+    const tradeRow = document.querySelector('#tab-order .op-trade-row'); if (tradeRow) { bar.after(tradeRow); const hint = $('iv2Ticket'); if (hint) tradeRow.after(hint); }
     $('gtAuto').addEventListener('click', () => { autoStop = !autoStop; try { localStorage.setItem(AUTO_KEY, autoStop ? '1' : '0'); } catch (_) {} refresh(); });
     $('gtSum').addEventListener('click', () => { expanded = !expanded; try { localStorage.setItem(OPEN_KEY, expanded ? '1' : '0'); } catch (_) {} refresh(); if (expanded) $('gtStop').focus(); });
     el.addEventListener('click', (e) => {

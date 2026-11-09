@@ -80,7 +80,7 @@
    li('Its result is <b>R</b>: profit or loss divided by the risk at your opening stop. Risk '+risk+' and make '+money(Number(String(risk).replace('$','').replace(',',''))*2)+' = <b>+2R</b>; get stopped out = <b>-1R</b>.')+
    li('Your <b>consistency score</b> rises when wins steadily outweigh losses. Your overall score updates live and after every counted trade.')+'</ul>'+
    '<div class="rs-sub" style="margin-top:12px">Before you place a trade</div><ul class="rs-rules">'+
-   li('Set a <b>stop loss within '+(r.stop_deadline_seconds||30)+' seconds</b>, at least <b>'+(r.stop_spread_multiple||8)+'× the spread</b> away. Tighten it or move it to break-even, never widen or remove it. '+(r.sl_strikes_max||3)+' missing stops end the run.')+
+   li('Set a <b>stop loss within '+(r.stop_deadline_seconds||30)+' seconds</b>, at least <b>'+(r.stop_spread_multiple||8)+'× the spread</b> away. Move it wherever you like, as long as the trade keeps one and the risk stays inside your limit. '+(r.sl_strikes_max||3)+' missing stops end the run.')+
    li('Risk at most <b>'+pc(r.risk_pct||0)+' ('+risk+')</b> per counted trade, and at most <b>'+(r.total_risk_multiple||3)+'×</b> that across all open trades.')+
    li('Profit counts only on trades held <b>'+mins+' minutes</b> or more (a timer shows on each position). Losses always count.')+
    li('After a stop-out, that instrument <b>pauses for '+pause+' minutes</b>.')+'</ul>'+
@@ -127,8 +127,8 @@
   const pause=lastQuote?.pause_until?Math.max(0,Math.ceil((Date.parse(lastQuote.pause_until)-Date.now())/1000)):0;
   const rows=engineState.open_trades||[],hold=Number(a.infinity_v2?.rules?.min_hold_seconds||0);
   const timers=rows.map(t=>{const left=Math.max(0,Math.ceil(hold-(Date.now()-Date.parse(t.opened_at))/1000));return t.symbol+': '+(left?left+'s until profit counts':'hold met');});
-  hint.textContent=(lastQuote?.min_stop_distance!=null?'Minimum stop distance: '+Number(lastQuote.min_stop_distance).toPrecision(4)+'. ':'')+'Stops can only be tightened. '+(pause?'This instrument resumes in '+pause+'s. ':'')+timers.join(' · ');
-  const om=$('omHint');if(om&&typeof omMode!=='undefined'&&omMode==='modify')om.textContent='Tighten your stop only; it cannot be removed or widened. Minimum distance is eight current spreads.';
+  hint.textContent=(lastQuote?.min_stop_distance!=null?'Minimum stop distance: '+Number(lastQuote.min_stop_distance).toPrecision(4)+'. ':'')+(pause?'This instrument resumes in '+pause+'s. ':'')+timers.join(' · ');
+  const om=$('omHint');if(om&&typeof omMode!=='undefined'&&omMode==='modify')om.textContent='Move your stop either way. It cannot be removed, and the risk must stay inside your limit. Minimum distance is eight current spreads.';
  }
  function styles(){if($('iv2ScoreCss'))return;const c=document.createElement('style');c.id='iv2ScoreCss';c.textContent=
   '#iv2Overall[hidden]{display:none}#iv2Overall{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35rem .6rem;margin:.55rem 0 .2rem;padding:.55rem .7rem;border:1px solid rgba(37,99,235,.45);border-radius:10px;background:rgba(37,99,235,.10)}'+

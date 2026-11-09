@@ -99,6 +99,7 @@ export async function v2db({adapters=true,restart=true}={}){
  await db.exec(sqlFile('20261030120000_infinity_v2_red_team'));
  await db.exec(sqlFile('20261031020000_infinity_v2_run_score'));
  await db.exec(sqlFile('20261101210000_infinity_v2_reference_window'));
+ await db.exec(sqlFile('20261109120000_infinity_v2_allow_stop_widening'));
  if(restart)await db.exec(sqlFile('20261102010000_infinity_restart_existing_traders_skip_identity'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_restart_offer'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_take_fresh_restart'));

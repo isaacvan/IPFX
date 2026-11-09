@@ -61,7 +61,7 @@ test('v2 account: six short read-before-trading lines carry the v2 rules and num
  const c=checklist(v2fixture());assert.equal(c.read.length,6);
  const all=c.read.join(' | ');
  for(const re of [/To pass: make \$350\.00 profit with at least 40 counted trades, a consistency score of 1\.65 and an overall score of 2\.0 and no day over 35% of your profit, then close every trade\. No minimum days/,
-  /counted trade is one trade, or several on the same instrument and direction within 15 minutes/,/stop-loss within 30s, at least 8× the spread away\. Tighten it, never widen or remove it/,
+  /counted trade is one trade, or several on the same instrument and direction within 15 minutes/,/stop-loss within 30s, at least 8× the spread away\. Move it either way, never remove it/,
   /Risk up to \$17\.50 per counted trade and \$52\.50 across open trades\. 3 missing stops end the run/,/held 5 minutes or more; losses always count\. After a stop-out, that instrument pauses for 10 minutes/,
   /lose \$100\.00 in one day \(from your closed balance at 00:00 UTC\) or drop \$200\.00 below your highest closed balance/])assert.match(all,re,String(re));
  assert.doesNotMatch(all,/under 1 minute|sessions|trading days|profitable days|Daily profit cap|NaN|undefined/i);

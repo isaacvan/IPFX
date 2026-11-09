@@ -26,11 +26,22 @@ test('real triggers: initial stop capture, minimum distance, no widening, immuta
  const {db,account}=await v2db();try{const a=await account();
   await assert.rejects(open(db,a,{sl:1.0999}),/STOP_TOO_CLOSE/);
   const t=await open(db,a,{volume:.05});assert.equal(Number(t.initial_risk_usd),5);assert.equal(Number(t.initial_sl),1.099);
-  await assert.rejects(db.query('update trades set sl=1.098 where id=$1',[t.id]),/STOP_CANNOT_WIDEN/);
+  await assert.rejects(db.query('update trades set sl=1.098 where id=$1',[t.id]),/COUNTED_TRADE_RISK_LIMIT/,'widening past the per-trade limit is refused');
+  await assert.rejects(db.query('update trades set sl=null where id=$1',[t.id]),/STOP_CANNOT_BE_REMOVED/);
   await assert.rejects(db.query('update trades set initial_risk_usd=1 where id=$1',[t.id]),/IMMUTABLE/);
   await assert.rejects(open(db,a,{volume:.01}),/COUNTED_TRADE_RISK_LIMIT/);
   await db.query('update trades set sl=1.0991 where id=$1',[t.id]);
   assert.equal(Number((await db.query('select initial_risk_usd from trades where id=$1',[t.id])).rows[0].initial_risk_usd),5);
+ }finally{await db.close();}
+});
+test('a stop can be widened inside the risk limit, and the recorded initial risk follows it',opts,async()=>{
+ const {db,account}=await v2db();try{const a=await account();
+  const t=await open(db,a,{volume:.02});assert.equal(Number(t.initial_risk_usd),2);
+  await db.query('update trades set sl=1.0985 where id=$1',[t.id]);
+  const r=(await db.query('select sl,initial_sl,initial_risk_usd from trades where id=$1',[t.id])).rows[0];
+  assert.equal(Number(r.sl),1.0985);assert.equal(Number(r.initial_sl),1.099);assert.equal(Number(r.initial_risk_usd),3);
+  await db.query('update trades set sl=1.0991 where id=$1',[t.id]);
+  assert.equal(Number((await db.query('select initial_risk_usd from trades where id=$1',[t.id])).rows[0].initial_risk_usd),3,'tightening never lowers the recorded risk');
  }finally{await db.close();}
 });
 test('simultaneous openings cannot spend one counted-group allowance twice',opts,async()=>{

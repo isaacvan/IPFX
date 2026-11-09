@@ -231,7 +231,7 @@ test('trading.html: changing instrument clears stop, take-profit and trigger pri
   assert.match(html, /if\(sym!==activeSym\)\{clearOrdPrices\(\);clearTicketLevels\(\);\}/);
   assert.match(html, /\.op-limit-card\[hidden\]\{display:none!important\}/);
   assert.match(fs.readFileSync(new URL('../assets/js/infinity-restart.js', import.meta.url), 'utf8'), /\.tb-restart\[hidden\]\{display:none!important\}/);
-  assert.match(html, /markets-guided\.js\?v=20261108a/);
+  assert.match(html, /markets-guided\.js\?v=20261109a/);
 });
 test('the chart shows dashed buy-stop and sell-stop preview lines at the prices the next order would carry', () => {
   const { ctx, tick } = page({ multiple: 3 });
