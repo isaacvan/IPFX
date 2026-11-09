@@ -57,10 +57,13 @@
     $('filters').innerHTML = `<div class="seg">${FILTERS.map((f) => `<button type="button" data-filter="${esc(f)}" aria-pressed="${f === filter}">${esc(f)} · ${counts[f]}</button>`).join('')}</div>`;
     // Firm-wide summary and detector-state chips, as on the Operations trader list.
     const net = traders.reduce((s, t) => s + (Number(t.realized_pnl) || 0), 0), dc = {};
+    // Trader P&L split by the book each trader is in right now (A = copied live, B = everyone else).
+    const aT = traders.filter(inA), bT = traders.filter((t) => !inA(t));
+    const aPnl = aT.reduce((s, t) => s + (Number(t.realized_pnl) || 0), 0), bPnl = bT.reduce((s, t) => s + (Number(t.realized_pnl) || 0), 0);
     for (const t of traders) dc[detKey(t)] = (dc[detKey(t)] || 0) + 1;
     const sTile = (k, v, cls = '') => `<div class="stat"><div class="k">${k}</div><div class="v num ${cls}">${v}</div></div>`;
     $('summary').innerHTML = `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${sTile('Traders', traders.length)}${sTile('Active', traders.filter((t) => t.status === 'active').length)}
-      ${sTile('In profit', traders.filter((t) => Number(t.realized_pnl) > 0).length, 'good')}${sTile('Net trader P&amp;L', usd(net), net < 0 ? 'bad' : net > 0 ? 'good' : '')}
+      ${sTile('In profit', traders.filter((t) => Number(t.realized_pnl) > 0).length, 'good')}${sTile('Net trader P&amp;L', usd(net), net < 0 ? 'bad' : net > 0 ? 'good' : '')}${sTile(`A-book P&amp;L · ${aT.length}`, usd(aPnl), aPnl < 0 ? 'bad' : aPnl > 0 ? 'good' : '')}${sTile(`B-book P&amp;L · ${bT.length}`, usd(bPnl), bPnl < 0 ? 'bad' : bPnl > 0 ? 'good' : '')}
       ${sTile('High potential', dc.HIGH_POTENTIAL || 0, 'good')}${sTile('Confirmed / live review', (dc.PROFITABILITY_CONFIRMED || 0) + (dc.LIVE_REVIEW_REQUIRED || 0), 'good')}${sTile('Risk no-go', dc.RISK_NO_GO || 0, 'bad')}
       ${sTile('Reached Stage 2 (to approve)', readyChecked ? counts['Reached Stage 2'] : '—', counts['Reached Stage 2'] ? 'good' : '')}${sTile('On Infinity v2', counts['Infinity v2'], 'good')}${sTile('Still on v1', counts['Infinity v1'])}${sTile('Restarted (v1 run kept)', counts.Restarted)}</div>
       <div class="banner" style="margin:12px 0 0">Detector states run in shadow mode (uncalibrated). Treat them as “worth a look”, not a verdict. They never enable live copying or touch payouts.</div>`;
