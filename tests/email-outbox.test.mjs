@@ -9,8 +9,8 @@ const sql = read('supabase/migrations/20261011200000_email_outbox.sql');
 const sched = read('supabase/migrations/20261011201000_email_outbox_schedule.sql');
 
 test('the outbox only delivers rows the platform already queued, inside a daily and per-run cap', () => {
-  assert.match(fn, /const DAILY_CAP = Number\(Deno\.env\.get\("EMAIL_DAILY_CAP"\) \?\? "80"\)/);
-  assert.match(fn, /const PER_RUN = Number\(Deno\.env\.get\("EMAIL_PER_RUN"\) \?\? "10"\)/);
+  assert.match(fn, /const DAILY_CAP = Number\(env\.EMAIL_DAILY_CAP \?\? \(provider === "ses" \? "5000" : "80"\)\)/);
+  assert.match(fn, /const PER_RUN = Number\(env\.EMAIL_PER_RUN \?\? \(provider === "ses" \? "60" : "10"\)\)/);
   assert.match(fn, /\.from\("email_events"\)[\s\S]*\.in\("template_key", TEMPLATES\)/);
   assert.doesNotMatch(fn, /\.insert\(/, 'the outbox never creates emails');
   assert.match(fn, /let budget = Math\.min\(PER_RUN, DAILY_CAP - \(sentToday \?\? 0\)\);/);
@@ -23,8 +23,8 @@ test('nothing goes to traders until the owner switches the outbox live; owner te
 
 test('each email is claimed before sending, carries an idempotency key, and stops on a provider rate limit', () => {
   assert.match(fn, /update\(\{ status: "sending" \}\)\s*\.eq\("id", row\.id\)\.eq\("status", row\.status\)/);
-  assert.match(fn, /"Idempotency-Key": `email-event-\$\{row\.id\}`/);
-  assert.match(fn, /if \(res\.status === 429\) break;/);
+  assert.match(fn, /idempotencyKey: `email-event-\$\{row\.id\}`/);
+  assert.match(fn, /if \(result\.retryable\) break;/);
   assert.match(sql, /array\['queued', 'sending', 'sent', 'failed', 'skipped'\]/);
   assert.match(sql, /status = 'sending' and sent_at is null and created_at < now\(\) - interval '30 minutes'/);
 });
@@ -36,6 +36,6 @@ test('approval emails are skipped for traders whose Infinity account is no longe
 
 test('the sender and reply address default to the real enquiries mailbox', () => {
   assert.match(fn, /IPFX Capital <enquiries@ipfxcapital\.com>/);
-  assert.match(fn, /reply_to: Deno\.env\.get\("SUPPORT_EMAIL"\) \?\? "enquiries@ipfxcapital\.com"/);
+  assert.match(fn, /replyTo: env\.SUPPORT_EMAIL \?\? "enquiries@ipfxcapital\.com"/);
   assert.match(sched, /cron\.schedule\('ipfx-email-outbox', '7 \* \* \* \*'/);
 });

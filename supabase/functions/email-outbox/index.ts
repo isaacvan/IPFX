@@ -1,13 +1,15 @@
 // email-outbox: sends lifecycle emails that were recorded as "queued" while no email provider was configured, and
 // retries ones that failed because of the provider's rate limit. It never creates new emails: it only delivers rows
 // that the platform itself already wrote to email_events, so calling it early cannot send anything that was not
-// already due. A daily cap keeps total sending inside Resend's free plan (100 a day, shared with sign-up and
-// password-reset emails), and a per-run cap spreads the batch across the day. Called hourly by pg_cron.
+// already due. Sends through Amazon SES when the AWS keys are set (about $0.10 per 1,000, caps default high), otherwise
+// Resend (free plan is 100 a day, shared with sign-up and password-reset emails, so the caps default to 80 a day and
+// 10 a run). Marketing emails carry a signed unsubscribe link and the one-click header, and nothing is sent to an
+// address on the do-not-email list. Called every 5 minutes by pg_cron.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { emailShell, render } from "../_shared/lifecycle-email.ts";
+import { pickProvider, sendEmail } from "../_shared/mail-provider.mjs";
+import { blockedBySuppression, isMarketing, normEmail, unsubscribeLinks } from "../_shared/email-suppression.mjs";
 
-const DAILY_CAP = Number(Deno.env.get("EMAIL_DAILY_CAP") ?? "80");
-const PER_RUN = Number(Deno.env.get("EMAIL_PER_RUN") ?? "10");
 const TEMPLATES = ["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"];
 // Emails that only make sense while the trader has an active Infinity account.
 const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
@@ -17,14 +19,19 @@ const json = (b: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
-  const apiKey = Deno.env.get("RESEND_API_KEY");
-  if (!apiKey) return json({ ok: false, error: "No email provider configured" }, 503);
+  const env = Deno.env.toObject();
+  const provider = pickProvider(env);
+  if (!provider) return json({ ok: false, error: "No email provider configured" }, 503);
+  const DAILY_CAP = Number(env.EMAIL_DAILY_CAP ?? (provider === "ses" ? "5000" : "80"));
+  const PER_RUN = Number(env.EMAIL_PER_RUN ?? (provider === "ses" ? "60" : "10"));
+  const unsubSecret = env.EMAIL_UNSUB_SECRET;
+  const startedAt = Date.now();
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   const dayStart = new Date();
   dayStart.setUTCHours(0, 0, 0, 0);
   const { count: sentToday } = await db.from("email_events").select("id", { count: "exact", head: true })
-    .eq("status", "sent").gte("sent_at", dayStart.toISOString());
+    .eq("status", "sent").eq("provider", provider).gte("sent_at", dayStart.toISOString());
   let budget = Math.min(PER_RUN, DAILY_CAP - (sentToday ?? 0));
   if (budget <= 0) return json({ ok: true, sent: 0, reason: "daily cap reached", sent_today: sentToday });
 
@@ -41,7 +48,10 @@ Deno.serve(async (req) => {
   // deno-lint-ignore no-explicit-any
   const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_monthly_restart_v2" || r.template_key === "infinity_account_reinstated" ? 2 : 0 - (r.template_key === "infinity_comeback" ? 1 : 0));
   // deno-lint-ignore no-explicit-any
+  // Marketing emails wait until the unsubscribe secret is set, so none ever goes out without a working opt-out.
   const list = (rows ?? []).filter((r: any) => live || r.payload?.test === true)
+    // deno-lint-ignore no-explicit-any
+    .filter((r: any) => unsubSecret || !isMarketing(r.template_key))
     // deno-lint-ignore no-explicit-any
     .sort((a: any, b: any) => rank(b) - rank(a));
 
@@ -49,7 +59,7 @@ Deno.serve(async (req) => {
   const templates = new Map<string, any>();
   let sent = 0, failed = 0, skipped = 0;
   for (const row of list) {
-    if (budget <= 0) break;
+    if (budget <= 0 || Date.now() - startedAt > 100_000) break;
     // Claim the row so two overlapping runs can never send the same email twice.
     const { data: claimed } = await db.from("email_events").update({ status: "sending" })
       .eq("id", row.id).eq("status", row.status).select("id").maybeSingle();
@@ -76,8 +86,20 @@ Deno.serve(async (req) => {
         skipped++;
         continue;
       }
+      const { data: sup } = await db.from("email_suppressions").select("reason").eq("email", normEmail(to)).maybeSingle();
+      if (blockedBySuppression(row.template_key, sup?.reason) && !row.payload?.test) {
+        await db.from("email_events").update({ status: "skipped", to_email: to, error_message: `On the do-not-email list (${sup?.reason})` }).eq("id", row.id);
+        skipped++;
+        continue;
+      }
       const name = String(au!.user!.user_metadata?.full_name || to.split("@")[0]);
       const vars: Record<string, unknown> = { customer_name: name, ...(row.payload?.vars ?? {}) };
+      let extraHeaders: Record<string, string> | undefined;
+      if (isMarketing(row.template_key)) {
+        const links = await unsubscribeLinks(to, unsubSecret);
+        vars.unsubscribe_link = links.page;
+        extraHeaders = { "List-Unsubscribe": `<${links.oneClick}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" };
+      }
       if (row.template_key === "infinity_v2_launch") {
         vars.first_name = name.trim().split(/\s+/)[0];
         const valid = ["rules_page_url", "terms_url", "unsubscribe_link"].every(k => {
@@ -91,47 +113,42 @@ Deno.serve(async (req) => {
       if (row.template_key === "infinity_comeback") {
         // Full-page marketing email: needs the recipient's first name and working rules, terms and app links, and is sent without the shell.
         vars.first_name = name.trim().split(/\s+/)[0];
-        const valid = ["rules_page_url", "terms_url", "trading_url"].every(k => {
+        const valid = ["rules_page_url", "terms_url", "trading_url", "unsubscribe_link"].every(k => {
           try { return new URL(String(vars[k] ?? "")).protocol === "https:"; } catch { return false; }
         });
         if (!valid) {
-          await db.from("email_events").update({status:"skipped",error_message:"Come-back email needs https rules, terms and app links"}).eq("id",row.id);
+          await db.from("email_events").update({status:"skipped",error_message:"Come-back email needs https rules, terms, app and unsubscribe links"}).eq("id",row.id);
           skipped++;continue;
         }
       }
       const subject = render(tmpl.subject, vars);
       const html = row.template_key === "infinity_v2_launch" || row.template_key === "infinity_comeback" ? render(tmpl.body_html,vars,true) : emailShell(subject, tmpl.preheader, render(tmpl.body_html, vars, true));
       const text = render(tmpl.body_text, vars);
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json",
-          "Idempotency-Key": `email-event-${row.id}`,
-        },
-        body: JSON.stringify({
-          from: Deno.env.get("EMAIL_FROM") ?? "IPFX Capital <enquiries@ipfxcapital.com>",
-          to, subject, html, text,
-          reply_to: Deno.env.get("SUPPORT_EMAIL") ?? "enquiries@ipfxcapital.com",
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      const result = await sendEmail({
+        from: env.EMAIL_FROM ?? "IPFX Capital <enquiries@ipfxcapital.com>",
+        to, subject, html, text,
+        replyTo: env.SUPPORT_EMAIL ?? "enquiries@ipfxcapital.com",
+        headers: extraHeaders,
+        idempotencyKey: `email-event-${row.id}`,
+        tags: { template: row.template_key },
+      }, env);
+      if (result.ok) {
         await db.from("email_events").update({
-          status: "sent", to_email: to, subject, provider: "resend", provider_message_id: data?.id ?? null,
+          status: "sent", to_email: to, subject, provider: result.provider, provider_message_id: result.id ?? null,
           error_message: null, sent_at: new Date().toISOString(),
         }).eq("id", row.id);
         sent++;
         budget--;
       } else {
         await db.from("email_events").update({
-          status: "failed", to_email: to, subject, error_message: String(data?.message ?? `Resend ${res.status}`).slice(0, 500),
+          status: "failed", to_email: to, subject, error_message: String(result.error ?? "send failed").slice(0, 500),
         }).eq("id", row.id);
         failed++;
-        if (res.status === 429) break; // provider limit: stop this run, the next run retries
+        if (result.retryable) break; // provider limit: stop this run, the next run retries
       }
     } catch (e) {
       await db.from("email_events").update({ status: "queued", error_message: "retry: " + String(e).slice(0, 200) }).eq("id", row.id);
     }
   }
-  return json({ ok: true, live, sent, failed, skipped, sent_today: (sentToday ?? 0) + sent });
+  return json({ ok: true, live, provider, sent, failed, skipped, sent_today: (sentToday ?? 0) + sent });
 });

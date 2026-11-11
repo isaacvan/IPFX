@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unsubscribe | IPFX Capital</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://ipfxcapital.com/unsubscribe.html">
+<link rel="icon" href="/desktop/build/icon.png" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0c;--fg:#fff;--muted:#a0a0a0;--line:#2a2a2c;--cobalt:#2563eb;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.card{width:100%;max-width:460px;border:1px solid var(--line);border-radius:var(--radius);padding:32px;background:#111114}
+h1{font-size:1.4rem;margin-bottom:10px}
+p{color:var(--muted);line-height:1.55;margin-bottom:18px}
+b{color:var(--fg)}
+button{width:100%;padding:13px 16px;border:0;border-radius:10px;background:var(--cobalt);color:#fff;font:600 1rem 'Inter',system-ui,sans-serif;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+a{color:#60a5fa}
+.small{font-size:.85rem;margin:16px 0 0}
+</style>
+</head>
+<body>
+<main class="card" aria-live="polite">
+  <h1 id="title">Unsubscribe</h1>
+  <p id="msg">Checking your link…</p>
+  <button id="go" type="button" hidden>Unsubscribe</button>
+  <p class="small" id="foot" hidden>You will still receive emails you need as a trader, such as account and security notices. Questions? Write to <a href="mailto:enquiries@ipfxcapital.com">enquiries@ipfxcapital.com</a>.</p>
+</main>
+<script>
+(function () {
+  var FN = 'https://agulweemteoeagscmppy.supabase.co/functions/v1/email-unsubscribe';
+  var t = new URLSearchParams(location.search).get('t');
+  var $ = function (id) { return document.getElementById(id); };
+  function show(title, html, button) {
+    $('title').textContent = title; $('msg').innerHTML = html; $('go').hidden = !button; $('foot').hidden = false;
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  if (!t) { show('Link not valid', 'This unsubscribe link is incomplete. Open it again from the email, or reply to the email with the word unsubscribe.', false); return; }
+  fetch(FN + '?t=' + encodeURIComponent(t)).then(function (r) { return r.json(); }).then(function (d) {
+    if (!d.ok) { show('Link not valid', esc(d.error || 'This unsubscribe link is not valid.') + ' Reply to the email with the word unsubscribe and we will remove you.', false); return; }
+    show('Unsubscribe', 'Stop IPFX Capital marketing emails to <b>' + esc(d.email) + '</b>?', true);
+    $('go').onclick = function () {
+      $('go').disabled = true; $('go').textContent = 'Working…';
+      fetch(FN + '?t=' + encodeURIComponent(t), { method: 'POST' }).then(function (r) { return r.json(); }).then(function (r) {
+        if (r.ok) show('You are unsubscribed', '<b>' + esc(r.email) + '</b> will not get any more marketing emails from us.', false);
+        else { show('Something went wrong', esc(r.error || 'Please try again.'), true); $('go').disabled = false; $('go').textContent = 'Try again'; }
+      }).catch(function () { show('Something went wrong', 'Please check your connection and try again.', true); $('go').disabled = false; $('go').textContent = 'Try again'; });
+    };
+  }).catch(function () { show('Something went wrong', 'We could not check this link right now. Please try again in a moment.', false); });
+})();
+</script>
+</body>
+</html>
