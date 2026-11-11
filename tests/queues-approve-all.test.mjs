@@ -45,5 +45,5 @@ test('the button sits top right of the pending list, loads every page, and uses 
   assert.match(src, /T\.admin\('application_decide', \{ application_id: a\.id, status: 'approved' \}\)/);
   assert.match(src, /case 'appAll': approveAll\(\); break;/);
   assert.match(src, /T\.sheet\(\{\s*title: `Approve \$\{ok\.length\}/, 'always asks first, with the exact count');
-  assert.match(page, /ws-queues\.js\?v=20261102a/, 'cache-busted so the latest Queues script (with the Approve all button) loads');
+  assert.match(page, /ws-queues\.js\?v=20261111a/, 'cache-busted so the latest Queues script (with the Approve all button) loads');
 });

@@ -1402,6 +1402,16 @@ async function loadInfinityPanel(){
     ?`Begin again at Stage 1 with a $1,000 evaluation account. ${st.attempts_left} of ${st.attempts_cap} attempts left this month.`
     :'A free $1,000 evaluation account — pass four stages to reach funded trading. No payment needed.';
   if(st.application_status==='pending'){
+    // Infinity applications are approved automatically. This covers anyone who applied before that, or who closed
+    // the application page before the account was opened: one attempt per page load, then the normal waiting note.
+    if(st.eligible&&!loadInfinityPanel.claimTried){
+      loadInfinityPanel.claimTried=true;
+      const c=await engineCall({action:'claim_infinity',confirm_age:true});
+      if(c&&c.ok&&c.account){
+        panel.innerHTML='<div style="display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap"><div style="min-width:220px;flex:1"><div style="font-weight:700;margin-bottom:.3rem">Congratulations, your Infinity Challenge is ready</div><div style="font-size:.82rem;color:var(--muted)">Your free $1,000 Stage 1 account is open. You can place your first trade now. We check identity documents after approval.</div></div><a class="cbtn p" href="/trading.html" style="text-decoration:none">Start trading</a></div>';
+        panel.style.display='';return;
+      }
+    }
     panel.innerHTML=`<div style="font-weight:700;margin-bottom:.3rem">Infinity Challenge request submitted</div><div style="font-size:.82rem;color:var(--muted)">Your details are secure. We will review whether you can start in the review queue; busy periods can take longer.</div>`;
     panel.style.display='';return;
   }

@@ -31,6 +31,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowRequest, readJsonObject, RequestError, requestId, safeErrorCode } from "../_shared/request-guards.ts";
 import { sendLifecycleEmail } from "../_shared/lifecycle-email.ts";
 import { insertAccountFromPreset, rootPresetId } from "../_shared/provisioning.ts";
+import { IDENTITY_STOP_REASON } from "../_shared/infinity-auto-approval.mjs";
 import { classifyTrader } from "../_shared/trader-risk.ts";
 
 const CORS: Record<string, string> = {
@@ -1066,9 +1067,26 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     });
     if (error) return err("could not update KYC status", 500);
+    // Applications are approved automatically and the documents are checked afterwards, so this is the "stop" lever:
+    // rejecting the identity check stops the trader's challenge accounts at once (no new trades), and verifying it
+    // later gives back exactly the accounts this stopped. Practice accounts are left alone.
+    let stopped = 0, restored = 0;
+    const changedAt = new Date().toISOString();
+    if (status === "rejected") {
+      const { data: rows } = await db.from("trading_accounts").update({
+        access_revoked_at: changedAt, access_revoked_reason: IDENTITY_STOP_REASON, updated_at: changedAt,
+      }).eq("user_id", target_user).eq("is_demo", false).eq("status", "active").is("access_revoked_at", null).select("id");
+      stopped = rows?.length ?? 0;
+    } else if (status === "verified") {
+      const { data: rows } = await db.from("trading_accounts").update({
+        access_revoked_at: null, access_revoked_reason: null, updated_at: changedAt,
+      }).eq("user_id", target_user).eq("access_revoked_reason", IDENTITY_STOP_REASON).select("id");
+      restored = rows?.length ?? 0;
+    }
+    if (stopped || restored) await logAdmin("identity_check_account_access", { targetUser: target_user, detail: { status, stopped, restored } });
     if (status === "verified") await sendLifecycleEmail(db, "kyc_approved", target_user, {});
     if (status === "rejected") await sendLifecycleEmail(db, "kyc_rejected", target_user, { note: note ?? "The documents could not be read or did not match your profile." });
-    return json({ ok: true });
+    return json({ ok: true, accounts_stopped: stopped, accounts_restored: restored });
   }
 
   // Owner-only manual promotion: the owner decides who moves up, whether or not every progression box is ticked.
@@ -2069,6 +2087,14 @@ Deno.serve(async (req) => {
     const out = [];
     // Each trader's four lookups are independent, so a batch of 8 traders runs at once (it used to be one call after another).
     const pendingRows = pending ?? [];
+    // Applications are approved automatically, so some of these traders are already trading: those are checked first.
+    const tradingUsers = new Set<string>();
+    for (let i = 0; i < pendingRows.length; i += 200) {
+      const { data: live } = await db.from("trading_accounts").select("user_id")
+        .in("user_id", pendingRows.slice(i, i + 200).map((r: { user_id: string }) => r.user_id))
+        .eq("is_demo", false).eq("status", "active").is("access_revoked_at", null);
+      for (const a of live ?? []) tradingUsers.add(a.user_id);
+    }
     for (let i = 0; i < pendingRows.length; i += 8) {
       const batch = await Promise.all(pendingRows.slice(i, i + 8).map(async (row: { user_id: string; updated_at: string }) => {
         const [{ data: au }, { data: docs }, { data: profile }, { data: identity }] = await Promise.all([
@@ -2081,7 +2107,7 @@ Deno.serve(async (req) => {
         ]);
         const files = (docs ?? []).map((d: { id: string; doc_type: string; created_at: string }) => ({ id: d.id, doc_type: d.doc_type, uploaded_at: d.created_at }));
         return {
-          user_id: row.user_id, submitted_at: row.updated_at, email: au?.user?.email ?? null,
+          user_id: row.user_id, submitted_at: row.updated_at, email: au?.user?.email ?? null, already_trading: tradingUsers.has(row.user_id),
           full_name: profile?.full_name ?? au?.user?.user_metadata?.full_name ?? null, country: profile?.country_code ?? null,
           identity: maskIdentity(identity ? { ...identity, user_id: row.user_id } : null), documents: files,
         };
@@ -2093,6 +2119,7 @@ Deno.serve(async (req) => {
       detail: { trader_ids: out.map((r) => r.user_id), signed_url_seconds: 300 },
     });
     if (queueAuditError) return err("KYC records are unavailable because the audit trail could not be written.", 503);
+    out.sort((a, b) => Number(b.already_trading) - Number(a.already_trading)); // stable: oldest first within each group
     return json({ ok: true, queue: out });
   }
 

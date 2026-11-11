@@ -63,7 +63,7 @@ test('Queues: a count on every tab, refresh every 15 s and whenever you come bac
   assert.match(js, /counts\.kyc = ov\.queue_counts\.kyc_pending/);
   assert.match(js, /setInterval\(tick, 15000\)/); assert.match(js, /visibilitychange[\s\S]*tick\(\)/); assert.match(js, /addEventListener\('focus', tick\)/);
   assert.match(js, /minute: '2-digit', second: '2-digit' \}\)\)/);
-  assert.match(read('workspace/queues.html'), /ws-queues\.js\?v=20261102a/);
+  assert.match(read('workspace/queues.html'), /ws-queues\.js\?v=20261111a/);
   const ac = read('supabase/functions/admin-console/index.ts');
   assert.match(ac, /queue_counts: \{ kyc_pending: \(kycRows \?\? \[\]\)\.filter\(\(k: \{ status: string \}\) => k\.status === "pending"\)\.length \}/);
   assert.match(ac, /pendingRows\.slice\(i, i \+ 8\)\.map\(async/, 'identity queue looks traders up 8 at a time');

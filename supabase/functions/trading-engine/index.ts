@@ -59,6 +59,7 @@ import { closedPositions, instrumentNames, readAccount, refresh as tlRefresh, jw
 import { closePosition as tlClosePosition } from "../_shared/tradelocker.ts";
 import { TL_SYMBOLS } from "../_shared/tradelocker-feed.ts";
 import { closeClaimAction, worseFill } from "../_shared/stp-fill.ts";
+import { AUTO_APPROVAL_NOTE, autoApprovalHold } from "../_shared/infinity-auto-approval.mjs";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -1900,6 +1901,35 @@ async function infinityStatus(db: Db, user: any) {
     reapplication_required:reset.reapplication_required===true,
   };
 }
+// Approves a pending free Infinity application without waiting for a person. Returns null when it was approved, or a
+// short reason when it must stay in the review queue. The update only applies while the row is still "pending", so a
+// decision a person made a moment earlier is never overwritten. INFINITY_AUTO_APPROVE=off switches this back to
+// manual review.
+async function autoApproveInfinityApplication(db: Db, userId: string, applicationId: string): Promise<string | null> {
+  const [{ data: kyc }, { data: docs }, { data: identity }] = await Promise.all([
+    db.from("trader_kyc").select("status").eq("user_id", userId).maybeSingle(),
+    db.from("kyc_submissions").select("doc_type").eq("user_id", userId).limit(40),
+    db.from("trader_identity_private").select("date_of_birth").eq("user_id", userId).maybeSingle(),
+  ]);
+  const hold = autoApprovalHold({
+    enabled: (Deno.env.get("INFINITY_AUTO_APPROVE") ?? "on").toLowerCase() !== "off",
+    challengeType: "infinity", kycStatus: kyc?.status,
+    docTypes: (docs ?? []).map((d: { doc_type: string }) => d.doc_type),
+    dateOfBirth: identity?.date_of_birth,
+  });
+  if (hold) return hold;
+  const now = new Date().toISOString();
+  const retentionReviewAt = new Date(Date.now() + 5 * 365.25 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: updated, error } = await db.from("challenge_enrolment_requests").update({
+    status: "approved", decision_note: AUTO_APPROVAL_NOTE, reviewed_by: null, reviewed_at: now,
+    updated_at: now, retention_review_at: retentionReviewAt,
+  }).eq("id", applicationId).eq("status", "pending").select("id");
+  if (error || !updated?.length) return "could_not_record_approval";
+  // Same document-retention period a manual approval records.
+  await db.from("kyc_submissions").update({ retention_review_at: retentionReviewAt }).eq("user_id", userId).eq("legal_hold", false);
+  await db.from("security_events").insert({ user_id: userId, event_type: "challenge_application_auto_approved", created_at: now });
+  return null;
+}
 // deno-lint-ignore no-explicit-any
 async function provisionFromPromoClaim(db: Db, user: any): Promise<ProvisionResult> {
   const notProvisioned: ProvisionResult = {
@@ -3570,11 +3600,18 @@ if (body.action === "sweep") {
       if (!application) {
         return err("Complete the challenge application, declarations and identity-document upload on the website first. Once submitted, it joins the review queue. You will see the decision on your dashboard.", 409);
       }
+      // Free Infinity applications are approved automatically (owner decision 11 Nov 2026): the account is issued now and
+      // the identity documents are checked afterwards. The identity check stays "pending", so a payout still needs a
+      // verified identity, and rejecting the check later stops the account. Only applications a machine can tell are
+      // wrong (no ID photo, under 18, a rejected check) still wait for a person.
+      let autoApproved = false;
       if (application.status === "pending") {
-        return new Response(JSON.stringify({
+        const hold = await autoApproveInfinityApplication(db, user.id, application.id);
+        if (hold) return new Response(JSON.stringify({
           ok: true, pending_review: true, application,
           message: "Your challenge request is waiting for review. We review applications in order; busy periods can take longer.",
         }), { headers: { ...CORS, "Content-Type": "application/json" } });
+        application.status = "approved"; autoApproved = true;
       }
       if (application.status === "denied") {
         return err(application.decision_note || "This Infinity Challenge request was not approved.", 403);
@@ -3594,8 +3631,12 @@ if (body.action === "sweep") {
       await db.from("challenge_enrolment_requests").update({
         trading_account_id: account.id, updated_at: new Date().toISOString(),
       }).eq("id", application.id);
+      // The "you can trade now" email, sent the moment the account exists. Never blocks or fails the claim.
+      if (autoApproved) await sendLifecycleEmail(db, "infinity_ready", user.id, {
+        trading_url: "https://ipfxcapital.com/trading.html", dashboard_url: "https://ipfxcapital.com/dashboard.html",
+      });
       return new Response(JSON.stringify({
-        ok: true,
+        ok: true, auto_approved: autoApproved,
         account: { id: account.id, label: account.label, starting_balance: Number(account.starting_balance) },
         attempts_left: Math.max(0, st.attempts_left - 1),
       }), { headers: { ...CORS, "Content-Type": "application/json" } });

@@ -185,6 +185,27 @@
     $('progressFill').style.width = '33.333%';
     window.scrollTo({top:0,behavior:'auto'});
   }
+  // Free Infinity applications are approved automatically: the account is opened now and identity documents are
+  // checked afterwards. Returns the new account, or null when the application has to wait for a person.
+  async function openInfinityNow() {
+    try {
+      const result = await call({ action: 'claim_infinity', confirm_age: true }, 'trading-engine');
+      return result && result.ok && result.account ? result.account : null;
+    } catch (_) { return null; }   // still shown as "application received"; the dashboard retries
+  }
+  function showReady() {
+    const section = $('step2');
+    section.innerHTML = `<div class="form-section" style="text-align:center;padding:48px 30px">
+      <div style="width:54px;height:54px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:rgba(52,211,153,.12);color:#6ee7b7;font-size:24px">✓</div>
+      <h2 style="margin-bottom:12px">Congratulations, you are ready to trade</h2>
+      <p style="max-width:560px;margin:0 auto;color:var(--muted);line-height:1.7">Your free $1,000 Infinity Stage 1 account is open. You can place your first trade now. We have emailed you the key rules.</p>
+      <p style="max-width:560px;margin:14px auto 0;color:#94a3b8;font-size:.84rem;line-height:1.6">We check identity documents after approval. If something does not match, we may pause the account and ask for a clearer document. Identity must be verified before any payout.</p>
+      <a href="/trading.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:24px">Start trading</a>
+    </div>`;
+    document.querySelectorAll('.step').forEach((el) => { el.classList.remove('active'); el.classList.add('completed'); });
+    $('progressFill').style.width = '100%';
+    window.scrollTo({top:0,behavior:'auto'});
+  }
   function showApproved(application) {
     const section = $('step2');
     section.innerHTML = `<div class="form-section" style="text-align:center;padding:48px 30px">
@@ -333,6 +354,9 @@
         const type = challengeTypeForSku(selectedSku());
         if (type === 'traditional' || type === 'futures') { step(3); await mountPayment(); }
         else showApproved(application);
+      } else if (application?.status === 'pending' && challengeTypeForSku(selectedSku()) === 'infinity') {
+        btn.textContent = 'Opening your account…';
+        if (await openInfinityNow()) showReady(); else showReview(application);
       } else {
         showReview(application);
       }
