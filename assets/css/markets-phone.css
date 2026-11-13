@@ -318,3 +318,100 @@ body.signed-in .feed-badge{padding:0!important;min-width:40px}
 .chart-toolbar:not(.ph-tf-open) .style-btn.active svg{width:18px;height:18px}
 .chart-toolbar:not(.ph-tf-open) .style-btn.active[data-style="8"]{font-size:13px!important}
 .chart-toolbar:not(.ph-tf-open){gap:6px}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════
+   Clean pass (14 Nov 2026), after comparing with TradeLocker's phone app: fewer boxes, smaller type, more
+   chart. Plain text and icons instead of bordered buttons; one quiet quick-trade bar; nothing duplicated.
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+:root{--ph-top:calc(46px + env(safe-area-inset-top,0px));--ph-tab:calc(54px + env(safe-area-inset-bottom,0px))}
+
+/* Top bar: instrument, account mode, equity, sign in. No borders. */
+.topbar{gap:4px;background:var(--bg)!important;border-bottom:1px solid rgba(255,255,255,.06)}
+.ph-sym{border:0!important;background:none!important;padding:0 6px 0 2px!important;min-height:40px;font-size:16px!important;font-weight:700}
+.ph-sym svg{width:9px;height:9px;margin-left:2px;opacity:.55}
+.acct-mode{border:0!important;background:rgba(255,255,255,.06)!important;border-radius:8px!important;padding:2px!important;gap:0!important}
+.acct-mode .acct-mode-btn{min-height:28px!important;padding:0 8px!important;font-size:10px!important;letter-spacing:.04em!important;border:0!important;border-radius:6px!important;background:none!important;color:var(--muted)!important}
+.acct-mode .acct-mode-btn.active{background:rgba(255,255,255,.12)!important;color:var(--fg)!important}
+.ph-bal{border:0!important;background:none!important;padding:0 4px!important;font-size:15px!important}
+.feed-badge{border:0!important;background:none!important;box-shadow:none!important;min-width:32px!important;padding:0 4px!important}
+body:not(.signed-in) .feed-badge{background:none!important;padding:0 6px!important}
+body:not(.signed-in) .feed-badge .feed-lbl{color:#3b82f6!important;font-size:14px!important;font-weight:650!important;max-width:none!important}
+body.signed-in .feed-badge .feed-dot{width:8px;height:8px}
+
+/* Chart toolbar: one quiet row of plain buttons */
+.chart-toolbar{min-height:38px;padding:0 6px!important;background:var(--bg)!important;border-bottom:1px solid rgba(255,255,255,.06)!important;gap:2px!important}
+.chart-toolbar .tf-btn,.chart-toolbar .style-btn,.ph-ind{border:0!important;background:none!important;box-shadow:none!important;min-height:34px!important;min-width:36px!important;padding:0 8px!important;border-radius:6px!important;color:var(--muted)!important;font-size:13px!important}
+.chart-toolbar .tf-btn.active,.chart-toolbar .style-btn.active{color:var(--fg)!important;font-weight:700!important}
+.chart-toolbar.ph-tf-open .tf-btn.active,.chart-toolbar.ph-tf-open .style-btn.active{background:rgba(255,255,255,.08)!important}
+.ph-ind{font-size:15px!important;margin-left:0!important}
+.chart-toolbar:not(.ph-tf-open) .ct-sep{display:none}
+
+/* On the chart: instrument, timeframe and change only (no OHLC line, no sign-in chip: Sign in is in the top bar) */
+.ipc-lg-ohlc,.ipc-legend .mkt,.chart-area .mkt{display:none!important}
+.ipc-legend{top:6px!important;left:8px!important}
+.ipc-legend .ipc-lg-sym{font-size:13px!important}
+.ipc-lg-tf{font-size:12px}
+.ipc-lg-chg{font-size:11.5px}
+
+/* Quick-trade bar: TradeLocker-style, compact and quiet */
+.chart-wrap>.qt{padding:6px 10px 8px!important;border-top:1px solid rgba(255,255,255,.06)!important}
+.chart-wrap>.qt .qt-head{min-height:32px;gap:6px}
+.chart-wrap>.qt .qt-chip{height:28px!important;min-width:0!important;padding:0 10px!important;border:0!important;border-radius:6px!important;background:rgba(255,255,255,.07)!important;color:var(--muted)!important;font:700 11px var(--font-ui)!important;letter-spacing:.05em;text-transform:uppercase}
+.chart-wrap>.qt .qt-chip.on{background:rgba(37,99,235,.25)!important;color:#93c5fd!important}
+.chart-wrap>.qt .qt-exp{width:32px!important;height:28px!important;border-radius:6px!important;background:rgba(255,255,255,.07)!important}
+.chart-wrap>.qt .qt-margin{padding:4px 0 6px!important;font-size:11.5px!important}
+.chart-wrap>.qt .qt-trade{gap:6px!important}
+.chart-wrap>.qt .qt-sell,.chart-wrap>.qt .qt-buy{height:46px!important;border-radius:8px!important}
+.chart-wrap>.qt .qt-sell b,.chart-wrap>.qt .qt-buy b{font-size:14px!important}
+.chart-wrap>.qt .qt-sell span,.chart-wrap>.qt .qt-buy span{font-size:10px!important}
+.chart-wrap>.qt .qt-lots{height:46px!important;border:0!important;border-radius:8px!important;background:rgba(255,255,255,.05)!important}
+.chart-wrap>.qt .qt-lots>button{width:38px!important;font-size:18px!important}
+.chart-wrap>.qt .qt-lots input{font-size:15px!important}
+
+/* Bottom tabs: quieter */
+.ph-tabbar{background:var(--bg)!important;border-top:1px solid rgba(255,255,255,.06)!important}
+.ph-tabbar button{font-size:10.5px!important;gap:2px!important;color:#71717a}
+.ph-tabbar button svg{width:21px!important;height:21px!important}
+
+/* Trade tab: less in the way */
+.op-feed-label,.op-advanced,.op-presets{display:none!important}
+.guide-tabs .gtab{min-height:40px!important;font-size:13px!important}
+.guide.order-mode #tab-order{gap:8px!important;padding-top:10px!important}
+.op-type-btn,.op-quick,.op-ot{min-height:38px!important;font-size:13px!important}
+.op-exec-btn{min-height:64px!important}
+
+/* Positions and Account: tighter cards */
+.btm-header{min-height:42px!important}
+.btab{min-height:38px!important;font-size:13px!important;padding:0 10px!important}
+.postbl-stats{gap:6px 10px!important;padding:8px 12px!important}
+.postbl-stats .albl{font-size:10.5px}
+.postbl-stats .aval{font-size:14px}
+#posTableBody tr,#closedTableBody tr{margin:8px 10px!important;padding:10px 12px!important;gap:4px 8px!important;border-color:rgba(255,255,255,.08)!important}
+#posTableBody td,#closedTableBody td{font-size:13px!important}
+#posTableBody td:nth-child(1),#closedTableBody td:nth-child(1){font-size:15px!important}
+#posTableBody td:nth-child(12),#closedTableBody td:nth-child(14){font-size:15px!important}
+#posTableBody .postbl-act-btn{min-height:40px!important;border-color:rgba(255,255,255,.08)!important;font-size:10px!important}
+.ph-acct a,.ph-acct button,.ph-acct-more button{min-height:40px!important;font-size:13px!important}
+
+/* Trade tab, cleaner: the instrument and connection are already in the top bar, the instrument list is the top-bar
+   picker, and Indicators open from the fx button (the tabs show again while you are in them, to get back to Order). */
+.op-ticket-head,.wl-wrap{display:none!important}
+.guide.order-mode .guide-tabs{display:none!important}
+html[data-ptab="trade"] .chart-wrap{flex:0 0 24dvh!important;min-height:150px!important}
+html[data-ptab="trade"] .ipc-legend,html[data-ptab="trade"] .chart-pos-layer{display:none!important}
+html[data-ptab="trade"] .chart-toolbar{display:none!important}
+.op-type-bar{padding:2px!important;border-radius:9px!important}
+.op-type-btn{min-height:34px!important;font-size:13px!important;border-radius:7px!important}
+.op-quickbar{gap:6px!important}
+.op-quick{min-height:34px!important;font-size:12.5px!important;padding:0 10px!important}
+.op-exec-btn{min-height:56px!important;border-radius:10px!important}
+.op-lot-ctrl{min-height:56px}
+.ch-reqs-rule,#iv2Ticket{font-size:12px!important;padding:6px 10px!important;line-height:1.4!important}
+.gt-card{padding:10px 12px!important}
+.gt-sum-txt b{font-size:13.5px!important}
+.gt-sum-txt span{font-size:12px!important}
+/* Cards: soft panels without heavy outlines */
+#posTableBody tr,#closedTableBody tr{border:0!important;background:rgba(255,255,255,.035)!important;border-radius:12px!important}
+#posTableBody .postbl-act-btn{border:0!important;background:rgba(255,255,255,.06)!important;border-radius:8px!important}
+#posTableBody .postbl-act-btn:not([class*="act-"]){background:rgba(239,68,68,.12)!important}
+.btab.active{background:rgba(255,255,255,.08)!important;border-color:transparent!important}
