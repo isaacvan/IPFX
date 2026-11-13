@@ -235,3 +235,35 @@ html[data-ptab="account"] .ph-acct-more{display:grid;grid-template-columns:1fr;g
   html[data-ptab="trade"] .chart-wrap{flex:1 1 auto;min-height:0}
   html[data-ptab="trade"] .guide{flex:0 0 min(400px,50vw);width:auto!important;border-top:0;border-left:1px solid var(--line)}
 }
+
+/* Closed positions as cards: symbol, side, size and result; entry and exit price; when it closed */
+#bp-closed .postbl thead{display:none}
+#bp-closed .postbl,#bp-closed .postbl tbody{display:block;width:100%}
+#closedTableBody tr{display:grid;grid-template-columns:auto auto 1fr auto;grid-template-areas:"sym side amt pnl" "en en ex ex" "tm tm tm tm";gap:6px 10px;align-items:center;margin:8px 12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+#closedTableBody td{display:none;height:auto!important;padding:0!important;border:0!important;white-space:normal;text-align:left!important;font-size:14px;line-height:1.35}
+#closedTableBody td:nth-child(1){display:block;grid-area:sym;font-weight:800;font-size:16px}
+#closedTableBody td:nth-child(4){display:block;grid-area:side}
+#closedTableBody td:nth-child(5){display:block;grid-area:amt;color:var(--muted)}
+#closedTableBody td:nth-child(5)::after{content:" lots"}
+#closedTableBody td:nth-child(14){display:block;grid-area:pnl;font-weight:800;font-size:17px;text-align:right!important}
+#closedTableBody td:nth-child(6){display:block;grid-area:en;font-variant-numeric:tabular-nums}
+#closedTableBody td:nth-child(10){display:block;grid-area:ex;font-variant-numeric:tabular-nums}
+#closedTableBody td:nth-child(9){display:block;grid-area:tm;color:var(--muted);font-size:12.5px}
+#closedTableBody td:nth-child(6)::before,#closedTableBody td:nth-child(10)::before{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+#closedTableBody td:nth-child(6)::before{content:"Entry"}
+#closedTableBody td:nth-child(10)::before{content:"Exit"}
+#closedTableBody td:nth-child(9)::before{content:"Closed "}
+#closedTableBody tr:has(.postbl-empty){display:block;margin:0;padding:0;border:0;background:none}
+#closedTableBody tr:has(.postbl-empty) td{display:block}
+.postbl-toolbar{flex-wrap:wrap;gap:8px;padding:8px 12px!important}
+.postbl-period-btn{min-height:40px}
+.postbl-period-opt{min-height:44px;display:flex;align-items:center}
+
+/* Trade dialogs (edit stop, part close, trailing stop) */
+.omdlg{align-items:flex-end!important;padding:0!important}
+.omdlg>*{width:100vw!important;max-width:none!important;border-radius:18px 18px 0 0!important;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))!important;max-height:90dvh;overflow-y:auto}
+.omdlg button{min-height:46px;padding-left:18px;padding-right:18px}
+
+/* Stop / target lines on the chart: a finger-sized grab area */
+.ipc-grab{top:-16px!important;height:32px!important}
+.ipc-tag{min-height:28px}
