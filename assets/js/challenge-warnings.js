@@ -45,12 +45,12 @@
         const remaining=missing.map(t=>deadline-(now-Date.parse(t.opened_at))/1000).filter(Number.isFinite);
         const seconds=remaining.length?Math.max(0,Math.ceil(Math.min(...remaining))):null;
         add('missing-stop',seconds!=null&&seconds<=10?'critical':'warning',
-          `${missing.length} open position${missing.length===1?' has':'s have'} no stop-loss. Add a valid stop now${seconds==null?'':` — ${seconds}s until the earliest deadline`}. After ${deadline}s the position is closed, winning profit is removed and one strike is recorded.`);
+          `${missing.length} open position${missing.length===1?' has':'s have'} no stop-loss. Add a valid stop now${seconds==null?'':` — ${seconds}s until the earliest deadline`}. After ${deadline}s IPFX adds one automatically at your maximum risk per trade.`);
       }
     }
     const strikes=number(a.sl_strikes),max=number(a.sl_strikes_max);
-    if(strikes>0&&max>0)add('stop-strikes',strikes>=max-1?'critical':'warning',
-      `Stop-loss strikes: ${strikes}/${max}. ${Math.max(0,max-strikes)} more ends this run. Set a stop on every order. If the run fails, a fresh entry must wait until your next eligible month.`);
+    // Stop-loss strikes were retired on 13 Nov 2026 (automatic stop); there is no strike warning any more.
+    void strikes; void max;
     const cap=number(L.daily_profit_cap_usd),gain=number(L.daily_profit_gain_usd);
     if(cap>0&&gain>=cap*.8&&!L.daily_profit_cap_reached)add('profit-cap','warning',
       `${money(Math.max(0,cap-gain))} left before today's ${money(cap)} profit cap pauses new entries until 00:00 UTC. This is not a breach; existing positions remain manageable.`);
@@ -94,7 +94,7 @@
       if(R2.combined_score!=null)add2('overall',`Overall consistency score: ${Number.isFinite(number(Q2.combined_score))?number(Q2.combined_score).toFixed(2):'awaiting verification'} / ${f1(R2.combined_score)}`,number(Q2.combined_score)>=number(R2.combined_score));
       if(R2.best_day_share!=null){const best=number(Q2.best_day_share);add2('consistency',`Best-day share: ${Number.isFinite(best)?(best*100).toFixed(1)+'%':'not yet measurable'} / ${(R2.best_day_share*100).toFixed(0)}% maximum`,Number.isFinite(best)&&best<=number(R2.best_day_share));}
       add2('flat',`Open positions: ${(state.open_trades||[]).length} — close all before promotion`,(state.open_trades||[]).length===0&&!(state.pending_orders||[]).length);
-      add2('standing',`Account in good standing; stop-loss strikes ${a.sl_strikes??0}/${a.sl_strikes_max??3}`,a.status==='active'&&number(a.sl_strikes??0)<number(a.sl_strikes_max??3));
+      add2('standing','Account in good standing',a.status==='active'&&number(a.sl_strikes??0)<number(a.sl_strikes_max??3));
       if(Q2.identity_required===true)add2('identity','Verify your identity to move up to Stage 3 (you keep trading meanwhile)',false);
       add2('server',Q2.eligible===true?'Server progression checks verified':'Server progression checks still pending',Q2.eligible===true);
       const sc=[R2.stage_score!=null?`a consistency score of ${f1(R2.stage_score)}`:null,R2.combined_score!=null?`an overall score of ${f1(R2.combined_score)}`:null].filter(Boolean).join(' and ');
@@ -145,7 +145,7 @@
       add('profitable',`Qualifying profitable days: ${P.profitable_days_pct??'awaiting verification'}% / ${P.min_profitable_days_pct}% minimum`,number(P.profitable_days_pct)>=number(P.min_profitable_days_pct));
     }
     add('flat',`Open positions: ${(state.open_trades||[]).length} — close all before promotion`,(state.open_trades||[]).length===0);
-    add('standing',`Account in good standing; stop-loss strikes ${a.sl_strikes??0}/${a.sl_strikes_max??3}`,a.status==='active'&&number(a.sl_strikes??0)<number(a.sl_strikes_max??3));
+    add('standing','Account in good standing',a.status==='active'&&number(a.sl_strikes??0)<number(a.sl_strikes_max??3));
     add('server',P.requirements_met===true?'Server progression checks verified':'Server progression checks still pending',P.requirements_met===true);
     // What the trader ticks before trading: five short lines, same rules and numbers (wording only).
     if(target>0)read.push(`To pass: make ${money(target-number(a.starting_balance))} profit${need.length?' with at least '+need.join(', '):''}, then close every trade. Trades held under 1 minute don't count.`);

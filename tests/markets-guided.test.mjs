@@ -231,7 +231,7 @@ test('trading.html: changing instrument clears stop, take-profit and trigger pri
   assert.match(html, /if\(sym!==activeSym\)\{clearOrdPrices\(\);clearTicketLevels\(\);\}/);
   assert.match(html, /\.op-limit-card\[hidden\]\{display:none!important\}/);
   assert.match(fs.readFileSync(new URL('../assets/js/infinity-restart.js', import.meta.url), 'utf8'), /\.tb-restart\[hidden\]\{display:none!important\}/);
-  assert.match(html, /markets-guided\.js\?v=20261109a/);
+  assert.match(html, /markets-guided\.js\?v=20261113a/);
 });
 test('the chart shows dashed buy-stop and sell-stop preview lines at the prices the next order would carry', () => {
   const { ctx, tick } = page({ multiple: 3 });
@@ -253,9 +253,9 @@ test('Infinity: Buy goes through without a stop, sized so the suggested stop sti
   assert.match(els.gtSumMain.textContent, /^No stop loss · 0\.02 lots$/);
   assert.match(els.gtSumSub.textContent, /^Add a stop within 30s of the fill/);
   assert.equal(els.gtRule.hidden, false);
-  assert.match(els.gtRule.innerHTML, /Challenge rule: stop loss within 30 seconds/);
-  assert.match(els.gtRule.innerHTML, /without a stop loss/); assert.match(els.gtRule.innerHTML, /closed automatically/); assert.match(els.gtRule.innerHTML, /removed/);
-  assert.match(els.gtRule.innerHTML, /Warnings: <em>1 of 3<\/em>/);
+  assert.match(els.gtRule.innerHTML, /Stop loss within 30 seconds/);
+  assert.match(els.gtRule.innerHTML, /without a stop loss/); assert.match(els.gtRule.innerHTML, /adds one automatically<\/em> at your <em>maximum risk per trade/);
+  assert.doesNotMatch(els.gtRule.innerHTML, /[Ww]arning|closed automatically|removed/, 'no strikes since 13 Nov 2026');
   els.slPrice.value = '1.1';                      // a stop left in the field from an earlier order must not be sent
   ctx.slOn = true;
   await ctx.window.placeOrder('buy');
@@ -263,9 +263,9 @@ test('Infinity: Buy goes through without a stop, sized so the suggested stop sti
   assert.equal(sent.length, 1); assert.equal(els.slPrice.value, ''); assert.ok(!(sent[0].sl > 0), 'sent without a stop'); assert.equal(sent[0].lots, 0.02);
 });
 
-test('Infinity: one warning left says the next one ends the run', () => {
+test('Infinity: old strike counts are never shown (strikes were retired on 13 Nov 2026)', () => {
   const { els, tick } = page({ infinity: true, strikes: 2 }); tick();
-  assert.match(els.gtRule.innerHTML, /2 of 3<\/em> — <em>one more ends this run<\/em>/);
+  assert.doesNotMatch(els.gtRule.innerHTML, /2 of 3|ends this run/);
 });
 
 test('Infinity with Auto stop on keeps adding the stop; traditional challenges always do', async () => {
@@ -297,7 +297,9 @@ test('trading.html: a red 30-second card for every Infinity trade without a stop
   assert.match(html, /function stopRuleAlerts\(state\)/);
   assert.match(html, /try\{stopRuleAlerts\(state\);\}/);
   assert.match(html, /<button type="button" class="rule-add">Add stop<\/button>/);
-  assert.match(html, /Challenge rule: add a stop loss within '\+dl\+' seconds or this trade is /);
+  assert.match(html, /txt\.append\('Add your own stop within '\+dl\+' seconds, or IPFX '\);/);
+  assert.match(html, /\['adds one automatically',' at your '\]/);
+  assert.doesNotMatch(html, /closing under the stop-loss rule/);
   assert.match(html, /w\.code!=='missing-stop'/); assert.match(html, /box\.insertBefore\(card,\[\.\.\.box\.children\]\.find\(c=>!c\.classList\.contains\('rule'\)\)\|\|null\)/, 'stop cards stay on top');
   assert.match(html, /!c\.classList\.contains\('rule'\)/, 'ordinary alerts never push the rule card out of the stack');
 });

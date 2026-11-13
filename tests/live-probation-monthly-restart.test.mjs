@@ -37,7 +37,7 @@ test('a failed run gets an automatic fresh Stage 1 on the 1st, once, only when t
   assert.match(sql, /cron\.schedule\('ipfx-infinity-monthly-restart', '5 0,6,12 1 \* \*'/);
   assert.doesNotMatch(sql, /delete from public\.(trades|trading_accounts)/);
   const outbox = read('supabase/functions/email-outbox/index.ts');
-  assert.match(outbox, /const TEMPLATES = \["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated"\];/);
+  assert.match(outbox, /const TEMPLATES = \["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated", "infinity_stop_rule_restart"\];/);
   assert.match(outbox, /const NEEDS_ACTIVE = \["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"\];/);
 });
 

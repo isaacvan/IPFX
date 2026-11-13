@@ -1688,7 +1688,7 @@ body.light .sym-row:hover,body.light .sym-row.hl{background:rgba(0,0,0,.05)}
 body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
-<script src="/assets/js/challenge-warnings.js?v=20261101a"></script>
+<script src="/assets/js/challenge-warnings.js?v=20261113a"></script>
 <!-- Phone layout: switched on by markets-phone.js (early access: listed accounts only), and then only on phone screens (up to 760px wide, or a touch screen under 520px tall when turned sideways), so the desktop layout is unaffected. -->
 <link rel="stylesheet" href="/assets/css/markets-phone.css?v=20261113c" id="marketsPhoneCss" media="not all" data-phone-media="(max-width: 760px), (pointer: coarse) and (max-height: 520px)">
 </head>
@@ -2845,7 +2845,7 @@ function updateRiskPreview(){
       box.style.display='';box.className='op-risk over';
       document.getElementById('opRiskVal').textContent='No stop set';
       document.getElementById('opRiskNote').textContent=a.challenge_type==='infinity'&&+L.stop_loss_deadline_seconds>0
-        ?`Challenge rule: add a stop loss within ${L.stop_loss_deadline_seconds} seconds of the fill or the trade is closed, any profit removed and you get a warning (${+a.sl_strikes||0} of ${+a.sl_strikes_max||3} used).`
+        ?`Stop loss: add your own within ${L.stop_loss_deadline_seconds} seconds of the fill. If you don't, IPFX adds one automatically at your maximum risk per trade. Your own, tighter stop risks less and scores better.`
         :'This challenge requires a stop-loss on every order — the engine will reject this.';
     } else { box.style.display='none'; }
     return;
@@ -4821,11 +4821,12 @@ function stopRuleAlerts(state){
       '<span class="rule-txt"></span><div class="rule-act"><button type="button" class="rule-add">Add stop</button><button type="button" class="rule-edit">Set my own</button><span class="rule-hint" aria-live="polite"></span></div></div><div></div>';
     el.querySelector('.rule-pos').textContent=`${t.side==='buy'?'Buy':'Sell'} ${(+t.volume).toFixed(a.rules_version==='infinity_v2'?3:2)} ${sym} @ ${fmtPx(+t.open_price,t.symbol)}`;
     const txt=el.querySelector('.rule-txt');
-    txt.append('Challenge rule: add a stop loss within '+dl+' seconds or this trade is ');
-    for(const [strong,after] of [['closed automatically',', any profit is '],['removed',', it does not count towards progress and you get '],['warning '+(n+1)+' of '+max,n+1>=max?'. That warning ends this run.':'. '+max+' warnings end the run.']]){const em=document.createElement('em');em.textContent=strong;txt.append(em,after);}
+    // Since 13 Nov 2026 a missing stop is added automatically (no warning, no strike); this card says so plainly.
+    txt.append('Add your own stop within '+dl+' seconds, or IPFX ');
+    for(const [strong,after] of [['adds one automatically',' at your '],['maximum risk per trade','. A tighter stop of your own risks less and scores better.']]){const em=document.createElement('em');em.textContent=strong;txt.append(em,after);}
     const card={el,t,timer:null},cd=el.querySelector('.cd'),hint=el.querySelector('.rule-hint'),add=el.querySelector('.rule-add');
     const opened=Date.parse(t.opened_at||'')||Date.now();
-    const tick=()=>{const left=Math.max(0,Math.ceil(dl-(Date.now()-opened)/1000));cd.textContent=left>0?left+'s left':'time is up, closing under the stop-loss rule';el.classList.toggle('urgent',left<=10);add.hidden=left<=0;};
+    const tick=()=>{const left=Math.max(0,Math.ceil(dl-(Date.now()-opened)/1000));cd.textContent=left>0?left+'s left':'adding your stop now';el.classList.toggle('urgent',left<=10);add.hidden=left<=0;};
     tick();card.timer=setInterval(tick,500);
     add.onclick=async()=>{
       const s=typeof window.ipfxSuggestStop==='function'?window.ipfxSuggestStop(card.t):{why:'Use "Set my own" to add a stop.'};
@@ -7569,7 +7570,7 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
-<script src="/assets/js/markets-guided.js?v=20261109a"></script>
+<script src="/assets/js/markets-guided.js?v=20261113a"></script>
 <script src="/assets/js/infinity-restart.js?v=20261107a"></script>
 <script src="/assets/js/infinity-v2-ui.js?v=20261102a"></script>
 <script src="/assets/js/markets-phone.js?v=20261113c"></script>

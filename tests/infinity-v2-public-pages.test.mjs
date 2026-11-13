@@ -97,7 +97,7 @@ test('IPFX Markets v2 view: how-it-works guide, limit meters, first-time prompt,
     assert.ok(ui.includes(k), 'guide reads ' + k + ' from the saved rules');
     assert.match(ui, /#iv2Overall\[hidden\]\{display:none\}/, 'the score chip really hides on v1 and demo accounts');
   assert.match(read('trading.html'), /infinity-v2-ui\.js\?v=20261102a/);
-  const w=read('assets/js/challenge-warnings.js');assert.match(w,/rules_version==='infinity_v2'/);assert.match(w,/stage-read-iv2:/);assert.match(read('trading.html'), /challenge-warnings\.js\?v=20261101a/);
+  const w=read('assets/js/challenge-warnings.js');assert.match(w,/rules_version==='infinity_v2'/);assert.match(w,/stage-read-iv2:/);assert.match(read('trading.html'), /challenge-warnings\.js\?v=20261113a/);
 });
 
 test('restart eligibility: traders who already hold an Infinity run skip identity and KYC in both the engine status and the database restart', () => {

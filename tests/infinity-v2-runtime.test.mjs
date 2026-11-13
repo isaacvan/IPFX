@@ -325,15 +325,15 @@ test('owner advance keeps the legacy v1 override but cannot bypass v2 qualificat
  assert.equal(r.ok,version==='infinity_v1');if(r.ok)assert.equal((await db.query('select rules_version from trading_accounts where id=$1',[r.next_account])).rows[0].rules_version,'infinity_v1');
  }finally{await db.close();}}
 });
-test('one missed stop costs a strike and excludes its undefined R, without permanently preventing a later pass',opts,async()=>{
+test('a trade closed without a stop is left out of the score (undefined R) and, since 13 Nov 2026, never ends the run',opts,async()=>{
  const {db,account}=await v2db();try{const a=await account(),missing=await open(db,a,{sl:null});await close(db,missing,-1,'no_stop_loss',1);
  await db.query('update trading_accounts set sl_strikes=1 where id=$1',[a.id]);
  for(let i=0;i<20;i++){const t=await open(db,a,{at:new Date(Date.now()+1000+(i+1)*6*3600000).toISOString()});await close(db,t,2.05);}
  await db.query('update trading_accounts set balance=1040 where id=$1',[a.id]);const p=(await db.query('select infinity_v2_progress($1) p',[a.id])).rows[0].p;
  assert.equal(p.n,20);assert.equal(p.eligible,true,JSON.stringify(p));
  for(let i=0;i<2;i++){const t=await open(db,a,{sl:null,at:new Date(Date.now()+1000+(i+30)*6*3600000).toISOString()});await close(db,t,0,'no_stop_loss',1);}
- assert.equal((await db.query('select status from trading_accounts where id=$1',[a.id])).rows[0].status,'breached');
- assert.equal((await db.query('select reason from account_breach_events where account_id=$1',[a.id])).rows[0].reason,'stop_loss_rule');
+ assert.equal((await db.query('select status from trading_accounts where id=$1',[a.id])).rows[0].status,'active','no strike, no breach');
+ assert.equal((await db.query('select count(*) n from account_breach_events where account_id=$1',[a.id])).rows[0].n,0);
  }finally{await db.close();}
 });
 test('market and pending admissions share an atomic five-order burst allowance',opts,async()=>{

@@ -18,10 +18,11 @@ test('daily loss warnings escalate at ten percent room and missing numeric data 
  s.account.equity=977.5;assert.equal(build(s,now).find(x=>x.code==='daily-loss').level,'critical');
  s.account.limits.daily_floor=null;assert.equal(build(s,now).some(x=>x.code==='daily-loss'),false);
 });
-test('stop-loss countdown uses the configured deadline and warns before another strike ends the run',()=>{
+test('stop-loss countdown uses the configured deadline; no strike warning since the automatic stop (13 Nov 2026)',()=>{
  const s=state();s.open_trades=[{sl:null,opened_at:new Date(now-21000).toISOString()}];
  let w=build(s,now).find(x=>x.code==='missing-stop');assert.equal(w.level,'critical');assert.match(w.message,/9s until/);
- s.account.sl_strikes=2;assert.match(build(s,now).find(x=>x.code==='stop-strikes').message,/1 more ends/);
+ assert.match(w.message,/IPFX adds one automatically at your maximum risk per trade/);
+ s.account.sl_strikes=2;assert.equal(build(s,now).some(x=>x.code==='stop-strikes'),false);
  s.open_trades[0].sl=995;assert.equal(build(s,now).some(x=>x.code==='missing-stop'),false);
  s.open_trades[0].sl=null;s.account.limits.stop_loss_deadline_seconds=null;assert.equal(build(s,now).some(x=>x.code==='missing-stop'),false);
 });

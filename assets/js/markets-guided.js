@@ -313,10 +313,10 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     const rule = $('gtRule');
     if (optional()) {
       // The rule in plain, strict words, always visible while orders go without a stop (and as a reminder when Auto stop is on).
-      const left = Math.max(0, st.max - st.n);
-      const html = `<b>⚠ Challenge rule: stop loss within ${dl} seconds</b>${noStop ? 'Sent <em>without a stop loss</em>. ' : ''}Add one in time or the trade is <em>closed automatically</em>, profit <em>removed</em>, and you get a <em>warning</em>. Warnings: <em>${st.n} of ${st.max}</em>${left <= 1 ? ' — <em>one more ends this run</em>' : ` — the ${st.max}${st.max === 3 ? 'rd' : 'th'} restarts you at Stage 1`}.`;
+      // Since 13 Nov 2026 a missing stop is added automatically at the maximum risk (no warnings, no strikes).
+      const html = `<b>Stop loss within ${dl} seconds</b>${noStop ? 'Sent <em>without a stop loss</em>. ' : ''}Add your own in time, or IPFX <em>adds one automatically</em> at your <em>maximum risk per trade</em>. A tighter stop of your own risks less and scores better.`;
       if (rule.innerHTML !== html) rule.innerHTML = html;
-      rule.hidden = !noStop && st.n === 0;
+      rule.hidden = !noStop;
     } else rule.hidden = true;
     const shownLots = useLots(max), shownRisk = shownLots != null && sizingDist != null && perLot(sizingDist) ? shownLots * perLot(sizingDist) : null;
     const riskTxt = shownRisk != null ? `${usd(shownRisk)} risk · ${shownLots.toFixed(lotDigits())} lots` : 'risk —';
@@ -415,7 +415,7 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
   // ---- first-visit tour ----
   const STEPS = [
     { sel: '#op-sym', title: 'Pick a market', text: 'Choose what to trade here, or press / to search. The chart follows your choice.' },
-    { sel: '#gtSum', alt: '.op-quickbar', title: 'Stop loss: within 30 seconds', text: 'On Infinity you can place a trade without a stop, but every trade needs one within 30 seconds or it is closed, its profit removed and you get a warning (3 end the run). After each fill a red card counts down with an Add stop button. Switch on Auto stop to add one to every order.' },
+    { sel: '#gtSum', alt: '.op-quickbar', title: 'Stop loss: within 30 seconds', text: 'Every trade has a stop loss. Add your own within 30 seconds of opening, or switch on Auto stop. If a trade still has none, IPFX adds one automatically at your maximum risk per trade. A tighter stop of your own risks less and scores better.' },
     { sel: '.op-trade-row', title: 'Buy or Sell', text: 'Click Buy if you think price goes up, Sell if it goes down. If a button is greyed out, the reason is written just above it.' },
     { sel: '.btab[onclick*="challenge"]', title: 'Watch your progress', text: 'Your target, loss limits and every rule you still need to meet are in the Challenge tab.' },
   ];

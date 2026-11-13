@@ -19,11 +19,12 @@ test('a warned trade keeps its loss but never its profit', () => {
   assert.match(eng, /acct\.balance = Number\(committed\.balance\);/);
 });
 
-test('every warned trade is one warning (never twice); the third ends the run like a breach', () => {
+test('strike history stays one row per trade; since 13 Nov 2026 the engine no longer records strikes or ends runs for them', () => {
   assert.match(sql, /if exists \(select 1 from public\.sl_strikes where trade_id = p_trade\) then return a\.sl_strikes; end if;/);
   assert.match(sql, /trade_id uuid not null unique/);
   assert.match(eng, /const SL_STRIKES_MAX = 3;/);
-  assert.match(eng, /if \(Number\(strikes\) >= SL_STRIKES_MAX && acct\.status === "active"\) strikeOut = true;/);
+  assert.doesNotMatch(eng, /fn_record_sl_strike/);
+  assert.doesNotMatch(eng, /strikeOut\s*=\s*true/);
   assert.match(eng, /p_reason: "stop_loss_rule"/);
   assert.match(sql, /p_reason not in \('max_drawdown','daily_loss','stop_loss_rule'\)/);
   assert.match(sql, /check \(reason = any \(array\['max_drawdown', 'daily_loss', 'stop_loss_rule'\]\)\)/);

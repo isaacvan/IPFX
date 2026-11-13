@@ -2329,6 +2329,33 @@ async function syncVenueConnection(db: Db, c: VenueConn): Promise<void> {
   }).eq("id", c.id);
 }
 
+// The automatic stop for an Infinity trade still without one after the deadline: the furthest stop the per-trade risk
+// limit allows, rounded towards the entry. v2 asks the database, which uses the same maths as its trade guard (and the
+// guard re-checks the result); v1 uses the same effective limit the modify action enforces, and keeps the stop at least
+// two spreads from the price. Returns the stop that was written, or null when no valid stop fits.
+async function attachAutomaticStop(db: Db, acct: Acct, t: Tr, q: Quote): Promise<number | null> {
+  const inst = INSTRUMENTS[t.symbol];
+  if (!inst) return null;
+  if (acct.rules_version === "infinity_v2") {
+    const { data, error } = await db.rpc("infinity_v2_auto_stop", { p_trade: t.id, p_digits: inst.digits });
+    if (error || !data?.ok || !Number.isFinite(Number(data.sl))) return null;
+    return Number(data.sl);
+  }
+  const conv = await usdPerQuote(inst.quote);
+  const limit = effectiveRiskLimit(acct, Number(acct.balance ?? acct.starting_balance));
+  const maxRisk = limit?.effective ?? (acct.max_risk_per_trade_pct == null ? null : round2(Number(acct.starting_balance) * Number(acct.max_risk_per_trade_pct) / 100));
+  if (conv === null || conv <= 0 || maxRisk === null || !(maxRisk > 0)) return null;
+  const dist = maxRisk / (inst.contract * Number(t.volume) * conv);
+  const f = Math.pow(10, inst.digits);
+  const stop = t.side === "buy" ? Math.ceil((Number(t.open_price) - dist) * f) / f : Math.floor((Number(t.open_price) + dist) * f) / f;
+  const exitPx = t.side === "buy" ? q.bid : q.ask;
+  const gap = t.side === "buy" ? exitPx - stop : stop - exitPx;
+  if (!(stop > 0) || !(gap >= 2 * Math.max(q.spread, 0))) return null;
+  const { data: moved, error } = await db.from("trades").update({ sl: stop }).eq("id", t.id).eq("status", "open").is("sl", null).select("id");
+  if (error || !moved?.length) return null;
+  return stop;
+}
+
 async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number; floating: number; unpriced: number }> {
   let quoteRiskUnavailable = false;
   let infinityMonthlyBlocked = false;
@@ -2419,21 +2446,23 @@ async function enforce(db: Db, acct: Acct): Promise<{ open: Tr[]; equity: number
       const sl = t.sl === null ? null : Number(t.sl);
       const tp = t.tp === null ? null : Number(t.tp);
       let done = false;
-      // Infinity only: a trade still without a stop loss after the deadline is closed, its profit removed
-      // (closeTrade) and it counts as a stop-loss warning.
+      // Infinity only: a trade still without a stop loss after the deadline gets one automatically, at the furthest
+      // distance the per-trade risk limit allows (owner decision 13 Nov 2026; this replaced closing the trade and a
+      // stop-loss strike). Only if no valid stop fits is the trade closed, and that no longer counts as a strike.
       const slDeadline = sl === null && acct.challenge_type === "infinity" ? (acct.rules_version === "infinity_v2" ? Number(acct.infinity_rules_snapshot?.stop_deadline_seconds) : await slDeadlineSeconds(db)) : null;
       // deno-lint-ignore no-explicit-any
       const openedAtMs = Date.parse(String((t as any).opened_at ?? ""));
       if (slDeadline != null && Number.isFinite(openedAtMs) && Date.now() - openedAtMs > slDeadline * 1000) {
+        const auto = await attachAutomaticStop(db, acct, t, q);
+        if (auto !== null) {
+          t.sl = auto;
+          await logAudit(db, { trade_id: t.id, user_id: acct.user_id, account_id: acct.id, event: "modify", symbol: t.symbol, side: t.side,
+            requested_volume: Number(t.volume), requested_price: ex, quote: q, client_ip: null });
+          still.push(t);
+          continue;
+        }
         done = await closeTrade(db, acct, t, ex, "no_stop_loss", q);
-        if (!done) { still.push(t); continue; }
-        // deno-lint-ignore no-explicit-any
-        const { data: strikes, error: strikeError } = await db.rpc("fn_record_sl_strike", { p_account: acct.id, p_trade: t.id, p_stripped: Number((t as any).stripped_profit ?? 0) });
-        // deno-lint-ignore no-explicit-any
-        if (strikeError || !Number.isFinite(Number(strikes)) || strikes == null) throw new Error("STOP_WARNING_VERIFICATION_FAILED");
-        (acct as any).sl_strikes = Number(strikes);
-        if(acct.rules_version === "infinity_v2") { if(Number(strikes) >= Number(acct.infinity_rules_snapshot?.sl_strikes_max) && acct.status === "active") strikeOut=true; }
-        else if (Number(strikes) >= SL_STRIKES_MAX && acct.status === "active") strikeOut = true;
+        if (!done) still.push(t);
         continue;
       }
       if (t.side === "buy") {

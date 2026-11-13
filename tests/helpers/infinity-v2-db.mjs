@@ -46,6 +46,7 @@ export async function v2db({adapters=true,restart=true}={}){
  create function fn_ensure_demo_account(uuid)returns uuid language sql as 'select gen_random_uuid()';
  create table infinity_restart_offers(user_id uuid primary key,old_account_id uuid,new_account_id uuid,used_at timestamptz default now(),snapshot jsonb);
  create table infinity_retired_accounts(account_id uuid primary key,reset_id text,user_id uuid,snapshot jsonb);
+ create table infinity_reset_batches(id text primary key,reason text,requested_by uuid,account_count int default 0);
  create table infinity_monthly_restarts(user_id uuid,old_account_id uuid,new_account_id uuid,month date,outcome text,detail text,created_at timestamptz default now(),unique(user_id,month));
  create table email_templates(key text primary key,category text,subject text,preheader text,body_html text,body_text text,is_active boolean);
  create table email_events(user_id uuid,template_key text,to_email text,subject text,status text,provider text,payload jsonb);
@@ -102,6 +103,7 @@ export async function v2db({adapters=true,restart=true}={}){
  await db.exec(sqlFile('20261109120000_infinity_v2_allow_stop_widening'));
  await db.exec(sqlFile('20261109170000_v2_guard_allows_close_on_frozen'));
  await db.exec(sqlFile('20261109180000_infinity_v2_price_index_window'));
+ await db.exec(sqlFile('20261113150000_infinity_automatic_stop'));
  if(restart)await db.exec(sqlFile('20261102010000_infinity_restart_existing_traders_skip_identity'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_restart_offer'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_take_fresh_restart'));
