@@ -8,6 +8,7 @@ exclude:
   - supabase
   - internal-control
   - desktop-app
+  - mobile
   - desktop/scripts
   - desktop/tests
   - desktop/main.cjs

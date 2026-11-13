@@ -1,0 +1,21 @@
+{
+  "name": "ipfx-markets-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "IPFX Markets for iPhone and Android (Capacitor wrapper around the IPFX Markets web platform).",
+  "scripts": {
+    "web": "node scripts/copy-web.mjs",
+    "sync": "node scripts/copy-web.mjs && cap sync",
+    "android:apk": "node scripts/copy-web.mjs && cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

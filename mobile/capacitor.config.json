@@ -1,0 +1,26 @@
+{
+  "appId": "com.ipfxcapital.markets",
+  "appName": "IPFX Markets",
+  "webDir": "www",
+  "backgroundColor": "#0a0a0c",
+  "android": {
+    "backgroundColor": "#0a0a0c",
+    "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#0a0a0c",
+    "contentInset": "never"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#0a0a0c",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0a0a0c",
+      "overlaysWebView": false
+    }
+  }
+}
