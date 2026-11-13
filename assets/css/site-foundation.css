@@ -176,3 +176,18 @@ body > nav > a.logo .logo-text { white-space: nowrap; line-height: 1.2; }
 .ipfx-feedback-shortcut:hover { background: #1d4ed8; color: #fff; box-shadow: 0 6px 28px rgba(37,99,235,.55); }
 .ipfx-feedback-shortcut:focus-visible { outline: 3px solid #93c5fd; outline-offset: 4px; }
 .ipfx-feedback-shortcut svg { width: 21px; height: 21px; flex-shrink: 0; }
+
+/* Phones (added 13 Nov 2026). Only applies up to 768px wide. */
+@media (max-width: 768px) {
+  /* iPhone zooms into any field whose text is under 16px; 16px stops that. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea { font-size: 16px !important; }
+  /* No sideways wobble when an animated block pokes a few pixels past the edge. */
+  html, body { overflow-x: clip; }
+  /* The menu button belongs at the right-hand edge of the header. */
+  nav > .hamburger { margin-left: auto !important; }
+  /* Footer links big enough to tap. */
+  .ipfx-launch-footer a,
+  .ipfx-launch-footer button { min-height: 44px; display: inline-flex; align-items: center; }
+}

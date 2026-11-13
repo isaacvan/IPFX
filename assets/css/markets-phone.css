@@ -1,0 +1,221 @@
+/* IPFX Markets on phones.
+   Loaded only on screens up to 760px wide (see the <link media> in trading.html), so nothing here can change the
+   desktop layout. The page becomes four full-screen tabs (Chart, Trade, Positions, Account) driven by
+   assets/js/markets-phone.js, which sets html[data-ptab]. Every control is the existing desktop control, restyled:
+   orders, stops and risk checks run through exactly the same code. */
+
+:root{--ph-top:calc(48px + env(safe-area-inset-top,0px));--ph-tab:calc(58px + env(safe-area-inset-bottom,0px))}
+html,body{height:100%;height:100dvh;overscroll-behavior:none}
+body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+
+/* ── iPhone never zooms into a field when its text is at least 16px ── */
+input,select,textarea{font-size:16px!important}
+
+/* ── Top bar: logo, instrument, Challenge/Demo, feed status ── */
+.topbar{height:var(--ph-top);padding:env(safe-area-inset-top,0px) 10px 0;gap:8px}
+.topbar .tb-logo span,.topbar .tb-div,.topbar .tb-acct,.topbar .tb-pill,.topbar .tb-tool-grp,.topbar .tb-feedback,.topbar #tvConnectBtn{display:none!important}
+.topbar .tb-logo img{width:26px;height:26px}
+.topbar .tb-right{margin-left:auto;gap:6px}
+.ph-sym{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--fg);font:700 15px var(--font-ui);letter-spacing:-.01em;cursor:pointer;white-space:nowrap}
+.ph-sym svg{width:10px;height:10px;opacity:.6}
+.acct-mode{flex-shrink:0}
+.acct-mode .acct-mode-btn{min-height:34px;padding:0 9px;font-size:11px}
+.feed-badge{min-height:34px;padding:0 8px}
+.feed-badge .feed-lbl{display:none}
+
+/* ── Layout: one tab at a time ── */
+.layout{flex-direction:column}
+.guide-tog-rail,#guideTogRail,.guide-resize-handle,.btm-resize-handle,.btm-tog,.layout-tools,.chart-footer,.qt,#quickTicket,#maxHint{display:none!important}
+.guide,.guide.hidden{width:100%!important;max-width:none;border-left:0;border-top:1px solid var(--line);transition:none}
+.btm-outer,.btm-outer.collapsed{height:auto!important;transition:none}
+
+html[data-ptab="chart"] .guide,html[data-ptab="chart"] .btm-outer{display:none!important}
+html[data-ptab="trade"] .chart-wrap{flex:0 0 28dvh;min-height:160px}
+html[data-ptab="trade"] .guide{display:flex!important;flex:1;min-height:0}
+html[data-ptab="trade"] .btm-outer{display:none!important}
+html[data-ptab="positions"] .layout,html[data-ptab="account"] .layout{display:none!important}
+html[data-ptab="positions"] .btm-outer,html[data-ptab="account"] .btm-outer{display:flex!important;flex:1;min-height:0;border-top:0}
+
+/* ── Chart toolbar: one swipeable row ── */
+.chart-toolbar{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;gap:2px;padding:4px 6px}
+.chart-toolbar::-webkit-scrollbar{display:none}
+.chart-toolbar .tf-btn,.chart-toolbar .style-btn{min-width:40px;min-height:36px;flex-shrink:0}
+.chart-toolbar .ct-sep{flex-shrink:0}
+.chart-area{touch-action:none}
+
+/* Sell / Buy strip under the chart: opens the order ticket (stop set-up and risk checks included) */
+.ph-strip{display:none}
+html[data-ptab="chart"] .ph-strip{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 10px;background:var(--bg2);border-top:1px solid var(--line);flex-shrink:0}
+.ph-strip button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;border:0;border-radius:12px;color:#fff;font:700 15px var(--font-ui);cursor:pointer}
+.ph-strip button small{font:600 11px var(--font-ui);opacity:.8;letter-spacing:.04em;text-transform:uppercase}
+.ph-strip .s{background:#9e3137}.ph-strip .b{background:#28795d}
+body.light .ph-strip .s{background:#b13b43}body.light .ph-strip .b{background:#2f8064}
+
+/* ── Trade tab: the order ticket, full width, big targets ── */
+.guide-tabs{flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.guide-tabs::-webkit-scrollbar{display:none}
+.gtab{min-height:44px;display:flex;align-items:center;justify-content:center;flex:1 0 auto;padding:0 14px}
+.guide-body{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.guide.order-mode #tab-order{padding:12px 12px calc(16px + env(safe-area-inset-bottom,0px))!important;gap:10px}
+.op-type-btn,.op-quick,.op-ot,.op-preset{min-height:44px}
+.op-sltp-step,.op-lot-minus,.op-lot-plus{min-width:44px;min-height:44px}
+.op-trade-row{grid-template-columns:minmax(0,1fr) 136px minmax(0,1fr)!important;gap:8px}
+.op-lot-ctrl{min-width:0}.op-lot-mid{min-width:0;flex:1}.op-lot-num{width:100%!important;min-width:0;text-align:center;font-size:18px!important}
+.op-exec-btn{min-height:78px}
+.op-exec-px{font-size:17px}
+.op-signin{gap:10px}.op-signin-btn{height:44px;padding:0 18px;font-size:15px}
+.gt-sum{min-height:44px}.gt-sum-edit{padding:8px 12px}
+.gt-step button{min-width:44px;min-height:44px}
+.gt-chips button,.gt-auto,.gt-exact{min-height:40px}
+.wl-hd{min-height:44px}
+.wl-cat{min-height:36px;display:inline-flex;align-items:center}
+.wl-list{max-height:none!important}
+
+/* ── Positions / Account: swipeable tab row and cards instead of wide tables ── */
+.btm-header{overflow-x:auto;scrollbar-width:none;flex-shrink:0;padding:0 6px;gap:2px;min-height:48px}
+.btm-header::-webkit-scrollbar{display:none}
+.btab{min-height:44px;flex-shrink:0;display:flex;align-items:center;padding:0 12px!important}
+.btm-closeall{min-height:36px;flex-shrink:0;margin-left:auto}
+html[data-ptab="positions"] .btab[data-ph-group="account"],html[data-ptab="account"] .btab[data-ph-group="positions"]{display:none}
+html[data-ptab="account"] .btm-closeall{display:none!important}
+.btm-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:12px}
+.postbl-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;padding:10px 12px!important}
+.postbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* open positions as cards: symbol, side, size and live P&L; entry -> now; stop and target; action buttons */
+#bp-positions .postbl thead{display:none}
+#bp-positions .postbl,#bp-positions .postbl tbody{display:block;width:100%}
+#posTableBody tr{display:grid;grid-template-columns:auto auto 1fr auto;grid-template-areas:"sym side amt pnl" "px px px px" "sl sl tp tp" "act act act act";gap:6px 10px;align-items:center;margin:10px 12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+#posTableBody td{display:block;height:auto!important;min-height:0;line-height:1.35;padding:0!important;border:0!important;white-space:normal;text-align:left!important;font-size:14px}
+#posTableBody td:nth-child(n+7):nth-child(-n+11),#posTableBody td:nth-child(13),#posTableBody td:nth-child(14){display:none}
+#posTableBody td:nth-child(1){grid-area:sym;font-weight:800;font-size:16px}
+#posTableBody td:nth-child(2){grid-area:side}
+#posTableBody td:nth-child(3){grid-area:amt;color:var(--muted)}
+#posTableBody td:nth-child(3)::after{content:" lots"}
+#posTableBody td:nth-child(12){grid-area:pnl;font-weight:800;font-size:17px;text-align:right!important}
+#posTableBody td:nth-child(4){grid-area:px;color:var(--muted);font-variant-numeric:tabular-nums}
+#posTableBody td:nth-child(5){grid-area:sl}#posTableBody td:nth-child(6){grid-area:tp}
+#posTableBody td:nth-child(4)::before,#posTableBody td:nth-child(5)::before,#posTableBody td:nth-child(6)::before{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+#posTableBody td:nth-child(4)::before{content:"Entry → now"}
+#posTableBody td:nth-child(5)::before{content:"Stop loss"}
+#posTableBody td:nth-child(6)::before{content:"Take profit"}
+#posTableBody td:nth-child(15){grid-area:act}
+#posTableBody .postbl-act{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+#posTableBody .postbl-act-btn{width:auto!important;height:auto!important;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid var(--line);border-radius:10px;font-size:10.5px;font-weight:700;white-space:nowrap;color:var(--fg)}
+#posTableBody .postbl-act-btn svg{width:16px;height:16px}
+#posTableBody .postbl-act-btn::after{content:"Close"}
+#posTableBody .postbl-act-btn.act-edit::after{content:"Edit stop"}
+#posTableBody .postbl-act-btn.act-trail::after{content:"Trail"}
+#posTableBody .postbl-act-btn.act-be::after{content:"Break even"}
+#posTableBody .postbl-act-btn.act-partial::after{content:"Part close"}
+#posTableBody .postbl-act-btn:not([class*="act-"]){border-color:rgba(239,68,68,.5);color:#f87171}
+#posTableBody tr:has(.postbl-empty){display:block;margin:0;padding:0;border:0;background:none}
+#posTableBody tr:has(.postbl-empty) td{display:block}
+.postbl-empty{padding:28px 16px!important;text-align:center}
+.postbl-empty-btn{min-height:44px;padding:0 20px}
+
+/* ── Account tab extras (dashboard, theme, feedback) ── */
+.ph-acct{display:none}
+html[data-ptab="account"] .ph-acct{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 12px 0;flex-shrink:0}
+.ph-acct a,.ph-acct button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 8px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--fg);font:650 13px var(--font-ui);text-decoration:none;cursor:pointer;text-align:center}
+
+/* ── Bottom tab bar ── */
+.ph-tabbar{display:grid;grid-template-columns:repeat(4,1fr);order:99;flex-shrink:0;height:var(--ph-tab);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg2);border-top:1px solid var(--line);z-index:60}
+.ph-tabbar button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:none;color:var(--muted);font:650 11px var(--font-ui);cursor:pointer}
+.ph-tabbar button svg{width:22px;height:22px}
+.ph-tabbar button[aria-selected="true"]{color:#3b82f6}
+.ph-tabbar .ph-badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#2563eb;color:#fff;font:700 11px/18px var(--font-ui)}
+.ph-tabbar .ph-badge[hidden]{display:none}
+
+/* ── Sheets, dialogs and notices fit the screen ── */
+.eng-toasts{top:calc(var(--ph-top) + 8px)!important;width:calc(100vw - 20px)!important}
+.sym-picker{padding-top:0!important;align-items:stretch!important}
+.sym-sheet{width:100vw!important;max-height:none!important;height:100%;border-radius:0!important;border:0!important;padding-top:env(safe-area-inset-top,0px)}
+.sym-sheet kbd,.sym-foot{display:none!important}
+.sym-list>*{min-height:48px}
+.desktop-auth{align-items:flex-end!important;padding:0!important}
+.desktop-auth-card{width:100vw!important;border-radius:18px 18px 0 0!important;padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px))!important}
+.desktop-auth-submit{min-height:50px}
+.inf-freeze{align-items:flex-end!important;padding:0!important}
+.inf-freeze-card{width:100vw!important;max-height:92dvh;overflow-y:auto;border-radius:20px 20px 0 0!important;padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px))!important}
+.inf-freeze-btn{min-height:48px}
+.wc-box{width:calc(100vw - 24px)!important;max-height:86dvh;overflow-y:auto;padding:1.3rem!important}
+.wc-sections{grid-template-columns:1fr!important}
+.wc-start{min-height:50px}
+[role="dialog"],[aria-modal="true"]{max-width:100vw}
+
+/* ── Install as an app ── */
+.ph-install{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#111827;border-bottom:1px solid rgba(37,99,235,.35);flex-shrink:0}
+.ph-install[hidden]{display:none}
+.ph-install img{border-radius:9px;flex-shrink:0}
+.ph-install span{flex:1;min-width:0;font-size:12px;line-height:1.35;color:#a1a1aa}
+.ph-install span b{display:block;font-size:13.5px;color:#f4f4f5}
+.ph-install .go{min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#2563eb;color:#fff;font:700 14px var(--font-ui)}
+.ph-install .x{width:40px;height:40px;border:0;background:none;color:#a1a1aa;font-size:22px}
+html:not([data-ptab="chart"]) .ph-install{display:none}
+.ph-install-guide{position:fixed;inset:0;z-index:9500;display:flex;align-items:flex-end;background:rgba(0,0,0,.6)}
+.ph-install-guide[hidden]{display:none}
+.ph-ig-card{width:100%;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));border-radius:20px 20px 0 0;background:#151517;color:#f4f4f5;text-align:center}
+.ph-ig-card img{border-radius:13px}
+.ph-ig-card h2{font-size:19px;margin:10px 0 12px}
+.ph-ig-card ol{margin:0 0 16px;padding-left:22px;text-align:left;font-size:15px;line-height:1.6;color:#d4d4d8}
+.ph-ig-card ol svg{width:18px;height:18px;vertical-align:-3px;color:#3b82f6}
+.ph-ig-card button{width:100%;min-height:50px;border:0;border-radius:12px;background:#2563eb;color:#fff;font:700 16px var(--font-ui)}
+html[data-ptab="account"] .ph-acct{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ph-acct [hidden]{display:none!important}
+.rule-dlg{width:calc(100vw - 20px)!important;max-width:none!important;max-height:88dvh}
+.rule-dlg button{min-height:46px}
+
+/* Restart, switch to v2 and tour buttons moved here from the top bar */
+.ph-acct-more{display:none}
+html[data-ptab="account"] .ph-acct-more{display:grid;grid-template-columns:1fr;gap:8px;padding:8px 12px 0;flex-shrink:0}
+.ph-acct-more:empty{display:none!important}
+.ph-acct-more>[hidden]{display:none!important}
+.ph-acct-more button{width:100%;min-height:46px;justify-content:center;margin:0!important;font-size:14px!important}
+.ph-acct-more #gtHelp::before{content:"Show the Markets tour";}
+.ph-acct-more #gtHelp{font-size:0!important}
+.ph-acct-more #gtHelp::before{font-size:14px}
+.topbar #iv2Badge{display:none!important}
+.rs-dlg{width:calc(100vw - 20px)!important;max-width:none!important;max-height:90dvh}
+.rs-dlg button{min-height:46px}
+
+/* Remaining small targets */
+.acct-mode .acct-mode-btn{min-height:40px}
+.feed-badge{min-width:40px;min-height:40px;justify-content:center}
+.chart-toolbar .tf-btn,.chart-toolbar .style-btn{min-width:44px;min-height:40px}
+.op-sym-btn{min-height:40px}
+.hk-chip,#hkChip{display:none!important}
+.op-advanced summary{min-height:44px;display:flex;align-items:center}
+.op-act{min-height:44px}
+.btm-closeall{min-height:40px}
+
+/* Instrument list */
+.sym-search{padding:10px 12px!important}
+.ph-sym-close{flex-shrink:0;min-height:40px;padding:0 6px 0 10px;border:0;background:none;color:#3b82f6;font:650 16px var(--font-ui);cursor:pointer}
+.sym-cats{overflow-x:auto;scrollbar-width:none;padding:10px 12px 8px!important}
+.sym-cats::-webkit-scrollbar{display:none}
+.sym-cat{height:36px!important;flex-shrink:0;font-size:13px!important}
+.sym-head,.sym-row{grid-template-columns:minmax(0,1fr) 82px 82px!important;padding:0 12px!important}
+.sym-head span:nth-child(4),.sym-row .px.spr{display:none}
+.sym-row{height:56px!important}
+.sym-row .nm b{font-size:15px}
+.sym-row .nm small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sym-row .px{font-size:14px}
+.sym-row .px.st{grid-column:2 / span 2!important;text-align:right}
+.sym-list{padding:0 4px calc(8px + env(safe-area-inset-bottom,0px))!important}
+
+/* Sign-in sheet */
+.desktop-auth-card{position:relative}
+.ph-auth-close{position:absolute;top:10px;right:10px;width:44px;height:44px;border:0;border-radius:22px;background:rgba(255,255,255,.06);color:#a1a1aa;font-size:24px;line-height:1;cursor:pointer}
+.ph-auth-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px}
+.ph-auth-links a{display:inline-flex;align-items:center;min-height:44px;color:#60a5fa;font:600 15px var(--font-ui);text-decoration:none}
+.desktop-auth-copy{font-size:14px!important}
+.desktop-auth-note{font-size:12px!important}
+.desktop-auth-field input{min-height:48px}
+
+/* Feed status: keep its words ("Sign in", "Live") so the button explains itself */
+.feed-badge .feed-lbl{display:inline!important;font-size:12px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed-badge{padding:0 10px!important;gap:6px}
+
+/* Stop-loss countdown: big buttons */
+.eng-toast.rule .rule-act button{min-height:44px;padding:0 16px}

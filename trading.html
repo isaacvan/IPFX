@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IPFX Markets">
+<link rel="apple-touch-icon" href="/assets/images/app/apple-touch-icon.png">
 <script>if(new URLSearchParams(location.search).get('desktop')==='1')document.documentElement.classList.add('desktop-app');</script>
 <title>IPFX Markets</title>
     <meta name="description" content="Secure IPFX Capital account and operations page.">
@@ -13,7 +19,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/ipfx-markets-16.png">
     <link rel="preconnect" href="https://hub.ipfxcapital.com" crossorigin>
     <link rel="preconnect" href="https://agulweemteoeagscmppy.supabase.co" crossorigin>
-    <link rel="manifest" href="/site.webmanifest">
+    <link rel="manifest" href="/markets.webmanifest">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="IPFX Capital">
     <meta property="og:title" content="IPFX Markets">
@@ -1683,6 +1689,8 @@ body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
 <script src="/assets/js/challenge-warnings.js?v=20261101a"></script>
+<!-- Phone layout: only loaded on screens up to 760px wide, so the desktop layout is unaffected. -->
+<link rel="stylesheet" href="/assets/css/markets-phone.css?v=20261113a" media="(max-width: 760px)">
 </head>
 <body>
 
@@ -4919,7 +4927,7 @@ async function connectDesktopAccount(event){
   }catch(error){
     const message=(error&&error.message)||'Could not connect this account.';
     errorEl.textContent=/invalid login credentials/i.test(message)?'The email or password is incorrect.':message;
-  }finally{submit.disabled=false;submit.textContent='Connect account';}
+  }finally{submit.disabled=false;submit.textContent=submit.dataset.label||'Connect account';}
 }
 async function waitForSbEngine(timeoutMs=8000){
   const started=Date.now();
@@ -7564,6 +7572,7 @@ setChartEngine(chartEngine);
 <script src="/assets/js/markets-guided.js?v=20261109a"></script>
 <script src="/assets/js/infinity-restart.js?v=20261107a"></script>
 <script src="/assets/js/infinity-v2-ui.js?v=20261102a"></script>
+<script src="/assets/js/markets-phone.js?v=20261113a"></script>
 
 <dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
   <h2 id="stageRulesTitle" tabindex="-1">Your rules: things to know</h2>

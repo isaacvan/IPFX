@@ -1,0 +1,19 @@
+{
+  "id": "/trading.html",
+  "name": "IPFX Markets",
+  "short_name": "IPFX Markets",
+  "description": "Trade the IPFX Infinity Challenge on your phone.",
+  "start_url": "/trading.html?source=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "categories": ["finance", "education"],
+  "icons": [
+    { "src": "/assets/images/app/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/images/app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/images/app/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/assets/images/app/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
