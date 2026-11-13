@@ -17,7 +17,7 @@ const sw = read('markets-sw.js');
 test('the phone stylesheet only loads on phone-sized screens', () => {
   const links = html.match(/<link[^>]*markets-phone\.css[^>]*>/g) || [];
   assert.equal(links.length, 1);
-  assert.match(links[0], /media="\(max-width: 760px\)"/);
+  assert.match(links[0], /media="\(max-width: 760px\), \(pointer: coarse\) and \(max-height: 520px\)"/);
   assert.match(html, /<script src="\/assets\/js\/markets-phone\.js\?v=\d+[a-z]?"><\/script>/);
   assert.match(html, /viewport-fit=cover/);
   for (const page of fs.readdirSync(new URL('./', root)).filter((f) => f.endsWith('.html') && f !== 'trading.html')) {
@@ -26,11 +26,11 @@ test('the phone stylesheet only loads on phone-sized screens', () => {
 });
 
 test('phone elements are hidden on wider screens even without the phone stylesheet', () => {
-  assert.match(js, /@media \(min-width: 761px\)\{\.ph-only\{display:none!important\}\}/);
+  assert.match(js, /html:not\(\.phone\) \.ph-only\{display:none!important\}/);
   for (const cls of ['ph-tabbar', 'ph-strip', 'ph-sym', 'ph-acct', 'ph-acct-more', 'ph-install', 'ph-install-guide', 'ph-auth-close', 'ph-auth-links', 'ph-sym-close']) {
     assert.match(js, new RegExp(`className = '${cls}( [a-z-]+)* ?ph-only'|className = '${cls} ph-only'`), `${cls} is phone-only`);
   }
-  assert.match(js, /window\.matchMedia\('\(max-width: 760px\)'\)/);
+  assert.match(js, /window\.matchMedia\('\(max-width: 760px\), \(pointer: coarse\) and \(max-height: 520px\)'\)/);
 });
 
 test('the phone layer never places, closes or changes a trade itself', () => {

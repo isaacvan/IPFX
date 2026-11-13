@@ -1,11 +1,11 @@
-// IPFX Markets on phones (screens up to 760px wide).
+// IPFX Markets on phones (screens up to 760px wide, or a touch screen under 520px tall, i.e. a phone held sideways).
 // Adds a bottom tab bar (Chart, Trade, Positions, Account), a Sell/Buy strip under the chart, an instrument button in
 // the top bar and a few account shortcuts. It never places an order itself: Sell/Buy on the chart open the normal order
 // ticket, so the stop-loss set-up, risk checks and fills are exactly the desktop ones. On wider screens it does nothing
 // visible (the elements are hidden and assets/css/markets-phone.css is not loaded).
 (function () {
   'use strict';
-  const MQ = window.matchMedia('(max-width: 760px)');
+  const MQ = window.matchMedia('(max-width: 760px), (pointer: coarse) and (max-height: 520px)');
   const KEY = 'ipfx-phone-tab';
   const TABS = ['chart', 'trade', 'positions', 'account'];
   const ICONS = {
@@ -23,9 +23,9 @@
   const $ = (id) => document.getElementById(id);
   let built = false, current = null, lastBtab = { positions: 'positions', account: 'challenge' }, priceTimer = 0;
 
-  // Hide the phone-only elements on wider screens without needing the phone stylesheet.
+  // Hide the phone-only elements everywhere except in phone mode, without needing the phone stylesheet.
   const base = document.createElement('style');
-  base.textContent = '@media (min-width: 761px){.ph-only{display:none!important}}';
+  base.textContent = 'html:not(.phone) .ph-only{display:none!important}';
   document.head.appendChild(base);
 
   function btabId(el) { const m = /switchBtab\('([a-z]+)'/.exec(el.getAttribute('onclick') || ''); return m ? m[1] : ''; }
@@ -113,6 +113,18 @@
       if (group) b.dataset.phGroup = group;
       b.addEventListener('click', () => { if (group) lastBtab[group] = id; });
     });
+
+    // Tour cards: on a phone, full width and above or below the highlighted control so they never cover it.
+    new MutationObserver(() => {
+      if (!MQ.matches) return;
+      const card = document.querySelector('.gt-tour-card'), hole = document.querySelector('.gt-tour-hole');
+      if (!card || !hole || card.dataset.phPlaced) return;
+      card.dataset.phPlaced = '1';
+      const h = hole.getBoundingClientRect(), c = card.getBoundingClientRect(), top = 8 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ph-safe-top')) || 0);
+      const below = h.bottom + 10, above = h.top - 10 - c.height;
+      Object.assign(card.style, { left: '10px', right: '10px', width: 'auto', maxWidth: 'none',
+        top: (h.top + h.height / 2 > innerHeight / 2 ? Math.max(top, above) : Math.min(innerHeight - c.height - 70, below)) + 'px' });
+    }).observe(document.body, { childList: true });
 
     priceTimer = setInterval(syncLive, 400);
     syncLive();

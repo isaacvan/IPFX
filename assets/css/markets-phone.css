@@ -219,3 +219,19 @@ html[data-ptab="account"] .ph-acct-more{display:grid;grid-template-columns:1fr;g
 
 /* Stop-loss countdown: big buttons */
 .eng-toast.rule .rule-act button{min-height:44px;padding:0 16px}
+
+/* Phone held sideways: short screen, so slimmer bars and the ticket beside the chart */
+@media (orientation: landscape) and (max-height: 520px) {
+  :root{--ph-top:calc(42px + env(safe-area-inset-top,0px));--ph-tab:calc(48px + env(safe-area-inset-bottom,0px))}
+  .topbar{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
+  .ph-tabbar button{flex-direction:row;gap:6px}
+  .ph-tabbar button svg{width:18px;height:18px}
+  .ph-tabbar .ph-badge{position:static;margin-left:2px}
+  html[data-ptab="trade"] .wl-wrap{display:none}
+  .chart-toolbar{padding:2px 6px}
+  html[data-ptab="chart"] .ph-strip{padding:6px 10px}
+  .ph-strip button{min-height:44px;flex-direction:row;gap:8px}
+  html[data-ptab="trade"] .layout{flex-direction:row}
+  html[data-ptab="trade"] .chart-wrap{flex:1 1 auto;min-height:0}
+  html[data-ptab="trade"] .guide{flex:0 0 min(400px,50vw);width:auto!important;border-top:0;border-left:1px solid var(--line)}
+}
