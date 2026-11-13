@@ -5,6 +5,42 @@
 // visible (the elements are hidden and assets/css/markets-phone.css is not loaded).
 (function () {
   'use strict';
+
+  // ── Early access (13 Nov 2026) ──
+  // On ipfxcapital.com the phone version is switched on only for the accounts listed here (the owner's account first),
+  // so every other trader keeps today's site until it is released to all. Set RELEASED_TO_EVERYONE to true for that.
+  // Local previews, the Wi-Fi preview and the IPFX app always show it.
+  const RELEASED_TO_EVERYONE = false;
+  const EARLY_ACCESS_ACCOUNTS = ['f77286ef-8b51-47f3-b6b7-a62f541a4239']; // paulade491
+  const SB_AUTH_KEY = 'sb-agulweemteoeagscmppy-auth-token';
+  function signedInAccountId() {
+    try {
+      let raw = localStorage.getItem(SB_AUTH_KEY);
+      if (raw === null) { let acc = '', i = 0, part; while ((part = localStorage.getItem(SB_AUTH_KEY + '.' + i)) !== null) { acc += part; i++; } raw = acc || null; }
+      if (!raw) return null;
+      if (raw.startsWith('base64-')) raw = new TextDecoder().decode(Uint8Array.from(atob(raw.slice(7)), (c) => c.charCodeAt(0)));
+      const s = JSON.parse(raw), sess = s && s.user ? s : (s && s.currentSession) || null;
+      return (sess && sess.user && sess.user.id) || null;
+    } catch (_) { return null; }
+  }
+  function phoneVersionOn() {
+    if (RELEASED_TO_EVERYONE || window.Capacitor) return true;
+    if (!/(^|\.)ipfxcapital\.com$/i.test(location.hostname)) return true;
+    return EARLY_ACCESS_ACCOUNTS.includes(signedInAccountId());
+  }
+  let started = false;
+  function start() {
+    if (started) return; started = true;
+    const css = document.getElementById('marketsPhoneCss');
+    if (css && css.dataset.phoneMedia) css.media = css.dataset.phoneMedia;
+    const manifest = document.getElementById('appManifest');
+    if (manifest) manifest.href = '/markets.webmanifest';
+    runPhone();
+  }
+  if (phoneVersionOn()) start();
+  else { const t = setInterval(() => { if (phoneVersionOn()) { clearInterval(t); start(); } }, 2000); } // switches on right after signing in
+
+  function runPhone() {
   const MQ = window.matchMedia('(max-width: 760px), (pointer: coarse) and (max-height: 520px)');
   const KEY = 'ipfx-phone-tab';
   const TABS = ['chart', 'trade', 'positions', 'account'];
@@ -274,6 +310,8 @@
   // Offline page for the installed app. Scope is Markets only; see /markets-sw.js.
   if ('serviceWorker' in navigator && !window.Capacitor && !document.documentElement.classList.contains('desktop-app')
       && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('/markets-sw.js', { scope: '/trading.html' }).catch(() => {}); });
+    const reg = () => navigator.serviceWorker.register('/markets-sw.js', { scope: '/trading.html' }).catch(() => {});
+    if (document.readyState === 'complete') reg(); else window.addEventListener('load', reg);
+  }
   }
 })();

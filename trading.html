@@ -19,7 +19,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/ipfx-markets-16.png">
     <link rel="preconnect" href="https://hub.ipfxcapital.com" crossorigin>
     <link rel="preconnect" href="https://agulweemteoeagscmppy.supabase.co" crossorigin>
-    <link rel="manifest" href="/markets.webmanifest">
+    <link rel="manifest" href="/site.webmanifest" id="appManifest">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="IPFX Capital">
     <meta property="og:title" content="IPFX Markets">
@@ -1689,8 +1689,8 @@ body.light .sym-cat{background:rgba(0,0,0,.05)}
 body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
 <script src="/assets/js/challenge-warnings.js?v=20261101a"></script>
-<!-- Phone layout: only loaded on phone screens (up to 760px wide, or a touch screen under 520px tall when the phone is turned sideways), so the desktop layout is unaffected. -->
-<link rel="stylesheet" href="/assets/css/markets-phone.css?v=20261113a" media="(max-width: 760px), (pointer: coarse) and (max-height: 520px)">
+<!-- Phone layout: switched on by markets-phone.js (early access: listed accounts only), and then only on phone screens (up to 760px wide, or a touch screen under 520px tall when turned sideways), so the desktop layout is unaffected. -->
+<link rel="stylesheet" href="/assets/css/markets-phone.css?v=20261113b" id="marketsPhoneCss" media="not all" data-phone-media="(max-width: 760px), (pointer: coarse) and (max-height: 520px)">
 </head>
 <body>
 
@@ -7572,7 +7572,7 @@ setChartEngine(chartEngine);
 <script src="/assets/js/markets-guided.js?v=20261109a"></script>
 <script src="/assets/js/infinity-restart.js?v=20261107a"></script>
 <script src="/assets/js/infinity-v2-ui.js?v=20261102a"></script>
-<script src="/assets/js/markets-phone.js?v=20261113a"></script>
+<script src="/assets/js/markets-phone.js?v=20261113b"></script>
 
 <dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
   <h2 id="stageRulesTitle" tabindex="-1">Your rules: things to know</h2>

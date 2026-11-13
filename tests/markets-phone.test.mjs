@@ -17,7 +17,7 @@ const sw = read('markets-sw.js');
 test('the phone stylesheet only loads on phone-sized screens', () => {
   const links = html.match(/<link[^>]*markets-phone\.css[^>]*>/g) || [];
   assert.equal(links.length, 1);
-  assert.match(links[0], /media="\(max-width: 760px\), \(pointer: coarse\) and \(max-height: 520px\)"/);
+  assert.match(links[0], /media="not all" data-phone-media="\(max-width: 760px\), \(pointer: coarse\) and \(max-height: 520px\)"/, 'off until markets-phone.js switches it on');
   assert.match(html, /<script src="\/assets\/js\/markets-phone\.js\?v=\d+[a-z]?"><\/script>/);
   assert.match(html, /viewport-fit=cover/);
   for (const page of fs.readdirSync(new URL('./', root)).filter((f) => f.endsWith('.html') && f !== 'trading.html')) {
@@ -65,18 +65,20 @@ test('app manifest and icons for iPhone and Android', () => {
   assert.match(m.start_url, /^\/trading\.html/);
   assert.ok(m.icons.some((i) => i.purpose === 'maskable' && i.sizes === '512x512'));
   for (const i of m.icons) assert.ok(fs.existsSync(new URL('.' + i.src, root)), i.src);
-  assert.match(html, /<link rel="manifest" href="\/markets\.webmanifest">/);
+  assert.match(html, /<link rel="manifest" href="\/site\.webmanifest" id="appManifest">/, 'the Markets app manifest is only swapped in for accounts with the phone version');
   assert.match(html, /<link rel="apple-touch-icon" href="\/assets\/images\/app\/apple-touch-icon\.png">/);
   assert.ok(fs.existsSync(new URL('assets/images/app/apple-touch-icon.png', root)));
 });
 
-test('shared phone fixes only apply up to 768px wide', () => {
-  const f = read('assets/css/site-foundation.css');
-  const at = f.indexOf('/* Phones (added 13 Nov 2026)');
-  assert.ok(at > 0);
-  const block = f.slice(at);
-  assert.match(block, /^\/\* Phones \(added 13 Nov 2026\)\. Only applies up to 768px wide\. \*\/\n@media \(max-width: 768px\) \{/);
-  assert.match(block, /font-size: 16px !important/);
+test('early access: on ipfxcapital.com only the listed accounts get the phone version', () => {
+  assert.match(js, /const RELEASED_TO_EVERYONE = false;/);
+  assert.match(js, /const EARLY_ACCESS_ACCOUNTS = \['f77286ef-8b51-47f3-b6b7-a62f541a4239'\]; \/\/ paulade491/);
+  assert.match(js, /if \(!\/\(\^\|\\.\)ipfxcapital\\.com\$\/i\.test\(location\.hostname\)\) return true;/);
+  assert.match(js, /return EARLY_ACCESS_ACCOUNTS\.includes\(signedInAccountId\(\)\);/);
+  // nothing phone-related runs (no layout, no install offer, no service worker) until it is switched on
+  const gate = js.indexOf('if (phoneVersionOn()) start();'), body = js.indexOf('function runPhone() {');
+  assert.ok(gate > 0 && body > gate);
+  assert.ok(js.indexOf('serviceWorker.register') > body && js.indexOf("'beforeinstallprompt'") > body);
 });
 
 const enabled = Boolean(process.env.MARKETS_BROWSER_TEST);
