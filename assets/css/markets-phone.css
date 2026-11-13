@@ -267,3 +267,13 @@ html[data-ptab="account"] .ph-acct-more{display:grid;grid-template-columns:1fr;g
 /* Stop / target lines on the chart: a finger-sized grab area */
 .ipc-grab{top:-16px!important;height:32px!important}
 .ipc-tag{min-height:28px}
+
+/* Small phones (360-380px): the top bar must fit logo-less */
+.topbar .tb-right{flex-shrink:0}
+.ph-sym{min-width:0;flex-shrink:1;overflow:hidden}
+@media (max-width: 400px) {
+  .topbar{gap:6px}
+  .topbar .tb-logo{display:none!important}
+  .ph-sym{padding:0 8px;font-size:14px}
+  .acct-mode .acct-mode-btn{padding:0 7px;font-size:10.5px;letter-spacing:.02em}
+}

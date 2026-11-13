@@ -107,7 +107,7 @@ async function open(width, height, mobile) {
 }
 
 test('on a phone: four tabs, one panel at a time, nothing off the side of the screen', { skip: !enabled }, async () => {
-  for (const [w, h] of [[390, 844], [360, 780], [430, 932]]) {
+  for (const [w, h] of [[390, 844], [360, 780], [320, 640], [430, 932]]) {
     const { browser, page } = await open(w, h, true);
     try {
       const tabs = await page.locator('#phTabbar button > span').allTextContents();
