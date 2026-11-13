@@ -1,8 +1,8 @@
 // IPFX Markets on phones (screens up to 760px wide, or a touch screen under 520px tall, i.e. a phone held sideways).
-// Adds a bottom tab bar (Chart, Trade, Positions, Account), a Sell/Buy strip under the chart, an instrument button in
-// the top bar and a few account shortcuts. It never places an order itself: Sell/Buy on the chart open the normal order
-// ticket, so the stop-loss set-up, risk checks and fills are exactly the desktop ones. On wider screens it does nothing
-// visible (the elements are hidden and assets/css/markets-phone.css is not loaded).
+// Adds a bottom tab bar (Chart, Trade, Positions, Account), docks the desktop quick-trade bar under the chart, and adds
+// an instrument button, equity and a few account shortcuts. It never places an order itself: Sell/Buy are the desktop's
+// own ticket controls, so the stop-loss set-up, risk checks and fills are exactly the desktop ones. On wider screens it
+// does nothing visible (the elements are hidden and assets/css/markets-phone.css is not loaded).
 (function () {
   'use strict';
 
@@ -23,10 +23,18 @@
       return (sess && sess.user && sess.user.id) || null;
     } catch (_) { return null; }
   }
+  // Once an early-access account has signed in on a phone, that phone keeps the phone version (also when signed out).
+  // trading.html?phone=1 switches it on for this browser before signing in; ?phone=0 switches it off again.
+  const DEVICE_KEY = 'ipfx-phone-early-access';
+  function remember(on) { try { if (on) localStorage.setItem(DEVICE_KEY, '1'); else localStorage.removeItem(DEVICE_KEY); } catch (_) {} }
+  function remembered() { try { return localStorage.getItem(DEVICE_KEY) === '1'; } catch (_) { return false; } }
+  const flag = new URLSearchParams(location.search).get('phone');
+  if (flag === '1') remember(true); else if (flag === '0') remember(false);
   function phoneVersionOn() {
     if (RELEASED_TO_EVERYONE || window.Capacitor) return true;
     if (!/(^|\.)ipfxcapital\.com$/i.test(location.hostname)) return true;
-    return EARLY_ACCESS_ACCOUNTS.includes(signedInAccountId());
+    if (EARLY_ACCESS_ACCOUNTS.includes(signedInAccountId())) { remember(true); return true; }
+    return remembered();
   }
   let started = false;
   function start() {
@@ -80,15 +88,43 @@
     bar.addEventListener('click', (e) => { const b = e.target.closest('button[data-ptab]'); if (b) setTab(b.dataset.ptab, true); });
     body.appendChild(bar);
 
-    // Sell / Buy strip under the chart: opens the ticket.
-    const wrap = document.querySelector('.chart-wrap');
-    if (wrap) {
-      const strip = document.createElement('div');
-      strip.className = 'ph-strip ph-only'; strip.id = 'phStrip';
-      strip.innerHTML = '<button type="button" class="s" data-side="sell" aria-label="Sell: open the order ticket"><small>Sell</small><span id="phBid">—</span></button>'
-        + '<button type="button" class="b" data-side="buy" aria-label="Buy: open the order ticket"><small>Buy</small><span id="phAsk">—</span></button>';
-      strip.addEventListener('click', (e) => { if (e.target.closest('button')) setTab('trade', true); });
-      wrap.appendChild(strip);
+    // Quick-trade bar under the chart (like TradeLocker's): the desktop quick ticket, docked full width. It is the
+    // desktop's own remote control for the order ticket (same lots, stop, take profit, risk checks and order path), so
+    // nothing about how an order is placed changes. Shown on the Chart tab; "open the full ticket" goes to Trade.
+    const origShow = window.qtShouldShow, origFull = window.qtOpenFull;
+    if (typeof origShow === 'function') window.qtShouldShow = () => (MQ.matches ? current === 'chart' : origShow());
+    if (typeof origFull === 'function') window.qtOpenFull = () => (MQ.matches ? setTab('trade', true) : origFull());
+
+    // Timeframes: one button showing the current one; tap it to pick another (like TradeLocker's "5m").
+    const tb = $('chartToolbar');
+    if (tb) {
+      tb.addEventListener('click', (e) => {
+        if (!MQ.matches) return;
+        const b = e.target.closest('.tf-btn, .style-btn[data-style]'); if (!b) return;
+        if (!tb.classList.contains('ph-tf-open')) { e.preventDefault(); e.stopImmediatePropagation(); tb.classList.add('ph-tf-open'); b.scrollIntoView({ inline: 'center', block: 'nearest' }); return; }
+        setTimeout(() => tb.classList.remove('ph-tf-open'), 0);
+      }, true);
+      document.addEventListener('click', (e) => { if (!e.target.closest('#chartToolbar')) tb.classList.remove('ph-tf-open'); });
+      // Indicators, next to the timeframe (opens them in the Trade tab).
+      const ind = document.createElement('button');
+      ind.type = 'button'; ind.id = 'phInd'; ind.className = 'ph-ind ph-only'; ind.setAttribute('aria-label', 'Indicators');
+      ind.innerHTML = '<i>f</i><sub>x</sub>';
+      ind.addEventListener('click', () => {
+        setTab('trade', true);
+        const g = [...document.querySelectorAll('.gtab')].find((x) => /switchTab\('ind'/.test(x.getAttribute('onclick') || ''));
+        if (g && typeof window.switchTab === 'function') window.switchTab('ind', g);
+      });
+      tb.appendChild(ind);
+    }
+
+    // Balance in the top bar once signed in (TradeLocker shows it there too).
+    const feed = $('feedBadge');
+    if (feed && !$('phBal')) {
+      const bal = document.createElement('button');
+      bal.type = 'button'; bal.id = 'phBal'; bal.className = 'ph-bal ph-only'; bal.hidden = true;
+      bal.setAttribute('aria-label', 'Account equity: open the Account tab');
+      bal.addEventListener('click', () => setTab('account', true));
+      feed.parentNode.insertBefore(bal, feed);
     }
 
     // Instrument button in the top bar (same picker as the ticket's instrument name).
@@ -181,12 +217,24 @@
     });
   }
 
+  // The quick ticket lives in the chart area on desktop; on a phone it sits under the chart, full width.
+  let qtHome = null;
+  function dockTicket(toPhone) {
+    const qt = $('quickTicket'), wrap = document.querySelector('.chart-wrap'); if (!qt || !wrap) return;
+    if (toPhone && qt.parentNode !== wrap) { qtHome = qtHome || qt.parentNode; wrap.appendChild(qt); }
+    else if (!toPhone && qtHome && qt.parentNode !== qtHome) qtHome.appendChild(qt);
+    if (typeof window.syncQuickTicketVisibility === 'function') { try { window.syncQuickTicketVisibility(); } catch (_) {} }
+  }
+
   function syncLive() {
     if (!MQ.matches) return;
     relocate(true);
-    const bid = $('ord-bid-price'), ask = $('ord-ask-price'), pb = $('phBid'), pa = $('phAsk');
-    if (bid && pb && pb.textContent !== bid.textContent) pb.textContent = bid.textContent;
-    if (ask && pa && pa.textContent !== ask.textContent) pa.textContent = ask.textContent;
+    dockTicket(true);
+    const eq = $('ps-equity'), bal = $('phBal');
+    if (eq && bal) {
+      const v = (eq.textContent || '').trim(), on = document.body.classList.contains('signed-in') && /\d/.test(v);
+      bal.hidden = !on; if (on && bal.textContent !== v) bal.textContent = v;
+    }
     const symSrc = $('op-sym'), symDst = $('phSymName');
     if (symSrc && symDst && symDst.textContent !== symSrc.textContent) symDst.textContent = symSrc.textContent;
     const n = Number(($('posBadge') || {}).textContent || 0), badge = $('phPosBadge');
@@ -210,6 +258,7 @@
         if (el && typeof window.switchBtab === 'function') window.switchBtab(lastBtab[tab], el);
       }
     }
+    dockTicket(true);
     // Let the chart and anything measuring the layout catch up with the new sizes.
     if (prev !== tab) requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
@@ -235,7 +284,7 @@
 
   function apply() {
     document.documentElement.classList.toggle('phone', MQ.matches);
-    if (!MQ.matches) { delete document.documentElement.dataset.ptab; relocate(false); authWording(false); return; }
+    if (!MQ.matches) { delete document.documentElement.dataset.ptab; relocate(false); authWording(false); dockTicket(false); return; }
     build();
     authWording(true);
     let saved = 'chart';

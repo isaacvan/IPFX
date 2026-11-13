@@ -27,7 +27,7 @@ test('the phone stylesheet only loads on phone-sized screens', () => {
 
 test('phone elements are hidden on wider screens even without the phone stylesheet', () => {
   assert.match(js, /html:not\(\.phone\) \.ph-only\{display:none!important\}/);
-  for (const cls of ['ph-tabbar', 'ph-strip', 'ph-sym', 'ph-acct', 'ph-acct-more', 'ph-install', 'ph-install-guide', 'ph-auth-close', 'ph-auth-links', 'ph-sym-close']) {
+  for (const cls of ['ph-tabbar', 'ph-ind', 'ph-bal', 'ph-sym', 'ph-acct', 'ph-acct-more', 'ph-install', 'ph-install-guide', 'ph-auth-close', 'ph-auth-links', 'ph-sym-close']) {
     assert.match(js, new RegExp(`className = '${cls}( [a-z-]+)* ?ph-only'|className = '${cls} ph-only'`), `${cls} is phone-only`);
   }
   assert.match(js, /window\.matchMedia\('\(max-width: 760px\), \(pointer: coarse\) and \(max-height: 520px\)'\)/);
@@ -35,8 +35,10 @@ test('phone elements are hidden on wider screens even without the phone styleshe
 
 test('the phone layer never places, closes or changes a trade itself', () => {
   assert.doesNotMatch(js, /placeOrder|engineCall|closeTradeById|flattenAll|fetch\(/);
-  // Sell / Buy on the chart open the normal ticket (with its stop set-up and risk checks).
-  assert.match(js, /strip\.addEventListener\('click', \(e\) => \{ if \(e\.target\.closest\('button'\)\) setTab\('trade', true\); \}\)/);
+  // The bar under the chart is the desktop quick ticket (its own placeOrder path), shown only on the Chart tab;
+  // "open the full ticket" goes to the Trade tab.
+  assert.match(js, /window\.qtShouldShow = \(\) => \(MQ\.matches \? current === 'chart' : origShow\(\)\)/);
+  assert.match(js, /window\.qtOpenFull = \(\) => \(MQ\.matches \? setTab\('trade', true\) : origFull\(\)\)/);
 });
 
 test('every tab is one of the existing desktop panels, restyled', () => {
@@ -74,7 +76,8 @@ test('early access: on ipfxcapital.com only the listed accounts get the phone ve
   assert.match(js, /const RELEASED_TO_EVERYONE = false;/);
   assert.match(js, /const EARLY_ACCESS_ACCOUNTS = \['f77286ef-8b51-47f3-b6b7-a62f541a4239'\]; \/\/ paulade491/);
   assert.match(js, /if \(!\/\(\^\|\\.\)ipfxcapital\\.com\$\/i\.test\(location\.hostname\)\) return true;/);
-  assert.match(js, /return EARLY_ACCESS_ACCOUNTS\.includes\(signedInAccountId\(\)\);/);
+  assert.match(js, /if \(EARLY_ACCESS_ACCOUNTS\.includes\(signedInAccountId\(\)\)\) \{ remember\(true\); return true; \}/);
+  assert.match(js, /if \(flag === '1'\) remember\(true\); else if \(flag === '0'\) remember\(false\);/, 'trading.html?phone=1 switches it on for this browser');
   // nothing phone-related runs (no layout, no install offer, no service worker) until it is switched on
   const gate = js.indexOf('if (phoneVersionOn()) start();'), body = js.indexOf('function runPhone() {');
   assert.ok(gate > 0 && body > gate);
@@ -121,7 +124,7 @@ test('on a phone: four tabs, one panel at a time, nothing off the side of the sc
           const shown = (sel) => { const e = document.querySelector(sel); if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none'; };
           const bar = document.getElementById('phTabbar').getBoundingClientRect();
           return { tab: document.documentElement.dataset.ptab, scrollW: document.documentElement.scrollWidth, w: innerWidth,
-            chart: shown('.chart-wrap'), guide: shown('#guidePanel'), btm: shown('#btmOuter'), strip: shown('#phStrip'),
+            chart: shown('.chart-wrap'), guide: shown('#guidePanel'), btm: shown('#btmOuter'), strip: shown('#quickTicket'),
             barBottom: Math.round(bar.bottom), h: innerHeight };
         });
         assert.equal(s.tab, tab);
@@ -131,9 +134,16 @@ test('on a phone: four tabs, one panel at a time, nothing off the side of the sc
         if (tab === 'trade') assert.deepEqual([s.chart, s.guide, s.btm], [true, true, false]);
         if (tab === 'positions' || tab === 'account') assert.deepEqual([s.chart, s.guide, s.btm], [false, false, true]);
       }
-      // Sell / Buy on the chart open the ticket, they do not trade.
+      // The quick-trade bar sits under the chart (not over it); its full-ticket link opens the Trade tab.
       await page.click('#phTab-chart');
-      await page.click('#phStrip .b');
+      const dock = await page.evaluate(() => {
+        const qt = document.getElementById('quickTicket').getBoundingClientRect(), area = document.querySelector('.chart-area').getBoundingClientRect();
+        return { below: qt.top >= area.bottom - 1, full: Math.round(qt.width) === innerWidth, sizes: [...document.querySelectorAll('#quickTicket .qt-sell, #quickTicket .qt-buy, #quickTicket .qt-lots')].map((b) => Math.round(b.getBoundingClientRect().height)) };
+      });
+      assert.deepEqual([dock.below, dock.full], [true, true]);
+      for (const hgt of dock.sizes) assert.ok(hgt >= 44, `quick bar ${hgt}px`);
+      await page.click('#qtExp');
+      await page.click('#quickTicket .qt-full');
       assert.equal(await page.evaluate(() => document.documentElement.dataset.ptab), 'trade');
       const sizes = await page.evaluate(() => [...document.querySelectorAll('.op-exec-btn, #phTabbar button')].map((b) => Math.round(b.getBoundingClientRect().height)));
       for (const hgt of sizes) assert.ok(hgt >= 44, `tap target ${hgt}px`);
