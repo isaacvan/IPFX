@@ -277,3 +277,8 @@ html[data-ptab="account"] .ph-acct-more{display:grid;grid-template-columns:1fr;g
   .ph-sym{padding:0 8px;font-size:14px}
   .acct-mode .acct-mode-btn{padding:0 7px;font-size:10.5px;letter-spacing:.02em}
 }
+
+/* Bottom panels stack (shortcuts above the panel) and scroll as one page */
+.btm-body{flex-direction:column;overflow-y:auto!important;overflow-x:hidden}
+.bpanel.active{flex:1 0 auto;overflow:visible;align-items:stretch}
+.bpanel .ch-wrap{height:auto;overflow:visible}
