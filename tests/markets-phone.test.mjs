@@ -162,3 +162,9 @@ test('on a desktop the phone layer is invisible', { skip: !enabled }, async () =
     assert.deepEqual(s, { phone: false, tab: null, visible: 0, guide: true });
   } finally { await browser.close(); }
 });
+
+test('phone chart shows Bid and Ask lines (TradeLocker style), never on desktop', () => {
+  assert.match(js, /function syncBidAsk\(\)/);
+  assert.match(js, /const ok = MQ\.matches && series && series\.createPriceLine && q && Number\(q\.bid\) > 0 && Number\(q\.ask\) > 0;/);
+  assert.match(js, /if \(!ok\) \{ if \(baLines\) \{ for \(const l of Object\.values\(baLines\)\) \{ try \{ baSeries\.removePriceLine\(l\); \} catch \(_\) \{\} \} baLines = null; \} return; \}/);
+});

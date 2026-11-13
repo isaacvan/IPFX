@@ -226,8 +226,24 @@
     if (typeof window.syncQuickTicketVisibility === 'function') { try { window.syncQuickTicketVisibility(); } catch (_) {} }
   }
 
+  // Bid and Ask lines on the chart, as TradeLocker draws them (sells fill at the bid, buys at the ask). Phones only;
+  // read-only, from the same live quote the order ticket uses.
+  let baSeries = null, baLines = null;
+  function syncBidAsk() {
+    const ch = typeof ipfxChart !== 'undefined' ? ipfxChart : null, series = ch && ch.series;
+    let q = null;
+    try { q = typeof liveQuotesBySymbol !== 'undefined' && typeof execSymbol === 'function' ? liveQuotesBySymbol.get(execSymbol(activeSym)) : null; } catch (_) { q = null; }
+    if (baLines && baSeries !== series) baLines = null;   // the chart rebuilt its series
+    const ok = MQ.matches && series && series.createPriceLine && q && Number(q.bid) > 0 && Number(q.ask) > 0;
+    if (!ok) { if (baLines) { for (const l of Object.values(baLines)) { try { baSeries.removePriceLine(l); } catch (_) {} } baLines = null; } return; }
+    const opts = (price, color, title) => ({ price: Number(price), color, lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title });
+    if (!baLines) { baSeries = series; baLines = { ask: series.createPriceLine(opts(q.ask, '#ef5350', 'Ask')), bid: series.createPriceLine(opts(q.bid, '#3b82f6', 'Bid')) }; }
+    else { baLines.ask.applyOptions(opts(q.ask, '#ef5350', 'Ask')); baLines.bid.applyOptions(opts(q.bid, '#3b82f6', 'Bid')); }
+  }
+
   function syncLive() {
-    if (!MQ.matches) return;
+    if (!MQ.matches) { syncBidAsk(); return; }
+    syncBidAsk();
     relocate(true);
     dockTicket(true);
     const eq = $('ps-equity'), bal = $('phBal');
