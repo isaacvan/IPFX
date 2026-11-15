@@ -33,8 +33,8 @@ html[data-ptab="chart"] .guide,html[data-ptab="chart"] .btm-outer{display:none!i
 html[data-ptab="trade"] .chart-wrap{flex:0 0 28dvh;min-height:160px}
 html[data-ptab="trade"] .guide{display:flex!important;flex:1;min-height:0}
 html[data-ptab="trade"] .btm-outer{display:none!important}
-html[data-ptab="positions"] .layout,html[data-ptab="account"] .layout{display:none!important}
-html[data-ptab="positions"] .btm-outer,html[data-ptab="account"] .btm-outer{display:flex!important;flex:1;min-height:0;border-top:0}
+html[data-ptab="positions"] .layout,html[data-ptab="challenge"] .layout,html[data-ptab="account"] .layout{display:none!important}
+html[data-ptab="positions"] .btm-outer,html[data-ptab="challenge"] .btm-outer,html[data-ptab="account"] .btm-outer{display:flex!important;flex:1;min-height:0;border-top:0}
 
 /* ── Chart toolbar: one swipeable row ── */
 .chart-toolbar{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;gap:2px;padding:4px 6px}
@@ -68,8 +68,9 @@ html[data-ptab="positions"] .btm-outer,html[data-ptab="account"] .btm-outer{disp
 .btm-header::-webkit-scrollbar{display:none}
 .btab{min-height:44px;flex-shrink:0;display:flex;align-items:center;padding:0 12px!important}
 .btm-closeall{min-height:36px;flex-shrink:0;margin-left:auto}
-html[data-ptab="positions"] .btab[data-ph-group="account"],html[data-ptab="account"] .btab[data-ph-group="positions"]{display:none}
-html[data-ptab="account"] .btm-closeall{display:none!important}
+html[data-ptab="positions"] .btab:not([data-ph-group="positions"]),html[data-ptab="challenge"] .btab:not([data-ph-group="challenge"]),html[data-ptab="account"] .btab:not([data-ph-group="account"]){display:none}
+html[data-ptab="account"] .btm-closeall,html[data-ptab="challenge"] .btm-closeall{display:none!important}
+html[data-ptab="challenge"] .btm-header{display:none!important}
 .btm-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:12px}
 .postbl-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;padding:10px 12px!important}
 .postbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -112,7 +113,7 @@ html[data-ptab="account"] .ph-acct{display:grid;grid-template-columns:repeat(3,m
 .ph-acct a,.ph-acct button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 8px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--fg);font:650 13px var(--font-ui);text-decoration:none;cursor:pointer;text-align:center}
 
 /* ── Bottom tab bar ── */
-.ph-tabbar{display:grid;grid-template-columns:repeat(4,1fr);order:99;flex-shrink:0;height:var(--ph-tab);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg2);border-top:1px solid var(--line);z-index:60}
+.ph-tabbar{display:grid;grid-template-columns:repeat(5,1fr);order:99;flex-shrink:0;height:var(--ph-tab);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg2);border-top:1px solid var(--line);z-index:60}
 .ph-tabbar button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:none;color:var(--muted);font:650 11px var(--font-ui);cursor:pointer}
 .ph-tabbar button svg{width:22px;height:22px}
 .ph-tabbar button[aria-selected="true"]{color:#3b82f6}
@@ -415,3 +416,112 @@ html[data-ptab="trade"] .chart-toolbar{display:none!important}
 #posTableBody .postbl-act-btn{border:0!important;background:rgba(255,255,255,.06)!important;border-radius:8px!important}
 #posTableBody .postbl-act-btn:not([class*="act-"]){background:rgba(239,68,68,.12)!important}
 .btab.active{background:rgba(255,255,255,.08)!important;border-color:transparent!important}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════
+   TradeLocker shades (sampled from its phone app, 15 Nov 2026): near-black screen, #0E0E11 panels, Sell #BF4249
+   and Buy #3E8D74. The candle and background colours can be changed from the palette button in the chart toolbar.
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+:root{--bg:#010102;--bg2:#0e0e11;--bg3:#17171c;--line:#23232a;--line2:#1a1a1f}
+body.light{--bg:#f4f6fb;--bg2:#ffffff;--bg3:#edf0f7}
+.topbar,.chart-toolbar,.chart-wrap,.layout{background:var(--bg)!important}
+.chart-wrap>.qt,.ph-tabbar,.guide,.btm-outer{background:var(--bg2)!important}
+.chart-wrap>.qt .qt-sell{background:#bf4249!important}
+.chart-wrap>.qt .qt-buy{background:#3e8d74!important}
+.chart-wrap>.qt .qt-lots{background:#17171c!important}
+.op-exec-sell{background:#bf4249!important}
+.op-exec-buy{background:#3e8d74!important}
+.chart-wrap>.qt .qt-chip,.chart-wrap>.qt .qt-exp{background:#17171c!important}
+.chart-wrap>.qt .qt-chip.on{background:rgba(56,97,246,.28)!important;color:#9db4ff!important}
+
+/* Bottom bar: one slim bar that reaches every section (Chart, Trade, Positions, Challenge, Account) */
+.ph-tabbar{height:var(--ph-tab);border-top:0!important;padding-top:2px}
+.ph-tabbar button{color:#8b8b93!important;font-size:10.5px!important;font-weight:600!important;gap:3px!important}
+.ph-tabbar button svg{box-sizing:content-box;width:20px!important;height:20px!important;padding:5px 9px;border:1.5px solid transparent;border-radius:11px;stroke-width:1.7}
+.ph-tabbar button[aria-selected="true"]{color:#fff!important}
+.ph-tabbar button[aria-selected="true"] svg{border-color:rgba(255,255,255,.9)}
+.ph-tabbar .ph-badge{top:2px!important;left:calc(50% + 8px)!important;background:#3861f6!important}
+
+/* Positions: one compact three-way switch (Open, Pending, Closed) instead of a long strip of tabs */
+html[data-ptab="positions"] .btm-header{display:flex!important;align-items:center;gap:3px;margin:8px 10px 2px;padding:3px!important;min-height:0!important;border:0!important;border-radius:11px;background:#17171c!important;overflow:visible!important}
+html[data-ptab="positions"] .btab{flex:1;justify-content:center;min-height:34px!important;padding:0 6px!important;border-radius:8px;font-size:12.5px!important;font-weight:650;color:#8b8b93}
+html[data-ptab="positions"] .btab.active{background:#2b2b33!important;color:#fff!important}
+html[data-ptab="positions"] .btab-badge{margin-left:4px}
+html[data-ptab="positions"] .btm-gap,html[data-ptab="positions"] .btm-tog{display:none}
+html[data-ptab="positions"] .btm-closeall{order:9;min-height:34px!important;padding:0 10px;margin:0 0 0 4px;border-radius:8px}
+
+/* Instrument list: a dropdown that comes down from the top bar */
+.sym-picker{padding:calc(var(--ph-top) + 6px) 10px 0!important;align-items:flex-start!important;background:rgba(0,0,0,.55)!important;backdrop-filter:none!important}
+.sym-sheet{width:100%!important;max-height:min(72dvh,560px)!important;height:auto!important;border-radius:16px!important;border:1px solid rgba(255,255,255,.07)!important;background:#0e0e11!important;padding-top:0!important;box-shadow:0 18px 50px rgba(0,0,0,.6)!important;animation:phDrop .16s ease-out}
+@keyframes phDrop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.ph-sym-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+.ph-sym-head b{font:700 17px var(--font-ui);color:#fff}
+.ph-sym-head button{width:36px;height:36px;border:0;background:none;color:#a1a1aa;font-size:26px;line-height:1;cursor:pointer}
+.sym-search{margin:4px 12px 6px!important;padding:0 12px!important;min-height:46px;border:0!important;border-radius:12px;background:#17171c!important}
+.sym-search input{font-size:16px!important}
+.sym-head,.sym-foot{display:none!important}
+.sym-cats{padding:4px 12px 8px!important;gap:6px}
+.sym-cat{height:32px!important;padding:0 12px!important;border-radius:999px;background:#17171c!important;color:#9a9aa3!important;font-size:12.5px!important}
+.sym-cat.active{background:#2b2b33!important;color:#fff!important}
+.sym-list{padding:0 6px 10px!important}
+.sym-row{display:flex!important;align-items:center;justify-content:space-between;gap:10px;height:50px!important;padding:0 10px!important;border-radius:10px}
+.sym-row.hl{box-shadow:none!important;background:rgba(255,255,255,.06)!important}
+.sym-row .nm{flex:1;flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px}
+.sym-row .nm b{font-size:15px;font-weight:700;flex:0 1 auto}
+.sym-row .nm small{font-size:13px;color:#8b8b93!important;flex:0 0 auto}
+.sym-row .px{display:none!important}
+
+/* Chart colours */
+.ph-gear{order:9;margin-left:auto;flex-shrink:0;width:40px;height:34px;border:0;background:none;color:#8b8b93;cursor:pointer}
+.ph-gear svg{width:21px;height:21px}
+.ph-sheet{position:fixed;inset:0;z-index:9400;display:flex;align-items:flex-end;background:transparent}
+.ph-sheet[hidden]{display:none}
+.ph-sheet-card{width:100%;max-height:70dvh;overflow-y:auto;padding:6px 16px calc(18px + env(safe-area-inset-bottom,0px));border-radius:18px 18px 0 0;background:#0e0e11;color:#f4f4f5;box-shadow:0 -14px 40px rgba(0,0,0,.55)}
+.ph-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px}
+.ph-sheet-head b{font:700 17px var(--font-ui)}
+.ph-sheet-head button{width:36px;height:36px;border:0;background:none;color:#a1a1aa;font-size:26px;line-height:1;cursor:pointer}
+.ph-sec{margin:12px 0 8px;font:700 11px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:#8b8b93}
+.ph-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ph-presets button,.ph-bgs button{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 12px;border:1.5px solid transparent;border-radius:12px;background:#17171c;color:#f4f4f5;font:600 13.5px var(--font-ui);cursor:pointer;text-align:left}
+.ph-presets button[aria-pressed="true"],.ph-bgs button[aria-pressed="true"]{border-color:#fff}
+.ph-candles{display:inline-flex;align-items:flex-end;gap:3px;height:22px}
+.ph-candles i{display:block;width:6px;border-radius:2px}
+.ph-candles i:nth-child(1){height:16px}.ph-candles i:nth-child(2){height:22px}.ph-candles i:nth-child(3){height:12px}
+.ph-custom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.ph-custom label{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 10px 0 14px;border-radius:12px;background:#17171c;font:600 13.5px var(--font-ui)}
+.ph-custom input[type=color]{width:44px;height:34px;padding:0;border:0;border-radius:8px;background:none;cursor:pointer}
+.ph-bgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ph-bgs i{display:block;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.25)}
+.ph-reset{width:100%;min-height:46px;margin-top:14px;border:0;border-radius:12px;background:#17171c;color:#c4c4cc;font:650 14px var(--font-ui);cursor:pointer}
+.sym-sheet{display:flex!important;flex-direction:column}
+.ph-sym-head,.sym-search,.sym-cats{flex-shrink:0!important}
+.sym-cats{min-height:44px;align-items:center}
+.sym-search input,.sym-search input:focus,.sym-search input:focus-visible{outline:0!important;box-shadow:none!important;border:0!important;background:none!important}
+.sym-search:focus-within{box-shadow:0 0 0 1.5px rgba(255,255,255,.25)}
+.sym-list{flex:1 1 auto;min-height:0;overflow-y:auto}
+
+/* Positions switch: short labels (Open / Pending / Closed) */
+html[data-ptab="positions"] .btab[data-ph-label]{font-size:0!important;gap:0}
+html[data-ptab="positions"] .btab[data-ph-label]::before{content:attr(data-ph-label);font:650 12.5px var(--font-ui)}
+html[data-ptab="positions"] .btab .btab-badge{font-size:11px!important;margin-left:5px}
+html[data-ptab="positions"] .btm-header{flex-wrap:nowrap!important}
+html[data-ptab="positions"] .btm-closeall{flex-shrink:0;white-space:nowrap}
+
+/* Account: a menu of pages (Account details, Order history, Risk calculator, Journal, Alerts, Statement) */
+.ph-menu,.ph-back{display:none}
+html[data-ptab="account"] .btm-header{display:none!important}
+html[data-ptab="account"][data-pmenu="list"] .ph-menu{display:block;margin:8px 10px 0;border-radius:14px;background:#17171c;overflow:hidden;flex-shrink:0}
+.ph-menu button{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;padding:0 14px 0 16px;border:0;border-top:1px solid rgba(255,255,255,.06);background:none;color:#f4f4f5;font:600 15px var(--font-ui);text-align:left;cursor:pointer}
+.ph-menu button:first-child{border-top:0}
+.ph-menu button svg{color:#6b6b74}
+html[data-ptab="account"][data-pmenu="list"] .bpanel{display:none!important}
+html[data-ptab="account"][data-pmenu="panel"] .ph-menu,html[data-ptab="account"][data-pmenu="panel"] .ph-acct,html[data-ptab="account"][data-pmenu="panel"] .ph-acct-more{display:none!important}
+html[data-ptab="account"][data-pmenu="panel"] .ph-back{display:flex;position:sticky;top:0;z-index:3;align-items:center;gap:4px;padding:6px 8px;background:var(--bg2);flex-shrink:0}
+.ph-back button{width:40px;height:40px;border:0;background:none;color:#fff;cursor:pointer;display:grid;place-items:center}
+.ph-back b{font:700 17px var(--font-ui);color:#fff}
+html[data-ptab="account"][data-pmenu="panel"] #bp-account.active{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 12px!important;overflow:visible}
+html[data-ptab="account"] #bp-account .acell{border:0!important;padding:12px 14px!important;border-radius:12px;background:#17171c;min-width:0}
+html[data-ptab="account"] #bp-account .acell .aval{overflow:hidden;text-overflow:ellipsis}
+html[data-ptab="account"] .ph-acct{padding-top:8px}
+html[data-ptab="account"][data-pmenu="panel"] #bp-account.active{align-content:start;align-items:start;grid-auto-rows:min-content}
+html[data-ptab="account"] #bp-account .acell{height:auto!important;min-height:0!important;align-self:start;justify-content:flex-start!important}
+.ph-acct a,.ph-acct button,.ph-acct-more button{border:0!important;background:#17171c!important;border-radius:12px!important;color:#f4f4f5!important}

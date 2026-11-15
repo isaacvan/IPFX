@@ -51,21 +51,23 @@
   function runPhone() {
   const MQ = window.matchMedia('(max-width: 760px), (pointer: coarse) and (max-height: 520px)');
   const KEY = 'ipfx-phone-tab';
-  const TABS = ['chart', 'trade', 'positions', 'account'];
+  const TABS = ['chart', 'trade', 'positions', 'challenge', 'account'];
   const ICONS = {
     chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
     trade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16"/><path d="M3 8l4-4 4 4"/><path d="M17 20V4"/><path d="M21 16l-4 4-4-4"/></svg>',
     positions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M9 16h6"/></svg>',
+    challenge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5-5"/></svg>',
     account: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
   };
-  const LABELS = { chart: 'Chart', trade: 'Trade', positions: 'Positions', account: 'Account' };
-  // Bottom-panel tabs shown under Positions and under Account.
+  const LABELS = { chart: 'Chart', trade: 'Trade', positions: 'Positions', challenge: 'Challenge', account: 'Account' };
+  // Bottom-panel sections behind each bottom tab. Positions is a three-way switch; Challenge is a page of its own.
   const GROUPS = {
-    positions: ['positions', 'pending', 'closed', 'orders', 'journal', 'alerts'],
-    account: ['challenge', 'account', 'risk', 'statement'],
+    positions: ['positions', 'pending', 'closed'],
+    challenge: ['challenge'],
+    account: ['account', 'orders', 'risk', 'journal', 'alerts', 'statement'],
   };
   const $ = (id) => document.getElementById(id);
-  let built = false, current = null, lastBtab = { positions: 'positions', account: 'challenge' }, priceTimer = 0;
+  let built = false, current = null, lastBtab = { positions: 'positions', challenge: 'challenge', account: 'account' }, priceTimer = 0;
 
   // Hide the phone-only elements everywhere except in phone mode, without needing the phone stylesheet.
   const base = document.createElement('style');
@@ -115,7 +117,14 @@
         if (g && typeof window.switchTab === 'function') window.switchTab('ind', g);
       });
       tb.appendChild(ind);
+      // Chart colours (candles and background), one tap away.
+      const gear = document.createElement('button');
+      gear.type = 'button'; gear.id = 'phGear'; gear.className = 'ph-gear ph-only'; gear.setAttribute('aria-label', 'Chart colours');
+      gear.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.6-.3-1.1-.6-1.5-.3-.4-.4-.9-.4-1.5 0-1.1.9-2 2-2h2.3A2.8 2.8 0 0 0 20.5 11 9 9 0 0 0 12 3z"/><circle cx="7.5" cy="11" r="1.1"/><circle cx="10" cy="7" r="1.1"/><circle cx="15" cy="7" r="1.1"/></svg>';
+      gear.addEventListener('click', () => openColors());
+      tb.appendChild(gear);
     }
+    buildColorSheet();
 
     // Balance in the top bar once signed in (TradeLocker shows it there too).
     const feed = $('feedBadge');
@@ -154,6 +163,24 @@
       more.className = 'ph-acct-more ph-only'; more.id = 'phAcctMore';
       scroller.insertBefore(more, scroller.firstChild);
       scroller.insertBefore(acct, more);
+      // Account is a menu: tap a row to open that page, and the back arrow returns to the menu.
+      const MENU = [['account', 'Account details'], ['orders', 'Order history'], ['risk', 'Risk calculator'], ['journal', 'Journal'], ['alerts', 'Alerts'], ['statement', 'Statement']];
+      const chev = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+      const menu = document.createElement('div');
+      menu.id = 'phMenu'; menu.className = 'ph-menu ph-only';
+      menu.innerHTML = MENU.map(([id, label]) => `<button type="button" data-id="${id}"><span>${label}</span>${chev}</button>`).join('');
+      menu.addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-id]'); if (!b) return;
+        const el = btabEl(b.dataset.id); if (el && typeof window.switchBtab === 'function') window.switchBtab(b.dataset.id, el);
+        lastBtab.account = b.dataset.id; $('phBackTitle').textContent = b.textContent.trim();
+        document.documentElement.dataset.pmenu = 'panel'; scroller.scrollTop = 0;
+      });
+      scroller.insertBefore(menu, acct);
+      const back = document.createElement('div');
+      back.id = 'phBack'; back.className = 'ph-back ph-only';
+      back.innerHTML = '<button type="button" aria-label="Back to Account"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><b id="phBackTitle"></b>';
+      back.querySelector('button').addEventListener('click', () => { document.documentElement.dataset.pmenu = 'list'; scroller.scrollTop = 0; });
+      scroller.insertBefore(back, scroller.firstChild);
     }
 
     // Sign-in sheet: phone wording, a close button and links for new or locked-out traders.
@@ -169,20 +196,35 @@
       card.appendChild(links);
     }
 
-    // A Cancel button for the full-screen instrument list (desktop closes it with Esc or a click outside).
-    const search = document.querySelector('#symPicker .sym-search');
-    if (search && !$('phSymClose')) {
-      const x = document.createElement('button');
-      x.type = 'button'; x.id = 'phSymClose'; x.className = 'ph-sym-close ph-only'; x.textContent = 'Cancel';
-      x.addEventListener('click', () => { if (typeof window.closeSymbolPicker === 'function') window.closeSymbolPicker(); });
-      search.appendChild(x);
+    // Instrument list: a dropdown under the top bar with a "Select Instrument" header, search and one clean row per
+    // instrument (name and category, no prices), like TradeLocker. Same list, search and picker as desktop.
+    const sheet = document.querySelector('#symPicker .sym-sheet');
+    if (sheet && !$('phSymHead')) {
+      const head = document.createElement('div');
+      head.id = 'phSymHead'; head.className = 'ph-sym-head ph-only';
+      head.innerHTML = '<b>Select Instrument</b><button type="button" id="phSymClose" aria-label="Close">×</button>';
+      head.querySelector('button').addEventListener('click', () => { if (typeof window.closeSymbolPicker === 'function') window.closeSymbolPicker(); });
+      sheet.insertBefore(head, sheet.firstChild);
+      const picker = $('symPicker');
+      picker.addEventListener('click', (e) => { if (MQ.matches && e.target === picker && typeof window.closeSymbolPicker === 'function') window.closeSymbolPicker(); });
+      const list = $('symList');
+      if (list) new MutationObserver(() => {
+        if (!MQ.matches) return;
+        list.querySelectorAll('.sym-row .nm small').forEach((sm) => { const t = sm.textContent; const i = t.indexOf(' · '); if (i > -1) { sm.dataset.code = t.slice(0, i); sm.textContent = t.slice(i + 3); } });
+      }).observe(list, { childList: true });
     }
+
+    // The quick-trade bar is part of the screen on a phone: it cannot be dragged away.
+    const handle = $('qtHandle');
+    if (handle) handle.addEventListener('pointerdown', (e) => { if (MQ.matches && !e.target.closest('button')) e.stopImmediatePropagation(); }, true);
+    if (handle) handle.addEventListener('dblclick', (e) => { if (MQ.matches) e.stopImmediatePropagation(); }, true);
 
     // Tag the bottom tabs with their phone group, and remember the last one used in each group.
     document.querySelectorAll('.btab').forEach((b) => {
       const id = btabId(b);
-      const group = GROUPS.positions.includes(id) ? 'positions' : GROUPS.account.includes(id) ? 'account' : '';
+      const group = Object.keys(GROUPS).find((g) => GROUPS[g].includes(id)) || '';
       if (group) b.dataset.phGroup = group;
+      const short = { positions: 'Open', pending: 'Pending', closed: 'Closed' }[id]; if (short) b.dataset.phLabel = short;
       b.addEventListener('click', () => { if (group) lastBtab[group] = id; });
     });
 
@@ -217,6 +259,77 @@
     });
   }
 
+  // ── Chart colours ──
+  // Candle colours and background, chosen from presets or any colour, remembered on this phone. Defaults are
+  // TradeLocker's shades (sampled from its phone app). Desktop keeps the original colours.
+  const COLORS_KEY = 'ipfx-phone-chart-colors';
+  const DEFAULT_COLORS = { up: '#4FAF91', down: '#D9545B', bg: '#010102' };
+  const ORIGINAL = { up: '#10b981', down: '#ef4444', bg: '#0a0a0c' };
+  const PRESETS = [
+    { name: 'TradeLocker', up: '#4FAF91', down: '#D9545B' },
+    { name: 'Bright neon', up: '#00E5A0', down: '#FF4D6A' },
+    { name: 'Classic', up: '#10B981', down: '#EF4444' },
+    { name: 'Blue / Orange', up: '#3B82F6', down: '#F59E0B' },
+    { name: 'White / Grey', up: '#E5E7EB', down: '#6B7280' },
+  ];
+  const BGS = [{ name: 'Black', c: '#010102' }, { name: 'Dark', c: '#0a0a0c' }, { name: 'Slate', c: '#17171c' }];
+  const isHex = (v) => /^#[0-9a-f]{6}$/i.test(String(v));
+  let colors = (() => { try { const v = JSON.parse(localStorage.getItem(COLORS_KEY) || 'null'); if (v && isHex(v.up) && isHex(v.down) && isHex(v.bg)) return v; } catch (_) {} return { ...DEFAULT_COLORS }; })();
+  function saveColors() { try { localStorage.setItem(COLORS_KEY, JSON.stringify(colors)); } catch (_) {} }
+  let paintedChart = null, paintedKey = '';
+  // Applies (or, off the phone layout, removes) the chosen colours. Cheap enough to run every tick: it only touches the
+  // chart when something differs, which also covers a rebuilt chart or the light/dark switch resetting the background.
+  function paintChart() {
+    const ch = typeof ipfxChart !== 'undefined' ? ipfxChart : null;
+    if (!ch || typeof ch.setColors !== 'function' || !ch.chart) return;
+    const light = document.body.classList.contains('light'), on = MQ.matches;
+    const want = on ? colors : ORIGINAL, key = [on, want.up, want.down, want.bg, light].join();
+    let bgNow = ''; try { bgNow = ch.chart.options().layout.background.color; } catch (_) {}
+    const bgWant = light ? '#ffffff' : want.bg;
+    if (paintedChart === ch && paintedKey === key && (!on || bgNow === bgWant)) return;
+    if (!on && paintedChart === null) return;                    // never painted, nothing to undo
+    paintedChart = on ? ch : null; paintedKey = on ? key : '';
+    ch.setColors(want.up, want.down);
+    if (!light && (on || bgNow === colors.bg)) { try { ch.chart.applyOptions({ layout: { background: { type: 'solid', color: want.bg } } }); } catch (_) {} }
+    if (on && !light) document.documentElement.style.setProperty('--bg', colors.bg); else document.documentElement.style.removeProperty('--bg');
+  }
+  function buildColorSheet() {
+    if ($('phColors')) return;
+    const d = document.createElement('div');
+    d.id = 'phColors'; d.className = 'ph-sheet ph-only'; d.hidden = true; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'phColorsTitle');
+    d.innerHTML = '<div class="ph-sheet-card"><div class="ph-sheet-head"><b id="phColorsTitle">Chart colours</b><button type="button" id="phColorsX" aria-label="Close">×</button></div>'
+      + '<div class="ph-sec">Candles</div><div class="ph-presets" id="phPresets"></div>'
+      + '<div class="ph-custom"><label><span>Up candles</span><input type="color" id="phUp" aria-label="Colour of up candles"></label>'
+      + '<label><span>Down candles</span><input type="color" id="phDown" aria-label="Colour of down candles"></label></div>'
+      + '<div class="ph-sec">Background</div><div class="ph-bgs" id="phBgs"></div>'
+      + '<button type="button" id="phColorsReset" class="ph-reset">Reset to default</button></div>';
+    d.addEventListener('click', (e) => { if (e.target === d || e.target.id === 'phColorsX') closeColors(); });
+    document.body.appendChild(d);
+    const up = d.querySelector('#phUp'), down = d.querySelector('#phDown');
+    let raf = 0;
+    const live = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { colors.up = up.value.toUpperCase(); colors.down = down.value.toUpperCase(); saveColors(); paintChart(); renderColorSheet(false); }); };
+    up.addEventListener('input', live); down.addEventListener('input', live);
+    d.querySelector('#phColorsReset').addEventListener('click', () => { colors = { ...DEFAULT_COLORS }; saveColors(); paintChart(); renderColorSheet(true); });
+    d.querySelector('#phPresets').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-i]'); if (!b) return; const pr = PRESETS[+b.dataset.i];
+      colors.up = pr.up; colors.down = pr.down; saveColors(); paintChart(); renderColorSheet(true);
+    });
+    d.querySelector('#phBgs').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-i]'); if (!b) return; colors.bg = BGS[+b.dataset.i].c; saveColors(); paintChart(); renderColorSheet(true);
+    });
+  }
+  function renderColorSheet(inputs) {
+    const d = $('phColors'); if (!d) return;
+    const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+    d.querySelector('#phPresets').innerHTML = PRESETS.map((pr, i) =>
+      `<button type="button" data-i="${i}" aria-pressed="${same(pr.up, colors.up) && same(pr.down, colors.down)}"><span class="ph-candles" aria-hidden="true"><i style="background:${pr.up}"></i><i style="background:${pr.down}"></i><i style="background:${pr.up}"></i></span><span>${pr.name}</span></button>`).join('');
+    d.querySelector('#phBgs').innerHTML = BGS.map((b, i) =>
+      `<button type="button" data-i="${i}" aria-pressed="${same(b.c, colors.bg)}"><i style="background:${b.c}"></i><span>${b.name}</span></button>`).join('');
+    if (inputs !== false) { d.querySelector('#phUp').value = colors.up.toLowerCase(); d.querySelector('#phDown').value = colors.down.toLowerCase(); }
+  }
+  function openColors() { buildColorSheet(); renderColorSheet(true); $('phColors').hidden = false; }
+  function closeColors() { const d = $('phColors'); if (d) d.hidden = true; }
+
   // The quick ticket lives in the chart area on desktop; on a phone it sits under the chart, full width.
   let qtHome = null;
   function dockTicket(toPhone) {
@@ -242,6 +355,7 @@
   }
 
   function syncLive() {
+    paintChart();
     if (!MQ.matches) { syncBidAsk(); return; }
     syncBidAsk();
     relocate(true);
@@ -267,13 +381,14 @@
       const order = [...document.querySelectorAll('.gtab')].find((g) => /switchTab\('order'/.test(g.getAttribute('onclick') || ''));
       if (order && !order.classList.contains('active') && typeof window.switchTab === 'function' && user) window.switchTab('order', order);
     }
-    if (tab === 'positions' || tab === 'account') {
+    if (GROUPS[tab]) {
       const active = document.querySelector('.btab.active');
       if (!active || active.dataset.phGroup !== tab) {
         const el = btabEl(lastBtab[tab]);
         if (el && typeof window.switchBtab === 'function') window.switchBtab(lastBtab[tab], el);
       }
     }
+    if (tab === 'account' && prev !== 'account') document.documentElement.dataset.pmenu = 'list';
     dockTicket(true);
     // Let the chart and anything measuring the layout catch up with the new sizes.
     if (prev !== tab) requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
@@ -300,7 +415,9 @@
 
   function apply() {
     document.documentElement.classList.toggle('phone', MQ.matches);
-    if (!MQ.matches) { delete document.documentElement.dataset.ptab; relocate(false); authWording(false); dockTicket(false); return; }
+    const ph = $('symSearch');
+    if (ph) { if (!ph.dataset.deskPlaceholder) ph.dataset.deskPlaceholder = ph.placeholder; ph.placeholder = MQ.matches ? 'Search for anything…' : ph.dataset.deskPlaceholder; }
+    if (!MQ.matches) { delete document.documentElement.dataset.ptab; relocate(false); authWording(false); dockTicket(false); paintChart(); return; }
     build();
     authWording(true);
     let saved = 'chart';

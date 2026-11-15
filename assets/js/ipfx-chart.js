@@ -32,7 +32,9 @@
   }
   const TZ = "Europe/London";
   const TF_SECONDS = { "1S": 1, "15S": 15, "30S": 30, "1": 60, "3": 180, "5": 300, "15": 900, "30": 1800, "60": 3600, "240": 14400, D: 86400, W: 604800 };
-  const UP = "#10b981", DOWN = "#ef4444", BLUE = "#2563eb";
+  // UP and DOWN are the candle, marker and P&L colours. They stay these defaults unless setColors() is called (phone colour settings).
+  let UP = "#10b981", DOWN = "#ef4444";
+  const BLUE = "#2563eb";
   const TF_LABEL = { "1S": "1s", "15S": "15s", "30S": "30s", "1": "1m", "3": "3m", "5": "5m", "15": "15m", "30": "30m", "60": "1H", "240": "4H", D: "1D", W: "1W" };
 
   // ---------------------------------------------------------------- time labels (London)
@@ -1115,6 +1117,18 @@
       get symbol() { return symbol; },
       get tf() { return tf; },
       setStyle(s) { if (s === style) return; style = s; makeSeries(); },
+      // Candle colours (phone colour settings). Applies to the candles, bars, the last-price label, markers and P&L labels.
+      setColors(up, down) {
+        if (!/^#[0-9a-f]{6}$/i.test(String(up)) || !/^#[0-9a-f]{6}$/i.test(String(down))) return;
+        UP = up; DOWN = down;
+        try {
+          const t = series && series.seriesType && series.seriesType();
+          if (t === "Candlestick") series.applyOptions({ upColor: UP, downColor: DOWN, borderUpColor: UP, borderDownColor: DOWN, wickUpColor: UP, wickDownColor: DOWN });
+          else if (t === "Bar") series.applyOptions({ upColor: UP, downColor: DOWN });
+        } catch (_) {}
+        try { syncLastLine(); applyMarkers(); drawLegend(); schedule(); } catch (_) {}
+      },
+      get colors() { return { up: UP, down: DOWN }; },
       refreshLegend() { drawLegend(); },
       setIndicators,
       get indicators() { return indicators.map((x) => ({ uid: x.uid, id: x.id, inputs: x.inputs, pane: x.pane })); },

@@ -45,5 +45,5 @@ test('stop / take-profit lines: outlined pill "lots | money | ×" and the price 
 test('the ticket draws its buy and sell stops with the same pill on a dashed line before the order is placed', () => {
   assert.match(chart, /setPreview,/); assert.match(chart, /class="ipc-line ipc-sl ipc-preview"/); assert.match(html, /\.ipc-preview\{border-top-style:dashed;\}/);
   assert.match(guided, /ch\.setPreview\(levels \? Object\.entries\(levels\)\.map/);
-  assert.match(html, /ipfx-chart\.js\?v=20261107a/);
+  assert.match(html, /ipfx-chart\.js\?v=20261115a/);
 });

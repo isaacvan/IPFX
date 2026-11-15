@@ -27,7 +27,7 @@ test('the phone stylesheet only loads on phone-sized screens', () => {
 
 test('phone elements are hidden on wider screens even without the phone stylesheet', () => {
   assert.match(js, /html:not\(\.phone\) \.ph-only\{display:none!important\}/);
-  for (const cls of ['ph-tabbar', 'ph-ind', 'ph-bal', 'ph-sym', 'ph-acct', 'ph-acct-more', 'ph-install', 'ph-install-guide', 'ph-auth-close', 'ph-auth-links', 'ph-sym-close']) {
+  for (const cls of ['ph-tabbar', 'ph-ind', 'ph-bal', 'ph-sym', 'ph-acct', 'ph-acct-more', 'ph-install', 'ph-install-guide', 'ph-auth-close', 'ph-auth-links', 'ph-sym-head', 'ph-gear', 'ph-menu', 'ph-back', 'ph-sheet']) {
     assert.match(js, new RegExp(`className = '${cls}( [a-z-]+)* ?ph-only'|className = '${cls} ph-only'`), `${cls} is phone-only`);
   }
   assert.match(js, /window\.matchMedia\('\(max-width: 760px\), \(pointer: coarse\) and \(max-height: 520px\)'\)/);
@@ -44,7 +44,7 @@ test('the phone layer never places, closes or changes a trade itself', () => {
 test('every tab is one of the existing desktop panels, restyled', () => {
   assert.match(css, /html\[data-ptab="chart"\] \.guide,html\[data-ptab="chart"\] \.btm-outer\{display:none!important\}/);
   assert.match(css, /html\[data-ptab="trade"\] \.guide\{display:flex!important/);
-  assert.match(css, /html\[data-ptab="positions"\] \.btm-outer,html\[data-ptab="account"\] \.btm-outer\{display:flex!important/);
+  assert.match(css, /html\[data-ptab="positions"\] \.btm-outer,html\[data-ptab="challenge"\] \.btm-outer,html\[data-ptab="account"\] \.btm-outer\{display:flex!important/);
   assert.match(css, /input,select,textarea\{font-size:16px!important\}/, 'no zoom-in when a field is tapped on iPhone');
   assert.match(css, /env\(safe-area-inset-bottom/);
   // the open-positions table becomes cards with labelled buttons
@@ -116,8 +116,8 @@ test('on a phone: four tabs, one panel at a time, nothing off the side of the sc
     const { browser, page } = await open(w, h, true);
     try {
       const tabs = await page.locator('#phTabbar button > span').allTextContents();
-      assert.deepEqual(tabs.map((t) => t.trim()), ['Chart', 'Trade', 'Positions', 'Account']);
-      for (const tab of ['chart', 'trade', 'positions', 'account']) {
+      assert.deepEqual(tabs.map((t) => t.trim()), ['Chart', 'Trade', 'Positions', 'Challenge', 'Account']);
+      for (const tab of ['chart', 'trade', 'positions', 'challenge', 'account']) {
         await page.click(`#phTab-${tab}`);
         await page.waitForTimeout(150);
         const s = await page.evaluate(() => {
@@ -132,7 +132,7 @@ test('on a phone: four tabs, one panel at a time, nothing off the side of the sc
         assert.equal(s.barBottom, s.h, 'tab bar sits on the bottom edge');
         if (tab === 'chart') assert.deepEqual([s.chart, s.guide, s.btm, s.strip], [true, false, false, true]);
         if (tab === 'trade') assert.deepEqual([s.chart, s.guide, s.btm], [true, true, false]);
-        if (tab === 'positions' || tab === 'account') assert.deepEqual([s.chart, s.guide, s.btm], [false, false, true]);
+        if (['positions', 'challenge', 'account'].includes(tab)) assert.deepEqual([s.chart, s.guide, s.btm], [false, false, true]);
       }
       // The quick-trade bar sits under the chart (not over it); its full-ticket link opens the Trade tab.
       await page.click('#phTab-chart');
@@ -167,4 +167,30 @@ test('phone chart shows Bid and Ask lines (TradeLocker style), never on desktop'
   assert.match(js, /function syncBidAsk\(\)/);
   assert.match(js, /const ok = MQ\.matches && series && series\.createPriceLine && q && Number\(q\.bid\) > 0 && Number\(q\.ask\) > 0;/);
   assert.match(js, /if \(!ok\) \{ if \(baLines\) \{ for \(const l of Object\.values\(baLines\)\) \{ try \{ baSeries\.removePriceLine\(l\); \} catch \(_\) \{\} \} baLines = null; \} return; \}/);
+});
+
+test('phone colours: TradeLocker shades by default, easy to change, remembered, and desktop keeps the originals', () => {
+  assert.match(js, /const DEFAULT_COLORS = \{ up: '#4FAF91', down: '#D9545B', bg: '#010102' \};/);
+  assert.match(js, /const ORIGINAL = \{ up: '#10b981', down: '#ef4444', bg: '#0a0a0c' \};/);
+  assert.match(js, /const want = on \? colors : ORIGINAL/, 'off the phone layout the original colours come back');
+  for (const name of ['TradeLocker', 'Bright neon', 'Classic', 'Blue / Orange', 'White / Grey']) assert.ok(js.includes(`name: '${name}'`), name);
+  assert.match(js, /localStorage\.setItem\(COLORS_KEY/);
+  assert.match(js, /id="phUp"[^>]*type="color"|type="color" id="phUp"/);
+  const chart = fs.readFileSync(new URL('assets/js/ipfx-chart.js', root), 'utf8');
+  assert.match(chart, /let UP = "#10b981", DOWN = "#ef4444";/, 'chart defaults are unchanged');
+  assert.match(chart, /setColors\(up, down\) \{/);
+  assert.match(css, /:root\{--bg:#010102;--bg2:#0e0e11;/);
+  assert.match(css, /\.chart-wrap>\.qt \.qt-sell\{background:#bf4249!important\}/);
+  assert.match(css, /\.chart-wrap>\.qt \.qt-buy\{background:#3e8d74!important\}/);
+});
+
+test('phone: bottom bar reaches every section; instrument list drops down; the quick-trade bar cannot be dragged', () => {
+  assert.match(js, /const TABS = \['chart', 'trade', 'positions', 'challenge', 'account'\];/);
+  assert.match(js, /positions: \['positions', 'pending', 'closed'\]/);
+  assert.match(js, /account: \['account', 'orders', 'risk', 'journal', 'alerts', 'statement'\]/);
+  assert.match(js, /<b>Select Instrument<\/b>/);
+  assert.match(js, /ph\.placeholder = MQ\.matches \? 'Search for anything…' : ph\.dataset\.deskPlaceholder/);
+  assert.match(js, /handle\.addEventListener\('pointerdown', \(e\) => \{ if \(MQ\.matches && !e\.target\.closest\('button'\)\) e\.stopImmediatePropagation\(\); \}, true\)/);
+  assert.match(css, /\.sym-row \.px\{display:none!important\}/);
+  assert.match(css, /html\[data-ptab="account"\]\[data-pmenu="list"\] \.bpanel\{display:none!important\}/);
 });
