@@ -870,7 +870,7 @@
           if (v == null) continue;
           const removable = kind === "tp" || !hooks.stopRequired();
           const name = kind === "sl" ? "Stop loss" : "Take profit";
-          // TradeLocker-style: one outlined pill "lots | money at this level | ×" and the price in an outlined box on the axis.
+          // One outlined pill "lots | money at this level | ×" and the price in an outlined box on the axis.
           html.push(
             `<div class="ipc-line ipc-${kind}${busy}" data-id="${esc(t.id)}" data-kind="${kind}">` +
               `<div class="ipc-grab" data-drag="${kind}" data-id="${esc(t.id)}" role="slider" tabindex="0"` +
@@ -933,7 +933,7 @@
         el.querySelector(".ipc-px").textContent = price.toFixed(digits);
         const val = el.querySelector(".ipc-val");
         const pnl = hooks.pnlAt(t, price);
-        // The pill shows only the money at this level, as TradeLocker does; the limit check lives in the tooltip and the
+        // The pill shows only the money at this level; the limit check lives in the tooltip and the
         // pill glows red when the engine would refuse the level.
         let note = "";
         let over = false;

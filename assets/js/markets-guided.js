@@ -245,12 +245,12 @@ body.gt-on #opRisk,body.gt-on .op-quickbar .op-quick:nth-child(1),body.gt-on .op
     $('gtExact').onclick = () => { invalidStopDistance = false; if (!slOn) toggleSLTP('sl'); expanded = true; refresh(); $('slPrice').focus(); };
     const sl = $('slPrice'); if (sl) sl.addEventListener('input', () => { manualStopPrice = sl.value.trim() !== '' || !!sl.validity?.badInput; refresh(); });
   }
-  // Stop preview on the chart (as TradeLocker draws an order preview): dashed lines at the exact buy and sell stop prices
+  // Stop preview on the chart (an order preview): dashed lines at the exact buy and sell stop prices
   // the next order would carry, so the trader sees where the stop sits before clicking. Read-only; they follow the ticket.
   let previewSeries = null, previewLines = {};
   function stopPreview(levels) {
     const ch = typeof ipfxChart !== 'undefined' ? ipfxChart : null, series = ch && ch.series;
-    // The IPFX chart draws them as real stop pills (lots | -$ | price on the axis, as TradeLocker does).
+    // The IPFX chart draws them as real stop pills (lots | -$ | price on the axis).
     if (ch && typeof ch.setPreview === 'function') {
       ch.setPreview(levels ? Object.entries(levels).map(([k, v]) => ({ key: k, label: k, price: v.price, lots: v.lots, usd: v.loss, digits: digits() })) : []);
       return;

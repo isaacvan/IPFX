@@ -163,17 +163,17 @@ test('on a desktop the phone layer is invisible', { skip: !enabled }, async () =
   } finally { await browser.close(); }
 });
 
-test('phone chart shows Bid and Ask lines (TradeLocker style), never on desktop', () => {
+test('phone chart shows Bid and Ask lines, never on desktop', () => {
   assert.match(js, /function syncBidAsk\(\)/);
   assert.match(js, /const ok = MQ\.matches && series && series\.createPriceLine && q && Number\(q\.bid\) > 0 && Number\(q\.ask\) > 0;/);
   assert.match(js, /if \(!ok\) \{ if \(baLines\) \{ for \(const l of Object\.values\(baLines\)\) \{ try \{ baSeries\.removePriceLine\(l\); \} catch \(_\) \{\} \} baLines = null; \} return; \}/);
 });
 
-test('phone colours: TradeLocker shades by default, easy to change, remembered, and desktop keeps the originals', () => {
+test('phone colours: IPFX Neon by default, easy to change, remembered, and desktop keeps the originals', () => {
   assert.match(js, /const DEFAULT_COLORS = \{ up: '#4FAF91', down: '#D9545B', bg: '#010102' \};/);
   assert.match(js, /const ORIGINAL = \{ up: '#10b981', down: '#ef4444', bg: '#0a0a0c' \};/);
   assert.match(js, /const want = on \? colors : ORIGINAL/, 'off the phone layout the original colours come back');
-  for (const name of ['TradeLocker', 'Bright neon', 'Classic', 'Blue / Orange', 'White / Grey']) assert.ok(js.includes(`name: '${name}'`), name);
+  for (const name of ['IPFX Neon', 'Bright neon', 'Classic', 'Blue / Orange', 'White / Grey']) assert.ok(js.includes(`name: '${name}'`), name);
   assert.match(js, /localStorage\.setItem\(COLORS_KEY/);
   assert.match(js, /id="phUp"[^>]*type="color"|type="color" id="phUp"/);
   const chart = fs.readFileSync(new URL('assets/js/ipfx-chart.js', root), 'utf8');

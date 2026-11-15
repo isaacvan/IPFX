@@ -90,14 +90,14 @@
     bar.addEventListener('click', (e) => { const b = e.target.closest('button[data-ptab]'); if (b) setTab(b.dataset.ptab, true); });
     body.appendChild(bar);
 
-    // Quick-trade bar under the chart (like TradeLocker's): the desktop quick ticket, docked full width. It is the
+    // Quick-trade bar under the chart: the desktop quick ticket, docked full width. It is the
     // desktop's own remote control for the order ticket (same lots, stop, take profit, risk checks and order path), so
     // nothing about how an order is placed changes. Shown on the Chart tab; "open the full ticket" goes to Trade.
     const origShow = window.qtShouldShow, origFull = window.qtOpenFull;
     if (typeof origShow === 'function') window.qtShouldShow = () => (MQ.matches ? current === 'chart' : origShow());
     if (typeof origFull === 'function') window.qtOpenFull = () => (MQ.matches ? setTab('trade', true) : origFull());
 
-    // Timeframes: one button showing the current one; tap it to pick another (like TradeLocker's "5m").
+    // Timeframes: one button showing the current one; tap it to pick another (like "5m").
     const tb = $('chartToolbar');
     if (tb) {
       tb.addEventListener('click', (e) => {
@@ -126,7 +126,7 @@
     }
     buildColorSheet();
 
-    // Balance in the top bar once signed in (TradeLocker shows it there too).
+    // Balance in the top bar once signed in (as on most trading apps).
     const feed = $('feedBadge');
     if (feed && !$('phBal')) {
       const bal = document.createElement('button');
@@ -197,7 +197,7 @@
     }
 
     // Instrument list: a dropdown under the top bar with a "Select Instrument" header, search and one clean row per
-    // instrument (name and category, no prices), like TradeLocker. Same list, search and picker as desktop.
+    // instrument (name and category, no prices). Same list, search and picker as desktop.
     const sheet = document.querySelector('#symPicker .sym-sheet');
     if (sheet && !$('phSymHead')) {
       const head = document.createElement('div');
@@ -261,12 +261,12 @@
 
   // ── Chart colours ──
   // Candle colours and background, chosen from presets or any colour, remembered on this phone. Defaults are
-  // TradeLocker's shades (sampled from its phone app). Desktop keeps the original colours.
+  // The default shades are IPFX's own near-black and neon green/red. Desktop keeps the original colours.
   const COLORS_KEY = 'ipfx-phone-chart-colors';
   const DEFAULT_COLORS = { up: '#4FAF91', down: '#D9545B', bg: '#010102' };
   const ORIGINAL = { up: '#10b981', down: '#ef4444', bg: '#0a0a0c' };
   const PRESETS = [
-    { name: 'TradeLocker', up: '#4FAF91', down: '#D9545B' },
+    { name: 'IPFX Neon', up: '#4FAF91', down: '#D9545B' },
     { name: 'Bright neon', up: '#00E5A0', down: '#FF4D6A' },
     { name: 'Classic', up: '#10B981', down: '#EF4444' },
     { name: 'Blue / Orange', up: '#3B82F6', down: '#F59E0B' },
@@ -339,7 +339,7 @@
     if (typeof window.syncQuickTicketVisibility === 'function') { try { window.syncQuickTicketVisibility(); } catch (_) {} }
   }
 
-  // Bid and Ask lines on the chart, as TradeLocker draws them (sells fill at the bid, buys at the ask). Phones only;
+  // Bid and Ask lines on the chart (sells fill at the bid, buys at the ask). Phones only;
   // read-only, from the same live quote the order ticket uses.
   let baSeries = null, baLines = null;
   function syncBidAsk() {

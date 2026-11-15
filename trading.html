@@ -60,7 +60,7 @@ try{if(localStorage.getItem('ipfx_chart_engine')==='tv')window.__loadTv();}catch
 <script src="/assets/js/ipfx-indicators-smc.js"></script>
 <script src="/assets/js/ipfx-indicators-extra.js"></script>
 <script src="/assets/js/ipfx-indicators-plus.js"></script>
-<script src="/assets/js/ipfx-chart.js?v=20261115a"></script>
+<script src="/assets/js/ipfx-chart.js?v=20261115b"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -178,7 +178,7 @@ body.light .chart-pos-chip{background:rgba(255,255,255,.92);box-shadow:0 10px 28
 .ipc-x{width:18px;padding:0;background:transparent;color:var(--muted2);}
 .ipc-x:hover{background:rgba(239,68,68,.16);color:#ff8d99;}
 .ipc-light .ipc-tag{background:rgba(255,255,255,.95);box-shadow:0 6px 18px rgba(15,23,42,.12);color:#111;}
-/* Stop / take-profit lines (Nov 2026, TradeLocker layout in IPFX style): solid thin line, outlined pill
+/* Stop / take-profit lines (Nov 2026, IPFX style): solid thin line, outlined pill
    "lots | money | ×", price in an outlined box on the axis. Orders not placed yet use the same pill on a dashed line. */
 .ipc-sl,.ipc-tp{border-top-style:solid;}
 .ipc-preview{border-top-style:dashed;}
@@ -1306,7 +1306,7 @@ body.light .postbl tbody tr:hover{background:rgba(0,0,0,.035)}
   .btab{padding-inline:10px}
   .postbl-stats{padding-inline:12px}
 }
-/* TradeLocker-informed IPFX order workspace */
+/* IPFX order workspace */
 .guide{width:430px;}
 .guide > .guide-tabs{order:1;}
 .guide > .guide-body{order:2;}
@@ -1389,7 +1389,7 @@ body.light .op-exec-buy{background:#2f8064;}
 @media(max-height:820px){.guide.order-mode .wl-list{max-height:100px}.guide.order-mode #tab-order{gap:7px;padding-top:10px;padding-bottom:8px}.op-type-btn{padding:7px}.op-quick{min-height:30px;padding:5px}.op-limit-card{padding:8px 10px}.op-exec-btn{min-height:60px}.op-feed-label{display:none}}
 
 
-/* Desktop client: a TradeLocker-scale workspace with no website chrome. */
+/* Desktop client: a compact workspace with no website chrome. */
 .desktop-app .topbar{height:40px;padding:0 10px;gap:8px;background:#111113}
 .desktop-app .tb-logo img{width:22px;height:22px}
 .desktop-app .tb-logo span{font-size:13px;letter-spacing:-.01em}
@@ -1690,7 +1690,7 @@ body.light .sym-picker kbd{border-color:rgba(0,0,0,.2)}
 </style>
 <script src="/assets/js/challenge-warnings.js?v=20261113a"></script>
 <!-- Phone layout: switched on by markets-phone.js (early access: listed accounts only), and then only on phone screens (up to 760px wide, or a touch screen under 520px tall when turned sideways), so the desktop layout is unaffected. -->
-<link rel="stylesheet" href="/assets/css/markets-phone.css?v=20261115b" id="marketsPhoneCss" media="not all" data-phone-media="(max-width: 760px), (pointer: coarse) and (max-height: 520px)">
+<link rel="stylesheet" href="/assets/css/markets-phone.css?v=20261115c" id="marketsPhoneCss" media="not all" data-phone-media="(max-width: 760px), (pointer: coarse) and (max-height: 520px)">
 </head>
 <body>
 
@@ -4730,7 +4730,7 @@ function engineToken(){
     return sess&&sess.access_token?sess.access_token:null;
   }catch(_){return null;}
 }
-// Alerts (Nov 2026): every message is a card like TradeLocker's: an icon, a bold title, what happened, the order
+// Alerts (Nov 2026): every message is a card: an icon, a bold title, what happened, the order
 // details, and a close button. Cards stack at the top of the screen (newest first, at most four), close by themselves
 // (errors stay longer) and pause while the pointer is over them. Callers still pass one sentence; alertParts() splits it.
 function alertParts(txt,ok,kind){
@@ -4794,7 +4794,7 @@ function engineMsg(txt,ok,kind){
   x.onclick=close;card.onmouseenter=()=>clearTimeout(timer);card.onmouseleave=arm;arm();
 }
 // Announces positions the ENGINE closed between polls (stop-loss hit,
-// take-profit hit, a drawdown-breach flatten) — the events TradeLocker
+// take-profit hit, a drawdown-breach flatten) — the events a trading platform
 // surfaces as "Stop loss hit / Position closed" toasts and IPFX
 // previously only reflected as a silent row disappearing from the
 // table. Every trading-engine action (not just `state`) returns the
@@ -7570,10 +7570,10 @@ setChartEngine(chartEngine);
 <noscript><div class="ipfx-noscript">JavaScript is required for account and consent controls.</div></noscript>
 <script defer src="/assets/js/site-foundation.js"></script>
 <script src="/assets/js/trader-service-notices.js?v=20261008-review-controls"></script>
-<script src="/assets/js/markets-guided.js?v=20261113a"></script>
+<script src="/assets/js/markets-guided.js?v=20261115a"></script>
 <script src="/assets/js/infinity-restart.js?v=20261107a"></script>
 <script src="/assets/js/infinity-v2-ui.js?v=20261102a"></script>
-<script src="/assets/js/markets-phone.js?v=20261115a"></script>
+<script src="/assets/js/markets-phone.js?v=20261115b"></script>
 
 <dialog id="stageRulesDialog" class="rule-dlg" aria-labelledby="stageRulesTitle">
   <h2 id="stageRulesTitle" tabindex="-1">Your rules: things to know</h2>

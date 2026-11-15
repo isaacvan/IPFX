@@ -277,7 +277,7 @@ html[data-ptab="account"] .ph-acct-more{display:grid;grid-template-columns:1fr;g
 .bpanel.active{flex:1 0 auto;overflow:visible;align-items:stretch}
 .bpanel .ch-wrap{height:auto;overflow:visible}
 
-/* ── Quick-trade bar docked under the chart (TradeLocker style) ── */
+/* ── Quick-trade bar docked under the chart (docked) ── */
 .chart-wrap>.qt{position:relative!important;left:auto!important;bottom:auto!important;right:auto!important;top:auto!important;width:auto!important;max-width:none!important;flex-shrink:0;z-index:5;margin:0;padding:8px 10px 10px!important;border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;background:var(--bg2)!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 .chart-wrap>.qt .qt-head{cursor:default;min-height:40px;gap:8px}
 .chart-wrap>.qt .qt-grip,.chart-wrap>.qt .qt-sym{display:none}
@@ -321,7 +321,7 @@ body.signed-in .feed-badge{padding:0!important;min-width:40px}
 .chart-toolbar:not(.ph-tf-open){gap:6px}
 
 /* ════════════════════════════════════════════════════════════════════════════════════════════════════════
-   Clean pass (14 Nov 2026), after comparing with TradeLocker's phone app: fewer boxes, smaller type, more
+   Clean pass (14 Nov 2026), fewer boxes, smaller type, more
    chart. Plain text and icons instead of bordered buttons; one quiet quick-trade bar; nothing duplicated.
    ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 :root{--ph-top:calc(46px + env(safe-area-inset-top,0px));--ph-tab:calc(54px + env(safe-area-inset-bottom,0px))}
@@ -354,7 +354,7 @@ body.signed-in .feed-badge .feed-dot{width:8px;height:8px}
 .ipc-lg-tf{font-size:12px}
 .ipc-lg-chg{font-size:11.5px}
 
-/* Quick-trade bar: TradeLocker-style, compact and quiet */
+/* Quick-trade bar: compact and quiet */
 .chart-wrap>.qt{padding:6px 10px 8px!important;border-top:1px solid rgba(255,255,255,.06)!important}
 .chart-wrap>.qt .qt-head{min-height:32px;gap:6px}
 .chart-wrap>.qt .qt-chip{height:28px!important;min-width:0!important;padding:0 10px!important;border:0!important;border-radius:6px!important;background:rgba(255,255,255,.07)!important;color:var(--muted)!important;font:700 11px var(--font-ui)!important;letter-spacing:.05em;text-transform:uppercase}
@@ -418,7 +418,7 @@ html[data-ptab="trade"] .chart-toolbar{display:none!important}
 .btab.active{background:rgba(255,255,255,.08)!important;border-color:transparent!important}
 
 /* ════════════════════════════════════════════════════════════════════════════════════════════════════════
-   TradeLocker shades (sampled from its phone app, 15 Nov 2026): near-black screen, #0E0E11 panels, Sell #BF4249
+   IPFX phone shades (15 Nov 2026): near-black screen, #0E0E11 panels, Sell #BF4249
    and Buy #3E8D74. The candle and background colours can be changed from the palette button in the chart toolbar.
    ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 :root{--bg:#010102;--bg2:#0e0e11;--bg3:#17171c;--line:#23232a;--line2:#1a1a1f}
