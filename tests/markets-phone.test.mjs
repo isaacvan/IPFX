@@ -27,7 +27,7 @@ test('the phone stylesheet only loads on phone-sized screens', () => {
 
 test('phone elements are hidden on wider screens even without the phone stylesheet', () => {
   assert.match(js, /html:not\(\.phone\) \.ph-only\{display:none!important\}/);
-  for (const cls of ['ph-tabbar', 'ph-ind', 'ph-bal', 'ph-sym', 'ph-acct', 'ph-acct-more', 'ph-install', 'ph-install-guide', 'ph-auth-close', 'ph-auth-links', 'ph-sym-head', 'ph-gear', 'ph-menu', 'ph-back', 'ph-sheet']) {
+  for (const cls of ['ph-tabbar', 'ph-ind', 'ph-bal', 'ph-sym', 'ph-acct', 'ph-acct-more', 'ph-install', 'ph-install-guide', 'ph-auth-close', 'ph-auth-links', 'ph-sym-head', 'ph-gear', 'ph-menu', 'ph-back']) {
     assert.match(js, new RegExp(`className = '${cls}( [a-z-]+)* ?ph-only'|className = '${cls} ph-only'`), `${cls} is phone-only`);
   }
   assert.match(js, /window\.matchMedia\('\(max-width: 760px\), \(pointer: coarse\) and \(max-height: 520px\)'\)/);
@@ -169,16 +169,12 @@ test('phone chart shows Bid and Ask lines, never on desktop', () => {
   assert.match(js, /if \(!ok\) \{ if \(baLines\) \{ for \(const l of Object\.values\(baLines\)\) \{ try \{ baSeries\.removePriceLine\(l\); \} catch \(_\) \{\} \} baLines = null; \} return; \}/);
 });
 
-test('phone colours: IPFX Neon by default, easy to change, remembered, and desktop keeps the originals', () => {
-  assert.match(js, /const DEFAULT_COLORS = \{ up: '#4FAF91', down: '#D9545B', bg: '#010102' \};/);
-  assert.match(js, /const ORIGINAL = \{ up: '#10b981', down: '#ef4444', bg: '#0a0a0c' \};/);
-  assert.match(js, /const want = on \? colors : ORIGINAL/, 'off the phone layout the original colours come back');
-  for (const name of ['IPFX Neon', 'Bright neon', 'Classic', 'Blue / Orange', 'White / Grey']) assert.ok(js.includes(`name: '${name}'`), name);
-  assert.match(js, /localStorage\.setItem\(COLORS_KEY/);
-  assert.match(js, /id="phUp"[^>]*type="color"|type="color" id="phUp"/);
-  const chart = fs.readFileSync(new URL('assets/js/ipfx-chart.js', root), 'utf8');
-  assert.match(chart, /let UP = "#10b981", DOWN = "#ef4444";/, 'chart defaults are unchanged');
-  assert.match(chart, /setColors\(up, down\) \{/);
+test('phone: the palette button opens the shared colours panel; an installed app always gets the phone version', () => {
+  assert.match(js, /gear\.addEventListener\('click', \(\) => \{ if \(window\.ipfxColors\) window\.ipfxColors\.toggle\(\); \}\);/);
+  assert.doesNotMatch(js, /localStorage\.setItem\(COLORS_KEY|buildColorSheet|paintChart/, 'colour logic lives in markets-colors.js');
+  assert.match(js, /if \(installedApp\(\)\) \{ remember\(true\); return true; \}/);
+  assert.match(js, /\(display-mode: standalone\)/); assert.match(js, /navigator\.standalone === true/);
+  assert.match(read('markets.webmanifest'), /"start_url": "\/trading\.html\?phone=1&source=app"/);
   assert.match(css, /:root\{--bg:#010102;--bg2:#0e0e11;/);
   assert.match(css, /\.chart-wrap>\.qt \.qt-sell\{background:#bf4249!important\}/);
   assert.match(css, /\.chart-wrap>\.qt \.qt-buy\{background:#3e8d74!important\}/);

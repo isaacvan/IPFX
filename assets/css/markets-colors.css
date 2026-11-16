@@ -1,0 +1,26 @@
+/* Chart colours panel (phone and computer). On a phone it is a sheet that slides up from the bottom; on a computer it
+   is a small panel beside the chart so the change shows as you pick it. Colours are fixed (not the page theme). */
+.ic-sheet{position:fixed;inset:0;z-index:9400;display:flex;align-items:flex-end;background:transparent;font-family:var(--font-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif)}
+.ic-sheet[hidden]{display:none}
+.ic-card{width:100%;max-height:70dvh;overflow-y:auto;padding:6px 16px calc(18px + env(safe-area-inset-bottom,0px));border-radius:18px 18px 0 0;background:#0e0e11;color:#f4f4f5;box-shadow:0 -14px 40px rgba(0,0,0,.55)}
+.ic-head{display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px}
+.ic-head b{font-size:17px;font-weight:700}
+.ic-head button{width:36px;height:36px;border:0;background:none;color:#a1a1aa;font-size:26px;line-height:1;cursor:pointer}
+.ic-sec{margin:12px 0 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8b8b93}
+.ic-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ic-presets button,.ic-bgs button{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 12px;border:1.5px solid transparent;border-radius:12px;background:#17171c;color:#f4f4f5;font:600 13.5px inherit;font-family:inherit;cursor:pointer;text-align:left}
+.ic-presets button[aria-pressed="true"],.ic-bgs button[aria-pressed="true"]{border-color:#fff}
+.ic-candles{display:inline-flex;align-items:flex-end;gap:3px;height:22px}
+.ic-candles i{display:block;width:6px;border-radius:2px}
+.ic-candles i:nth-child(1){height:16px}.ic-candles i:nth-child(2){height:22px}.ic-candles i:nth-child(3){height:12px}
+.ic-custom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.ic-custom label{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 10px 0 14px;border-radius:12px;background:#17171c;font-size:13.5px;font-weight:600}
+.ic-custom input[type=color]{width:44px;height:34px;padding:0;border:0;border-radius:8px;background:none;cursor:pointer}
+.ic-bgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ic-bgs i{display:block;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.25)}
+.ic-reset{width:100%;min-height:46px;margin-top:14px;border:0;border-radius:12px;background:#17171c;color:#c4c4cc;font:650 14px inherit;font-family:inherit;cursor:pointer}
+.ic-reset:hover,.ic-presets button:hover,.ic-bgs button:hover{filter:brightness(1.25)}
+@media (min-width:761px){
+  .ic-sheet{inset:auto;top:112px;right:16px;width:372px;max-width:calc(100vw - 32px);pointer-events:none;align-items:flex-start}
+  .ic-card{pointer-events:auto;max-height:calc(100vh - 140px);padding:6px 16px 16px;border-radius:16px;border:1px solid rgba(255,255,255,.1);box-shadow:0 22px 60px rgba(0,0,0,.6)}
+}

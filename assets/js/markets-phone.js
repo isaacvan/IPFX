@@ -30,8 +30,12 @@
   function remembered() { try { return localStorage.getItem(DEVICE_KEY) === '1'; } catch (_) { return false; } }
   const flag = new URLSearchParams(location.search).get('phone');
   if (flag === '1') remember(true); else if (flag === '0') remember(false);
+  // An app opened from the Home Screen (or the IPFX app) has its own storage, so it cannot see the flag above: running
+  // as an installed app always means the phone version.
+  const installedApp = () => { try { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; } catch (_) { return false; } };
   function phoneVersionOn() {
     if (RELEASED_TO_EVERYONE || window.Capacitor) return true;
+    if (installedApp()) { remember(true); return true; }
     if (!/(^|\.)ipfxcapital\.com$/i.test(location.hostname)) return true;
     if (EARLY_ACCESS_ACCOUNTS.includes(signedInAccountId())) { remember(true); return true; }
     return remembered();
@@ -121,10 +125,9 @@
       const gear = document.createElement('button');
       gear.type = 'button'; gear.id = 'phGear'; gear.className = 'ph-gear ph-only'; gear.setAttribute('aria-label', 'Chart colours');
       gear.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.6-.3-1.1-.6-1.5-.3-.4-.4-.9-.4-1.5 0-1.1.9-2 2-2h2.3A2.8 2.8 0 0 0 20.5 11 9 9 0 0 0 12 3z"/><circle cx="7.5" cy="11" r="1.1"/><circle cx="10" cy="7" r="1.1"/><circle cx="15" cy="7" r="1.1"/></svg>';
-      gear.addEventListener('click', () => openColors());
+      gear.addEventListener('click', () => { if (window.ipfxColors) window.ipfxColors.toggle(); });
       tb.appendChild(gear);
     }
-    buildColorSheet();
 
     // Balance in the top bar once signed in (as on most trading apps).
     const feed = $('feedBadge');
@@ -259,76 +262,6 @@
     });
   }
 
-  // ── Chart colours ──
-  // Candle colours and background, chosen from presets or any colour, remembered on this phone. Defaults are
-  // The default shades are IPFX's own near-black and neon green/red. Desktop keeps the original colours.
-  const COLORS_KEY = 'ipfx-phone-chart-colors';
-  const DEFAULT_COLORS = { up: '#4FAF91', down: '#D9545B', bg: '#010102' };
-  const ORIGINAL = { up: '#10b981', down: '#ef4444', bg: '#0a0a0c' };
-  const PRESETS = [
-    { name: 'IPFX Neon', up: '#4FAF91', down: '#D9545B' },
-    { name: 'Bright neon', up: '#00E5A0', down: '#FF4D6A' },
-    { name: 'Classic', up: '#10B981', down: '#EF4444' },
-    { name: 'Blue / Orange', up: '#3B82F6', down: '#F59E0B' },
-    { name: 'White / Grey', up: '#E5E7EB', down: '#6B7280' },
-  ];
-  const BGS = [{ name: 'Black', c: '#010102' }, { name: 'Dark', c: '#0a0a0c' }, { name: 'Slate', c: '#17171c' }];
-  const isHex = (v) => /^#[0-9a-f]{6}$/i.test(String(v));
-  let colors = (() => { try { const v = JSON.parse(localStorage.getItem(COLORS_KEY) || 'null'); if (v && isHex(v.up) && isHex(v.down) && isHex(v.bg)) return v; } catch (_) {} return { ...DEFAULT_COLORS }; })();
-  function saveColors() { try { localStorage.setItem(COLORS_KEY, JSON.stringify(colors)); } catch (_) {} }
-  let paintedChart = null, paintedKey = '';
-  // Applies (or, off the phone layout, removes) the chosen colours. Cheap enough to run every tick: it only touches the
-  // chart when something differs, which also covers a rebuilt chart or the light/dark switch resetting the background.
-  function paintChart() {
-    const ch = typeof ipfxChart !== 'undefined' ? ipfxChart : null;
-    if (!ch || typeof ch.setColors !== 'function' || !ch.chart) return;
-    const light = document.body.classList.contains('light'), on = MQ.matches;
-    const want = on ? colors : ORIGINAL, key = [on, want.up, want.down, want.bg, light].join();
-    let bgNow = ''; try { bgNow = ch.chart.options().layout.background.color; } catch (_) {}
-    const bgWant = light ? '#ffffff' : want.bg;
-    if (paintedChart === ch && paintedKey === key && (!on || bgNow === bgWant)) return;
-    if (!on && paintedChart === null) return;                    // never painted, nothing to undo
-    paintedChart = on ? ch : null; paintedKey = on ? key : '';
-    ch.setColors(want.up, want.down);
-    if (!light && (on || bgNow === colors.bg)) { try { ch.chart.applyOptions({ layout: { background: { type: 'solid', color: want.bg } } }); } catch (_) {} }
-    if (on && !light) document.documentElement.style.setProperty('--bg', colors.bg); else document.documentElement.style.removeProperty('--bg');
-  }
-  function buildColorSheet() {
-    if ($('phColors')) return;
-    const d = document.createElement('div');
-    d.id = 'phColors'; d.className = 'ph-sheet ph-only'; d.hidden = true; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'phColorsTitle');
-    d.innerHTML = '<div class="ph-sheet-card"><div class="ph-sheet-head"><b id="phColorsTitle">Chart colours</b><button type="button" id="phColorsX" aria-label="Close">×</button></div>'
-      + '<div class="ph-sec">Candles</div><div class="ph-presets" id="phPresets"></div>'
-      + '<div class="ph-custom"><label><span>Up candles</span><input type="color" id="phUp" aria-label="Colour of up candles"></label>'
-      + '<label><span>Down candles</span><input type="color" id="phDown" aria-label="Colour of down candles"></label></div>'
-      + '<div class="ph-sec">Background</div><div class="ph-bgs" id="phBgs"></div>'
-      + '<button type="button" id="phColorsReset" class="ph-reset">Reset to default</button></div>';
-    d.addEventListener('click', (e) => { if (e.target === d || e.target.id === 'phColorsX') closeColors(); });
-    document.body.appendChild(d);
-    const up = d.querySelector('#phUp'), down = d.querySelector('#phDown');
-    let raf = 0;
-    const live = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { colors.up = up.value.toUpperCase(); colors.down = down.value.toUpperCase(); saveColors(); paintChart(); renderColorSheet(false); }); };
-    up.addEventListener('input', live); down.addEventListener('input', live);
-    d.querySelector('#phColorsReset').addEventListener('click', () => { colors = { ...DEFAULT_COLORS }; saveColors(); paintChart(); renderColorSheet(true); });
-    d.querySelector('#phPresets').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-i]'); if (!b) return; const pr = PRESETS[+b.dataset.i];
-      colors.up = pr.up; colors.down = pr.down; saveColors(); paintChart(); renderColorSheet(true);
-    });
-    d.querySelector('#phBgs').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-i]'); if (!b) return; colors.bg = BGS[+b.dataset.i].c; saveColors(); paintChart(); renderColorSheet(true);
-    });
-  }
-  function renderColorSheet(inputs) {
-    const d = $('phColors'); if (!d) return;
-    const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
-    d.querySelector('#phPresets').innerHTML = PRESETS.map((pr, i) =>
-      `<button type="button" data-i="${i}" aria-pressed="${same(pr.up, colors.up) && same(pr.down, colors.down)}"><span class="ph-candles" aria-hidden="true"><i style="background:${pr.up}"></i><i style="background:${pr.down}"></i><i style="background:${pr.up}"></i></span><span>${pr.name}</span></button>`).join('');
-    d.querySelector('#phBgs').innerHTML = BGS.map((b, i) =>
-      `<button type="button" data-i="${i}" aria-pressed="${same(b.c, colors.bg)}"><i style="background:${b.c}"></i><span>${b.name}</span></button>`).join('');
-    if (inputs !== false) { d.querySelector('#phUp').value = colors.up.toLowerCase(); d.querySelector('#phDown').value = colors.down.toLowerCase(); }
-  }
-  function openColors() { buildColorSheet(); renderColorSheet(true); $('phColors').hidden = false; }
-  function closeColors() { const d = $('phColors'); if (d) d.hidden = true; }
 
   // The quick ticket lives in the chart area on desktop; on a phone it sits under the chart, full width.
   let qtHome = null;
@@ -355,7 +288,6 @@
   }
 
   function syncLive() {
-    paintChart();
     if (!MQ.matches) { syncBidAsk(); return; }
     syncBidAsk();
     relocate(true);
@@ -417,7 +349,7 @@
     document.documentElement.classList.toggle('phone', MQ.matches);
     const ph = $('symSearch');
     if (ph) { if (!ph.dataset.deskPlaceholder) ph.dataset.deskPlaceholder = ph.placeholder; ph.placeholder = MQ.matches ? 'Search for anything…' : ph.dataset.deskPlaceholder; }
-    if (!MQ.matches) { delete document.documentElement.dataset.ptab; relocate(false); authWording(false); dockTicket(false); paintChart(); return; }
+    if (!MQ.matches) { delete document.documentElement.dataset.ptab; relocate(false); authWording(false); dockTicket(false); return; }
     build();
     authWording(true);
     let saved = 'chart';
