@@ -10,9 +10,9 @@ import { emailShell, render } from "../_shared/lifecycle-email.ts";
 import { pickProvider, sendEmail } from "../_shared/mail-provider.mjs";
 import { blockedBySuppression, isMarketing, normEmail, unsubscribeLinks } from "../_shared/email-suppression.mjs";
 
-const TEMPLATES = ["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated", "infinity_stop_rule_restart"];
+const TEMPLATES = ["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated", "infinity_stop_rule_restart", "infinity_account_unlocked_fault"];
 // Emails that only make sense while the trader has an active Infinity account.
-const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated"];
+const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated", "infinity_account_unlocked_fault"];
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   const live = Deno.env.get("EMAIL_OUTBOX_LIVE") === "1";
   // Owner tests first, then time-sensitive notices (breach / restart), then the approval backlog; oldest first within each.
   // deno-lint-ignore no-explicit-any
-  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_monthly_restart_v2" || r.template_key === "infinity_account_reinstated" || r.template_key === "infinity_stop_rule_restart" ? 2 : 0 - (r.template_key === "infinity_comeback" ? 1 : 0));
+  const rank = (r: any) => (r.payload?.test ? 3 : 0) + (r.template_key === "infinity_breach_notice" || r.template_key === "infinity_monthly_restart" || r.template_key === "infinity_monthly_restart_v2" || r.template_key === "infinity_account_reinstated" || r.template_key === "infinity_stop_rule_restart" || r.template_key === "infinity_account_unlocked_fault" ? 2 : 0 - (r.template_key === "infinity_comeback" ? 1 : 0));
   // deno-lint-ignore no-explicit-any
   // Marketing emails wait until the unsubscribe secret is set, so none ever goes out without a working opt-out.
   const list = (rows ?? []).filter((r: any) => live || r.payload?.test === true)
