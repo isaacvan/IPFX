@@ -1,0 +1,10 @@
+[Unit]
+Description=IPFX watchdog check
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ipfx-hub.env
+EnvironmentFile=/etc/ipfx-watchdog.env
+ExecStart=/usr/local/bin/node /opt/ipfx-watchdog/watchdog.mjs
+User=ipfxhub
+StateDirectory=ipfx-watchdog
+NoNewPrivileges=true
