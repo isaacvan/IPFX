@@ -6,8 +6,8 @@ import fs from 'node:fs';
 import { v2db, uid } from './helpers/infinity-v2-db.mjs';
 const opts = { skip: !process.env.DEMO_TEST_DEPS };
 const ago = (s) => new Date(Date.now() - s * 1000).toISOString();
-async function open(db, a, { side = 'buy', volume = .01, price = 1.1, sl = null, at = ago(45) } = {}) {
-  return (await db.query(`insert into trades(account_id,user_id,symbol,side,volume,open_price,sl,opened_at,execution_rules_version) values($1,$2,'EURUSD',$3,$4,$5,$6,$7,'infinity_v2') returning *`, [a.id, uid, side, volume, price, sl, at])).rows[0];
+async function open(db, a, { symbol = 'EURUSD', side = 'buy', volume = .01, price = 1.1, sl = null, at = ago(45) } = {}) {
+  return (await db.query(`insert into trades(account_id,user_id,symbol,side,volume,open_price,sl,opened_at,execution_rules_version) values($1,$2,$3,$4,$5,$6,$7,$8,'infinity_v2') returning *`, [a.id, uid, symbol, side, volume, price, sl, at])).rows[0];
 }
 const auto = async (db, t) => (await db.query('select infinity_v2_auto_stop($1,5) r', [t.id])).rows[0].r;
 const row = async (db, t) => (await db.query('select sl,initial_sl,initial_risk_usd,status from trades where id=$1', [t.id])).rows[0];
@@ -77,4 +77,32 @@ test('the engine attaches the automatic stop instead of closing with a strike', 
   assert.match(mig, /access_revoked_reason = 'challenge_rule_breach:stop_loss_rule'/, 'free restart for runs ended by the old rule');
   assert.match(mig, /'infinity_stop_rule_restart'/);
   assert.match(fs.readFileSync(new URL('../supabase/functions/email-outbox/index.ts', import.meta.url), 'utf8'), /"infinity_stop_rule_restart"/);
+});
+
+// Regression, 18 Nov 2026: the 13 Nov automatic stop records its stop at 30+ seconds, and infinity_v2_initial_risk_guard
+// then rejected EVERY later update of the trade (OPENING_STOP_TOO_LATE), so such trades could never be closed.
+test('after the automatic stop the trade can still be edited and closed', opts, async () => {
+  const { db, account } = await v2db(); try {
+    const a = await account();
+    const t = await open(db, a, { volume: .01, at: ago(45) });
+    assert.equal((await auto(db, t)).ok, true);
+    const stop = await row(db, t);
+    assert.ok(Number(stop.sl) > 0);
+    await db.query('update trades set tp=1.2 where id=$1', [t.id]);                                   // a later edit
+    await db.query('update trades set tp=1.3 where id=$1', [t.id]);                                   // and another
+    await db.query("update trades set status='closed',pnl=-5,closed_at=clock_timestamp(),close_reason='sl' where id=$1", [t.id]);
+    assert.equal((await row(db, t)).status, 'closed');
+    // the opening risk record is still protected
+    const u = await open(db, a, { symbol: 'XAUUSD', side: 'sell', volume: .01, price: 2000, at: ago(45) });   // another instrument: a stop-out pauses the first for 10 minutes
+    assert.equal((await auto(db, u)).ok, true);
+    await assert.rejects(db.query('update trades set initial_risk_usd=1 where id=$1', [u.id]), /OPENING_RISK_IMMUTABLE|IMMUTABLE/);
+  } finally { await db.close(); }
+});
+
+test('the migration only checks the 30-second window when the opening-stop time is recorded', () => {
+  const mig = fs.readFileSync(new URL('../supabase/migrations/20261118120000_infinity_auto_stop_late_record_fix.sql', import.meta.url), 'utf8');
+  assert.match(mig, /\(tg_op='INSERT' or new\.initial_sl_at is distinct from old\.initial_sl_at\)/);
+  assert.match(mig, /coalesce\(current_setting\('ipfx\.auto_stop',true\),''\)<>'on'/);
+  const repair = fs.readFileSync(new URL('../supabase/repairs/2026-11-18-auto-stop-stuck-trades.sql', import.meta.url), 'utf8');
+  assert.match(repair, /fn_commit_ipfx_close\(r\.id, r\.account_id, r\.user_id, r\.volume, r\.open_price, r\.sl,/, 'closed at the stop price, not the market');
 });

@@ -104,6 +104,7 @@ export async function v2db({adapters=true,restart=true}={}){
  await db.exec(sqlFile('20261109170000_v2_guard_allows_close_on_frozen'));
  await db.exec(sqlFile('20261109180000_infinity_v2_price_index_window'));
  await db.exec(sqlFile('20261113150000_infinity_automatic_stop'));
+  await db.exec(sqlFile('20261118120000_infinity_auto_stop_late_record_fix'));
  if(restart)await db.exec(sqlFile('20261102010000_infinity_restart_existing_traders_skip_identity'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_restart_offer'));
  await db.exec(definition('20261012220000_infinity_fresh_restart_offer','fn_infinity_take_fresh_restart'));
