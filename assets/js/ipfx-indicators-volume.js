@@ -21,7 +21,13 @@
       plots: [{ key: "volume", label: "Volume", type: "histogram", upColor: "#26a69a80", downColor: "#ef535080", scale: "volume" }],
       calc: (bars) => ({
         volume: vol(bars),
-        colors: { volume: bars.map((b) => (b.close >= b.open ? "#26a69a80" : "#ef535080")) },
+        colors: { volume: (() => {
+          // Phone layout: muted bars in the chart's own candle colours (about 30% strength). Computer: unchanged.
+          const phone = typeof document !== "undefined" && document.documentElement.classList.contains("phone");
+          const c = phone && typeof ipfxChart !== "undefined" && ipfxChart && ipfxChart.colors;
+          const up = c ? c.up + "4D" : "#26a69a80", down = c ? c.down + "4D" : "#ef535080";
+          return bars.map((b) => (b.close >= b.open ? up : down));
+        })() },
       }),
     },
     "OBV@tv-basicstudies": {

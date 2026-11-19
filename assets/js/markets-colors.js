@@ -7,7 +7,10 @@
   const KEY = 'ipfx-chart-colors', OLD_KEY = 'ipfx-phone-chart-colors';
   // Default: IPFX Neon candles on a near-black chart. "Classic" + "Dark" restores the look before 16 Nov 2026.
   const DEFAULTS = { up: '#4FAF91', down: '#D9545B', bg: '#010102' };
+  // Phone layout default since 19 Nov 2026: bolder candles. A colour someone picked always wins; the computer keeps DEFAULTS.
+  const PHONE_DEFAULTS = { up: '#00A884', down: '#E43C48', bg: '#010102' };
   const PRESETS = [
+    { name: 'IPFX Bold', up: '#00A884', down: '#E43C48' },
     { name: 'IPFX Neon', up: '#4FAF91', down: '#D9545B' },
     { name: 'Bright neon', up: '#00E5A0', down: '#FF4D6A' },
     { name: 'Classic', up: '#10B981', down: '#EF4444' },
@@ -19,20 +22,25 @@
   const isHex = (v) => /^#[0-9a-f]{6}$/i.test(String(v));
   const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 
+  let chosen = false;   // true once this browser has saved a colour choice
   let colors = (() => {
     try {
       const v = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY) || 'null');
-      if (v && isHex(v.up) && isHex(v.down) && isHex(v.bg)) return { up: v.up, down: v.down, bg: v.bg };
+      if (v && isHex(v.up) && isHex(v.down) && isHex(v.bg)) { chosen = true; return { up: v.up, down: v.down, bg: v.bg }; }
     } catch (_) {}
     return { ...DEFAULTS };
   })();
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(colors)); } catch (_) {} }
+  const phoneLayout = () => document.documentElement.classList.contains('phone');
+  const defaultsNow = () => (phoneLayout() ? PHONE_DEFAULTS : DEFAULTS);
+  // Until something is chosen, follow the layout's default (the phone class is set after this script loads).
+  function current() { if (!chosen) colors = { ...defaultsNow() }; return colors; }
+  function save() { chosen = true; try { localStorage.setItem(KEY, JSON.stringify(colors)); } catch (_) {} }
 
   // Applies the colours. Cheap enough to run every tick: it only touches the chart when something differs, which also
   // covers a rebuilt chart and the light/dark switch resetting the chart background.
   let paintedChart = null, paintedKey = '';
-  const phoneLayout = () => document.documentElement.classList.contains('phone');
   function paint() {
+    current();
     const ch = typeof ipfxChart !== 'undefined' ? ipfxChart : null;
     if (!ch || typeof ch.setColors !== 'function' || !ch.chart) return;
     const light = document.body.classList.contains('light');
@@ -63,7 +71,10 @@
     let raf = 0;
     const live = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { colors.up = up.value.toUpperCase(); colors.down = down.value.toUpperCase(); save(); paint(); render(false); }); };
     up.addEventListener('input', live); down.addEventListener('input', live);
-    $('icReset').addEventListener('click', () => { colors = { ...DEFAULTS }; save(); paint(); render(true); });
+    $('icReset').addEventListener('click', () => {
+      chosen = false; try { localStorage.removeItem(KEY); localStorage.removeItem(OLD_KEY); } catch (_) {}
+      current(); paint(); render(true);
+    });
     $('icPresets').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-i]'); if (!b) return; const p = PRESETS[+b.dataset.i];
       colors.up = p.up; colors.down = p.down; save(); paint(); render(true);
@@ -81,6 +92,7 @@
   }
   function render(inputs) {
     const d = $('icColors'); if (!d) return;
+    current();
     $('icPresets').innerHTML = PRESETS.map((p, i) =>
       `<button type="button" data-i="${i}" aria-pressed="${same(p.up, colors.up) && same(p.down, colors.down)}"><span class="ic-candles" aria-hidden="true"><i style="background:${p.up}"></i><i style="background:${p.down}"></i><i style="background:${p.up}"></i></span><span>${p.name}</span></button>`).join('');
     $('icBgs').innerHTML = BGS.map((b, i) =>
@@ -105,5 +117,5 @@
 
   function start() { addDesktopButton(); paint(); setInterval(paint, 400); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  window.ipfxColors = { open, close, toggle, paint, get colors() { return { ...colors }; }, presets: PRESETS, defaults: DEFAULTS };
+  window.ipfxColors = { open, close, toggle, paint, get colors() { return { ...current() }; }, presets: PRESETS, defaults: DEFAULTS, phoneDefaults: PHONE_DEFAULTS };
 })();

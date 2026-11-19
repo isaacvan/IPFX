@@ -158,8 +158,14 @@
       acct.className = 'ph-acct ph-only'; acct.id = 'phAcct';
       acct.innerHTML = '<a href="/dashboard.html">Dashboard</a>'
         + '<button type="button" id="phTheme">Light / dark</button>'
+        + '<button type="button" id="phOneClickToggle" role="switch" aria-checked="false">One-click trading: off</button>'
         + '<a href="/feedback.html?from=trading-phone">Feedback</a>';
       acct.querySelector('#phTheme').addEventListener('click', () => { if (typeof window.toggleTheme === 'function') window.toggleTheme(); });
+      // One-click trading on/off (when off, every order asks "BUY 0.01 lots ... at Market price?" first).
+      const oc = acct.querySelector('#phOneClickToggle');
+      const showOc = () => { const on = !!(window.ipfxOneClick && window.ipfxOneClick.on); oc.textContent = 'One-click trading: ' + (on ? 'on' : 'off'); oc.setAttribute('aria-checked', String(on)); };
+      oc.addEventListener('click', () => { if (window.ipfxOneClick) window.ipfxOneClick.set(!window.ipfxOneClick.on); showOc(); });
+      showOc(); setInterval(showOc, 3000);
       // Inside the scrolling area, so they scroll away and leave the screen to the account details.
       const scroller = outer.querySelector('.btm-body') || outer;
       const more = document.createElement('div');
@@ -283,8 +289,8 @@
     const ok = MQ.matches && series && series.createPriceLine && q && Number(q.bid) > 0 && Number(q.ask) > 0;
     if (!ok) { if (baLines) { for (const l of Object.values(baLines)) { try { baSeries.removePriceLine(l); } catch (_) {} } baLines = null; } return; }
     const opts = (price, color, title) => ({ price: Number(price), color, lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title });
-    if (!baLines) { baSeries = series; baLines = { ask: series.createPriceLine(opts(q.ask, '#ef5350', 'Ask')), bid: series.createPriceLine(opts(q.bid, '#3b82f6', 'Bid')) }; }
-    else { baLines.ask.applyOptions(opts(q.ask, '#ef5350', 'Ask')); baLines.bid.applyOptions(opts(q.bid, '#3b82f6', 'Bid')); }
+    if (!baLines) { baSeries = series; baLines = { ask: series.createPriceLine(opts(q.ask, '#E43C48', 'Ask')), bid: series.createPriceLine(opts(q.bid, '#2454FC', 'Bid')) }; }
+    else { baLines.ask.applyOptions(opts(q.ask, '#E43C48', 'Ask')); baLines.bid.applyOptions(opts(q.bid, '#2454FC', 'Bid')); }
   }
 
   function syncLive() {
@@ -299,6 +305,7 @@
     }
     const symSrc = $('op-sym'), symDst = $('phSymName');
     if (symSrc && symDst && symDst.textContent !== symSrc.textContent) symDst.textContent = symSrc.textContent;
+    syncOrderType();
     const n = Number(($('posBadge') || {}).textContent || 0), badge = $('phPosBadge');
     if (badge) { badge.hidden = !(n > 0); if (badge.textContent !== String(n)) badge.textContent = String(n); }
   }
@@ -345,12 +352,111 @@
     if (submit) { if (phone) submit.dataset.label = 'Sign in'; else delete submit.dataset.label; }
   }
 
+  // Volume bars on by default on phones (19 Nov 2026), but only for someone who has never saved their own indicator
+  // choice: removing Volume saves the layout, so it is never forced back.
+  function defaultVolume() {
+    try {
+      const p = new URLSearchParams(location.search);
+      if (localStorage.getItem('ipfx_chart_layout_' + (p.get('login') || p.get('name') || 'guest')) !== null) return;
+      if (typeof selectedStudies === 'undefined' || selectedStudies.size) return;
+      selectedStudies.add('Volume@tv-basicstudies');
+      if (typeof buildIndList === 'function') buildIndList();
+      if (typeof syncNativeIndicators === 'function') syncNativeIndicators();
+    } catch (_) {}
+  }
+
+  // ── Order type switch and order confirmation (19 Nov 2026) ──
+  // MARKET / PENDING sits at the start of the quick-trade bar. Pending needs a trigger price, so it opens the Trade tab
+  // with Pending selected. Both only press the ticket's own Market / Pending buttons.
+  const ONE_CLICK_KEY = 'ipfx-one-click';
+  const oneClick = () => { try { return localStorage.getItem(ONE_CLICK_KEY) === '1'; } catch (_) { return false; } };
+  const isPending = () => typeof ordType !== 'undefined' && ordType === 'pending';
+  function typeButton(kind) { return [...document.querySelectorAll('.op-type-btn')].find((b) => (b.getAttribute('onclick') || '').includes("'" + kind + "'")) || null; }
+  function buildOrderType() {
+    const head = $('qtHandle'), chips = head && head.querySelector('.qt-chips');
+    if (!head || !chips || $('phOrdType')) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.id = 'phOrdType'; b.className = 'ph-ot ph-only';
+    b.title = 'Switch between a market order and a pending order';
+    b.innerHTML = '<span>MARKET</span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-13.7 5.7M4 12a8 8 0 0 1 13.7-5.7"/><path d="M17.5 2.5v4h-4M6.5 21.5v-4h4"/></svg>';
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isPending()) { const m = typeButton('market'); if (m) m.click(); }
+      else { const pb = typeButton('pending'); if (pb) pb.click(); setTab('trade', true); }
+      syncOrderType();
+    });
+    head.insertBefore(b, chips);
+  }
+  function syncOrderType() {
+    const b = $('phOrdType'); if (!b) return;
+    const t = isPending() ? 'PENDING' : 'MARKET', sp = b.querySelector('span');
+    if (sp && sp.textContent !== t) sp.textContent = t;
+    b.setAttribute('aria-label', 'Order type: ' + t.toLowerCase() + '. Tap to switch');
+  }
+
+  // A "BUY 0.01 lots of EURUSD at Market price?" sheet before every order, until the trader switches on one-click trading.
+  // Submit presses the same button again, so the order goes through the ticket's normal path and checks.
+  let confirmPass = false;
+  function confirmSheet() {
+    let d = $('phConfirm');
+    if (d) return d;
+    d = document.createElement('div');
+    d.id = 'phConfirm'; d.className = 'ph-confirm ph-only'; d.hidden = true;
+    d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'phConfirmQ');
+    d.innerHTML = '<div class="ph-confirm-card">'
+      + '<div class="ph-confirm-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 14l4-4 4 4M12 10v8M8 7h8"/></svg></div>'
+      + '<p class="ph-confirm-q" id="phConfirmQ"></p>'
+      + '<label class="ph-confirm-oc"><span><b>One-click trading</b><small>Trade without this confirmation step. Turn it back off any time from the Account tab.</small></span>'
+      + '<input type="checkbox" id="phOneClick" role="switch"><i aria-hidden="true"></i></label>'
+      + '<div class="ph-confirm-act"><button type="button" class="ph-confirm-no">Cancel</button><button type="button" class="ph-confirm-go">Submit</button></div></div>';
+    document.body.appendChild(d);
+    d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('.ph-confirm-no')) closeConfirm(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !d.hidden) closeConfirm(); });
+    return d;
+  }
+  let confirmTarget = null;
+  function closeConfirm() { const d = $('phConfirm'); if (d) d.hidden = true; confirmTarget = null; }
+  function orderText(btn) {
+    const sell = btn.id === 'qtSell' || btn.classList.contains('op-exec-sell');
+    const quick = btn.id === 'qtSell' || btn.id === 'qtBuy';
+    const lots = (($(quick ? 'qtLots' : 'ord-lots') || {}).value || '').trim() || '—';
+    const sym = (($('phSymName') || $('op-sym') || {}).textContent || '').trim().replace('/', '');
+    const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const trig = (($('triggerPrice') || {}).value || '').trim();
+    const where = !quick && isPending() ? 'as a pending order' + (trig ? ' at ' + esc(trig) : '') + '?' : 'at Market price?';
+    return '<b class="' + (sell ? 'sell' : 'buy') + '">' + (sell ? 'SELL' : 'BUY') + '</b> ' + esc(lots) + ' lots of ' + esc(sym) + '<br>' + where;
+  }
+  function askConfirm(btn) {
+    const d = confirmSheet();
+    confirmTarget = btn;
+    $('phConfirmQ').innerHTML = orderText(btn);
+    $('phOneClick').checked = false;
+    d.querySelector('.ph-confirm-go').onclick = () => {
+      const target = confirmTarget;
+      try { if ($('phOneClick').checked) localStorage.setItem(ONE_CLICK_KEY, '1'); } catch (_) {}
+      closeConfirm();
+      if (target) { confirmPass = true; try { target.click(); } finally { confirmPass = false; } }
+    };
+    d.hidden = false;
+    d.querySelector('.ph-confirm-go').focus();
+  }
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('#qtSell,#qtBuy,.op-exec-btn');
+    if (!btn || confirmPass || !MQ.matches || oneClick() || btn.disabled) return;
+    if (!document.body.classList.contains('signed-in')) return;   // the ticket shows its own sign-in prompt
+    e.preventDefault(); e.stopImmediatePropagation();
+    askConfirm(btn);
+  }, true);
+  window.ipfxOneClick = { get on() { return oneClick(); }, set(on) { try { if (on) localStorage.setItem(ONE_CLICK_KEY, '1'); else localStorage.removeItem(ONE_CLICK_KEY); } catch (_) {} } };
+
   function apply() {
     document.documentElement.classList.toggle('phone', MQ.matches);
     const ph = $('symSearch');
     if (ph) { if (!ph.dataset.deskPlaceholder) ph.dataset.deskPlaceholder = ph.placeholder; ph.placeholder = MQ.matches ? 'Search for anything…' : ph.dataset.deskPlaceholder; }
     if (!MQ.matches) { delete document.documentElement.dataset.ptab; relocate(false); authWording(false); dockTicket(false); return; }
     build();
+    buildOrderType();
+    defaultVolume();
     authWording(true);
     let saved = 'chart';
     try { saved = sessionStorage.getItem(KEY) || 'chart'; } catch (_) {}
