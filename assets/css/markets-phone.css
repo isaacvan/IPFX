@@ -506,3 +506,14 @@ html[data-ptab="account"] .ph-acct{padding-top:8px}
 html[data-ptab="account"][data-pmenu="panel"] #bp-account.active{align-content:start;align-items:start;grid-auto-rows:min-content}
 html[data-ptab="account"] #bp-account .acell{height:auto!important;min-height:0!important;align-self:start;justify-content:flex-start!important}
 .ph-acct a,.ph-acct button,.ph-acct-more button{border:0!important;background:#17171c!important;border-radius:12px!important;color:#f4f4f5!important}
+
+/* Touch comfort (19 Nov 2026): the compact look stays, but every small control gets a tap area about 44px tall
+   (Apple and Google both recommend 44-48px). The extra area is invisible and does not overlap the next control. */
+.chart-wrap>.qt .qt-chip,.chart-wrap>.qt .qt-exp,.acct-mode-btn,.op-quick,.op-type-btn,.ph-ind,.ph-gear,
+html[data-ptab="positions"] .btab,html[data-ptab="positions"] .btm-closeall{position:relative}
+.chart-wrap>.qt .qt-chip::after,.chart-wrap>.qt .qt-exp::after,.acct-mode-btn::after,.op-quick::after,.op-type-btn::after,.ph-ind::after,.ph-gear::after,
+html[data-ptab="positions"] .btab::after,html[data-ptab="positions"] .btm-closeall::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:44px;transform:translateY(-50%)}
+/* Typing in the lot size must not make an iPhone zoom in (it zooms into any field under 16px). */
+.chart-wrap>.qt .qt-lots input,#ord-lots,.op-sltp-inp,#triggerPrice{font-size:16px!important}
+/* The cookie notice sits above the bottom tab bar instead of covering it. */
+.ipfx-cookie-panel{left:10px!important;right:10px!important;width:auto!important;bottom:calc(var(--ph-tab) + 8px)!important;padding:14px 16px!important}

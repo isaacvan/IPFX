@@ -216,7 +216,12 @@
             h1 { font-size: 28px; }
             .header-links a.optional { display: none; }
         }
-    </style>
+    
+        @media (max-width: 768px) {
+            .btn-go { width: 44px; height: 44px; }
+            .btn-go svg { width: 18px; height: 18px; }
+        }
+</style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 </head>
 <body style="visibility:hidden">
