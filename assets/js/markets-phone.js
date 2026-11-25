@@ -45,9 +45,15 @@
     if (started) return; started = true;
     const css = document.getElementById('marketsPhoneCss');
     if (css && css.dataset.phoneMedia) css.media = css.dataset.phoneMedia;
-    const manifest = document.getElementById('appManifest');
-    if (manifest) manifest.href = '/markets.webmanifest';
     runPhone();
+  }
+  // Opened from the Home Screen while signed out (25 Nov 2026): the sign-in sheet opens straight away, on Markets, so the
+  // trader never lands on the homepage. After signing in they are already in Markets.
+  if (installedApp() && !window.Capacitor) {
+    const askSignIn = () => setTimeout(() => {
+      try { if (typeof hasSession === 'function' && !hasSession() && typeof window.openDesktopAuth === 'function') window.openDesktopAuth(); } catch (_) {}
+    }, 1200);
+    if (document.readyState === 'complete') askSignIn(); else window.addEventListener('load', askSignIn);
   }
   if (phoneVersionOn()) start();
   else { const t = setInterval(() => { if (phoneVersionOn()) { clearInterval(t); start(); } }, 2000); } // switches on right after signing in

@@ -7,6 +7,7 @@
   'use strict';
   const KEY = (sym) => 'ipfx-draw:' + sym;
   const OPT_KEY = 'ipfx-draw-options';
+  const FOLD_KEY = 'ipfx-draw-folded';   // the column folded to one button (25 Nov 2026)
   const NS = 'http://www.w3.org/2000/svg';
   const BLUE = '#3861f6', FIB = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
   const TOOLS = [
@@ -23,12 +24,15 @@
     ['eye', 'Show or hide drawings', '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
     ['trash', 'Delete the selected drawing (or all drawings)', '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'],
   ];
+  const FOLD_ICON = '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>';
   const svgIcon = (inner) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
 
   let opts = { magnet: false, hidden: false };
   try { opts = { ...opts, ...JSON.parse(localStorage.getItem(OPT_KEY) || '{}') }; } catch (_) {}
   const saveOpts = () => { try { localStorage.setItem(OPT_KEY, JSON.stringify(opts)); } catch (_) {} };
 
+  let folded = false;
+  try { folded = localStorage.getItem(FOLD_KEY) === '1'; } catch (_) {}
   let tool = 'cursor', drawings = [], symbol = null, selected = null, draft = null, measure = null;
   let col = null, svg = null, pad = null, hookedChart = null;
 
@@ -220,6 +224,20 @@
     }
     syncToggles(); render();
   }
+  function setFolded(on) {
+    folded = !!on;
+    try { if (folded) localStorage.setItem(FOLD_KEY, '1'); else localStorage.removeItem(FOLD_KEY); } catch (_) {}
+    if (folded && tool !== 'cursor') setTool('cursor');
+    syncFold();
+  }
+  function syncFold() {
+    if (!col) return;
+    col.classList.toggle('folded', folded);
+    const f = col.querySelector('[data-act="fold"]');
+    f.setAttribute('aria-expanded', String(!folded));
+    f.setAttribute('aria-label', folded ? 'Show drawing tools' : 'Hide drawing tools');
+    f.title = folded ? 'Show drawing tools' : 'Hide drawing tools';
+  }
   function syncToggles() {
     if (!col) return;
     col.querySelector('[data-toggle="magnet"]').setAttribute('aria-pressed', String(opts.magnet));
@@ -232,12 +250,14 @@
     const box = container(); if (!box || document.getElementById('drawCol')) return !!box;
     col = document.createElement('div'); col.id = 'drawCol'; col.className = 'draw-col ph-only';
     col.setAttribute('role', 'toolbar'); col.setAttribute('aria-label', 'Drawing tools'); col.setAttribute('aria-orientation', 'vertical');
-    col.innerHTML = TOOLS.map(([id, label, ic]) => `<button type="button" data-tool="${id}" title="${label}" aria-label="${label}" aria-pressed="${id === 'cursor'}">${svgIcon(ic)}</button>`).join('')
+    col.innerHTML = `<button type="button" data-act="fold" aria-expanded="true">${svgIcon(FOLD_ICON)}</button><span class="draw-sep draw-fold-sep" aria-hidden="true"></span>`
+      + TOOLS.map(([id, label, ic]) => `<button type="button" data-tool="${id}" title="${label}" aria-label="${label}" aria-pressed="${id === 'cursor'}">${svgIcon(ic)}</button>`).join('')
       + '<span class="draw-sep" aria-hidden="true"></span>'
       + TOGGLES.map(([id, label, ic]) => `<button type="button" data-toggle="${id}" title="${label}" aria-label="${label}" aria-pressed="false">${svgIcon(ic)}</button>`).join('');
     col.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.tool) setTool(b.dataset.tool === tool && tool !== 'cursor' ? 'cursor' : b.dataset.tool);
+      if (b.dataset.act === 'fold') setFolded(!folded);
+      else if (b.dataset.tool) setTool(b.dataset.tool === tool && tool !== 'cursor' ? 'cursor' : b.dataset.tool);
       else if (b.dataset.toggle) toggle(b.dataset.toggle);
     });
     svg = document.createElementNS(NS, 'svg'); svg.id = 'drawSvg'; svg.setAttribute('class', 'draw-svg ph-only'); svg.setAttribute('aria-hidden', 'true');
@@ -249,7 +269,11 @@
     st.textContent = 'html:not(.phone) .draw-col,html:not(.phone) .draw-svg,html:not(.phone) .draw-pad{display:none!important}'
       + '.draw-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;font-family:var(--font-ui,Inter,system-ui,sans-serif)}'
       + '.draw-pad{position:absolute;inset:0;z-index:6;touch-action:none;cursor:crosshair}.draw-pad[hidden]{display:none}'
-      + '.draw-col{position:absolute;left:4px;top:38px;z-index:7;display:flex;flex-direction:column;gap:2px;padding:3px;border-radius:10px;background:rgba(14,14,17,.82);backdrop-filter:blur(6px)}'
+      // Kept inside the chart: never taller than the chart (it scrolls instead), so it cannot cover the ticket or the tab bar.
+      + '.draw-col{position:absolute;left:max(4px,env(safe-area-inset-left,0px));top:38px;z-index:7;display:flex;flex-direction:column;gap:2px;padding:3px;border-radius:10px;background:rgba(14,14,17,.82);backdrop-filter:blur(6px);'
+      + 'max-height:calc(100% - 46px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}'
+      + '.draw-col::-webkit-scrollbar{display:none}.draw-col>*{flex-shrink:0}'
+      + '.draw-col.folded>*:not([data-act="fold"]){display:none}'
       + '.draw-col button{position:relative;width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:none;color:#a1a1aa;cursor:pointer}'
       + '.draw-col button svg{width:19px;height:19px}'
       + '.draw-col button[aria-pressed="true"]{background:rgba(56,97,246,.22);color:#9db4ff}'
@@ -258,7 +282,7 @@
       + '.draw-sep{height:1px;margin:3px 4px;background:rgba(255,255,255,.1)}'
       + 'body.light .draw-col{background:rgba(255,255,255,.9)}body.light .draw-col button{color:#52525b}';
     document.head.appendChild(st);
-    syncToggles();
+    syncToggles(); syncFold();
     return true;
   }
 

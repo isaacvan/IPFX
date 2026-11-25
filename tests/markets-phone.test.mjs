@@ -67,7 +67,9 @@ test('app manifest and icons for iPhone and Android', () => {
   assert.match(m.start_url, /^\/trading\.html/);
   assert.ok(m.icons.some((i) => i.purpose === 'maskable' && i.sizes === '512x512'));
   for (const i of m.icons) assert.ok(fs.existsSync(new URL('.' + i.src, root)), i.src);
-  assert.match(html, /<link rel="manifest" href="\/site\.webmanifest" id="appManifest">/, 'the Markets app manifest is only swapped in for accounts with the phone version');
+  // 25 Nov 2026: Markets links its own manifest, so the Home Screen icon opens Markets (start_url and scope), not the homepage.
+  assert.match(html, /<link rel="manifest" href="\/markets\.webmanifest" id="appManifest">/);
+  assert.equal(m.scope, '/trading.html');
   assert.match(html, /<link rel="apple-touch-icon" href="\/assets\/images\/app\/apple-touch-icon\.png">/);
   assert.ok(fs.existsSync(new URL('assets/images/app/apple-touch-icon.png', root)));
 });

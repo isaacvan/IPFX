@@ -555,3 +555,54 @@ html[data-ptab="positions"] .btab::after,html[data-ptab="positions"] .btm-closea
 .ph-confirm-go:focus-visible,.ph-confirm-no:focus-visible{outline:2px solid #93c5fd;outline-offset:2px}
 /* Order notices sit just under the phone top bar */
 .eng-toasts{top:calc(var(--ph-top) + 6px)!important}
+
+/* ── Ticket size, drag handle and fold arrow (25 Nov 2026, assets/js/markets-phone-ticket.js) ──
+   html[data-pticket] is min (Sell / lots / Buy only), default or full. The chart takes whatever the ticket leaves and
+   never drops below 120px; a ticket taller than its room scrolls inside, with Sell / lots / Buy always on screen. */
+.chart-area{min-height:120px}
+.chart-wrap>.qt{display:flex!important;flex-direction:column;flex:0 1 auto!important;min-height:0;
+  padding-left:max(10px,env(safe-area-inset-left,0px))!important;padding-right:max(10px,env(safe-area-inset-right,0px))!important}
+.chart-wrap>.qt[hidden]{display:none!important}
+.chart-wrap>.qt>*{flex-shrink:0}
+.chart-wrap>.qt .qt-more{flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+html[data-pticket="min"] .chart-wrap>.qt .qt-head,html[data-pticket="min"] .chart-wrap>.qt .qt-more,html[data-pticket="min"] .chart-wrap>.qt .qt-margin{display:none!important}
+html[data-pticket="min"] .chart-wrap>.qt{padding-top:0!important}
+/* Grab bar: a short visible bar, a 44px tall touch area, no page scroll or pull-to-refresh while dragging. */
+.ph-grab{position:relative;display:flex;justify-content:center;align-items:center;height:16px;margin:-6px 0 0;touch-action:none;cursor:ns-resize;-webkit-user-select:none;user-select:none}
+.ph-grab::before{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+.ph-grab i{width:40px;height:4px;border-radius:2px;background:#3f3f46;transition:background .15s}
+.ph-grab:focus-visible{outline:none}.ph-grab:focus-visible i,html.ph-dragging .ph-grab i{background:#3861f6}
+html[data-pticket="min"] .ph-grab{margin:0 0 4px}
+html.ph-dragging .chart-wrap>.qt{flex:0 0 auto!important;overflow:hidden}
+html.ph-dragging,html.ph-dragging body{overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+html.ph-measure .chart-wrap>.qt{flex:none!important;height:auto!important;transition:none!important}
+html.ph-measure .chart-wrap>.qt .qt-more{max-height:none!important;flex:none!important}
+/* Tab row and lot sizes: one row each that scrolls sideways when the screen is narrow, so nothing is cut off. */
+.chart-wrap>.qt .qt-head{min-width:0}
+.chart-wrap>.qt .qt-chips,.chart-wrap>.qt .qt-presets,.op-quickbar,.op-presets{display:flex!important;flex-wrap:nowrap;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.chart-wrap>.qt .qt-chips::-webkit-scrollbar,.chart-wrap>.qt .qt-presets::-webkit-scrollbar,.op-quickbar::-webkit-scrollbar,.op-presets::-webkit-scrollbar{display:none}
+.chart-wrap>.qt .qt-chip,.ph-ot{flex:0 0 auto;scroll-snap-align:start}
+.chart-wrap>.qt .qt-presets button,.op-presets .op-preset{flex:1 0 58px;scroll-snap-align:start}
+.op-quickbar .op-quick{flex:1 0 auto;scroll-snap-align:start;white-space:nowrap}
+.chart-wrap>.qt .qt-exp{flex:0 0 auto}
+/* Trade tab: the fold arrow sits at the top right, beside Market / Pending, styled like the Chart tab's arrow. */
+#tab-order{position:relative}
+.ph-fold{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:12px;z-index:2;display:grid;place-items:center;width:32px;height:28px;padding:0;border:0;border-radius:6px;background:#17171c;color:#a1a1aa;cursor:pointer}
+.ph-fold::after{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
+.ph-fold svg{width:12px;height:12px;transform:rotate(180deg);transition:transform .2s}
+.ph-fold:focus-visible{outline:2px solid #93c5fd;outline-offset:2px}
+.guide.order-mode .op-type-bar{margin-right:42px}
+html[data-pticket="min"] .ph-fold{top:6px!important}
+html[data-pticket="min"] .ph-fold svg{transform:none}
+html[data-ptab="trade"][data-pticket="min"] .chart-wrap{flex:1 1 auto!important;min-height:0!important}
+html[data-ptab="trade"][data-pticket="min"] .guide{flex:0 0 auto!important}
+html[data-ptab="trade"][data-pticket="min"] .guide-body{overflow:visible}
+html[data-ptab="trade"][data-pticket="min"] #tab-order{padding-top:40px!important}
+html[data-ptab="trade"][data-pticket="min"] #tab-order>*:not(.op-trade-row):not(.ph-fold){display:none!important}
+@media (orientation: landscape) and (max-height: 520px) {
+  html[data-ptab="trade"][data-pticket="min"] .guide{flex:0 0 min(400px,50vw)!important}
+}
+/* Folded ticket: the 30-second stop-loss card stays on screen as a compact banner (countdown and Add stop). */
+html[data-pticket="min"] .eng-toast.rule{padding:8px 10px!important}
+html[data-pticket="min"] .eng-toast.rule .rule-pos,html[data-pticket="min"] .eng-toast.rule .rule-txt{display:none!important}
+html[data-pticket="min"] .eng-toast.rule .rule-act{margin-top:6px}

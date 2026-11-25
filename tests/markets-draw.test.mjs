@@ -24,3 +24,9 @@ test('every tool in the column is present', () => {
 test('the drawing layer never places, changes or closes orders', () => {
   assert.doesNotMatch(draw, /placeOrder|engineCall|qtPlace|closePosition|\.click\(\)/);
 });
+test('the column stays inside the chart (it scrolls instead of covering the ticket) and folds to one button', () => {
+  assert.match(draw, /max-height:calc\(100% - 46px\);overflow-x:hidden;overflow-y:auto/);
+  assert.match(draw, /const FOLD_KEY = 'ipfx-draw-folded';/);
+  assert.match(draw, /try \{ folded = localStorage\.getItem\(FOLD_KEY\) === '1'; \} catch \(_\) \{\}/);
+  assert.match(draw, /\.draw-col\.folded>\*:not\(\[data-act="fold"\]\)\{display:none\}/);
+});
