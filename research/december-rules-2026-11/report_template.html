@@ -1,0 +1,125 @@
+<title>Infinity December Rules</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Archivo:wght@600;700;800&display=swap">
+<style>
+/* Layout: a single reading column (research memo) with wide tables that scroll inside their own frames. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --fg:#14181f; --muted:#5b6472; --line:#dde2ea;
+  --accent:#1f5eff; --accent-soft:#e6edff; --good:#0f8a5f; --good-soft:#e3f5ec; --bad:#c2372f; --bad-soft:#fbe9e7; --warn:#a86a00; --warn-soft:#fff3dc;
+  --display:'Archivo',system-ui,sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1116; --panel:#151a22; --fg:#e7ebf1; --muted:#9aa4b2; --line:#283040;
+  --accent:#7aa2ff; --accent-soft:#1b2540; --good:#4cc79a; --good-soft:#12271f; --bad:#ff7d73; --bad-soft:#2c1513; --warn:#f0b54a; --warn-soft:#2a2112; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --panel:#151a22; --fg:#e7ebf1; --muted:#9aa4b2; --line:#283040;
+  --accent:#7aa2ff; --accent-soft:#1b2540; --good:#4cc79a; --good-soft:#12271f; --bad:#ff7d73; --bad-soft:#2c1513; --warn:#f0b54a; --warn-soft:#2a2112; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+header{display:grid;gap:12px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(30px,5vw,46px)/1.05 var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font:700 24px/1.2 var(--display);margin:0 0 4px;text-wrap:balance}
+h3{font:600 17px/1.3 var(--body);margin:0}
+p{margin:0;max-width:70ch}
+.lede{font-size:18px;color:var(--fg);max-width:68ch}
+section{display:grid;gap:14px}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.v{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:6px;min-width:0}
+.v b{font:700 28px/1 var(--display);font-variant-numeric:tabular-nums}
+.v span{color:var(--muted);font-size:14px}
+.v.bad b{color:var(--bad)} .v.good b{color:var(--good)} .v.warn b{color:var(--warn)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:500 12px/1.3 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.n{text-align:right;font-family:var(--mono)}
+.stage{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:10px;align-content:start;min-width:0}
+.card .tag{font:500 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.card ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.card .why{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.note{background:var(--warn-soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:15px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font:500 12px/1.5 var(--mono)}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto}
+.chart svg{display:block;width:100%;height:auto;min-width:520px}
+.small{font-size:14px;color:var(--muted)}
+code{font-family:var(--mono);font-size:.92em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+ol.steps{margin:0;padding-left:20px;display:grid;gap:8px;max-width:72ch}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">IPFX Capital · Infinity rules research · overnight 26 Nov 2026</div>
+  <h1>Infinity rules for December: E8 at Stage 1, proof of edge at Stages 2 and 3</h1>
+  <p class="lede">Every real-rules trade on IPFX was replayed at E8 Markets prices and costs, every trader was run through E8 One's challenge rules, and {{N_RULESETS}} candidate Stage 2 and 3 rule sets were simulated on the real shape of our traders' results. This page gives the recommended rules and the evidence behind each number.</p>
+</header>
+
+<section>
+  <h2>The short version</h2>
+  <div class="verdict">
+    <div class="v bad"><b>7 of 485</b><span>traders would have passed E8 One at E8 costs, using their real trades in order</span></div>
+    <div class="v bad"><b>−0.42R</b><span>average result per trade at E8 prices (−0.21R at IPFX prices). Moving to E8 costs about 0.13R a trade.</span></div>
+    <div class="v warn"><b>0 proven</b><span>traders with a statistically real edge. 1 trader of 74 scores above 2; luck alone would give about 2.</span></div>
+    <div class="v good"><b>{{V_LUCK}}</b><span>{{V_LUCK_TEXT}}</span></div>
+  </div>
+  <p>Stage 1 can copy E8 exactly, and that tells us who can follow E8's risk rules. It does not tell us who has an edge: the 7 E8 passes in our data all came from one or two very large wins on very tight stops, and none of those traders kept making money afterwards. Stages 2 and 3 therefore have to do the real filtering, using enough trades that luck cannot carry a trader through, and Stage 3 has to repeat the result on fresh trades before anyone is paid.</p>
+</section>
+
+<section>
+  <h2>Recommended rules</h2>
+  <div class="stage">{{STAGE_CARDS}}</div>
+  {{RULE_NOTES}}
+</section>
+
+<section>
+  <h2>Who gets through, by true edge</h2>
+  <p>Each simulated trader has a fixed true edge, measured in R per counted trade after E8 costs. The chance of being paid (passing Stage 2 and Stage 3) is shown for the current v2 rules and the recommended rules, for two trading styles: <b>our traders' real result shape</b> (fat-tailed, with occasional 10R to 40R wins) and a <b>disciplined fixed-stop style</b> (1R stop, 1.5R target).</p>
+  <div class="chart">{{CHART_POWER}}</div>
+  <div class="tbl">{{TABLE_POWER}}</div>
+  <p class="small">{{POWER_NOTE}}</p>
+</section>
+
+<section>
+  <h2>Does paying at Stage 3 make IPFX money?</h2>
+  {{ECON_BLOCK}}
+</section>
+
+<section>
+  <h2>Evidence 1: our traders replayed on E8</h2>
+  <p>Each closed trade on a real-rules account (Infinity and Traditional, {{N_TRADES}} trades from {{N_TRADERS}} traders, 19 July to 25 November) was re-priced at E8: IPFX's spread replaced by E8's average spread for that symbol from about 30,000 side-by-side samples per major pair, E8's published commission instead of IPFX's, and extra slippage per side. Each trade keeps the same size as a share of the account, so a trader risking 0.4% on IPFX risks 0.4% on E8. Floating losses use each trade's recorded worst point, with overlapping trades assumed to hit their worst at the same time.</p>
+  <div class="tbl">{{TABLE_E8}}</div>
+  <p class="small">Changing E8's day boundary to CET midnight, or ignoring floating losses, leaves the result at 7 passes. Most attempts do not finish: at about 0.3% to 0.4% risk a trade, 6% is 15 to 20 clear winning trades away, and most traders stopped long before.</p>
+  <div class="tbl">{{TABLE_PASSERS}}</div>
+</section>
+
+<section>
+  <h2>Evidence 2: is anyone's edge real?</h2>
+  <div class="chart">{{CHART_HIST}}</div>
+  <ul style="margin:0;padding-left:20px;display:grid;gap:6px;max-width:72ch">
+    <li>Of 74 traders with 20 or more trades, 7 have a positive average at E8 costs, and all but one are only just above zero.</li>
+    <li>If nobody had any edge, chance alone would give about 2 traders a score above 2. We see 1. Nobody scores above 3.</li>
+    <li>Traders who were profitable in the first half of their trades averaged −0.60R a trade in the second half; only 2 of 19 stayed positive.</li>
+    <li>What does persist is how badly losing traders lose. That is why the current rules already stop almost all of them.</li>
+    <li>Costs matter by market: at E8, gold costs about 0.08R a trade more than at IPFX, euro and yen pairs 0.18R to 0.29R, Swiss franc 0.45R, and Bitcoin about 12R because of its spread against tight stops.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Limits of this work</h2>
+  <ul style="margin:0;padding-left:20px;display:grid;gap:6px;max-width:72ch">
+    <li>The data is small: the median trader has 5 trades, only 18 have 50 or more, and nobody has traded a Stage 2 account. Individual edge cannot be proven from this history, so the Stage 2 and 3 numbers come from simulation on our traders' real result shapes.</li>
+    <li>E8 costs are estimates: average spreads from our own side-by-side samples and E8's published commission. Real E8 fills, swaps and requotes were not available. Three cost levels were tested and the conclusions hold for all three.</li>
+    <li>Traders traded under IPFX's rules, not E8's. Some would have behaved differently on E8.</li>
+    <li>E8 One's official help centre preset is a 6% target, 3% daily loss and 4% dynamic drawdown. The E8 website's $100K configurator shows 9%, 4% and 6%. The help centre preset is used for Stage 1.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Before December 1</h2>
+  {{NEXT_STEPS}}
+</section>
+<p class="small">Method files: E8 replay, rule simulation and economics scripts are saved with the research notes. Sources: E8 One help centre article (help.e8markets.com/en/articles/11775980-e8-one), E8 One product page (e8markets.com/e8-one), IPFX trades, trade lows and E8 cost samples as of 26 Nov 2026.</p>
+</div>
