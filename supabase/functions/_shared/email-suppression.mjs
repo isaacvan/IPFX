@@ -3,7 +3,7 @@
 // "Marketing" emails (come-back, launch) honour every suppression. Notices a trader needs (breach, restart, stage-up)
 // are only held back for addresses that bounced or complained.
 
-export const MARKETING_TEMPLATES = ["infinity_comeback", "infinity_v2_launch"];
+export const MARKETING_TEMPLATES = ["infinity_comeback", "infinity_v2_launch", "ipfx_mobile_coming"];
 const HARD_REASONS = ["bounce", "complaint"];
 
 const enc = new TextEncoder();

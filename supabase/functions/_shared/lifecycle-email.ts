@@ -4,6 +4,9 @@
 // block trading or an admin action. Until RESEND_API_KEY is configured every
 // email is recorded in email_events with status "queued", so nothing is lost.
 
+import { pickProvider, sendEmail } from "./mail-provider.mjs";
+import { blockedBySuppression, normEmail } from "./email-suppression.mjs";
+
 // deno-lint-ignore no-explicit-any
 type Db = any;
 
@@ -38,28 +41,29 @@ export async function sendLifecycleEmail(
     const html = emailShell(subject, tmpl.preheader, render(tmpl.body_html, allVars, true));
     const text = render(tmpl.body_text, allVars);
 
+    // Sent through the shared provider: Amazon SES when EMAIL_PROVIDER=ses (or AWS keys are set), otherwise Resend.
+    const env = Deno.env.toObject();
+    const provider = pickProvider(env);
     let status = "queued";
     let providerId: string | null = null;
-    let errorMessage: string | null = "RESEND_API_KEY is not configured";
-    const apiKey = Deno.env.get("RESEND_API_KEY");
-    if (apiKey) {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: Deno.env.get("EMAIL_FROM") ?? "IPFX Capital <support@ipfxcapital.com>",
-          to, subject, html, text,
-          reply_to: Deno.env.get("SUPPORT_EMAIL") ?? "support@ipfxcapital.com",
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) { status = "sent"; providerId = data?.id ?? null; errorMessage = null; }
-      else { status = "failed"; errorMessage = data?.message ?? `Resend ${res.status}`; }
+    let errorMessage: string | null = "No email provider is configured";
+    const { data: sup } = await db.from("email_suppressions").select("reason").eq("email", normEmail(to)).maybeSingle();
+    if (sup && blockedBySuppression(templateKey, sup.reason)) {
+      status = "skipped"; errorMessage = `On the do-not-email list (${sup.reason})`;
+    } else if (provider) {
+      const r = await sendEmail({
+        from: env.EMAIL_FROM ?? "IPFX Capital <support@ipfxcapital.com>",
+        to, subject, html, text,
+        replyTo: env.SUPPORT_EMAIL ?? "support@ipfxcapital.com",
+        tags: { template: templateKey },
+      }, env);
+      if (r.ok) { status = "sent"; providerId = r.id ?? null; errorMessage = null; }
+      else { status = "failed"; errorMessage = String(r.error ?? "send failed").slice(0, 500); }
     }
 
     await db.from("email_events").insert({
       user_id: userId, template_key: templateKey, to_email: to, subject, status,
-      provider: "resend", provider_message_id: providerId, error_message: errorMessage,
+      provider: provider ?? "resend", provider_message_id: providerId, error_message: errorMessage,
       payload: { vars: allVars }, sent_at: status === "sent" ? new Date().toISOString() : null,
     });
   } catch (_) { /* never block the caller */ }
