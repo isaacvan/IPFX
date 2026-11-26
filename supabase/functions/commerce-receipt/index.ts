@@ -1,14 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.115.0";
+import { pickProvider, sendEmail } from "../_shared/mail-provider.mjs";
 const escape = (value: unknown) => String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;")
   .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
 Deno.serve(async req => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (req.method !== "POST") return new Response("POST required",{status:405});
   if (!serviceKey || req.headers.get("Authorization") !== "Bearer " + serviceKey) return new Response("Unauthorized",{status:401});
-  const resendKey = Deno.env.get("RESEND_API_KEY");
+  const provider = pickProvider(Deno.env.toObject());
   const from = Deno.env.get("EMAIL_FROM");
   const testRecipient = Deno.env.get("IPFX_RECEIPT_TEST_EMAIL");
-  if (Deno.env.get("IPFX_RECEIPT_TEST_ENABLED") !== "true" || !resendKey || !from || !testRecipient) {
+  if (Deno.env.get("IPFX_RECEIPT_TEST_ENABLED") !== "true" || !provider || !from || !testRecipient) {
     return new Response("Receipt test delivery not configured",{status:503});
   }
   const db = createClient(Deno.env.get("SUPABASE_URL")!,serviceKey);
@@ -37,12 +38,9 @@ Deno.serve(async req => {
     '<p>No real money collected.</p><p>Order: '+escape(order.id)+'</p><p>'+escape(label)+'</p><p style="font-size:24px;font-weight:bold">'+escape(total)+'</p>' +
     '<p>Recorded: '+escape(order.paid_at)+'</p><p style="color:#555;font-size:13px">This is not a tax invoice and does not activate a trading account.</p></td></tr></table></td></tr></table></body></html>';
   try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method:"POST",headers:{"Authorization":"Bearer "+resendKey,"Content-Type":"application/json","Idempotency-Key":"ipfx-test-receipt-"+order.id},
-      body:JSON.stringify({from,to:[order.billing_email],subject,text,html}),signal:AbortSignal.timeout(15000),
-    });
-    const result = await response.json().catch(()=>({}));
-    if (!response.ok || typeof result.id !== "string") throw new Error("EMAIL_PROVIDER_NOT_CONFIRMED");
+    // Shared provider: Amazon SES or Resend (see _shared/mail-provider.mjs).
+    const result = await sendEmail({from,to:order.billing_email,subject,text,html,idempotencyKey:"ipfx-test-receipt-"+order.id},Deno.env.toObject());
+    if (!result.ok || typeof result.id !== "string") throw new Error("EMAIL_PROVIDER_NOT_CONFIRMED");
     const saved = await finish("sent",null,result.id);
     if (saved.error || !saved.data?.length) return new Response("Delivery state uncertain; reconciliation required",{status:503});
     return new Response("Test receipt accepted by email provider",{status:200});

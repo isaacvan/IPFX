@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { pickProvider, sendEmail } from "../_shared/mail-provider.mjs";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -31,19 +32,18 @@ function emailShell(subject: string, preheader: string | null, body: string) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;background:#f5f7fb;color:#101828;font-family:Inter,Arial,sans-serif"><span style="display:none!important;color:transparent;opacity:0;height:0;width:0;overflow:hidden">${escapeHtml(preheader ?? "")}</span><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:32px 12px"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb"><tr><td style="padding:28px 30px 18px;border-bottom:1px solid #e5e7eb"><div style="font-size:18px;font-weight:700;letter-spacing:.02em;color:#0b1220">IPFX Capital</div><div style="font-size:13px;color:#667085;margin-top:6px">Simulated trading evaluations</div></td></tr><tr><td style="padding:28px 30px;font-size:15px;line-height:1.65;color:#101828">${body}</td></tr><tr><td style="padding:18px 30px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.55;color:#667085">IPFX Capital provides simulated trading evaluations and performance-based rewards. IPFX Capital does not hold client deposits, provide brokerage services, or offer investment advice.</td></tr></table></td></tr></table></body></html>`;
 }
 
+// Sends through the shared provider: Amazon SES when EMAIL_PROVIDER=ses (or AWS keys are set), otherwise Resend.
 async function sendResend(to: string, subject: string, html: string, text: string) {
-  const apiKey = Deno.env.get("RESEND_API_KEY");
-  if (!apiKey) return { sent: false, skipped: true, error: "RESEND_API_KEY is not configured" };
-  const from = Deno.env.get("EMAIL_FROM") ?? "IPFX Capital <receipts@ipfxcapital.com>";
-  const replyTo = Deno.env.get("SUPPORT_EMAIL") ?? "support@ipfxcapital.com";
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, html, text, reply_to: replyTo }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { sent: false, skipped: false, error: data?.message ?? `Resend ${res.status}`, data };
-  return { sent: true, skipped: false, id: data?.id, data };
+  const env = Deno.env.toObject();
+  const provider = pickProvider(env);
+  if (!provider) return { sent: false, skipped: true, error: "No email provider is configured", provider: null };
+  const r = await sendEmail({
+    from: env.EMAIL_FROM ?? "IPFX Capital <receipts@ipfxcapital.com>",
+    to, subject, html, text,
+    replyTo: env.SUPPORT_EMAIL ?? "support@ipfxcapital.com",
+  }, env);
+  if (!r.ok) return { sent: false, skipped: false, error: String(r.error ?? "send failed"), provider: r.provider ?? provider };
+  return { sent: true, skipped: false, id: r.id, provider: r.provider ?? provider };
 }
 
 Deno.serve(async (req) => {
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       to_email: toEmail,
       subject,
       status,
-      provider: "resend",
+      provider: result.provider ?? "resend",
       provider_message_id: result.id ?? null,
       error_message: result.error ?? null,
       payload: { vars, provider_result: result },

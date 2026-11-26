@@ -121,3 +121,15 @@ test('SES keys pasted with spaces or line breaks still sign a valid header (26 N
   assert.equal(seen.url, 'https://email.eu-west-2.amazonaws.com/v2/email/outbound-emails');
   assert.equal(JSON.parse(seen.init.body).ConfigurationSetName, 'ipfx-events');
 });
+
+test('mobile-coming news email: marketing (unsubscribe link + list respected), queued once per confirmed account, sent after account mail', () => {
+  assert.equal(isMarketing('ipfx_mobile_coming'), true);
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20261126030000_ipfx_mobile_coming_email.sql', import.meta.url), 'utf8');
+  assert.match(sql, /u\.email_confirmed_at is not null/);
+  assert.match(sql, /not exists \(select 1 from public\.email_suppressions s where s\.email = lower\(trim\(u\.email\)\)\)/);
+  assert.match(sql, /not exists \(select 1 from public\.email_events e where e\.user_id = u\.id and e\.template_key = 'ipfx_mobile_coming'\)/);
+  assert.match(sql, /\{\{unsubscribe_link\}\}/);
+  assert.doesNotMatch(sql, /—/, 'no em dashes in the email');
+  const outbox = fs.readFileSync(new URL('../supabase/functions/email-outbox/index.ts', import.meta.url), 'utf8');
+  assert.match(outbox, /r\.template_key === "infinity_comeback" \|\| r\.template_key === "ipfx_mobile_coming" \? 1 : 0/);
+});
