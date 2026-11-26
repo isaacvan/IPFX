@@ -50,13 +50,16 @@ export function pickProvider(env) {
 // retries rows whose error mentions "rate" or "limit".
 const RETRYABLE_SES = /Throttl|TooManyRequests|LimitExceeded|ServiceUnavailable|InternalFailure|RequestTimeout/i;
 
+// Secrets pasted into the dashboard's multi-line box can carry spaces or line breaks; AWS rejects those.
+const clean = (v) => (v == null ? v : String(v).trim());
+
 async function sendSes(m, env, fetchImpl) {
-  const region = env.AWS_REGION;
+  const region = clean(env.AWS_REGION);
   const body = JSON.stringify({
     FromEmailAddress: m.from,
     Destination: { ToAddresses: [m.to] },
     ReplyToAddresses: m.replyTo ? [m.replyTo] : undefined,
-    ConfigurationSetName: env.SES_CONFIGURATION_SET || undefined,
+    ConfigurationSetName: clean(env.SES_CONFIGURATION_SET) || undefined,
     EmailTags: m.tags ? Object.entries(m.tags).map(([Name, Value]) => ({ Name, Value: String(Value) })) : undefined,
     Content: {
       Simple: {
@@ -69,7 +72,7 @@ async function sendSes(m, env, fetchImpl) {
   const url = `https://email.${region}.amazonaws.com/v2/email/outbound-emails`;
   const headers = await signV4({
     method: "POST", url, headers: { "content-type": "application/json" }, body, service: "ses", region,
-    accessKeyId: env.AWS_ACCESS_KEY_ID, secretAccessKey: env.AWS_SECRET_ACCESS_KEY, sessionToken: env.AWS_SESSION_TOKEN,
+    accessKeyId: clean(env.AWS_ACCESS_KEY_ID), secretAccessKey: clean(env.AWS_SECRET_ACCESS_KEY), sessionToken: clean(env.AWS_SESSION_TOKEN) || undefined,
   });
   const res = await fetchImpl(url, { method: "POST", headers, body });
   const data = await res.json().catch(() => ({}));

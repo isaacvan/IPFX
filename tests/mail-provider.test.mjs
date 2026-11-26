@@ -109,3 +109,15 @@ test('the SNS endpoint needs the secret and only follows AWS subscription links;
   assert.match(page, /method: 'POST'/);
   assert.match(page, /noindex/);
 });
+
+test('SES keys pasted with spaces or line breaks still sign a valid header (26 Nov 2026)', async () => {
+  let seen;
+  const fetchImpl = async (url, init) => { seen = { url, init }; return new Response(JSON.stringify({ MessageId: 'm1' }), { status: 200 }); };
+  const r = await sendEmail({ from: 'f', to: 't@x.co', subject: 's', html: 'h' },
+    { AWS_ACCESS_KEY_ID: 'AKIATEST\n\n', AWS_SECRET_ACCESS_KEY: ' secret \n', AWS_REGION: 'eu-west-2\n', SES_CONFIGURATION_SET: 'ipfx-events\n' }, fetchImpl);
+  assert.equal(r.ok, true);
+  assert.match(seen.init.headers.Authorization ?? seen.init.headers.authorization, /^AWS4-HMAC-SHA256 Credential=AKIATEST\/\d{8}\/eu-west-2\/ses\/aws4_request, /);
+  assert.doesNotMatch(JSON.stringify(seen.init.headers), /\n/);
+  assert.equal(seen.url, 'https://email.eu-west-2.amazonaws.com/v2/email/outbound-emails');
+  assert.equal(JSON.parse(seen.init.body).ConfigurationSetName, 'ipfx-events');
+});
