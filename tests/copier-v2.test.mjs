@@ -7,8 +7,8 @@ import { parseCalendar, blackout } from '../hub/news.mjs';
 
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const SETTINGS = { mode: 'shadow', entry_tolerance_pips: 0.3, fill_timeout_ms: 1500, news_window_s: 120, modelled_latency_ms: 400, copy_ratio: 1, max_lots_per_order: 1, max_open_copies: 10 };
-const EURUSD = { symbol: 'EURUSD', enabled: true, pip: 0.0001, tolerance_pips: null, extra_spread_pips: 0.3, stop_slippage_pips: 0.3, commission_rate: 0.00002, commission_min_usd: 2, news_currencies: ['EUR', 'USD'], broker_symbol: 'EUR', broker_sec_type: 'CASH', broker_exchange: 'IDEALPRO', broker_currency: 'USD' };
+const SETTINGS = { sizing: 'ratio', copy_risk_usd: 100, mode: 'shadow', entry_tolerance_pips: 0.3, fill_timeout_ms: 1500, news_window_s: 120, modelled_latency_ms: 400, copy_ratio: 1, max_lots_per_order: 1, max_open_copies: 10 };
+const EURUSD = { symbol: 'EURUSD', enabled: true, pip: 0.0001, tolerance_pips: null, extra_spread_pips: 0.3, stop_slippage_pips: 0.3, commission_rate: 0.00002, commission_min_usd: 2, news_currencies: ['EUR', 'USD'], default_stop_pips: 10, broker_symbol: 'EUR', broker_sec_type: 'CASH', broker_exchange: 'IDEALPRO', broker_currency: 'USD' };
 
 function rig({ settings = SETTINGS, events = [] } = {}) {
   let t = 1_000_000;
@@ -141,4 +141,11 @@ test('bridge: paper accounts only, entries are limit orders that are cancelled a
   assert.match(b, /ocaGroup=group, ocaType=1/);
   const entryFn = b.slice(b.indexOf('async def entry'), b.indexOf('async def rest'));
   assert.doesNotMatch(entryFn, /MarketOrder/);
+});
+test('sizing: each copy risks a fixed dollar amount to the trader stop (or the typical stop when there is none)', () => {
+  const r = rig({ settings: { ...SETTINGS, sizing: 'risk', copy_risk_usd: 100, max_lots_per_order: 3 } });
+  assert.equal(r.c.copyLots({ s: 'EURUSD', v: 0.02, p: 1.1, sl: 1.0991, sc: 100000 }), 1.11);   // 9-pip stop: $100 / $90 a lot
+  assert.equal(r.c.copyLots({ s: 'EURUSD', v: 0.02, p: 1.1, sl: null, sc: 100000 }), 1);         // no stop: typical 10 pips
+  assert.equal(r.c.copyLots({ s: 'EURUSD', v: 0.02, p: 1.1, sl: 1.0999, sc: 100000 }), 3);       // 1-pip stop: capped at 3 lots
+  assert.equal(r.c.copyLots({ s: 'EURUSD', v: 0.02, p: 1.1, sl: 1.05, sc: 100000 }), 0.02);      // 500-pip stop: $100 is 0.02 lots
 });

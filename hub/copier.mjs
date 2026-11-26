@@ -131,9 +131,14 @@ export class Copier {
     const n = this.news?.check(sym.news_currencies, at, this.settings.news_window_s);
     return n ? `news:${n.cur} ${n.title}` : null;
   }
-  copyLots(lots) {
-    const s = this.settings;
-    return Math.max(0.01, Math.min(Number(s.max_lots_per_order), Math.round(lots * Number(s.copy_ratio) * 100) / 100));
+  // Copy size. 'risk' (owner decision 26 Nov 2026): every copy risks copy_risk_usd to the trader's stop (or, with no
+  // stop yet, to the symbol's typical stop distance). 'ratio': trader lots x copy_ratio. Always 0.01 to max_lots_per_order.
+  copyLots(ev) {
+    const s = this.settings, sym = this.symbols.get(ev.s);
+    const clamp = (v) => Math.max(0.01, Math.min(Number(s.max_lots_per_order), Math.round(v * 100) / 100));
+    if (s.sizing !== 'risk' || !sym) return clamp(Number(ev.v) * Number(s.copy_ratio || 1));
+    const sl = Number(ev.sl), dist = sl > 0 && Math.abs(Number(ev.p) - sl) > 0 ? Math.abs(Number(ev.p) - sl) : Number(sym.default_stop_pips || 10) * sym.pip;
+    return clamp(Number(s.copy_risk_usd || 100) / (dist * Number(ev.sc)));
   }
   staleGap(ev, sym) {
     const bq = this.bridgeQuotes.get(ev.s);
@@ -150,7 +155,7 @@ export class Copier {
     const reason = this.skipReason(ev, sym, at);
     // shadow: always
     const row = this.baseRow(ev, 'shadow', {});
-    row.copy_lots = this.copyLots(row.trader_lots);
+    row.copy_lots = this.copyLots(ev);
     if (sym) row.stale_gap_pips = this.staleGap(ev, sym);
     this.rows.set(`${ev.id}:shadow`, row);
     if (reason) { row.skip_reason = reason; this.stats.skipped++; this.touch(row); this.event(ev.id, 'open', 'skipped', { reason }); }
@@ -300,7 +305,7 @@ export class Copier {
     const why = this.paperAllowed(ev, sym, reason);
     if (why === 'not_qualified' || why === 'bridge_offline') return;      // shadow already records these traders
     const row = this.baseRow(ev, 'paper', {});
-    row.copy_lots = this.copyLots(row.trader_lots);
+    row.copy_lots = this.copyLots(ev);
     this.rows.set(`${ev.id}:paper`, row);
     if (why) { row.skip_reason = why; this.touch(row); return; }
     if (pend?.paper) {
@@ -322,7 +327,7 @@ export class Copier {
     if (!this.bridge || !sym?.enabled || this.bridge.missing?.has(ev.s)) return;
     if (this.news?.check(sym.news_currencies, this.now(), this.settings.news_window_s)) return;   // placed after the news by newsGuard
     const p = this.pend.get(ev.id); if (!p) return;
-    const lots = this.copyLots(Number(ev.v));
+    const lots = this.copyLots(ev);
     p.paper = { state: 'sent', lots };
     this.send({ t: 'rest', id: ev.id, symbol: ev.s, side: ev.sd, order: ev.ot, price: Number(ev.p), units: Math.round(lots * (Number(ev.ct) || 100000) * 1000) / 1000, sl: ev.sl ?? null, tp: ev.tp ?? null });
   }
