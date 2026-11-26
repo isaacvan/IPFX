@@ -1,0 +1,232 @@
+<title>Infinity Rules Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Archivo:wght@600;700;800&display=swap">
+<style>
+/* Layout: one reading column, a triage list of findings (severity stripe), then the consolidated rulebook. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --fg:#14181f; --muted:#5b6472; --line:#dde2ea;
+  --accent:#1f5eff; --accent-soft:#e6edff; --crit:#c2372f; --crit-soft:#fbe9e7; --high:#a86a00; --high-soft:#fff3dc; --med:#2e6f9e; --med-soft:#e5f0f8; --good:#0f8a5f; --good-soft:#e3f5ec;
+  --display:'Archivo',system-ui,sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1116; --panel:#151a22; --fg:#e7ebf1; --muted:#9aa4b2; --line:#283040; --accent:#7aa2ff; --accent-soft:#1b2540;
+  --crit:#ff7d73; --crit-soft:#2c1513; --high:#f0b54a; --high-soft:#2a2112; --med:#7cc0ef; --med-soft:#13222f; --good:#4cc79a; --good-soft:#12271f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --panel:#151a22; --fg:#e7ebf1; --muted:#9aa4b2; --line:#283040; --accent:#7aa2ff; --accent-soft:#1b2540;
+  --crit:#ff7d73; --crit-soft:#2c1513; --high:#f0b54a; --high-soft:#2a2112; --med:#7cc0ef; --med-soft:#13222f; --good:#4cc79a; --good-soft:#12271f; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body)}
+.wrap{max-width:1000px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+header{display:grid;gap:12px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(30px,5vw,44px)/1.05 var(--display);margin:0;text-wrap:balance}
+h2{font:700 24px/1.2 var(--display);margin:0;text-wrap:balance}
+h3{font:600 17px/1.35 var(--body);margin:0}
+p{margin:0;max-width:72ch}
+section{display:grid;gap:14px}
+.lede{font-size:18px;max-width:70ch}
+.find{display:grid;gap:10px}
+.item{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--sev);border-radius:10px;padding:16px 18px;display:grid;gap:8px;min-width:0}
+.item.crit{--sev:var(--crit)} .item.high{--sev:var(--high)} .item.med{--sev:var(--med)}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between}
+.chip{font:500 11px/1.6 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:1px 8px;border-radius:999px}
+.crit .chip{background:var(--crit-soft);color:var(--crit)} .high .chip{background:var(--high-soft);color:var(--high)} .med .chip{background:var(--med-soft);color:var(--med)}
+.item dl{display:grid;grid-template-columns:110px 1fr;gap:4px 14px;margin:0;font-size:15px}
+.item dt{color:var(--muted);font:500 12px/1.9 var(--mono);text-transform:uppercase;letter-spacing:.04em}
+.item dd{margin:0;min-width:0}
+@media (max-width:560px){.item dl{grid-template-columns:1fr}.item dt{line-height:1.2;margin-top:6px}}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:500 12px/1.3 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.n{text-align:right;font-family:var(--mono)}
+.stage{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:10px;align-content:start;min-width:0}
+.card .tag{font:500 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.card ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.new{font:500 11px/1.5 var(--mono);color:var(--good);background:var(--good-soft);padding:0 6px;border-radius:4px;margin-left:4px;white-space:nowrap}
+.small{font-size:14px;color:var(--muted)}
+ol.src{margin:0;padding-left:22px;display:grid;gap:6px;font-size:14px}
+ol.src a{color:var(--accent)}
+a{color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.k{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:4px}
+.k b{font:700 26px/1 var(--display);font-variant-numeric:tabular-nums}
+.k span{font-size:14px;color:var(--muted)}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">IPFX Capital · rules review · 26 Nov 2026</div>
+  <h1>Infinity Rules Review</h1>
+  <p class="lede">Everything in the Infinity rules that should change, ranked by how much it matters. Each point is backed by our own trade data (5,238 real-rules trades from 485 traders, replayed at E8 prices) and by published research or official prop-firm rules. It builds on the December rules report, which recommends E8 One for Stage 1 and statistical proof of edge for Stages 2 and 3.</p>
+</header>
+
+<section>
+  <h2>Biggest wins</h2>
+  <div class="kpis">
+    <div class="k"><b>13.8% → 1.1%</b><span>zero-edge traders paid within a year of restarting, once the record is lifetime and scored by day</span></div>
+    <div class="k"><b>140 → 20</b><span>E8 breaches in our replay if traders could not open a trade within 15 minutes of a losing one</span></div>
+    <div class="k"><b>−0.46R → −0.28R</b><span>average trade at E8 prices, v1 rules versus v2 guard rules</span></div>
+    <div class="k"><b>1 policy risk</b><span>E8 does not allow signal services or copying someone else's trades</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Findings and fixes</h2>
+  <div class="find">
+
+  <div class="item crit"><div class="top"><h3>1. Copying traders onto E8 breaks E8's own policy unless E8 agrees in writing</h3><span class="chip">Critical</span></div>
+  <dl><dt>Finding</dt><dd>E8's help centre says copy trading is allowed only between accounts that all belong to the same person, that teams may not make the same trades, and that signal services are not permitted. It also caps how much capital one person can hold. IPFX's plan copies other people's trades onto IPFX's E8 accounts.</dd>
+  <dt>Risk</dt><dd>E8 can terminate the accounts and remove profits. Every copy-based payout calculation depends on this working.</dd>
+  <dt>Fix</dt><dd>Get E8's permission in writing before December, naming the exact arrangement. If they refuse, either sponsor E8 accounts in the trader's own name with a written profit share, or copy to a venue that allows it (IPFX's own A-book or a liquidity provider). Do not raise payouts based on copy profits until this is settled.</dd>
+  <dt>Sources</dt><dd>E8: "Can I copy trades or trade as a team?" and "Trading policies and prohibited trading strategies" [1][2].</dd></dl></div>
+
+  <div class="item crit"><div class="top"><h3>2. Restarts let luck through: keep one lifetime record per person</h3><span class="chip">Critical</span></div>
+  <dl><dt>Finding</dt><dd>Each restart wipes the statistical record, so a trader with no edge can keep trying until a lucky streak passes. In simulation (recommended rules, our traders' outcomes), a zero-edge disciplined trader who keeps restarting for 12 months is paid 13.8% of the time.</dd>
+  <dt>Fix</dt><dd>Keep every counted trade a person has ever made at Stage 2 or 3, including failed attempts, in a lifetime record linked to their verified identity. Passing Stage 2 also needs the lifetime score of 1.5, and the Stage 3 combined score of 3.0 is taken over the lifetime record. A new email address does not start a new record.</dd>
+  <dt>Effect</dt><dd>Zero-edge traders paid within a year: 13.8% → 4.5% (per-trade score) or 1.1% (with fix 3). A +0.2R trader is still paid 94% to 98% of the time within a year.</dd>
+  <dt>Sources</dt><dd>Selection bias from many trials is what the Deflated Sharpe Ratio and Probability of Backtest Overfitting correct for [3][4]; Harvey, Liu and Zhu argue for a t-statistic above 3.0 because of multiple testing [5].</dd></dl></div>
+
+  <div class="item crit"><div class="top"><h3>3. Trades on the same day move together: score by trading day, not only by trade</h3><span class="chip">Critical</span></div>
+  <dl><dt>Finding</dt><dd>A trader's results on the same day are correlated (intra-day correlation 0.20 at about 3.4 trades a day). That makes 40 trades look like about 27 independent ones, so today's per-trade score overstates the evidence by about 22%. In simulation, clustering raises zero-edge payouts per attempt from 1.1% to 3.0%.</dd>
+  <dt>Fix</dt><dd>Compute the Stage 2, Stage 3 and combined scores on daily totals (sum of capped R per trading day), with the same thresholds. Keep the per-trade +5R cap.</dd>
+  <dt>Effect</dt><dd>Zero-edge payouts per attempt fall back to 1.4%. It costs some speed: a +0.2R trader passes a single attempt 55% of the time instead of 64%, but with the lifetime record (fix 2) still 94% within a year.</dd>
+  <dt>Sources</dt><dd>Serial correlation adjustment is standard in performance evaluation (Kosowski, Naik and Teo adjust for it before declaring hedge fund alpha real) [6].</dd></dl></div>
+
+  <div class="item crit"><div class="top"><h3>4. Score what IPFX can actually copy: measure R at E8 prices</h3><span class="chip">Critical</span></div>
+  <dl><dt>Finding</dt><dd>The average trade is −0.21R at IPFX prices but −0.42R at E8 prices, about 0.13R a trade of extra cost (spread and commission against tight stops). A trader can pass on IPFX prices and still lose money when copied.</dd>
+  <dt>Fix</dt><dd>For Stages 2 and 3, compute each counted trade's R after E8's commission and E8's average spread for that symbol (IPFX already records both). Show traders both numbers. Expect copied edge to be smaller again because of copy delay; plan on a haircut until measured.</dd>
+  <dt>Sources</dt><dd>Our E8 replay (December report). Published edges shrink out of sample and after discovery [7].</dd></dl></div>
+
+  <div class="item high"><div class="top"><h3>5. Revenge trading: add a cool-down after a loss and a soft daily pause</h3><span class="chip">High</span></div>
+  <dl><dt>Finding</dt><dd>43% of all trades were opened within 15 minutes of a losing trade, and they averaged −0.83R against −0.29R for other trades. Results get worse with each loss already taken that day: −0.35R after none, −0.74R after five or more.</dd>
+  <dt>Fix</dt><dd>Stages 2 and 3: after a losing counted trade, new orders unlock after 15 minutes. After 3 losing counted trades or a 2% loss in a day, trading pauses until the next day (a pause, not a fail, as on E8 Signature).</dd>
+  <dt>Effect</dt><dd>Replaying our traders without trades opened inside 15 minutes of a loss: average −0.42R → −0.13R and E8 breaches 140 → 20. This is a counterfactual; some traders would trade later instead.</dd>
+  <dt>Sources</dt><dd>Proprietary stock traders take more risk after morning losses, and those most affected perform worse (Garvey, Murphy and Wu, 150 prop traders) [8]; E8 Signature's 2% daily pause [9].</dd></dl></div>
+
+  <div class="item high"><div class="top"><h3>6. Keep the v2 guard rules for Stages 2 and 3</h3><span class="chip">High</span></div>
+  <dl><dt>Finding</dt><dd>Compared with v1 trades, v2 trades average −0.28R at E8 instead of −0.46R, use stops tighter than 4 spreads 13% of the time instead of 34%, are held under 5 minutes 25% instead of 37%, and are revenge trades 33% instead of 45%.</dd>
+  <dt>Fix</dt><dd>Keep: stop at least 8 spreads away, profit only counts on trades held 5 minutes or more, total open risk up to 3 trade limits, 10-minute pause on a symbol after a stop-out, order burst limit, +5R cap in the score.</dd>
+  <dt>Data</dt><dd>Trades held under 1 minute average −1.4R (1.9% win rate); 30 minutes to 4 hours +0.08R; over 4 hours +0.21R at E8. Stops tighter than 4 E8 spreads cost 0.39R a trade in spread alone.</dd></dl></div>
+
+  <div class="item high"><div class="top"><h3>7. Block trading around high-impact news and the daily rollover in Stages 2 and 3</h3><span class="chip">High</span></div>
+  <dl><dt>Finding</dt><dd>E8's Performance accounts forbid opening, closing or modifying trades from 5 minutes before to 5 minutes after high-impact news; profits made then can be removed. Copies of IPFX traders land on such accounts. Separately, E8's spreads jump at 22:00 UTC (gold about +40%, EUR/USD about double), and our worst hours are 21:00 to 01:00 UTC.</dd>
+  <dt>Fix</dt><dd>Stages 2 and 3: no new orders or edits from 5 minutes before to 5 minutes after high-impact news on that instrument's currencies, and no new orders 21:55 to 22:15 UTC. Stage 1 stays exactly E8 One (news allowed in the challenge).</dd>
+  <dt>Sources</dt><dd>E8 One help centre article [10]; E8 cost samples, about 30,000 per symbol.</dd></dl></div>
+
+  <div class="item high"><div class="top"><h3>8. Say how long proof takes, and remove time pressure from Stage 3</h3><span class="chip">High</span></div>
+  <dl><dt>Finding</dt><dd>Using our traders' real skew and fat tails, the Minimum Track Record Length for a t-score of 3 is about 350 to 420 counted trades for a +0.2R edge and 155 to 185 for +0.3R. At 95% confidence it is about 105 to 130 for +0.2R.</dd>
+  <dt>Fix</dt><dd>No time limit at Stages 2 and 3, only E8's rule of one closed trade every 60 days. Show each trader a live "trades still needed at your current edge" estimate instead of a bare score.</dd>
+  <dt>Sources</dt><dd>Bailey and López de Prado, The Sharpe Ratio Efficient Frontier (Probabilistic Sharpe Ratio and MinTRL) [11].</dd></dl></div>
+
+  <div class="item med"><div class="top"><h3>9. Martingale-style sizing</h3><span class="chip">Medium</span></div>
+  <dl><dt>Finding</dt><dd>9.3% of trades raised risk by more than 50% straight after a loss; they averaged −0.57R.</dd>
+  <dt>Fix</dt><dd>A counted trade may risk at most 1.5 times the trader's median risk of their last 20 counted trades (and never above the stage cap). E8 already bans putting a whole daily limit on one trade.</dd></dl></div>
+
+  <div class="item med"><div class="top"><h3>10. Expensive instruments</h3><span class="chip">Medium</span></div>
+  <dl><dt>Finding</dt><dd>Moving to E8 costs, per trade: Bitcoin about 12R, Nikkei 3.6R, Swiss franc 0.45R, yen pairs 0.25R, euro 0.18R, gold 0.08R. Gold is half of all trades.</dd>
+  <dt>Fix</dt><dd>Stages 2 and 3: crypto and the Nikkei do not count toward targets or scores unless the stop is at least 20 spreads. With fix 4, costly instruments are priced in automatically.</dd></dl></div>
+
+  <div class="item med"><div class="top"><h3>11. Pay in two parts, with a high-water mark</h3><span class="chip">Medium</span></div>
+  <dl><dt>Finding</dt><dd>Regulated fund managers must defer 40% to 60% of variable pay for 3 to 5 years with clawback. A single payout at Stage 3 cannot be taken back if the result was luck.</dd>
+  <dt>Fix</dt><dd>Pay half at Stage 3 completion and half after the first 40 counted trades in Stage 4, if the account is still above its Stage 3 finishing balance. Amounts unchanged.</dd>
+  <dt>Sources</dt><dd>AIFMD Annex II remuneration rules [12].</dd></dl></div>
+
+  <div class="item med"><div class="top"><h3>12. Stage 4: watch for edge decay and scale on evidence</h3><span class="chip">Medium</span></div>
+  <dl><dt>Finding</dt><dd>Edges shrink after discovery, and hedge fund skill persists at around annual horizons. Copy size should follow the evidence, both ways.</dd>
+  <dt>Fix</dt><dd>Keep a rolling 100-trade score. Below 0: halve copy size. Below −1: stop copying and review. Scale up like FTMO: +25% every 4 months with at least 10% net profit and two payouts in that period.</dd>
+  <dt>Sources</dt><dd>McLean and Pontiff [7]; Kosowski, Naik and Teo [6]; FTMO scaling plan [13].</dd></dl></div>
+
+  <div class="item med"><div class="top"><h3>13. Copy only after Stage 2, and pick by statistics</h3><span class="chip">Medium</span></div>
+  <dl><dt>Finding</dt><dd>In simulation 20% to 55% of Stage 1 passers have no edge; after a Stage 2 pass it is 0.1% to 5%. On social trading platforms people choose whom to copy by popularity, which barely tracks performance.</dd>
+  <dt>Fix</dt><dd>Start copying after Stage 2 at small size; measure copy slippage on the first 100 copied trades before increasing.</dd>
+  <dt>Sources</dt><dd>December report simulations; eToro popularity and performance study [14].</dd></dl></div>
+
+  <div class="item med"><div class="top"><h3>14. Publish honest outcome numbers</h3><span class="chip">Medium</span></div>
+  <dl><dt>Finding</dt><dd>No large prop firm publishes audited pass rates. The EU requires CFD providers to show the share of retail accounts that lose money (74% to 89%). Most day traders lose; under 1% in Taiwan were predictably profitable, and in Brazil 97% of those who persisted 300+ days lost money.</dd>
+  <dt>Fix</dt><dd>Show on the Infinity page, monthly: traders started, reached Stage 2, reached Stage 3, paid. This fits a free challenge and builds trust while regulators look at prop firms.</dd>
+  <dt>Sources</dt><dd>ESMA [15]; Barber, Lee, Liu and Odean [16]; Chague, De-Losso and Giovannetti [17]; FCA prop firm warnings [18].</dd></dl></div>
+  </div>
+</section>
+
+<section>
+  <h2>Rulebook with every fix applied</h2>
+  <div class="stage">
+    <div class="card"><div class="tag">Stage 1 · free · $10,000 simulated</div><h3>E8 One, exactly</h3><ul>
+      <li>6% profit target; 3% daily loss from the day's starting balance (floating included, hard breach); 4% dynamic drawdown on highest closed balance, locking at the start</li>
+      <li>No minimum days, trades, score or consistency; news and weekends allowed; leverage 1:30 FX, 1:15 indices and metals</li>
+      <li>No hedging between accounts, no whole-daily-limit trades, one closed trade every 60 days</li>
+      <li>IPFX automatic stop stays as a safety net (does not fail anyone)</li></ul></div>
+    <div class="card"><div class="tag">Stage 2 · $5,000 simulated</div><h3>Show your edge</h3><ul>
+      <li>6% target at E8 prices <span class="new">new</span>; 8% fixed drawdown; 3% daily loss; risk up to 0.5% a trade</li>
+      <li>40 counted trades over 10+ days; score 1.5 on trading days <span class="new">new</span>, on this stage and on the lifetime record <span class="new">new</span></li>
+      <li>Best day at most 40%; biggest 3 wins at most 50% of profit</li>
+      <li>15-minute cool-down after a loss; pause for the day after 3 losses or −2% <span class="new">new</span></li>
+      <li>No trading ±5 min of high-impact news or 21:55 to 22:15 UTC <span class="new">new</span></li>
+      <li>v2 guards kept; size at most 1.5× recent median <span class="new">new</span></li>
+      <li>Identity verified to move up. Copying starts here at small size.</li></ul></div>
+    <div class="card"><div class="tag">Stage 3 · $10,000 simulated</div><h3>Prove it again</h3><ul>
+      <li>Fresh 6% target at E8 prices, same limits and conduct rules as Stage 2</li>
+      <li>60 new counted trades over 15+ days; score 1.5 on Stage 3 days and 3.0 on the lifetime record <span class="new">new</span></li>
+      <li>Best day at most 35%; biggest 3 wins at most 40%</li>
+      <li>No time limit; live "trades still needed" estimate <span class="new">new</span></li>
+      <li>Payout: 85% of eligible profit up to $700, paid half now and half after 40 Stage 4 trades above the high-water mark <span class="new">new</span></li></ul></div>
+    <div class="card"><div class="tag">Stage 4 · from $25,000</div><h3>Copy and scale</h3><ul>
+      <li>Rolling 100-trade score: below 0 halves copy size, below −1 stops copying <span class="new">new</span></li>
+      <li>+25% size every 4 months with 10%+ net profit and two payouts <span class="new">new</span></li>
+      <li>Only after written E8 permission for copying, or on another venue <span class="new">new</span></li></ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>How the big firms compare</h2>
+  <div class="tbl"><table>
+    <tr><th>Firm and product</th><th>Target</th><th>Daily loss</th><th>Overall drawdown</th><th>Consistency</th><th>Other</th></tr>
+    <tr><td>E8 One (preset)</td><td>6%</td><td>3%, hard</td><td>4% dynamic, locks at start</td><td>40% best day at payout only</td><td>News banned ±5 min on funded; no signal services [1][10]</td></tr>
+    <tr><td>E8 Signature</td><td>-</td><td>2% daily pause (soft)</td><td>-</td><td>-</td><td>Pause stops trading until the next day [9]</td></tr>
+    <tr><td>FTMO</td><td>-</td><td>-</td><td>-</td><td>-</td><td>Scaling +25% every 4 months with 10% profit and 2 payouts [13]</td></tr>
+    <tr><td>Topstep (futures)</td><td>-</td><td>-</td><td>-</td><td>Best day at most 50% of target in the Combine</td><td>Target rises if exceeded [19]</td></tr>
+    <tr><td>Apex (futures)</td><td>-</td><td>-</td><td>-</td><td>30%, reportedly 50% on newer accounts</td><td>Third-party sources; not verified on Apex's site [20]</td></tr>
+    <tr><td><b>IPFX recommended</b></td><td>E8 at S1, 6% at S2/S3</td><td>E8 at S1, 3% + soft pause</td><td>E8 at S1, 8% fixed</td><td>40% / 35% + top-3 rule</td><td>Lifetime, day-based, E8-priced score</td></tr>
+  </table></div>
+  <p class="small">Dashes mean that figure was not checked for this report. Most firms do not publish audited pass rates; third-party estimates put FTMO at roughly 9% to 12% and the share of all challenge buyers ever paid at about 7%, but these are not verified.</p>
+</section>
+
+<section>
+  <h2>Limits</h2>
+  <ul style="margin:0;padding-left:20px;display:grid;gap:6px;max-width:72ch">
+    <li>Our data is small and mostly from Stage 1 traders on v1 rules; nobody has traded Stage 2 yet. Rule effects come from simulation built on our traders' real results.</li>
+    <li>The cool-down and v1 versus v2 comparisons are observational: traders and months differ, and blocked trades may have been replaced by others.</li>
+    <li>E8 costs are estimates from our own spread samples and E8's published commission.</li>
+    <li>E8 rules are as published on 26 Nov 2026 and can change; the E8 One preset in the help centre differs from the website configurator's $100K default.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Sources</h2>
+  <ol class="src">
+    <li><a href="https://help.e8markets.com/en/articles/9453469-can-i-copy-trades-or-trade-as-a-team">E8 Markets: Can I copy trades or trade as a team?</a></li>
+    <li><a href="https://help.e8markets.com/en/articles/6929927-trading-policies-and-prohibited-trading-strategies">E8 Markets: Trading policies and prohibited trading strategies</a></li>
+    <li><a href="https://papers.ssrn.com/abstract=2460551">Bailey and López de Prado: The Deflated Sharpe Ratio</a></li>
+    <li><a href="https://papers.ssrn.com/abstract=2326253">Bailey, Borwein, López de Prado and Zhu: The Probability of Backtest Overfitting</a></li>
+    <li><a href="https://www.nber.org/papers/w20592">Harvey, Liu and Zhu: …and the Cross-Section of Expected Returns (RFS 2016)</a></li>
+    <li><a href="https://papers.ssrn.com/abstract=1974581">Kosowski, Naik and Teo: Do Hedge Funds Deliver Alpha? A Bayesian and Bootstrap Analysis</a></li>
+    <li><a href="https://econpapers.repec.org/RePEc:bla:jfinan:v:71:y:2016:i:1:p:5-32">McLean and Pontiff: Does Academic Research Destroy Stock Return Predictability? (JF 2016)</a></li>
+    <li><a href="https://www.nuff.ox.ac.uk/Users/MurphyA/Do%20Losses%20Linger.pdf">Garvey, Murphy and Wu: Do Losses Linger? Evidence from proprietary stock traders</a></li>
+    <li><a href="https://intercom.help/e8/en/articles/11864638-daily-pause">E8 Markets: Daily pause</a></li>
+    <li><a href="https://help.e8markets.com/en/articles/11775980-e8-one">E8 Markets: E8 One</a></li>
+    <li><a href="https://www.risk.net/journal-risk/2223785/sharpe-ratio-efficient-frontier">Bailey and López de Prado: The Sharpe Ratio Efficient Frontier (Journal of Risk)</a></li>
+    <li><a href="https://legislation.gov.uk/eudr/2011/61/annexes/data.pdf">AIFMD 2011/61/EU, Annex II remuneration policy</a></li>
+    <li><a href="https://ftmo.com/en/reward-growth-and-scaling-plan/">FTMO: Scaling plan</a></li>
+    <li><a href="https://arxiv.org/pdf/1406.7729">Popularity and Performance: A Large-Scale Study (eToro)</a></li>
+    <li><a href="https://www.esma.europa.eu/node/84933">ESMA: prohibit binary options and restrict CFDs (74% to 89% of retail accounts lose money)</a></li>
+    <li><a href="https://ideas.repec.org/a/eee/finmar/v18y2014icp1-24.html">Barber, Lee, Liu and Odean: The cross-section of speculator skill (J. Financial Markets 2014)</a></li>
+    <li><a href="https://ideas.repec.org/p/spa/wpaper/2019wpecon47.html">Chague, De-Losso and Giovannetti: Day Trading for a Living?</a></li>
+    <li><a href="https://www.fca.org.uk/news/warnings/funded-trader">FCA warning list: Funded Trader</a></li>
+    <li><a href="https://help.topstep.com/en/articles/8284208-consistency-at-topstep">Topstep: Consistency at Topstep</a></li>
+    <li><a href="https://www.benzinga.com/money/apex-consistency-rule-explained">Benzinga: Apex consistency rule explained (third party)</a></li>
+  </ol>
+  <p class="small">Data and scripts: research/december-rules-2026-11 in the IPFX repository. Companion report: Infinity December Rules.</p>
+</section>
+</div>

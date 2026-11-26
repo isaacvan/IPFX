@@ -1,0 +1,316 @@
+{
+ "H1_icc_same_day": 0.201,
+ "H1_trades_per_day_mean": 3.38,
+ "H1_design_effect": 1.48,
+ "H2_stop_width": [
+  {
+   "stop_spreads": "<4",
+   "trades": "1457",
+   "mean_R_E8": "-0.526",
+   "mean_R_IPFX": "-0.043",
+   "median_costR": "-0.387",
+   "share_R_over_10": "0.021"
+  },
+  {
+   "stop_spreads": "4-8",
+   "trades": "1773",
+   "mean_R_E8": "-0.335",
+   "mean_R_IPFX": "-0.204",
+   "median_costR": "-0.131",
+   "share_R_over_10": "0.002"
+  },
+  {
+   "stop_spreads": "8-15",
+   "trades": "1305",
+   "mean_R_E8": "-0.448",
+   "mean_R_IPFX": "-0.391",
+   "median_costR": "-0.059",
+   "share_R_over_10": "0.0"
+  },
+  {
+   "stop_spreads": "15-30",
+   "trades": "33",
+   "mean_R_E8": "0.344",
+   "mean_R_IPFX": "0.343",
+   "median_costR": "-0.012",
+   "share_R_over_10": "0.03"
+  },
+  {
+   "stop_spreads": "30+",
+   "trades": "291",
+   "mean_R_E8": "-0.196",
+   "mean_R_IPFX": "-0.227",
+   "median_costR": "0.037",
+   "share_R_over_10": "0.007"
+  }
+ ],
+ "H3_hold_time": [
+  {
+   "hold_s": "<1m",
+   "trades": "835",
+   "mean_R_E8": "-1.396",
+   "mean_Rw_E8": "-1.269",
+   "mean_R_IPFX": "-1.072",
+   "win_rate": "0.019"
+  },
+  {
+   "hold_s": "1-5m",
+   "trades": "927",
+   "mean_R_E8": "-0.694",
+   "mean_Rw_E8": "-0.714",
+   "mean_R_IPFX": "-0.53",
+   "win_rate": "0.174"
+  },
+  {
+   "hold_s": "5-30m",
+   "trades": "1524",
+   "mean_R_E8": "-0.417",
+   "mean_Rw_E8": "-0.485",
+   "mean_R_IPFX": "-0.251",
+   "win_rate": "0.237"
+  },
+  {
+   "hold_s": "30m-4h",
+   "trades": "1258",
+   "mean_R_E8": "0.078",
+   "mean_Rw_E8": "-0.195",
+   "mean_R_IPFX": "0.301",
+   "win_rate": "0.316"
+  },
+  {
+   "hold_s": ">4h",
+   "trades": "694",
+   "mean_R_E8": "0.213",
+   "mean_Rw_E8": "-0.038",
+   "mean_R_IPFX": "0.415",
+   "win_rate": "0.416"
+  }
+ ],
+ "H5_after_loss_15min": {
+  "trades": 2271,
+  "mean_Rw": -0.829,
+  "others_mean_Rw": -0.286,
+  "share_of_all_trades": 0.434
+ },
+ "H5_by_prior_losses_today": [
+  {
+   "day_loss_count": "0",
+   "trades": "1868",
+   "mean_Rw": "-0.347"
+  },
+  {
+   "day_loss_count": "1",
+   "trades": "1031",
+   "mean_Rw": "-0.5"
+  },
+  {
+   "day_loss_count": "2",
+   "trades": "639",
+   "mean_Rw": "-0.613"
+  },
+  {
+   "day_loss_count": "3-4",
+   "trades": "717",
+   "mean_Rw": "-0.633"
+  },
+  {
+   "day_loss_count": "5+",
+   "trades": "983",
+   "mean_Rw": "-0.735"
+  }
+ ],
+ "H7_size_up_50pct_after_loss": {
+  "trades": 488,
+  "share": 0.093,
+  "mean_Rw": -0.574
+ },
+ "H10_trade_vs_day_score": {
+  "traders": 74,
+  "corr": 0.62,
+  "median_ratio_day_over_trade": 0.56
+ },
+ "by_symbol": [
+  {
+   "symbol": "XAUUSD",
+   "trades": "2651",
+   "mean_Rw": "-0.596",
+   "costR": "-0.084"
+  },
+  {
+   "symbol": "EURUSD",
+   "trades": "1437",
+   "mean_Rw": "-0.467",
+   "costR": "-0.176"
+  },
+  {
+   "symbol": "NSXUSD",
+   "trades": "234",
+   "mean_Rw": "-0.199",
+   "costR": "0.038"
+  },
+  {
+   "symbol": "USDJPY",
+   "trades": "233",
+   "mean_Rw": "-0.668",
+   "costR": "-0.246"
+  },
+  {
+   "symbol": "GBPUSD",
+   "trades": "209",
+   "mean_Rw": "-0.261",
+   "costR": "-0.038"
+  },
+  {
+   "symbol": "AUDUSD",
+   "trades": "76",
+   "mean_Rw": "-0.618",
+   "costR": "-0.152"
+  },
+  {
+   "symbol": "GBPJPY",
+   "trades": "74",
+   "mean_Rw": "-0.351",
+   "costR": "-0.234"
+  },
+  {
+   "symbol": "USDCAD",
+   "trades": "66",
+   "mean_Rw": "-0.29",
+   "costR": "-0.026"
+  },
+  {
+   "symbol": "SPXUSD",
+   "trades": "61",
+   "mean_Rw": "-0.437",
+   "costR": "-0.051"
+  },
+  {
+   "symbol": "GER40",
+   "trades": "47",
+   "mean_Rw": "-0.558",
+   "costR": "-0.003"
+  }
+ ],
+ "by_hour": [
+  {
+   "opened_at": "0",
+   "trades": "188",
+   "mean_Rw": "-0.698"
+  },
+  {
+   "opened_at": "1",
+   "trades": "243",
+   "mean_Rw": "-0.654"
+  },
+  {
+   "opened_at": "2",
+   "trades": "206",
+   "mean_Rw": "-0.319"
+  },
+  {
+   "opened_at": "3",
+   "trades": "248",
+   "mean_Rw": "-0.315"
+  },
+  {
+   "opened_at": "4",
+   "trades": "253",
+   "mean_Rw": "-0.383"
+  },
+  {
+   "opened_at": "5",
+   "trades": "299",
+   "mean_Rw": "-0.389"
+  },
+  {
+   "opened_at": "6",
+   "trades": "295",
+   "mean_Rw": "-0.658"
+  },
+  {
+   "opened_at": "7",
+   "trades": "325",
+   "mean_Rw": "-0.572"
+  },
+  {
+   "opened_at": "8",
+   "trades": "266",
+   "mean_Rw": "-0.617"
+  },
+  {
+   "opened_at": "9",
+   "trades": "257",
+   "mean_Rw": "-0.592"
+  },
+  {
+   "opened_at": "10",
+   "trades": "223",
+   "mean_Rw": "-0.491"
+  },
+  {
+   "opened_at": "11",
+   "trades": "259",
+   "mean_Rw": "-0.618"
+  },
+  {
+   "opened_at": "12",
+   "trades": "352",
+   "mean_Rw": "-0.515"
+  },
+  {
+   "opened_at": "13",
+   "trades": "328",
+   "mean_Rw": "-0.562"
+  },
+  {
+   "opened_at": "14",
+   "trades": "294",
+   "mean_Rw": "-0.324"
+  },
+  {
+   "opened_at": "15",
+   "trades": "199",
+   "mean_Rw": "-0.387"
+  },
+  {
+   "opened_at": "16",
+   "trades": "202",
+   "mean_Rw": "-0.606"
+  },
+  {
+   "opened_at": "17",
+   "trades": "190",
+   "mean_Rw": "-0.507"
+  },
+  {
+   "opened_at": "18",
+   "trades": "178",
+   "mean_Rw": "-0.608"
+  },
+  {
+   "opened_at": "19",
+   "trades": "113",
+   "mean_Rw": "-0.506"
+  },
+  {
+   "opened_at": "20",
+   "trades": "98",
+   "mean_Rw": "-0.351"
+  },
+  {
+   "opened_at": "21",
+   "trades": "58",
+   "mean_Rw": "-0.84"
+  },
+  {
+   "opened_at": "22",
+   "trades": "71",
+   "mean_Rw": "-0.709"
+  },
+  {
+   "opened_at": "23",
+   "trades": "93",
+   "mean_Rw": "-0.681"
+  }
+ ]
+}
