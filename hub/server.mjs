@@ -8,6 +8,8 @@ import { Risk } from './risk.mjs';
 import { riskJournal } from './risk-journal.mjs';
 import { TickStore, createCandles, rateLimiter } from './candles.mjs';
 import { fxcmRates, relayStats } from './fxcm-relay.mjs';
+import { Copier } from './copier.mjs';
+import { News } from './news.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,6 +17,8 @@ const env = process.env;
 const PORT = Number(env.PORT || 8080);
 const SB_URL = env.SUPABASE_URL, SB_ANON = env.SUPABASE_ANON_KEY, SECRET = env.HUB_SECRET || '';
 const RISK_MODE = env.RISK_MODE === 'active' ? 'active' : 'shadow';
+// The IBKR bridge (bridge/ibkr_copier.py) signs in with its own secret, so the bridge machine never holds the hub secret.
+const COPIER_SECRET = env.COPIER_SECRET && env.COPIER_SECRET.length >= 32 ? env.COPIER_SECRET : '';
 const LOADTEST_KEY = env.LOADTEST_KEY && env.LOADTEST_KEY.length >= 32 ? env.LOADTEST_KEY : '';
 const MAX_CLIENTS = 20_000, MAX_PER_IP = Number(env.MAX_PER_IP || 30), MAX_SUBS = 60;
 const SYMBOL_RE = /^[A-Z0-9:._-]{2,20}$/;
@@ -57,6 +61,9 @@ const restoredTicks = ticks.load();
 const candles = createCandles({ store: ticks, log });
 const candleLimit = rateLimiter({ perMinute: Number(env.CANDLE_RATE_PER_MIN) || 120 });   // per IP; the env override is only for load tests
 let lastIngestAt = 0;
+// Copier v2: engine trade events -> shadow model / IBKR bridge (copier.mjs). News calendar for the +-2 minute blackout.
+const news = new News({ path: join(STATE_DIR, 'news.json'), log });
+const copier = new Copier({ quotes, rpc, log, news, risk });
 
 function ingest(list) {
   const now = Date.now();
@@ -118,7 +125,7 @@ const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'appli
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') {
-      return send(res, 200, { ok: true, clients: wss.clients.size, quotes: quotes.size, ticks: ticks.size(), ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: risk.summary(), admission: { accepted: counters.authOk, rejected: counters.authFail }, fxcmRelay: relayStats });
+      return send(res, 200, { ok: true, copier: copier.summary(), clients: wss.clients.size, quotes: quotes.size, ticks: ticks.size(), ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null, risk: risk.summary(), admission: { accepted: counters.authOk, rejected: counters.authFail }, fxcmRelay: relayStats });
     }
     // Public chart history for IPFX Markets (same answer format as the chart-candles Edge Function, which stays as the fallback).
     if (req.method === 'GET' && req.url.startsWith('/candles?')) {
@@ -136,6 +143,13 @@ const server = http.createServer(async (req, res) => {
       if (!secretOk(req.headers['x-hub-secret'])) return send(res, 401, { ok: false });
       try { const xml = await fxcmRates(); res.writeHead(200, { 'Content-Type': 'application/xml', 'Cache-Control': 'no-store' }); return res.end(xml); }
       catch (e) { return send(res, 502, { ok: false, error: String(e.message || e).slice(0, 120) }); }
+    }
+    // Copier v2: one trade event (or {e:[...]}) from the engine. Answered at once; the work happens in memory.
+    if (req.method === 'POST' && req.url === '/copy') {
+      if (!secretOk(req.headers['x-hub-secret'])) return send(res, 401, { ok: false });
+      const body = JSON.parse(await readBody(req, 64 * 1024) || '{}');
+      const list = Array.isArray(body.e) ? body.e.slice(0, 50) : [body];
+      return send(res, 200, { ok: true, r: list.map((ev) => copier.onIntent(ev)) });
     }
     if (req.method === 'POST' && (req.url === '/ingest' || req.url === '/event')) {
       if (!secretOk(req.headers['x-hub-secret'])) return send(res, 401, { ok: false });
@@ -168,7 +182,34 @@ function pushAccount(uid) {
 
 // ---------- WebSocket ----------
 const perIp = new Map();
-const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 8 * 1024 });
+// Two WebSocket endpoints on one port, routed by path: /ws for IPFX Markets pages, /copier for the IBKR bridge.
+const wss = new WebSocketServer({ noServer: true, maxPayload: 8 * 1024 });
+const copierWss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
+server.on('upgrade', (req, socket, head) => {
+  const path = String(req.url || '').split('?')[0];
+  if (path === '/ws') wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
+  else if (path === '/copier' && COPIER_SECRET) copierWss.handleUpgrade(req, socket, head, (ws) => copierWss.emit('connection', ws, req));
+  else socket.destroy();
+});
+copierWss.on('connection', (ws) => {
+  ws.hello = false; ws.alive = true;
+  const t = setTimeout(() => { if (!ws.hello) ws.close(4401, 'hello timeout'); }, 10_000);
+  ws.on('pong', () => { ws.alive = true; });
+  ws.on('message', (raw) => {
+    let m; try { m = JSON.parse(raw); } catch { return; }
+    if (!ws.hello) {
+      const a = Buffer.from(String(m?.secret ?? '')), b = Buffer.from(COPIER_SECRET);
+      if (m?.t !== 'hello' || a.length !== b.length || !timingSafeEqual(a, b)) return ws.close(4401, 'unauthorised');
+      clearTimeout(t);
+      if (copier.attachBridge(ws, m)) { ws.hello = true; log('copier bridge connected', String(m.account || '').slice(0, 4) + '…'); }
+      return;
+    }
+    copier.onBridge(m);
+  });
+  ws.on('close', () => { clearTimeout(t); copier.detachBridge(ws); });
+  ws.on('error', () => {});
+});
+setInterval(() => { for (const ws of copierWss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); } }, 15_000).unref();
 function unsubscribeAll(ws) { for (const s of ws.subs) subsBySymbol.get(s)?.delete(ws); ws.subs.clear(); }
 
 wss.on('connection', (ws, req) => {
@@ -246,9 +287,11 @@ setInterval(() => {
   const mem = process.memoryUsage();
   const detail = { ok: risk.healthy() && (!lastIngestAt || Date.now() - lastIngestAt < 60_000), clients: wss.clients.size,
     authed: [...wss.clients].filter((w) => w.uid).length, ingestAgeMs: lastIngestAt ? Date.now() - lastIngestAt : null,
-    quotes: quotes.size, ticks: ticks.size(), acctPushes: counters.acctPushes, pumpKicks: counterPump.kicks, pumpKickErrors: counterPump.kickErrors, uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
+    quotes: quotes.size, ticks: ticks.size(), copier: (({ mode, bridge, intents, saveErrors, configError, qualified }) => ({ mode, bridge: !!bridge, intents, saveErrors, configError, qualified }))(copier.summary()), acctPushes: counters.acctPushes, pumpKicks: counterPump.kicks, pumpKickErrors: counterPump.kickErrors, uptimeS: Math.round((Date.now() - started) / 1000), rssMb: Math.round(mem.rss / 1048576), ...counters, risk: risk.summary() };
   rpc('hub_heartbeat', { p_detail: detail }).catch((e) => log('heartbeat failed', String(e)));
 }, 30_000).unref();
 
 server.listen(PORT, '127.0.0.1', () => log(`ipfx-hub listening on ${PORT}, risk ${RISK_MODE}, ${restoredTicks} ticks restored`));
+news.start();
+copier.start();
 risk.start().then(() => log('risk watcher ready', JSON.stringify(risk.summary()))).catch((e) => log('risk start failed', String(e)));

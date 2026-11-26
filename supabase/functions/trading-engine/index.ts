@@ -1314,6 +1314,27 @@ function shadowLater(db: Db, acct: { challenge_type?: string; phase?: string; st
   if (!inBrainScope(acct)) return;
   mirrorLater((async () => ((await shadowOn(db).catch(() => false)) ? await callBook(body) : null))());
 }
+// Copier v2 (26 Nov 2026): every Infinity trade event goes to the hub's copier the moment it happens (hub/copier.mjs).
+// No database round trip and never awaited by the order: the hub decides from memory and answers at once.
+// k: open | pending | pending_cancel | modify | close | partial. sc = USD per 1.0 price move per lot, ct = contract size.
+function copyEmit(acct: { id?: string; user_id?: string; challenge_type?: string; phase?: string; status?: string }, ev: Record<string, unknown>) {
+  if (!inBrainScope(acct)) return;
+  const url = Deno.env.get("HUB_INGEST_URL"), secret = Deno.env.get("HUB_SECRET");
+  if (!url || !secret) return;
+  mirrorLater((async () => {
+    const sym = typeof ev.s === "string" ? ev.s : null;
+    if (sym && ev.sc == null && INSTRUMENTS[sym]) {
+      const conv = await usdPerQuote(INSTRUMENTS[sym].quote).catch(() => null);
+      if (conv) { ev.sc = INSTRUMENTS[sym].contract * conv; ev.ct = INSTRUMENTS[sym].contract; }
+    }
+    const r = await fetch(new URL("/copy", url).toString(), {
+      method: "POST", headers: { "Content-Type": "application/json", "x-hub-secret": secret },
+      body: JSON.stringify({ a: acct.id, u: acct.user_id, te: Date.now(), ...ev }), signal: AbortSignal.timeout(1500),
+    });
+    await r.body?.cancel();
+  })().catch(() => { /* the copier is never allowed to affect an order */ }));
+}
+const clientTs = (body: Record<string, unknown>) => (Number.isFinite(Number(body.client_ts)) ? Number(body.client_ts) : null);
 async function bookLegs(db: Db, tradeId: string): Promise<{ a: boolean; b: boolean }> {
   const { data } = await db.from("book_orders").select("book").eq("source_trade_id", tradeId).eq("event", "open").in("status", ["filled", "reconciliation_required", "sent"]);
   const books = new Set<string>((data ?? []).map((r: Record<string, unknown>) => String(r.book)));
@@ -1719,6 +1740,7 @@ async function processPendingOrders(
       }).eq("id", o.id);
       continue;
     }
+    copyEmit(acct, { k: "open", id: inserted.id, pid: o.id, s: symbol, sd: o.side, v: Number(o.volume), p: fill, sl, tp, sc: inst.contract * conv, ct: inst.contract });
     await db.from("pending_orders").update({ filled_trade_id: inserted.id }).eq("id", o.id);
     // One-cancels-other: the first leg of an OCO group to fill cancels the rest.
     // (A unique index allows only one 'filled' row per group, so a racing leg can't also fill.)
@@ -2145,6 +2167,7 @@ async function closeTrade(
   });
   if (e1 || !committed?.ok) return notDone("commit_" + (e1 ? "error" : String(committed?.reason ?? "unknown"))); // closed or resized elsewhere; no duplicate credit
   acct.balance = Number(committed.balance);
+  copyEmit(acct, { k: "close", id: t.id, s: t.symbol, p: exit, r: reason, sl: t.sl ?? null, tp: t.tp ?? null });
   // The source close is committed. Broker copying must not hold up the UI;
   // EdgeRuntime.waitUntil keeps the exact-ID mirror dispatch alive. A hedge already closed
   // above is skipped; after an unpriced attempt it is re-sent (the idempotency key drops a
@@ -3193,6 +3216,7 @@ const AUTH_CACHE_MS = 30_000;
 let publicInfinityRulesCache: { at: number; data: unknown } | null = null;
 
 const handleRequest = async (req: Request): Promise<Response> => {
+  const reqAt = Date.now();   // copier latency: when the order request reached the engine
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return err("POST only", 405);
 
@@ -4083,6 +4107,7 @@ if (body.action === "sweep") {
         expires_at: expiresAt, oco_group: ocoGroup,
       }).select("*").single();
       if (pErr || !created) return err("Could not place the order", 500);
+      copyEmit(acct as Acct, { k: "pending", id: created.id, s: symbol, sd: side, v: volume, p: trigger, ot: orderType, sl, tp, ex: expiresAt ?? null, tr: reqAt, tc: clientTs(body) });
       if (ocoGroup) {
         // A winner can finish and cancel its then-existing siblings before
         // this INSERT commits. Reconcile that gap without rewriting a fill.
@@ -4116,6 +4141,7 @@ if (body.action === "sweep") {
       .update({ status: "cancelled", resolved_at: new Date().toISOString() })
       .eq("id", id).eq("user_id", user.id).eq("account_id", (acct as Acct).id).eq("status", "pending").select("*");
     if (!upd || !upd.length) return err("That order is no longer pending", 409);
+    copyEmit(acct as Acct, { k: "pending_cancel", id, s: upd[0].symbol });
     await logAudit(db, {
       pending_order_id: id, user_id: user.id, account_id: (acct as Acct).id, event: "cancel_pending",
       symbol: upd[0].symbol, side: upd[0].side, requested_volume: Number(upd[0].volume),
@@ -4417,6 +4443,7 @@ if (body.action === "sweep") {
       if (error) return reject(cleanV2Error(error.message), q);
 
       // The source trade is committed. Start audit and copy dispatch together.
+      copyEmit(A, { k: "open", id: inserted.id, s: symbol, sd: side, v: volume, p: openPrice, sl, tp, sc: inst.contract * conv, ct: inst.contract, tr: reqAt, tc: clientTs(body) });
       const mirrorRiskUsd = sl === null ? null : Math.abs(openPrice - sl) * inst.contract * volume * conv;
       if(A.rules_version === "infinity_v2") mirrorLater(copyInfinityV2Open(db,A,{id:inserted.id,account_id:A.id,user_id:user.id,symbol,side,volume,open_price:openPrice,close_price:null,sl,tp,status:"open",pnl:null,opened_at:new Date().toISOString()},mirrorRiskUsd,inst.contract*conv));
       else mirrorLater(fireMirror(db, acct as Acct, { id: inserted.id, account_id: A.id, user_id: user.id, symbol, side, volume, open_price: openPrice, close_price: null, sl, tp, status: "open", pnl: null } as Tr, "open", mirrorRiskUsd));
@@ -4537,6 +4564,7 @@ if (body.action === "sweep") {
     const { error: mErr } = await db.from("trades").update({ sl: nsl, tp: ntp })
       .eq("id", target.id).eq("status", "open");
     if (mErr) return err(cleanV2Error(mErr.message), 409);
+    copyEmit(acct as Acct, { k: "modify", id: target.id, s: target.symbol, sl: nsl, tp: ntp });
     await logAudit(db, {
       trade_id: target.id, user_id: user.id, account_id: (acct as Acct).id, event: "modify",
       symbol: target.symbol, side: target.side, requested_volume: Number(target.volume),
@@ -4623,6 +4651,7 @@ if (body.action === "sweep") {
     if (!committed?.ok) return err("This position changed — refresh it before retrying", 409);
     const closedSlice = { id: String(committed.slice_id) };
     (acct as Acct).balance = Number(committed.balance);
+    copyEmit(acct as Acct, { k: "partial", id: target.id, s: target.symbol, p: exit, f: vol / full, r: "partial" });
     // trade_id here is the CLOSED SLICE's own id (a distinct Position),
     // not target.id (the original position, which is still open at its
     // reduced volume) — a partial close creates a new closed position,
