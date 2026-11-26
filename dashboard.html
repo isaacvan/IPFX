@@ -780,7 +780,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     </div>
 
     <!-- ANALYTICS — deep execution-quality review of one account, computed
-         from that account's own closed trades. Mirrors E8's Analytics
+         from that account's own closed trades. Mirrors a standard analytics
          page: account selector, hold-time win/loss, drawdown recovery,
          per-symbol table. -->
     <div class="page" id="pg-analytics">
@@ -1985,7 +1985,7 @@ function renderAnalytics(){
 
 // ══ ORDERS (Billing) ═══════════════════════════════════════════════
 // Real purchase history from commerce_orders (RLS: own rows only), with
-// the paid/pending/cancelled filter chips E8's order list has.
+// the usual paid/pending/cancelled filter chips.
 let ORDERS_LOADED=false,ORDERS=[],orderFilter='all';
 async function loadOrders(){
   ORDERS_LOADED=true;
