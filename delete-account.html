@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete your account | IPFX Capital</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://ipfxcapital.com/delete-account.html">
+<link rel="icon" href="/desktop/build/icon.png" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0c;--fg:#fff;--muted:#a0a0a0;--line:#2a2a2c;--cobalt:#2563eb;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.card{width:100%;max-width:480px;border:1px solid var(--line);border-radius:var(--radius);padding:32px;background:#111114;display:grid;gap:16px}
+h1{font-size:1.4rem}
+p{color:var(--muted);line-height:1.55}
+b{color:var(--fg)}
+button{width:100%;padding:13px 16px;border:0;border-radius:10px;background:var(--cobalt);color:#fff;font:600 1rem 'Inter',system-ui,sans-serif;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+a{color:#60a5fa}
+.small{font-size:.85rem}
+</style>
+</head>
+<body>
+<main class="card" aria-live="polite">
+  <h1 id="title">Delete your account</h1>
+  <p id="msg">To delete your IPFX Capital account, sign in and choose <b>Delete account</b> at the bottom of the menu on your dashboard. Trading stops straight away and your personal information is permanently deleted after 7 days, unless you cancel. Trading statistics are kept only in anonymised form that cannot be linked to you.</p>
+  <button id="go" type="button" hidden>Keep my account</button>
+  <p class="small">Can't sign in? Email <b>enquiries@ipfxcapital.com</b> from the address on your account and we will delete it for you. More in our <a href="/privacy.html#retention">privacy policy</a>.</p>
+</main>
+<script>
+(function () {
+  var FN = 'https://agulweemteoeagscmppy.supabase.co/functions/v1/account-deletion';
+  var token = new URLSearchParams(location.search).get('cancel');
+  var $ = function (id) { return document.getElementById(id); };
+  if (!token) return;
+  $('title').textContent = 'Keep your account?';
+  $('msg').innerHTML = 'Your account is due to be deleted. Cancel the deletion and your accounts will be restored straight away.';
+  $('go').hidden = false;
+  $('go').addEventListener('click', function () {
+    $('go').disabled = true;
+    fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', token: token }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
+      .then(function (res) {
+        if (res.ok) { $('title').textContent = 'Your account is kept'; $('msg').innerHTML = 'The deletion is cancelled and your accounts are restored. <a href="/login.html">Sign in</a> to carry on.'; $('go').hidden = true; }
+        else { $('msg').textContent = res.j.error || 'Something went wrong. Please try again or email us.'; $('go').disabled = false; }
+      })
+      .catch(function () { $('msg').textContent = 'Something went wrong. Please try again or email us.'; $('go').disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>

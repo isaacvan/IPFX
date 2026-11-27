@@ -599,8 +599,23 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--red)"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Sign Out
     </button>
+    <button class="nl" id="deleteAccountBtn" onclick="openDeleteAccount()" style="color:var(--muted);font-size:.78rem;margin-top:2px;">Delete account</button>
   </div>
 </aside>
+<div id="delAcctModal" role="dialog" aria-modal="true" aria-labelledby="delAcctTitle" hidden style="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bgcard,#111);border:1px solid var(--line,#333);border-radius:12px;max-width:440px;width:100%;padding:22px;display:grid;gap:12px;color:var(--text,#eee)">
+    <h2 id="delAcctTitle" style="margin:0;font-size:1.15rem">Delete your account</h2>
+    <p style="margin:0;font-size:.9rem;line-height:1.55">Trading stops straight away. In 7 days we permanently delete your personal information, including your identity documents. Trading statistics are kept only in anonymised form that cannot be linked to you.</p>
+    <p style="margin:0;font-size:.9rem;line-height:1.55">We email you a link to cancel if you change your mind. Close any open trades and pending orders first.</p>
+    <label for="delAcctConfirm" style="font-size:.85rem">Type <strong>DELETE</strong> to confirm</label>
+    <input id="delAcctConfirm" autocomplete="off" style="font-size:16px;padding:10px 12px;border-radius:8px;border:1px solid var(--line,#333);background:transparent;color:inherit">
+    <p id="delAcctMsg" style="margin:0;font-size:.85rem;min-height:1.2em"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" onclick="closeDeleteAccount()" style="padding:10px 16px;border-radius:8px;border:1px solid var(--line,#333);background:transparent;color:inherit;cursor:pointer">Keep my account</button>
+      <button type="button" id="delAcctGo" onclick="confirmDeleteAccount()" style="padding:10px 16px;border-radius:8px;border:0;background:var(--red,#d9545b);color:#fff;font-weight:600;cursor:pointer">Delete my account</button>
+    </div>
+  </div>
+</div>
 
 <!-- Sidebar collapse toggle -->
 <button class="sb-toggle" id="sbToggle" onclick="toggleSidebar()" title="Toggle sidebar">
@@ -1446,6 +1461,23 @@ async function claimInfinity(){
   window.location.href='/start-challenge.html?type=infinity';
 }
 
+// Account deletion (27 Nov 2026): request is checked and scheduled by the account-deletion function; erased after 7 days.
+function openDeleteAccount(){const m=document.getElementById('delAcctModal');m.hidden=false;m.style.display='flex';document.getElementById('delAcctMsg').textContent='';const i=document.getElementById('delAcctConfirm');i.value='';i.focus();}
+function closeDeleteAccount(){const m=document.getElementById('delAcctModal');m.hidden=true;m.style.display='none';}
+async function confirmDeleteAccount(){
+  const msg=document.getElementById('delAcctMsg'),btn=document.getElementById('delAcctGo');
+  if(document.getElementById('delAcctConfirm').value.trim().toUpperCase()!=='DELETE'){msg.textContent='Type DELETE to confirm.';return;}
+  btn.disabled=true;msg.textContent='Deleting…';
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const r=await fetch(SUPABASE_URL+'/functions/v1/account-deletion',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+(session?.access_token||''),apikey:SUPABASE_KEY},body:JSON.stringify({action:'request',confirm:'DELETE'})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.ok){msg.textContent=j.error||'Something went wrong. Nothing was changed.';btn.disabled=false;return;}
+    msg.textContent='Done. Trading has stopped and your account will be deleted on '+j.erase_date+'. We have emailed you a link to cancel. Signing you out…';
+    setTimeout(()=>signOut(),3500);
+  }catch(e){msg.textContent='Something went wrong. Nothing was changed.';btn.disabled=false;}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('delAcctModal').hidden)closeDeleteAccount();});
 async function signOut(){
   // Cover page and clear all tokens SYNCHRONOUSLY before any async work
   const cover=document.createElement('div');
