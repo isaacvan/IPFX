@@ -10,7 +10,7 @@ import { emailShell, render } from "../_shared/lifecycle-email.ts";
 import { pickProvider, sendEmail } from "../_shared/mail-provider.mjs";
 import { blockedBySuppression, isMarketing, normEmail, unsubscribeLinks } from "../_shared/email-suppression.mjs";
 
-const TEMPLATES = ["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated", "infinity_stop_rule_restart", "infinity_account_unlocked_fault", "ipfx_mobile_coming"];
+const TEMPLATES = ["infinity_v2_launch", "infinity_comeback", "infinity_monthly_restart_v2", "infinity_approved_v2", "infinity_approved", "infinity_monthly_restart", "infinity_breach_notice", "infinity_account_reinstated", "infinity_stop_rule_restart", "infinity_account_unlocked_fault", "ipfx_mobile_coming", "data_erasure_confirmation"];
 // Emails that only make sense while the trader has an active Infinity account.
 const NEEDS_ACTIVE = ["infinity_approved_v2", "infinity_monthly_restart_v2", "infinity_approved", "infinity_monthly_restart", "infinity_account_reinstated", "infinity_account_unlocked_fault"];
 
