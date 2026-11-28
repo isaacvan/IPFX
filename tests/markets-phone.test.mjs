@@ -80,6 +80,20 @@ test('early access: on ipfxcapital.com only the listed accounts get the phone ve
   assert.match(js, /if \(!\/\(\^\|\\.\)ipfxcapital\\.com\$\/i\.test\(location\.hostname\)\) return true;/);
   assert.match(js, /if \(EARLY_ACCESS_ACCOUNTS\.includes\(signedInAccountId\(\)\)\) \{ remember\(true\); return true; \}/);
   assert.match(js, /if \(flag === '1'\) remember\(true\); else if \(flag === '0'\) remember\(false\);/, 'trading.html?phone=1 switches it on for this browser');
+  // 28 Nov 2026: the email link claims early access for the account; signed-in phones check the database once.
+  // The network calls live in phone-early-access.js so the phone layer itself never fetches anything.
+  assert.match(js, /if \(!remembered\(\) && typeof window\.ipfxCheckPhoneEarlyAccess === 'function'\) window\.ipfxCheckPhoneEarlyAccess\(\);/);
+  const ea = read('assets/js/phone-early-access.js');
+  assert.match(ea, /rest\/v1\/rpc\/fn_claim_mobile_early_access/);
+  assert.match(ea, /token && \/\^\[0-9a-f\]\{64\}\$\/\.test\(token\)/);
+  assert.match(ea, /mobile_early_access\?select=user_id&claimed_at=not\.is\.null&user_id=eq\./);
+  assert.match(ea, /const DEVICE_KEY = 'ipfx-phone-early-access';/);
+  assert.match(js, /const DEVICE_KEY = 'ipfx-phone-early-access';/, 'both files use the same flag');
+  assert.ok(html.indexOf('phone-early-access.js') > 0 && html.indexOf('phone-early-access.js') < html.indexOf('markets-phone.js?v='), 'loaded before the phone layer');
+  const sql = read('supabase/migrations/20261128100000_mobile_early_access.sql');
+  assert.match(sql, /create policy mobile_early_access_own on public\.mobile_early_access for select to authenticated using \(user_id = auth\.uid\(\)\)/);
+  assert.match(sql, /grant select \(user_id, claimed_at\) on public\.mobile_early_access to authenticated/, 'tokens are never readable from the browser');
+  assert.match(sql, /p_token !~ '\^\[0-9a-f\]\{64\}\$'/);
   // nothing phone-related runs (no layout, no install offer, no service worker) until it is switched on
   const gate = js.indexOf('if (phoneVersionOn()) start();'), body = js.indexOf('function runPhone() {');
   assert.ok(gate > 0 && body > gate);

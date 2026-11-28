@@ -131,5 +131,19 @@ test('mobile-coming news email: marketing (unsubscribe link + list respected), q
   assert.match(sql, /\{\{unsubscribe_link\}\}/);
   assert.doesNotMatch(sql, /—/, 'no em dashes in the email');
   const outbox = fs.readFileSync(new URL('../supabase/functions/email-outbox/index.ts', import.meta.url), 'utf8');
-  assert.match(outbox, /r\.template_key === "infinity_comeback" \|\| r\.template_key === "ipfx_mobile_coming" \? 1 : 0/);
+  assert.match(outbox, /r\.template_key === "infinity_comeback" \|\| r\.template_key === "ipfx_mobile_coming" \|\| r\.template_key === "ipfx_phone_early_access" \? 1 : 0/);
+});
+
+test('phone early-access email: marketing, own link per recipient, queued only by the approved script, no partner name', () => {
+  assert.equal(isMarketing('ipfx_phone_early_access'), true);
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20261128110000_phone_early_access_email.sql', import.meta.url), 'utf8');
+  assert.doesNotMatch(sql, /insert into public\.email_events/, 'the template migration never queues anything');
+  assert.match(sql, /\{\{early_access_url\}\}/); assert.match(sql, /\{\{unsubscribe_link\}\}/);
+  assert.doesNotMatch(sql, /—|\bE8\b/);
+  const q = fs.readFileSync(new URL('../scripts/campaigns/phone-early-access-queue.sql', import.meta.url), 'utf8');
+  assert.match(q, /u\.email_confirmed_at is not null/);
+  assert.match(q, /not exists \(select 1 from public\.email_suppressions s where s\.email = lower\(trim\(u\.email\)\)\)/);
+  assert.match(q, /'https:\/\/ipfxcapital\.com\/trading\.html\?phone=1&ea=' \|\| m\.invite_token/);
+  const outbox = fs.readFileSync(new URL('../supabase/functions/email-outbox/index.ts', import.meta.url), 'utf8');
+  assert.ok(outbox.includes('row.template_key === "ipfx_phone_early_access" && !/^https:') && outbox.includes('trading') && outbox.includes('phone=1&ea=[0-9a-f]{64}$/.test(String(vars.early_access_url'), 'outbox refuses the email without the recipient own link');
 });

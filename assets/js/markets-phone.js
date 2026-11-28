@@ -38,6 +38,8 @@
     if (installedApp()) { remember(true); return true; }
     if (!/(^|\.)ipfxcapital\.com$/i.test(location.hostname)) return true;
     if (EARLY_ACCESS_ACCOUNTS.includes(signedInAccountId())) { remember(true); return true; }
+    // Early access claimed from the email (assets/js/phone-early-access.js asks the database once per account).
+    if (!remembered() && typeof window.ipfxCheckPhoneEarlyAccess === 'function') window.ipfxCheckPhoneEarlyAccess();
     return remembered();
   }
   let started = false;
